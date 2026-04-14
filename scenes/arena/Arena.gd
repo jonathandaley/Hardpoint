@@ -10,12 +10,31 @@ var _player: Node
 var _bot_player: Node
 
 func _ready() -> void:
+	_create_walls()
 	_wire_beacons()
 	_setup_players()
 	match_node.match_ended.connect(_on_match_ended)
 	match_node.start()
 	hud.setup(match_node, player_mech)
 	print("[Arena] Match started. Score to drain: %d" % match_node.score_limit)
+
+func _create_walls() -> void:
+	# Invisible boundary walls at the floor edge (±75m). 10m tall so nothing flies over.
+	var walls := [
+		[Vector3(  0, 5,  75), Vector3(150, 10, 1)],
+		[Vector3(  0, 5, -75), Vector3(150, 10, 1)],
+		[Vector3( 75, 5,   0), Vector3(1, 10, 150)],
+		[Vector3(-75, 5,   0), Vector3(1, 10, 150)],
+	]
+	for w in walls:
+		var body := StaticBody3D.new()
+		body.position = w[0]
+		var col := CollisionShape3D.new()
+		var shape := BoxShape3D.new()
+		shape.size = w[1]
+		col.shape = shape
+		body.add_child(col)
+		add_child(body)
 
 func _wire_beacons() -> void:
 	for child in get_children():

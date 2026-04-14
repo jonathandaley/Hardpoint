@@ -31,9 +31,9 @@ func _drain_tick() -> void:
 	if a == b:
 		return
 	if a > b:
-		scores[1] = max(0, scores[1] - points_per_tick)
+		scores[1] = max(0, scores[1] - points_per_tick * (a - b))
 	else:
-		scores[0] = max(0, scores[0] - points_per_tick)
+		scores[0] = max(0, scores[0] - points_per_tick * (b - a))
 	print("[Match] Scores  A:%d  B:%d  |  Beacons  A:%d  B:%d  neutral:%d" % [
 		scores[0], scores[1], a, b, beacons.size() - a - b
 	])

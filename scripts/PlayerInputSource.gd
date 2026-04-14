@@ -16,6 +16,8 @@ func get_move_direction() -> Vector2:
 func get_look_delta() -> Vector2:
 	var delta := _look_delta
 	_look_delta = Vector2.ZERO
+	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+		return Vector2.ZERO
 	return delta
 
 func is_firing_primary() -> bool:
