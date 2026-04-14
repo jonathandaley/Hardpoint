@@ -1,6 +1,7 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/Mech.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/RaycastGun.tscn" id="5"]
 
 [sub_resource type="CapsuleShape3D" id="2"]
 radius = 0.5
@@ -30,6 +31,8 @@ position = Vector3(-0.7, 1.1, 0.2)
 
 [node name="HardpointRight" type="Node3D" parent="."]
 position = Vector3(0.7, 1.1, 0.2)
+
+[node name="RaycastGun" parent="HardpointRight" instance=ExtResource("5")]
 
 [node name="CameraArm" type="SpringArm3D" parent="."]
 position = Vector3(0, 1.5, 0)
