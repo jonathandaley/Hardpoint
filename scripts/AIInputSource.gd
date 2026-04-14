@@ -10,6 +10,7 @@ const BURST_FIRE    := 1.6   # seconds of continuous fire per burst
 const BURST_PAUSE   := 0.6   # seconds of pause between bursts
 
 var _target: Node3D = null
+var _beacons: Array = []
 var _look_delta: Vector2 = Vector2.ZERO
 var _move_dir: Vector2 = Vector2.ZERO
 var _firing: bool = false
@@ -21,13 +22,31 @@ var _jitter: Vector2 = Vector2.ZERO
 var _jitter_timer: float = 0.0
 
 func _ready() -> void:
-	call_deferred("_find_target")
+	call_deferred("_find_targets")
 
-func _find_target() -> void:
+func _find_targets() -> void:
 	for mech in get_tree().get_nodes_in_group("mechs"):
 		if mech.get("team") == 0:
 			_target = mech
 			break
+	_beacons = get_tree().get_nodes_in_group("beacons")
+
+func _pick_target_beacon(bot_mech: Node3D) -> Node:
+	var best: Node = null
+	var best_score := -INF
+	for b in _beacons:
+		if not is_instance_valid(b):
+			continue
+		var owner: int = b.get("owner_team") if b.get("owner_team") != null else -1
+		if owner == 1:   # already ours — skip
+			continue
+		var priority: float = 10.0 if owner == -1 else 5.0   # neutral > enemy
+		var dist: float = bot_mech.global_position.distance_to(b.global_position)
+		var score: float = priority - dist * 0.05
+		if score > best_score:
+			best_score = score
+			best = b
+	return best
 
 func _process(delta: float) -> void:
 	var bot_mech: Node3D = get_parent().get("pawn")
@@ -64,18 +83,33 @@ func _process(delta: float) -> void:
 		var turn_v: float        = clamp(pitch_diff, -TURN_SPEED * delta, TURN_SPEED * delta)
 		_look_delta.y = -turn_v / sens
 
-	# Movement — advance, circle-strafe in range, retreat if too close
-	_strafe_timer -= delta
-	if _strafe_timer <= 0.0:
-		_strafe_timer = randf_range(1.5, 3.0)
-		_strafe_sign  = 1.0 if randf() > 0.5 else -1.0
-
-	if dist > ENGAGE_DIST:
-		_move_dir = Vector2(0.0, -1.0)
-	elif dist < RETREAT_DIST:
-		_move_dir = Vector2(0.0, 1.0)
+	# Movement — navigate to uncaptured beacon when one exists, else fight
+	var beacon := _pick_target_beacon(bot_mech)
+	if beacon != null:
+		var to_beacon: Vector3 = beacon.global_position - bot_mech.global_position
+		to_beacon.y = 0.0
+		var beacon_dist: float = to_beacon.length()
+		if beacon_dist > 3.0:
+			# Walk toward beacon in mech-local space
+			var fwd   := -bot_mech.global_transform.basis.z
+			var right := bot_mech.global_transform.basis.x
+			to_beacon = to_beacon / beacon_dist
+			_move_dir = Vector2(to_beacon.dot(right), -to_beacon.dot(fwd)).normalized()
+		else:
+			_move_dir = Vector2.ZERO   # standing on beacon — hold and cap
 	else:
-		_move_dir = Vector2(_strafe_sign, -0.3).normalized()
+		# All beacons owned — circle-strafe and fight
+		_strafe_timer -= delta
+		if _strafe_timer <= 0.0:
+			_strafe_timer = randf_range(1.5, 3.0)
+			_strafe_sign  = 1.0 if randf() > 0.5 else -1.0
+
+		if dist > ENGAGE_DIST:
+			_move_dir = Vector2(0.0, -1.0)
+		elif dist < RETREAT_DIST:
+			_move_dir = Vector2(0.0, 1.0)
+		else:
+			_move_dir = Vector2(_strafe_sign, -0.3).normalized()
 
 	# Aim jitter — slow random drift that makes the bot miss occasionally
 	_jitter_timer -= delta
