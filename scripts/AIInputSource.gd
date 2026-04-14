@@ -5,9 +5,9 @@ const TURN_SPEED    := 1.8   # rad/s
 const ENGAGE_DIST   := 35.0  # close enough to shoot
 const RETREAT_DIST  := 8.0   # too close — back off
 const AIM_THRESHOLD := 0.25  # fire when within this many radians of target
-const AIM_SPREAD    := 0.08  # max random jitter added to aim (radians)
-const BURST_FIRE    := 1.2   # seconds of continuous fire per burst
-const BURST_PAUSE   := 1.0   # seconds of pause between bursts
+const AIM_SPREAD    := 0.04  # max random jitter added to aim (radians)
+const BURST_FIRE    := 1.6   # seconds of continuous fire per burst
+const BURST_PAUSE   := 0.6   # seconds of pause between bursts
 
 var _target: Node3D = null
 var _look_delta: Vector2 = Vector2.ZERO
