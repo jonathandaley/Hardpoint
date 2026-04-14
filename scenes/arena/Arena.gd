@@ -15,7 +15,7 @@ func _ready() -> void:
 	_setup_players()
 	match_node.match_ended.connect(_on_match_ended)
 	match_node.start()
-	hud.setup(match_node, player_mech)
+	hud.setup(match_node, player_mech, 0)
 	print("[Arena] Match started. Score to drain: %d" % match_node.score_limit)
 
 func _create_walls() -> void:
@@ -93,4 +93,5 @@ func on_player_eliminated(p: Node) -> void:
 
 func _on_match_ended(winning_team: int) -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	hud.show_result(winning_team)
 	print("[Arena] Match over. Team %d wins." % winning_team)
