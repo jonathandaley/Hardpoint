@@ -1,7 +1,7 @@
 extends Control
 
 const GAP          := 2.0
-const LINE_LEN     := 2.5
+const LINE_LEN     := 3.0
 const LINE_WIDTH   := 1.0
 const COLOR        := Color(1.0, 1.0, 1.0, 0.9)
 
@@ -22,7 +22,7 @@ func _process(delta: float) -> void:
 		queue_redraw()
 
 func _draw() -> void:
-	var c := size * 0.5
+	var c := (size * 0.5).round()
 	draw_rect(Rect2(c - Vector2(LINE_WIDTH * 0.5, LINE_WIDTH * 0.5), Vector2(LINE_WIDTH, LINE_WIDTH)), COLOR)
 	draw_line(c + Vector2(0, -(GAP + LINE_LEN)), c + Vector2(0, -GAP),          COLOR, LINE_WIDTH)
 	draw_line(c + Vector2(0,  GAP),              c + Vector2(0,  GAP + LINE_LEN), COLOR, LINE_WIDTH)
