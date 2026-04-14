@@ -40,6 +40,7 @@ func _setup_players() -> void:
 	_player.set("pilot", pilot)
 
 	_player.call("possess", player_mech)
+	player_mech.died.connect(Callable(_player, "on_pawn_destroyed"))
 
 	# Bot player
 	_bot_player = Node.new()
@@ -54,6 +55,7 @@ func _setup_players() -> void:
 	_bot_player.set("input_source", ai_input)
 
 	_bot_player.call("possess", bot_mech)
+	bot_mech.died.connect(Callable(_bot_player, "on_pawn_destroyed"))
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):

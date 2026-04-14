@@ -3,10 +3,14 @@ extends CharacterBody3D
 # The Pawn. Handles movement and weapon firing.
 # Ignorant of who pilots it — all control comes through InputSource.
 
+signal died
+
 @export var base_walk_speed: float = 7.0
 @export var base_reload_rate: float = 1.0
+@export var max_health: float = 100.0
 @export var team: int = 0
 
+var health: float = 0.0
 var _modifiers: Dictionary = {}
 var _input_source: Node = null   # InputSource — untyped to avoid cache dependency
 var _camera_pitch: float = -0.3  # matches CameraArm initial rotation.x
@@ -20,6 +24,24 @@ var walk_speed: float:
 
 func _ready() -> void:
 	add_to_group("mechs")
+	health = max_health
+
+func take_damage(amount: float) -> void:
+	if health <= 0.0:
+		return
+	health -= amount
+	print("[Mech] %s  %.0f / %.0f HP" % [name, health, max_health])
+	if health <= 0.0:
+		health = 0.0
+		_die()
+
+func _die() -> void:
+	print("[Mech] %s destroyed" % name)
+	set_physics_process(false)
+	set_process(false)
+	$CollisionShape3D.disabled = true
+	visible = false
+	died.emit()
 
 func set_input_source(source: Node) -> void:
 	_input_source = source
