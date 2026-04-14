@@ -1,6 +1,5 @@
 extends Control
 
-const DOT_RADIUS   := 0.5
 const GAP          := 2.0
 const LINE_LEN     := 2.5
 const LINE_WIDTH   := 1.0
@@ -24,7 +23,7 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var c := size * 0.5
-	draw_circle(c, DOT_RADIUS, COLOR)
+	draw_rect(Rect2(c - Vector2(LINE_WIDTH * 0.5, LINE_WIDTH * 0.5), Vector2(LINE_WIDTH, LINE_WIDTH)), COLOR)
 	draw_line(c + Vector2(0, -(GAP + LINE_LEN)), c + Vector2(0, -GAP),          COLOR, LINE_WIDTH)
 	draw_line(c + Vector2(0,  GAP),              c + Vector2(0,  GAP + LINE_LEN), COLOR, LINE_WIDTH)
 	draw_line(c + Vector2(-(GAP + LINE_LEN), 0), c + Vector2(-GAP, 0),           COLOR, LINE_WIDTH)
