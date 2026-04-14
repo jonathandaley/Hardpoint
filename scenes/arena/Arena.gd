@@ -12,6 +12,7 @@ var _match_over: bool = false
 
 func _ready() -> void:
 	_create_walls()
+	_create_cover()
 	_wire_beacons()
 	_setup_players()
 	match_node.match_ended.connect(_on_match_ended)
@@ -38,6 +39,46 @@ func _create_walls() -> void:
 		shape.size = w[1]
 		col.shape = shape
 		body.add_child(col)
+		add_child(body)
+
+func _create_cover() -> void:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.50, 0.47, 0.44, 1)
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+
+	# [world_position, box_size]
+	var blocks: Array = [
+		# Mid-field: four walls that break the east-west spawn sightline
+		# and create cover corridors running north-south
+		[Vector3(-10, 1.5,  10), Vector3(2, 3, 8)],
+		[Vector3(-10, 1.5, -10), Vector3(2, 3, 8)],
+		[Vector3( 10, 1.5,  10), Vector3(2, 3, 8)],
+		[Vector3( 10, 1.5, -10), Vector3(2, 3, 8)],
+		# Center beacon (0,0,0): short flanking walls east and west
+		[Vector3(-6, 1.25, 0), Vector3(1, 2.5, 6)],
+		[Vector3( 6, 1.25, 0), Vector3(1, 2.5, 6)],
+		# Beacon 2 (-28,0,-28): L-shaped approach cover
+		[Vector3(-20, 1.25, -28), Vector3(1, 2.5, 8)],
+		[Vector3(-28, 1.25, -20), Vector3(8, 2.5, 1)],
+		# Beacon 3 (28,0,28): mirrored L
+		[Vector3( 20, 1.25,  28), Vector3(1, 2.5, 8)],
+		[Vector3( 28, 1.25,  20), Vector3(8, 2.5, 1)],
+	]
+
+	for b in blocks:
+		var body := StaticBody3D.new()
+		body.position = b[0]
+		var col := CollisionShape3D.new()
+		var shape := BoxShape3D.new()
+		shape.size = b[1]
+		col.shape = shape
+		body.add_child(col)
+		var mesh_inst := MeshInstance3D.new()
+		var mesh := BoxMesh.new()
+		mesh.size = b[1]
+		mesh_inst.mesh = mesh
+		mesh_inst.set_surface_override_material(0, mat)
+		body.add_child(mesh_inst)
 		add_child(body)
 
 func _wire_beacons() -> void:
