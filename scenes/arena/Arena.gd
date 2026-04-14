@@ -4,6 +4,7 @@ extends Node3D
 @onready var match_node: Node = $BeaconMatch
 @onready var player_mech: CharacterBody3D = $PlayerMech
 @onready var bot_mech: CharacterBody3D = $BotMech
+@onready var hud: CanvasLayer = $HUD
 
 var _player: Node
 var _bot_player: Node
@@ -13,6 +14,7 @@ func _ready() -> void:
 	_setup_players()
 	match_node.match_ended.connect(_on_match_ended)
 	match_node.start()
+	hud.setup(match_node, player_mech)
 	print("[Arena] Match started. Score to drain: %d" % match_node.score_limit)
 
 func _wire_beacons() -> void:
