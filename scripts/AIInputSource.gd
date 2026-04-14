@@ -5,6 +5,9 @@ const TURN_SPEED    := 1.8   # rad/s
 const ENGAGE_DIST   := 35.0  # close enough to shoot
 const RETREAT_DIST  := 8.0   # too close — back off
 const AIM_THRESHOLD := 0.25  # fire when within this many radians of target
+const AIM_SPREAD    := 0.08  # max random jitter added to aim (radians)
+const BURST_FIRE    := 1.2   # seconds of continuous fire per burst
+const BURST_PAUSE   := 1.0   # seconds of pause between bursts
 
 var _target: Node3D = null
 var _look_delta: Vector2 = Vector2.ZERO
@@ -12,6 +15,10 @@ var _move_dir: Vector2 = Vector2.ZERO
 var _firing: bool = false
 var _strafe_timer: float = 0.0
 var _strafe_sign: float = 1.0
+var _burst_timer: float = BURST_FIRE
+var _in_burst: bool = true
+var _jitter: Vector2 = Vector2.ZERO
+var _jitter_timer: float = 0.0
 
 func _ready() -> void:
 	call_deferred("_find_target")
@@ -70,8 +77,22 @@ func _process(delta: float) -> void:
 	else:
 		_move_dir = Vector2(_strafe_sign, -0.3).normalized()
 
-	# Fire when aimed closely enough and in range
-	_firing = abs(angle_h) < AIM_THRESHOLD and dist < ENGAGE_DIST + 15.0
+	# Aim jitter — slow random drift that makes the bot miss occasionally
+	_jitter_timer -= delta
+	if _jitter_timer <= 0.0:
+		_jitter_timer = randf_range(0.08, 0.18)
+		_jitter = Vector2(randf_range(-AIM_SPREAD, AIM_SPREAD),
+						  randf_range(-AIM_SPREAD, AIM_SPREAD))
+	_look_delta += _jitter / sens
+
+	# Burst fire — shoot for BURST_FIRE seconds, pause for BURST_PAUSE seconds
+	_burst_timer -= delta
+	if _burst_timer <= 0.0:
+		_in_burst = not _in_burst
+		_burst_timer = BURST_FIRE if _in_burst else BURST_PAUSE
+
+	# Fire when aimed closely enough, in range, and in burst window
+	_firing = _in_burst and abs(angle_h) < AIM_THRESHOLD and dist < ENGAGE_DIST + 15.0
 
 func get_move_direction() -> Vector2:
 	return _move_dir
