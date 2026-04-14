@@ -1,5 +1,5 @@
 class_name BeaconMatch
-extends Match
+extends "res://scripts/Match.gd"
 # Drain model: both teams start at score_limit (1000).
 # Each tick the team holding fewer beacons loses points.
 # First to 0 loses.
@@ -14,7 +14,7 @@ func start() -> void:
 	super.start()
 	scores = [score_limit, score_limit]
 
-func register_beacon(beacon: Beacon) -> void:
+func register_beacon(beacon: Node) -> void:
 	beacons.append(beacon)
 	beacon.captured.connect(_on_beacon_captured)
 

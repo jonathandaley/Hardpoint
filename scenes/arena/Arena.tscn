@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scenes/arena/Arena.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/BeaconMatch.gd" id="2"]
@@ -25,8 +25,6 @@ size = Vector3(150, 0.2, 150)
 [sub_resource type="StandardMaterial3D" id="10"]
 albedo_color = Color(0.28, 0.28, 0.28, 1)
 shading_mode = 0
-
-[sub_resource type="DirectionalLight3D" id="11"]
 
 [node name="Arena" type="Node3D"]
 script = ExtResource("1")

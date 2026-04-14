@@ -13,3 +13,6 @@ func is_firing_primary() -> bool:
 
 func is_firing_secondary() -> bool:
 	return false
+
+func is_human_input() -> bool:
+	return false

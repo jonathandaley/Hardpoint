@@ -41,5 +41,5 @@ func _end_match(winning_team: int) -> void:
 	running = false
 	match_ended.emit(winning_team)
 
-func on_player_eliminated(_player: Player) -> void:
+func on_player_eliminated(_player: Node) -> void:
 	pass

@@ -1,5 +1,5 @@
 class_name PlayerInputSource
-extends InputSource
+extends "res://scripts/InputSource.gd"
 
 var _look_delta: Vector2 = Vector2.ZERO
 
@@ -23,3 +23,6 @@ func is_firing_primary() -> bool:
 
 func is_firing_secondary() -> bool:
 	return Input.is_action_pressed("fire_secondary")
+
+func is_human_input() -> bool:
+	return true

@@ -12,7 +12,7 @@ enum State { NEUTRAL, TEAM_A, TEAM_B, CONTESTED }
 var state: State = State.NEUTRAL
 var owner_team: int = -1   # -1 neutral, 0 team A, 1 team B
 
-var _capturers: Dictionary = {}   # team_id -> Array of mechs in zone
+var _capturers: Dictionary = {}   # team_id -> Array of bodies in zone
 var _capturing_team: int = -1
 var _capture_progress: float = 0.0
 
@@ -20,7 +20,12 @@ var _capture_progress: float = 0.0
 var _cap_mat: StandardMaterial3D
 
 func _ready() -> void:
-	_cap_mat = _cap_mesh.mesh.surface_get_material(0).duplicate() as StandardMaterial3D
+	add_to_group("beacons")
+	# Surface override takes priority; fall back to mesh material; else create fresh.
+	var existing: Material = _cap_mesh.get_surface_override_material(0)
+	if existing == null:
+		existing = _cap_mesh.mesh.surface_get_material(0)
+	_cap_mat = (existing.duplicate() if existing != null else StandardMaterial3D.new()) as StandardMaterial3D
 	_cap_mesh.set_surface_override_material(0, _cap_mat)
 	$CaptureZone.body_entered.connect(_on_body_entered)
 	$CaptureZone.body_exited.connect(_on_body_exited)
@@ -61,24 +66,26 @@ func _update_capture(delta: float) -> void:
 
 func _teams_present() -> Array:
 	var out: Array = []
-	for team in _capturers:
-		if not _capturers[team].is_empty():
-			out.append(team)
+	for t in _capturers:
+		if not _capturers[t].is_empty():
+			out.append(t)
 	return out
 
 func _on_body_entered(body: Node3D) -> void:
-	if body is Mech:
-		var t: int = body.team
-		if not _capturers.has(t):
-			_capturers[t] = []
-		if body not in _capturers[t]:
-			_capturers[t].append(body)
+	if not body.is_in_group("mechs"):
+		return
+	var t: int = body.get("team") if body.get("team") != null else 0
+	if not _capturers.has(t):
+		_capturers[t] = []
+	if body not in _capturers[t]:
+		_capturers[t].append(body)
 
 func _on_body_exited(body: Node3D) -> void:
-	if body is Mech:
-		var t: int = body.team
-		if _capturers.has(t):
-			_capturers[t].erase(body)
+	if not body.is_in_group("mechs"):
+		return
+	var t: int = body.get("team") if body.get("team") != null else 0
+	if _capturers.has(t):
+		_capturers[t].erase(body)
 
 func _update_visuals() -> void:
 	match state:

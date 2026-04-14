@@ -1,5 +1,5 @@
 class_name AIInputSource
-extends InputSource
+extends "res://scripts/InputSource.gd"
 # Stub AI — wanders randomly. Stage 3 will replace this with real behaviour.
 
 var _wander_direction: Vector2 = Vector2.ZERO

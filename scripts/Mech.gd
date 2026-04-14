@@ -8,7 +8,7 @@ extends CharacterBody3D
 @export var team: int = 0
 
 var _modifiers: Dictionary = {}
-var _input_source: InputSource = null
+var _input_source: Node = null   # InputSource — untyped to avoid cache dependency
 var _camera_pitch: float = -0.3  # matches CameraArm initial rotation.x
 
 @onready var camera_arm: SpringArm3D = $CameraArm
@@ -18,9 +18,12 @@ var _camera_pitch: float = -0.3  # matches CameraArm initial rotation.x
 var walk_speed: float:
 	get: return base_walk_speed * _modifiers.get("walk_speed", 1.0)
 
-func set_input_source(source: InputSource) -> void:
+func _ready() -> void:
+	add_to_group("mechs")
+
+func set_input_source(source: Node) -> void:
 	_input_source = source
-	if source is PlayerInputSource:
+	if source != null and source.has_method("is_human_input") and source.is_human_input():
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func apply_modifier(stat: String, value: float) -> void:
@@ -41,7 +44,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 func _handle_look() -> void:
-	var look := _input_source.get_look_delta()
+	var look: Vector2 = _input_source.get_look_delta()
 	if look == Vector2.ZERO:
 		return
 	var sens: float = Game.settings.get("mouse_sensitivity", 0.003)
@@ -50,7 +53,7 @@ func _handle_look() -> void:
 	camera_arm.rotation.x = _camera_pitch
 
 func _handle_movement(delta: float) -> void:
-	var dir2d := _input_source.get_move_direction()
+	var dir2d: Vector2 = _input_source.get_move_direction()
 	if dir2d == Vector2.ZERO:
 		velocity.x = move_toward(velocity.x, 0.0, walk_speed * 8.0 * delta)
 		velocity.z = move_toward(velocity.z, 0.0, walk_speed * 8.0 * delta)

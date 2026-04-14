@@ -1,12 +1,12 @@
 class_name Arena
 extends Node3D
 
-@onready var match_node: BeaconMatch = $BeaconMatch
-@onready var player_mech: Mech = $PlayerMech
-@onready var bot_mech: Mech = $BotMech
+@onready var match_node: Node = $BeaconMatch
+@onready var player_mech: CharacterBody3D = $PlayerMech
+@onready var bot_mech: CharacterBody3D = $BotMech
 
-var _player: Player
-var _bot_player: Player
+var _player: Node
+var _bot_player: Node
 
 func _ready() -> void:
 	_wire_beacons()
@@ -17,33 +17,43 @@ func _ready() -> void:
 
 func _wire_beacons() -> void:
 	for child in get_children():
-		if child is Beacon:
+		if child.is_in_group("beacons"):
 			match_node.register_beacon(child)
 
 func _setup_players() -> void:
 	# Human player
-	_player = Player.new()
+	_player = Node.new()
+	_player.set_script(load("res://scripts/Player.gd"))
 	_player.name = "Player"
-	_player.team = 0
-	var input := PlayerInputSource.new()
-	_player.add_child(input)
-	_player.input_source = input
-	var pilot := Pilot.new()
-	pilot.pilot_name = Game.profile.get("pilot_name", "Pilot")
-	_player.add_child(pilot)
-	_player.pilot = pilot
+	_player.set("team", 0)
 	add_child(_player)
-	_player.possess(player_mech)
+
+	var input := Node.new()
+	input.set_script(load("res://scripts/PlayerInputSource.gd"))
+	_player.add_child(input)
+	_player.set("input_source", input)
+
+	var pilot := Node.new()
+	pilot.set_script(load("res://scripts/Pilot.gd"))
+	pilot.set("pilot_name", Game.profile.get("pilot_name", "Pilot"))
+	_player.add_child(pilot)
+	_player.set("pilot", pilot)
+
+	_player.call("possess", player_mech)
 
 	# Bot player
-	_bot_player = Player.new()
+	_bot_player = Node.new()
+	_bot_player.set_script(load("res://scripts/Player.gd"))
 	_bot_player.name = "BotPlayer"
-	_bot_player.team = 1
-	var ai_input := AIInputSource.new()
-	_bot_player.add_child(ai_input)
-	_bot_player.input_source = ai_input
+	_bot_player.set("team", 1)
 	add_child(_bot_player)
-	_bot_player.possess(bot_mech)
+
+	var ai_input := Node.new()
+	ai_input.set_script(load("res://scripts/AIInputSource.gd"))
+	_bot_player.add_child(ai_input)
+	_bot_player.set("input_source", ai_input)
+
+	_bot_player.call("possess", bot_mech)
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
@@ -52,7 +62,7 @@ func _input(event: InputEvent) -> void:
 		else:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
-func on_player_eliminated(p: Player) -> void:
+func on_player_eliminated(p: Node) -> void:
 	if p == _player:
 		print("[Arena] Player eliminated — game over.")
 	else:
