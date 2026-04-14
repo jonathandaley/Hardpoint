@@ -37,6 +37,9 @@ func _check_win() -> void:
 	if time_limit > 0.0 and elapsed >= time_limit:
 		_end_match(0 if scores[0] >= scores[1] else 1)
 
+func force_end(winning_team: int) -> void:
+	_end_match(winning_team)
+
 func _end_match(winning_team: int) -> void:
 	running = false
 	match_ended.emit(winning_team)

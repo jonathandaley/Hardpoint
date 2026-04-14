@@ -86,10 +86,9 @@ func _input(event: InputEvent) -> void:
 			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func on_player_eliminated(p: Node) -> void:
-	if p == _player:
-		print("[Arena] Player eliminated — game over.")
-	else:
-		print("[Arena] Bot eliminated.")
+	var losing_team: int = p.get("team") if p.get("team") != null else 0
+	match_node.force_end(1 - losing_team)
+	print("[Arena] Player eliminated." if p == _player else "[Arena] Bot eliminated.")
 
 func _on_match_ended(winning_team: int) -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
