@@ -8,6 +8,7 @@ extends Node3D
 
 var _player: Node
 var _bot_player: Node
+var _match_over: bool = false
 
 func _ready() -> void:
 	_create_walls()
@@ -79,6 +80,9 @@ func _setup_players() -> void:
 	bot_mech.died.connect(Callable(_bot_player, "on_pawn_destroyed"))
 
 func _input(event: InputEvent) -> void:
+	if _match_over and event.is_action_pressed("ui_accept"):
+		get_tree().reload_current_scene()
+		return
 	if event.is_action_pressed("ui_cancel"):
 		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -91,6 +95,7 @@ func on_player_eliminated(p: Node) -> void:
 	print("[Arena] Player eliminated." if p == _player else "[Arena] Bot eliminated.")
 
 func _on_match_ended(winning_team: int) -> void:
+	_match_over = true
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	hud.show_result(winning_team)
 	print("[Arena] Match over. Team %d wins." % winning_team)

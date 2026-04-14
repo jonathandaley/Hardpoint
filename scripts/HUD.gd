@@ -4,6 +4,7 @@ extends CanvasLayer
 @onready var score_label: Label = $ScoreLabel
 @onready var crosshair: Label = $Crosshair
 @onready var result_label: Label = $ResultLabel
+@onready var restart_label: Label = $RestartLabel
 
 var _match: Node = null
 var _player_mech: Node = null
@@ -17,6 +18,7 @@ func setup(match_node: Node, player_mech: Node, player_team: int) -> void:
 func show_result(winning_team: int) -> void:
 	result_label.text = "YOU WIN" if winning_team == _player_team else "YOU LOSE"
 	result_label.visible = true
+	restart_label.visible = true
 	crosshair.visible = false
 
 func _process(_delta: float) -> void:
