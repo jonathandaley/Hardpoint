@@ -1,6 +1,6 @@
 extends Control
 
-const GAP          := 2.0
+const GAP          := 1.0
 const LINE_LEN     := 3.0
 const LINE_WIDTH   := 1.0
 const COLOR        := Color(1.0, 1.0, 1.0, 0.9)
