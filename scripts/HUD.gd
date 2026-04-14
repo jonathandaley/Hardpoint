@@ -15,6 +15,9 @@ func setup(match_node: Node, player_mech: Node, player_team: int) -> void:
 	_player_mech = player_mech
 	_player_team = player_team
 
+func register_hit() -> void:
+	crosshair.register_hit()
+
 func show_result(winning_team: int) -> void:
 	result_label.text = "YOU WIN" if winning_team == _player_team else "YOU LOSE"
 	result_label.visible = true

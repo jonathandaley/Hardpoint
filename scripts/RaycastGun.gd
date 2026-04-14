@@ -3,6 +3,8 @@ extends "res://scripts/WeaponBase.gd"
 # Hitscan weapon. Ray fires from screen centre in camera's forward direction.
 # Muzzle flash is cosmetic — stays at hardpoint position.
 
+signal hit_confirmed
+
 @onready var muzzle_flash: MeshInstance3D = $MuzzleFlash
 var _flash_timer: float = 0.0
 
@@ -32,7 +34,7 @@ func _do_fire() -> void:
 		hit_pos = result.position
 		if result.collider.has_method("take_damage"):
 			result.collider.take_damage(damage)
-			_spawn_impact(hit_pos)
+			hit_confirmed.emit()
 
 	_spawn_tracer(muzzle_flash.global_position, hit_pos)
 	muzzle_flash.visible = true
@@ -53,16 +55,3 @@ func _spawn_tracer(origin: Vector3, target: Vector3) -> void:
 	tracer.look_at(target)
 	get_tree().create_timer(0.05).timeout.connect(tracer.queue_free)
 
-func _spawn_impact(pos: Vector3) -> void:
-	var flash := MeshInstance3D.new()
-	var mesh := SphereMesh.new()
-	mesh.radius = 0.18
-	mesh.height = 0.36
-	flash.mesh = mesh
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(1.0, 0.55, 0.1, 1)
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	flash.set_surface_override_material(0, mat)
-	get_tree().current_scene.add_child(flash)
-	flash.global_position = pos
-	get_tree().create_timer(0.12).timeout.connect(flash.queue_free)
