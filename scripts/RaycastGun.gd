@@ -14,7 +14,8 @@ func _process(delta: float) -> void:
 			muzzle_flash.visible = false
 
 func _do_fire() -> void:
-	var cam := get_viewport().get_camera_3d()
+	var mech: Node3D = get_parent().get_parent()  # hardpoint → mech
+	var cam := mech.get_node_or_null("CameraArm/Camera3D") as Camera3D
 	if cam == null:
 		return
 
@@ -23,7 +24,6 @@ func _do_fire() -> void:
 
 	var space := get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(from, to)
-	var mech: Node3D = get_parent().get_parent()  # hardpoint → mech
 	query.exclude = [mech.get_rid()]
 
 	var result := space.intersect_ray(query)
