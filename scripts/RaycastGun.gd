@@ -48,9 +48,9 @@ func _spawn_tracer(origin: Vector3, target: Vector3) -> void:
 	mat.albedo_color = Color(1.0, 0.95, 0.5, 1)
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	tracer.set_surface_override_material(0, mat)
+	get_tree().current_scene.add_child(tracer)
 	tracer.global_position = (origin + target) * 0.5
 	tracer.look_at(target)
-	get_tree().current_scene.add_child(tracer)
 	get_tree().create_timer(0.05).timeout.connect(tracer.queue_free)
 
 func _spawn_impact(pos: Vector3) -> void:
@@ -63,6 +63,6 @@ func _spawn_impact(pos: Vector3) -> void:
 	mat.albedo_color = Color(1.0, 0.55, 0.1, 1)
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	flash.set_surface_override_material(0, mat)
-	flash.global_position = pos
 	get_tree().current_scene.add_child(flash)
+	flash.global_position = pos
 	get_tree().create_timer(0.12).timeout.connect(flash.queue_free)
