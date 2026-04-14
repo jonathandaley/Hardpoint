@@ -45,10 +45,14 @@ func _process(delta: float) -> void:
 	var turn_h: float = clamp(angle_h, -TURN_SPEED * delta, TURN_SPEED * delta)
 	_look_delta.x = -turn_h / sens
 
-	# Vertical aim — tilt camera arm to track height difference
+	# Vertical aim — compute angle from the camera's actual position to target centre
 	var cam_arm := bot_mech.get_node_or_null("CameraArm") as SpringArm3D
-	if cam_arm:
-		var desired_pitch: float = atan2(-to_target.y, maxf(h_dist, 0.01))
+	var cam     := bot_mech.get_node_or_null("CameraArm/Camera3D") as Camera3D
+	if cam_arm and cam:
+		var target_centre := _target.global_position + Vector3(0, 1.0, 0)
+		var cam_to_target := target_centre - cam.global_position
+		var cam_h_dist: float = Vector2(cam_to_target.x, cam_to_target.z).length()
+		var desired_pitch: float = atan2(cam_to_target.y, maxf(cam_h_dist, 0.01))
 		var pitch_diff: float    = desired_pitch - cam_arm.rotation.x
 		var turn_v: float        = clamp(pitch_diff, -TURN_SPEED * delta, TURN_SPEED * delta)
 		_look_delta.y = -turn_v / sens
