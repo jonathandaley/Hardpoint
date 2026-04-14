@@ -26,14 +26,43 @@ func _do_fire() -> void:
 	var query := PhysicsRayQueryParameters3D.create(from, to)
 	query.exclude = [mech.get_rid()]
 
+	var hit_pos := to
 	var result := space.intersect_ray(query)
 	if result:
-		print("[Gun] Hit %s at %.1f %.1f %.1f" % [
-			result.collider.name,
-			result.position.x, result.position.y, result.position.z
-		])
+		hit_pos = result.position
 		if result.collider.has_method("take_damage"):
 			result.collider.take_damage(damage)
+		_spawn_impact(hit_pos)
 
+	_spawn_tracer(from, hit_pos)
 	muzzle_flash.visible = true
 	_flash_timer = 0.08
+
+func _spawn_tracer(origin: Vector3, target: Vector3) -> void:
+	var tracer := MeshInstance3D.new()
+	var mesh := BoxMesh.new()
+	var dist := origin.distance_to(target)
+	mesh.size = Vector3(0.025, 0.025, dist)
+	tracer.mesh = mesh
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(1.0, 0.95, 0.5, 1)
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	tracer.set_surface_override_material(0, mat)
+	tracer.global_position = (origin + target) * 0.5
+	tracer.look_at(target)
+	get_tree().current_scene.add_child(tracer)
+	get_tree().create_timer(0.05).timeout.connect(tracer.queue_free)
+
+func _spawn_impact(pos: Vector3) -> void:
+	var flash := MeshInstance3D.new()
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.18
+	mesh.height = 0.36
+	flash.mesh = mesh
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(1.0, 0.55, 0.1, 1)
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	flash.set_surface_override_material(0, mat)
+	flash.global_position = pos
+	get_tree().current_scene.add_child(flash)
+	get_tree().create_timer(0.12).timeout.connect(flash.queue_free)
