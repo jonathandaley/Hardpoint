@@ -1,6 +1,6 @@
 extends Control
 
-const DOT_RADIUS   := 0.75
+const DOT_RADIUS   := 0.5
 const GAP          := 2.0
 const LINE_LEN     := 2.5
 const LINE_WIDTH   := 1.0
