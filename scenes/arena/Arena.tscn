@@ -1,0 +1,68 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://scenes/arena/Arena.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/BeaconMatch.gd" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/mech/Mech.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/beacon/Beacon.tscn" id="4"]
+
+[sub_resource type="ProceduralSkyMaterial" id="5"]
+
+[sub_resource type="Sky" id="6"]
+sky_material = SubResource("5")
+
+[sub_resource type="Environment" id="7"]
+background_mode = 2
+sky = SubResource("6")
+ambient_light_source = 2
+ambient_light_energy = 0.6
+
+[sub_resource type="PlaneMesh" id="8"]
+size = Vector2(150, 150)
+
+[sub_resource type="BoxShape3D" id="9"]
+size = Vector3(150, 0.2, 150)
+
+[sub_resource type="StandardMaterial3D" id="10"]
+albedo_color = Color(0.28, 0.28, 0.28, 1)
+shading_mode = 0
+
+[sub_resource type="DirectionalLight3D" id="11"]
+
+[node name="Arena" type="Node3D"]
+script = ExtResource("1")
+
+[node name="BeaconMatch" type="Node" parent="."]
+script = ExtResource("2")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("7")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866, -0.354, 0.354, 0, 0.707, 0.707, -0.5, -0.612, 0.612, 0, 10, 0)
+light_energy = 1.2
+shadow_enabled = true
+
+[node name="Floor" type="StaticBody3D" parent="."]
+
+[node name="FloorMesh" type="MeshInstance3D" parent="Floor"]
+mesh = SubResource("8")
+surface_material_override/0 = SubResource("10")
+
+[node name="FloorCollision" type="CollisionShape3D" parent="Floor"]
+position = Vector3(0, -0.1, 0)
+shape = SubResource("9")
+
+[node name="PlayerMech" parent="." instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20, 0, 0)
+
+[node name="BotMech" parent="." instance=ExtResource("3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, 0)
+
+[node name="Beacon1" parent="." instance=ExtResource("4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+
+[node name="Beacon2" parent="." instance=ExtResource("4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 0, -28)
+
+[node name="Beacon3" parent="." instance=ExtResource("4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 0, 28)
