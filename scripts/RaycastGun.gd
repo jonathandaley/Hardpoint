@@ -32,9 +32,9 @@ func _do_fire() -> void:
 		hit_pos = result.position
 		if result.collider.has_method("take_damage"):
 			result.collider.take_damage(damage)
-		_spawn_impact(hit_pos)
+			_spawn_impact(hit_pos)
 
-	_spawn_tracer(from, hit_pos)
+	_spawn_tracer(muzzle_flash.global_position, hit_pos)
 	muzzle_flash.visible = true
 	_flash_timer = 0.08
 
