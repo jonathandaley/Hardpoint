@@ -2,7 +2,7 @@ extends CanvasLayer
 
 @onready var health_label: Label = $HealthLabel
 @onready var score_label: Label = $ScoreLabel
-@onready var crosshair: Label = $Crosshair
+@onready var crosshair: Control = $Crosshair
 @onready var result_label: Label = $ResultLabel
 @onready var restart_label: Label = $RestartLabel
 
