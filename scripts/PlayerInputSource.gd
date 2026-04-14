@@ -4,7 +4,7 @@ extends "res://scripts/InputSource.gd"
 var _look_delta: Vector2 = Vector2.ZERO
 
 func _input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion:
+	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_look_delta += event.relative
 
 func get_move_direction() -> Vector2:

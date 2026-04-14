@@ -56,7 +56,7 @@ func remove_modifier(stat: String) -> void:
 
 func _physics_process(delta: float) -> void:
 	if not is_on_floor():
-		velocity.y -= get_gravity().y * delta
+		velocity += get_gravity() * delta
 
 	if _input_source != null:
 		_handle_look()
