@@ -50,7 +50,10 @@ func _set_mech_color(mech: Node3D, color: Color) -> void:
 		return
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = color
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	mat.emission_enabled = true
+	mat.emission = color
+	mat.emission_energy_multiplier = 0.3
 	body.set_surface_override_material(0, mat)
 
 func _create_cover() -> void:
