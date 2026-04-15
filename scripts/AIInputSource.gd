@@ -8,6 +8,9 @@ const AIM_THRESHOLD := 0.25  # fire when within this many radians of target
 const AIM_SPREAD    := 0.055 # max random jitter added to aim (radians)
 const BURST_FIRE    := 1.6   # seconds of continuous fire per burst
 const BURST_PAUSE   := 0.85  # seconds of pause between bursts
+const STUCK_CHECK   := 0.5   # seconds between stuck checks
+const STUCK_DIST    := 0.5   # minimum movement to not be considered stuck (m)
+const ESCAPE_TIME   := 0.8   # seconds to strafe sideways when stuck
 
 var _target: Node3D = null
 var _beacons: Array = []
@@ -20,6 +23,10 @@ var _burst_timer: float = BURST_FIRE
 var _in_burst: bool = true
 var _jitter: Vector2 = Vector2.ZERO
 var _jitter_timer: float = 0.0
+var _last_pos: Vector3 = Vector3.ZERO
+var _stuck_timer: float = STUCK_CHECK
+var _escape_timer: float = 0.0
+var _escape_dir: float = 1.0
 
 func _ready() -> void:
 	call_deferred("_find_targets")
@@ -110,6 +117,20 @@ func _process(delta: float) -> void:
 			_move_dir = Vector2(0.0, 1.0)
 		else:
 			_move_dir = Vector2(_strafe_sign, -0.3).normalized()
+
+	# Stuck detection — if not making progress while moving, escape sideways
+	_stuck_timer -= delta
+	if _stuck_timer <= 0.0:
+		_stuck_timer = STUCK_CHECK
+		if _move_dir != Vector2.ZERO and \
+				bot_mech.global_position.distance_to(_last_pos) < STUCK_DIST:
+			_escape_timer = ESCAPE_TIME
+			_escape_dir = 1.0 if randf() > 0.5 else -1.0
+		_last_pos = bot_mech.global_position
+
+	if _escape_timer > 0.0:
+		_escape_timer -= delta
+		_move_dir = Vector2(_escape_dir, -0.5).normalized()
 
 	# Aim jitter — slow random drift that makes the bot miss occasionally
 	_jitter_timer -= delta
