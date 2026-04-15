@@ -4,6 +4,7 @@ extends CharacterBody3D
 # Ignorant of who pilots it — all control comes through InputSource.
 
 signal died
+signal damaged
 
 @export var base_walk_speed: float = 7.0
 @export var base_reload_rate: float = 1.0
@@ -30,6 +31,7 @@ func take_damage(amount: float) -> void:
 	if health <= 0.0:
 		return
 	health -= amount
+	damaged.emit()
 	print("[Mech] %s  %.0f / %.0f HP" % [name, health, max_health])
 	if health <= 0.0:
 		health = 0.0

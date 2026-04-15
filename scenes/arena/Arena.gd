@@ -21,6 +21,7 @@ func _ready() -> void:
 	var gun := player_mech.get_node_or_null("HardpointRight/RaycastGun")
 	if gun:
 		gun.hit_confirmed.connect(hud.register_hit)
+	player_mech.damaged.connect(hud.show_damage)
 	print("[Arena] Match started. Score to drain: %d" % match_node.score_limit)
 
 func _create_walls() -> void:
