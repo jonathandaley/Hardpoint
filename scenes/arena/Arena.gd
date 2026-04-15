@@ -17,6 +17,8 @@ func _ready() -> void:
 	_setup_players()
 	match_node.match_ended.connect(_on_match_ended)
 	match_node.start()
+	_set_mech_color(player_mech, Color(0.25, 0.52, 0.95))
+	_set_mech_color(bot_mech,    Color(0.92, 0.28, 0.22))
 	hud.setup(match_node, player_mech, 0)
 	var gun := player_mech.get_node_or_null("HardpointRight/RaycastGun")
 	if gun:
@@ -41,6 +43,15 @@ func _create_walls() -> void:
 		col.shape = shape
 		body.add_child(col)
 		add_child(body)
+
+func _set_mech_color(mech: Node3D, color: Color) -> void:
+	var body := mech.get_node_or_null("Body") as MeshInstance3D
+	if body == null:
+		return
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	body.set_surface_override_material(0, mat)
 
 func _create_cover() -> void:
 	var mat := StandardMaterial3D.new()
