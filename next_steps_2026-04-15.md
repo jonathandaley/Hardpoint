@@ -51,7 +51,7 @@ Stats currently live as `@export var` on Mech.gd. Two mech instances are baked i
 Arena.tscn. Hangar selection can never work from this.
 
 Define a `MechDef` Godot Resource:
-- display_name (e.g. "Griffin")
+- display_name (e.g. "Hippogriff")
 - class_tag ("Light" / "Medium" / "Heavy") — descriptor only, not primary key
 - max_health, walk_speed, has_shields
 - hardpoint_count / hardpoint_config
@@ -71,12 +71,12 @@ Don't conflate them — migration will be easier.
 **Requires: 1, 2**
 
 Every player gets the same catalog of named mechs — no unlocks at this stage.
-Each named mech is a MechDef .tres file (e.g. Griffin.tres, [TBD].tres).
+Each named mech is a MechDef .tres file (e.g. Hippogriff.tres, [TBD].tres).
 Light/medium/heavy is a tag on the card, not the organizing concept.
 Hangar mech tab shows the roster; player picks one before hitting Find Match.
 Weapon slot restrictions (if any) key off hardpoint config, not class tag.
 
-Start with Griffin (medium, current stats). Add 1–2 more named mechs as stubs
+Start with Hippogriff (medium, current stats). Add 1–2 more named mechs as stubs
 so the roster UI has something to show.
 
 ---
