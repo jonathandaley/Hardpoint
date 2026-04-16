@@ -19,11 +19,11 @@ func _do_fire() -> void:
 	var cam_fwd := -cam.global_transform.basis.z
 	var space := get_world_3d().direct_space_state
 	var aim_query := PhysicsRayQueryParameters3D.create(
-		cam.global_position, cam.global_position + cam_fwd * 200.0)
+		cam.global_position, cam.global_position + cam_fwd * range)
 	aim_query.exclude = [owner_mech.get_rid()]
 	var aim_result := space.intersect_ray(aim_query)
 	var aim_point: Vector3 = aim_result.position if aim_result \
-		else cam.global_position + cam_fwd * 200.0
+		else cam.global_position + cam_fwd * range
 
 	var proj: Projectile = PROJECTILE_SCENE.instantiate()
 	proj.damage = damage
