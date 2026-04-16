@@ -2,15 +2,17 @@ class_name Arena
 extends Node3D
 
 @onready var match_node: Node = $BeaconMatch
-@onready var player_mech: CharacterBody3D = $PlayerMech
-@onready var bot_mech: CharacterBody3D = $BotMech
 @onready var hud: CanvasLayer = $HUD
+
+var player_mech: CharacterBody3D
+var bot_mech: CharacterBody3D
 
 var _player: Node
 var _bot_player: Node
 var _match_over: bool = false
 
 func _ready() -> void:
+	_spawn_mechs()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_create_walls()
 	_create_cover()
@@ -27,6 +29,27 @@ func _ready() -> void:
 		gun.hit_confirmed.connect(hud.register_hit)
 	player_mech.damaged.connect(hud.show_damage)
 	print("[Arena] Match started. Score to drain: %d" % match_node.score_limit)
+
+func _spawn_mechs() -> void:
+	var mech_def: MechDef = Game.loadout.get("mech_def")
+	if mech_def == null:
+		mech_def = load("res://resources/mechs/Hippogriff.tres")
+
+	player_mech = mech_def.scene.instantiate()
+	player_mech.name = "PlayerMech"
+	player_mech.position = Vector3(-20, 0, 0)
+	player_mech.rotation_degrees = Vector3(0, -90, 0)
+	player_mech.max_health = mech_def.max_health
+	player_mech.base_walk_speed = mech_def.walk_speed
+	add_child(player_mech)
+
+	bot_mech = mech_def.scene.instantiate()
+	bot_mech.name = "BotMech"
+	bot_mech.position = Vector3(20, 0, 0)
+	bot_mech.team = 1
+	bot_mech.max_health = mech_def.max_health
+	bot_mech.base_walk_speed = mech_def.walk_speed
+	add_child(bot_mech)
 
 func _create_walls() -> void:
 	# Invisible boundary walls at the floor edge (±75m). 10m tall so nothing flies over.

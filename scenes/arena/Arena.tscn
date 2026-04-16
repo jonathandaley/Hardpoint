@@ -1,8 +1,7 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scenes/arena/Arena.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/BeaconMatch.gd" id="2"]
-[ext_resource type="PackedScene" path="res://scenes/mech/Mech.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/beacon/Beacon.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="11"]
 
@@ -50,14 +49,6 @@ surface_material_override/0 = SubResource("10")
 [node name="FloorCollision" type="CollisionShape3D" parent="Floor"]
 position = Vector3(0, -0.1, 0)
 shape = SubResource("9")
-
-[node name="PlayerMech" parent="." instance=ExtResource("3")]
-position = Vector3(-20, 0, 0)
-rotation = Vector3(0, -1.5707963, 0)
-
-[node name="BotMech" parent="." instance=ExtResource("3")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, 0)
-team = 1
 
 [node name="Beacon1" parent="." instance=ExtResource("4")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
