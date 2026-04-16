@@ -57,6 +57,7 @@ rotation = Vector3(0, -1.5707963, 0)
 
 [node name="BotMech" parent="." instance=ExtResource("3")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20, 0, 0)
+team = 1
 
 [node name="Beacon1" parent="." instance=ExtResource("4")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)

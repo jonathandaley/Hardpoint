@@ -20,6 +20,7 @@ func _ready() -> void:
 	_set_mech_color(player_mech, Color(0.25, 0.52, 0.95))
 	_set_mech_color(bot_mech,    Color(0.92, 0.28, 0.22))
 	hud.setup(match_node, player_mech, 0)
+	hud.setup_bot_bar(bot_mech)
 	var gun := player_mech.get_node_or_null("HardpointRight/RaycastGun")
 	if gun:
 		gun.hit_confirmed.connect(hud.register_hit)
