@@ -87,12 +87,14 @@ func _set_mech_color(mech: Node3D, color: Color) -> void:
 	leg_mat.emission_enabled = true
 	leg_mat.emission = color.darkened(0.2)
 	leg_mat.emission_energy_multiplier = 0.3
-	var body := mech.get_node_or_null("Torso/BodyMesh") as MeshInstance3D
-	if body:
-		body.set_surface_override_material(0, mat)
-	var legs := mech.get_node_or_null("Legs/LegMesh") as MeshInstance3D
+	var torso := mech.get_node_or_null("Torso")
+	if torso:
+		for mesh in torso.find_children("*", "MeshInstance3D", true, false):
+			mesh.set_surface_override_material(0, mat)
+	var legs := mech.get_node_or_null("Legs")
 	if legs:
-		legs.set_surface_override_material(0, leg_mat)
+		for mesh in legs.find_children("*", "MeshInstance3D", true, false):
+			mesh.set_surface_override_material(0, leg_mat)
 
 func _create_cover() -> void:
 	var mat := StandardMaterial3D.new()
