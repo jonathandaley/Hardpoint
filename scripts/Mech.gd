@@ -20,6 +20,8 @@ signal damaged
 @export var base_reload_rate: float = 1.0
 @export var max_health: float = 100.0
 @export var team: int = 0
+@export var turn_acceleration: float = 60.0   # m/s² per axis — velocity direction change rate
+@export var leg_rotation_speed: float = 15.0  # rad/s — leg visual tracking speed
 
 var health: float = 0.0
 var _modifiers: Dictionary = {}
@@ -91,12 +93,16 @@ func _physics_process(delta: float) -> void:
 		_handle_fire()
 
 	move_and_slide()
-	_update_legs()
+	_update_legs(delta)
 
-func _update_legs() -> void:
+func _update_legs(delta: float) -> void:
 	var horiz_vel := Vector3(velocity.x, 0.0, velocity.z)
 	if horiz_vel.length_squared() > 0.25:
-		legs.look_at(legs.global_position + horiz_vel.normalized(), Vector3.UP)
+		# Target Y angle: makes legs -Z face the velocity direction.
+		# atan2(vx, -vz) is the rotation.y that look_at() would produce.
+		var target_y := atan2(horiz_vel.x, -horiz_vel.z)
+		var diff := angle_difference(legs.rotation.y, target_y)
+		legs.rotation.y += clamp(diff, -leg_rotation_speed * delta, leg_rotation_speed * delta)
 
 func _handle_look() -> void:
 	var look: Vector2 = _input_source.get_look_delta()
@@ -117,8 +123,8 @@ func _handle_movement(delta: float) -> void:
 	var forward := -aim.z
 	var right := aim.x
 	var move_vec := (right * dir2d.x + forward * -dir2d.y).normalized()
-	velocity.x = move_vec.x * walk_speed
-	velocity.z = move_vec.z * walk_speed
+	velocity.x = move_toward(velocity.x, move_vec.x * walk_speed, turn_acceleration * delta)
+	velocity.z = move_toward(velocity.z, move_vec.z * walk_speed, turn_acceleration * delta)
 
 func _handle_fire() -> void:
 	if _input_source.is_firing_primary():

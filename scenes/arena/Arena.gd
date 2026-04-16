@@ -41,6 +41,8 @@ func _spawn_mechs() -> void:
 	player_mech.rotation_degrees = Vector3(0, -90, 0)
 	player_mech.max_health = mech_def.max_health
 	player_mech.base_walk_speed = mech_def.walk_speed
+	player_mech.turn_acceleration = mech_def.turn_acceleration
+	player_mech.leg_rotation_speed = mech_def.leg_rotation_speed
 	add_child(player_mech)
 
 	bot_mech = mech_def.scene.instantiate()
@@ -49,6 +51,8 @@ func _spawn_mechs() -> void:
 	bot_mech.team = 1
 	bot_mech.max_health = mech_def.max_health
 	bot_mech.base_walk_speed = mech_def.walk_speed
+	bot_mech.turn_acceleration = mech_def.turn_acceleration
+	bot_mech.leg_rotation_speed = mech_def.leg_rotation_speed
 	add_child(bot_mech)
 
 func _create_walls() -> void:
