@@ -13,6 +13,18 @@ func _do_fire() -> void:
 	if cam == null:
 		return
 
+	# Cast from camera centre to find where the crosshair is pointing.
+	# The projectile spawns at the barrel but aims at that point so it
+	# converges with the crosshair regardless of the barrel's vertical offset.
+	var cam_fwd := -cam.global_transform.basis.z
+	var space := get_world_3d().direct_space_state
+	var aim_query := PhysicsRayQueryParameters3D.create(
+		cam.global_position, cam.global_position + cam_fwd * 200.0)
+	aim_query.exclude = [owner_mech.get_rid()]
+	var aim_result := space.intersect_ray(aim_query)
+	var aim_point: Vector3 = aim_result.position if aim_result \
+		else cam.global_position + cam_fwd * 200.0
+
 	var proj: Projectile = PROJECTILE_SCENE.instantiate()
 	proj.damage = damage
 	proj.speed = projectile_speed
@@ -20,5 +32,5 @@ func _do_fire() -> void:
 	proj._exclude_rid = owner_mech.get_rid()
 
 	get_tree().current_scene.add_child(proj)
-	# Spawn at muzzle, inherit camera orientation so -Z points in fire direction
-	proj.global_transform = Transform3D(cam.global_transform.basis, global_position)
+	# looking_at() orients -Z toward aim_point, matching Projectile's movement axis
+	proj.global_transform = Transform3D(Basis(), global_position).looking_at(aim_point)
