@@ -17,7 +17,7 @@ const SLOT_H   := NUM_H + ICON_H + AMMO_H   # 42 px
 const SLOT_GAP := 4.0
 const PADDING  := 8.0
 
-var _entries: Array = []   # [{weapon, ammo_label}]
+var _entries: Array = []   # [{weapon, ammo_fg, bar_left}]
 
 func setup(player_mech: Node) -> void:
 	for child in get_children():
@@ -50,7 +50,7 @@ func setup(player_mech: Node) -> void:
 		var ammo_fg := _build_slot(weapons[i], i + 1, x)
 		_entries.append({"weapon": weapons[i], "ammo_fg": ammo_fg, "bar_left": x})
 
-func _build_slot(weapon: Node, number: int, x: float) -> Label:
+func _build_slot(weapon: Node, number: int, x: float) -> ColorRect:
 	# Number-key indicator
 	var num_lbl := Label.new()
 	num_lbl.text = str(number)
