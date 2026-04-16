@@ -90,34 +90,36 @@ func _process(delta: float) -> void:
 		var turn_v: float        = clamp(pitch_diff, -TURN_SPEED * delta, TURN_SPEED * delta)
 		_look_delta.y = -turn_v / sens
 
-	# Movement — navigate to uncaptured beacon when one exists, else fight
-	var beacon := _pick_target_beacon(bot_mech)
-	if beacon != null:
-		var to_beacon: Vector3 = beacon.global_position - bot_mech.global_position
-		to_beacon.y = 0.0
-		var beacon_dist: float = to_beacon.length()
-		if beacon_dist > 3.0:
-			# Walk toward beacon in torso-local space (matches _handle_movement)
-			var aim_basis: Basis = bot_mech.call("get_aim_basis")
-			var fwd: Vector3   = -aim_basis.z
-			var right: Vector3 = aim_basis.x
-			to_beacon = to_beacon / beacon_dist
-			_move_dir = Vector2(to_beacon.dot(right), -to_beacon.dot(fwd)).normalized()
-		else:
-			_move_dir = Vector2.ZERO   # standing on beacon — hold and cap
+	# Movement — retreat takes priority over everything else
+	if dist < RETREAT_DIST:
+		_move_dir = Vector2(0.0, 1.0)
 	else:
-		# All beacons owned — circle-strafe and fight
-		_strafe_timer -= delta
-		if _strafe_timer <= 0.0:
-			_strafe_timer = randf_range(1.5, 3.0)
-			_strafe_sign  = 1.0 if randf() > 0.5 else -1.0
-
-		if dist > ENGAGE_DIST:
-			_move_dir = Vector2(0.0, -1.0)
-		elif dist < RETREAT_DIST:
-			_move_dir = Vector2(0.0, 1.0)
+		# Navigate to uncaptured beacon when one exists, else fight
+		var beacon := _pick_target_beacon(bot_mech)
+		if beacon != null:
+			var to_beacon: Vector3 = beacon.global_position - bot_mech.global_position
+			to_beacon.y = 0.0
+			var beacon_dist: float = to_beacon.length()
+			if beacon_dist > 3.0:
+				# Walk toward beacon in torso-local space (matches _handle_movement)
+				var aim_basis: Basis = bot_mech.call("get_aim_basis")
+				var fwd: Vector3   = -aim_basis.z
+				var right: Vector3 = aim_basis.x
+				to_beacon = to_beacon / beacon_dist
+				_move_dir = Vector2(to_beacon.dot(right), -to_beacon.dot(fwd)).normalized()
+			else:
+				_move_dir = Vector2.ZERO   # standing on beacon — hold and cap
 		else:
-			_move_dir = Vector2(_strafe_sign, -0.3).normalized()
+			# All beacons owned — circle-strafe and fight
+			_strafe_timer -= delta
+			if _strafe_timer <= 0.0:
+				_strafe_timer = randf_range(1.5, 3.0)
+				_strafe_sign  = 1.0 if randf() > 0.5 else -1.0
+
+			if dist > ENGAGE_DIST:
+				_move_dir = Vector2(0.0, -1.0)
+			else:
+				_move_dir = Vector2(_strafe_sign, -0.3).normalized()
 
 	# Stuck detection — if not making progress while moving, escape sideways
 	_stuck_timer -= delta
