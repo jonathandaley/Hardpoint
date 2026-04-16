@@ -1,7 +1,8 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/Mech.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/RaycastGun.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/ProjectileGun.tscn" id="8"]
 
 [sub_resource type="CapsuleShape3D" id="2"]
 radius = 0.5
@@ -44,6 +45,11 @@ surface_material_override/0 = SubResource("4")
 
 [node name="HardpointLeft" type="Node3D" parent="Torso"]
 position = Vector3(-0.7, 1.1, 0.2)
+
+[node name="ProjectileGun" parent="Torso/HardpointLeft" instance=ExtResource("8")]
+damage = 50.0
+fire_rate = 1.0
+projectile_speed = 35.0
 
 [node name="HardpointRight" type="Node3D" parent="Torso"]
 position = Vector3(0.7, 1.1, 0.2)
