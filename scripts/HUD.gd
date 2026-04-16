@@ -8,6 +8,7 @@ extends CanvasLayer
 @onready var result_label: Label = $ResultLabel
 @onready var restart_label: Label = $RestartLabel
 @onready var bot_health_bar: ColorRect = $BotHealthBar
+@onready var weapon_hud: Control = $WeaponHUD
 
 const BOT_BAR_FULL_WIDTH := 32.0
 const BOT_BAR_HEIGHT     := 6.0
@@ -24,6 +25,7 @@ func setup(match_node: Node, player_mech: Node, player_team: int) -> void:
 	_match = match_node
 	_player_mech = player_mech
 	_player_team = player_team
+	weapon_hud.setup(player_mech)
 
 func setup_bot_bar(bot_mech: Node) -> void:
 	_bot_mech = bot_mech
