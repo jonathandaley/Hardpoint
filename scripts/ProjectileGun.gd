@@ -31,6 +31,7 @@ func _do_fire() -> void:
 	proj.team = owner_mech.get("team") if owner_mech.get("team") != null else 0
 	proj._exclude_rid = owner_mech.get_rid()
 
+	proj.on_hit = func(): hit_confirmed.emit()
 	get_tree().current_scene.add_child(proj)
 	# looking_at() orients -Z toward aim_point, matching Projectile's movement axis
 	proj.global_transform = Transform3D(Basis(), global_position).looking_at(aim_point)

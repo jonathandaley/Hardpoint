@@ -8,6 +8,7 @@ var damage: float = 25.0
 var lifetime: float = 3.0
 var team: int = 0          # reserved for friendly-fire checks later
 var _exclude_rid: RID      # firing mech's RID — excluded from hit tests
+var on_hit: Callable       # called when the projectile hits a damageable target
 
 var _age: float = 0.0
 
@@ -28,6 +29,8 @@ func _physics_process(delta: float) -> void:
 	if result:
 		if result.collider.has_method("take_damage"):
 			result.collider.take_damage(damage)
+			if on_hit.is_valid():
+				on_hit.call()
 		queue_free()
 		return
 

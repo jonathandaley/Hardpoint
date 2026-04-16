@@ -3,6 +3,8 @@ extends Node3D
 # Base weapon. Attach as a child of a hardpoint on a Mech.
 # Stage 1: stub — override _do_fire() in subclasses.
 
+signal hit_confirmed   # emitted when a shot lands on a valid target
+
 @export var damage: float = 10.0
 @export var fire_rate: float = 2.0   # shots per second
 @export var range: float = 100.0
