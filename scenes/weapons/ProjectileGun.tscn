@@ -1,0 +1,18 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/ProjectileGun.gd" id="1"]
+
+[sub_resource type="BoxMesh" id="2"]
+size = Vector3(0.14, 0.14, 0.5)
+
+[sub_resource type="StandardMaterial3D" id="3"]
+albedo_color = Color(0.15, 0.15, 0.15, 1)
+shading_mode = 0
+
+[node name="ProjectileGun" type="Node3D"]
+script = ExtResource("1")
+
+[node name="GunBody" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, -0.25)
+mesh = SubResource("2")
+surface_material_override/0 = SubResource("3")
