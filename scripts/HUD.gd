@@ -9,8 +9,8 @@ extends CanvasLayer
 @onready var restart_label: Label = $RestartLabel
 @onready var bot_health_bar: ColorRect = $BotHealthBar
 
-const BOT_BAR_FULL_WIDTH := 80.0
-const BOT_BAR_HEIGHT     := 7.0
+const BOT_BAR_FULL_WIDTH := 32.0
+const BOT_BAR_HEIGHT     := 6.0
 const BOT_BAR_HEAD_OFFSET := Vector3(0.0, 3.5, 0.0)
 
 var _damage_alpha: float = 0.0
@@ -46,7 +46,7 @@ func _process(delta: float) -> void:
 		damage_flash.modulate.a = _damage_alpha
 	if _player_mech != null:
 		var pct: float = _player_mech.health / _player_mech.max_health
-		health_bar_fg.offset_right = health_bar_fg.offset_left + 81.0 * pct
+		health_bar_fg.offset_right = health_bar_fg.offset_left + 162.0 * pct
 
 	if _match != null:
 		var scores: Array = _match.get("scores")

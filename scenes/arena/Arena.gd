@@ -11,6 +11,7 @@ var _bot_player: Node
 var _match_over: bool = false
 
 func _ready() -> void:
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_create_walls()
 	_create_cover()
 	_wire_beacons()
@@ -141,7 +142,7 @@ func _setup_players() -> void:
 
 func _input(event: InputEvent) -> void:
 	if _match_over and event.is_action_pressed("ui_accept"):
-		get_tree().reload_current_scene()
+		get_tree().change_scene_to_file("res://scenes/ui/Hangar.tscn")
 		return
 	if event.is_action_pressed("ui_cancel"):
 		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
