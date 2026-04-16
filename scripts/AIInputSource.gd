@@ -98,9 +98,9 @@ func _process(delta: float) -> void:
 		var beacon_dist: float = to_beacon.length()
 		if beacon_dist > 3.0:
 			# Walk toward beacon in torso-local space (matches _handle_movement)
-			var aim_basis := bot_mech.get_aim_basis()
-			var fwd   := -aim_basis.z
-			var right := aim_basis.x
+			var aim_basis: Basis = bot_mech.call("get_aim_basis")
+			var fwd: Vector3   = -aim_basis.z
+			var right: Vector3 = aim_basis.x
 			to_beacon = to_beacon / beacon_dist
 			_move_dir = Vector2(to_beacon.dot(right), -to_beacon.dot(fwd)).normalized()
 		else:
