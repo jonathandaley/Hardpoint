@@ -31,7 +31,7 @@ func _ready() -> void:
 	print("[Arena] Match started. Score to drain: %d" % match_node.score_limit)
 
 func _spawn_mechs() -> void:
-	var mech_def: MechDef = Game.loadout.get("mech_def")
+	var mech_def = Game.loadout.get("mech_def")
 	if mech_def == null:
 		mech_def = load("res://resources/mechs/Hippogriff.tres")
 

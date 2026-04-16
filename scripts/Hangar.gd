@@ -25,7 +25,7 @@ func _ensure_default_mech() -> void:
 		Game.loadout.mech_def = load("res://resources/mechs/Hippogriff.tres")
 
 func _update_mech_panel() -> void:
-	var md: MechDef = Game.loadout.get("mech_def")
+	var md = Game.loadout.get("mech_def")
 	if md == null:
 		return
 	mech_name_label.text = "MECH: %s (%s)" % [md.display_name.to_upper(), md.class_tag.to_upper()]
