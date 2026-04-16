@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="MechDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/MechDef.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/mech/Mech.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+display_name = "Warhog"
+class_tag = "Heavy"
+max_health = 900.0
+walk_speed = 1.8
+has_shields = true
+hardpoint_count = 3
+turn_acceleration = 4.2
+leg_rotation_speed = 8.0
+scene = ExtResource("2")

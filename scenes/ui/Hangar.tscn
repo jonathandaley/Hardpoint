@@ -86,26 +86,54 @@ offset_top = 0.0
 offset_right = 640.0
 offset_bottom = 244.0
 
+[node name="RosterPanel" type="Control" parent="Content/MechPanel"]
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 188.0
+offset_bottom = 244.0
+
+[node name="RosterHeader" type="Label" parent="Content/MechPanel/RosterPanel"]
+offset_left = 4.0
+offset_top = 8.0
+offset_right = 184.0
+offset_bottom = 24.0
+theme_override_font_sizes/font_size = 14
+text = "ROSTER"
+
+[node name="RosterList" type="VBoxContainer" parent="Content/MechPanel/RosterPanel"]
+offset_left = 4.0
+offset_top = 28.0
+offset_right = 184.0
+offset_bottom = 240.0
+
+[node name="RosterDivider" type="ColorRect" parent="Content/MechPanel"]
+offset_left = 190.0
+offset_top = 0.0
+offset_right = 192.0
+offset_bottom = 244.0
+color = Color(0.3, 0.3, 0.3, 1)
+mouse_filter = 2
+
 [node name="MechName" type="Label" parent="Content/MechPanel"]
-offset_left = 16.0
+offset_left = 200.0
 offset_top = 12.0
-offset_right = 500.0
+offset_right = 630.0
 offset_bottom = 36.0
 theme_override_font_sizes/font_size = 20
 text = "MECH: HIPPOGRIFF (MEDIUM)"
 
 [node name="WeaponSlot" type="Label" parent="Content/MechPanel"]
-offset_left = 16.0
+offset_left = 200.0
 offset_top = 44.0
-offset_right = 500.0
+offset_right = 630.0
 offset_bottom = 64.0
 theme_override_font_sizes/font_size = 18
 text = "PRIMARY: RAYCAST RIFLE"
 
 [node name="MechStats" type="Label" parent="Content/MechPanel"]
-offset_left = 16.0
+offset_left = 200.0
 offset_top = 72.0
-offset_right = 624.0
+offset_right = 630.0
 offset_bottom = 100.0
 theme_override_font_sizes/font_size = 16
 text = "SPEED: 7   HEALTH: 100   SHIELDS: —"

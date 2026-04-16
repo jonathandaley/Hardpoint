@@ -1,5 +1,11 @@
 extends Control
 
+const ROSTER: Array = [
+	"res://resources/mechs/Lynx.tres",
+	"res://resources/mechs/Hippogriff.tres",
+	"res://resources/mechs/Warhog.tres",
+]
+
 @onready var mech_panel: Control = $Content/MechPanel
 @onready var pilot_panel: Control = $Content/PilotPanel
 @onready var pilot_label: Label = $TopBar/PilotLabel
@@ -7,6 +13,10 @@ extends Control
 @onready var pilot_record_label: Label = $Content/PilotPanel/PilotRecord
 @onready var mech_name_label: Label = $Content/MechPanel/MechName
 @onready var mech_stats_label: Label = $Content/MechPanel/MechStats
+@onready var roster_list: VBoxContainer = $Content/MechPanel/RosterPanel/RosterList
+
+var _mechs: Array = []
+var _selected: int = 0
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -16,13 +26,64 @@ func _ready() -> void:
 	var wins: int = Game.profile.get("wins", 0)
 	var losses: int = Game.profile.get("losses", 0)
 	pilot_record_label.text = "WINS: %d   LOSSES: %d" % [wins, losses]
+	_load_roster()
 	_ensure_default_mech()
+	_build_roster_buttons()
 	_update_mech_panel()
 	_show_tab(0)
 
+func _load_roster() -> void:
+	_mechs.clear()
+	for path in ROSTER:
+		var md = load(path)
+		if md != null:
+			_mechs.append(md)
+
 func _ensure_default_mech() -> void:
-	if Game.loadout.get("mech_def") == null:
-		Game.loadout.mech_def = load("res://resources/mechs/Hippogriff.tres")
+	var current = Game.loadout.get("mech_def")
+	if current == null:
+		# Default to Hippogriff (index 1)
+		_selected = 1 if _mechs.size() > 1 else 0
+		if _mechs.size() > 0:
+			Game.loadout.mech_def = _mechs[_selected]
+	else:
+		# Match current selection to roster index
+		for i in _mechs.size():
+			if _mechs[i] == current:
+				_selected = i
+				return
+		# Current mech not in roster — fall back to first
+		_selected = 0
+		if _mechs.size() > 0:
+			Game.loadout.mech_def = _mechs[0]
+
+func _build_roster_buttons() -> void:
+	for child in roster_list.get_children():
+		child.queue_free()
+	for i in _mechs.size():
+		var md = _mechs[i]
+		var btn := Button.new()
+		btn.text = "%s\n%s" % [md.display_name.to_upper(), md.class_tag.to_upper()]
+		btn.custom_minimum_size = Vector2(160, 44)
+		btn.add_theme_font_size_override("font_size", 14)
+		btn.pressed.connect(_on_roster_selected.bind(i))
+		roster_list.add_child(btn)
+	_highlight_selected()
+
+func _highlight_selected() -> void:
+	var buttons := roster_list.get_children()
+	for i in buttons.size():
+		var btn: Button = buttons[i]
+		if i == _selected:
+			btn.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
+		else:
+			btn.remove_theme_color_override("font_color")
+
+func _on_roster_selected(idx: int) -> void:
+	_selected = idx
+	Game.loadout.mech_def = _mechs[idx]
+	_highlight_selected()
+	_update_mech_panel()
 
 func _update_mech_panel() -> void:
 	var md = Game.loadout.get("mech_def")
