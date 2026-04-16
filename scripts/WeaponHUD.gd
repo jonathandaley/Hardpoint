@@ -47,8 +47,8 @@ func setup(player_mech: Node) -> void:
 
 	for i in range(weapons.size()):
 		var x := float(i) * (SLOT_W + SLOT_GAP)
-		var ammo_lbl := _build_slot(weapons[i], i + 1, x)
-		_entries.append({"weapon": weapons[i], "ammo_label": ammo_lbl})
+		var ammo_fg := _build_slot(weapons[i], i + 1, x)
+		_entries.append({"weapon": weapons[i], "ammo_fg": ammo_fg, "bar_left": x})
 
 func _build_slot(weapon: Node, number: int, x: float) -> Label:
 	# Number-key indicator
@@ -73,18 +73,29 @@ func _build_slot(weapon: Node, number: int, x: float) -> Label:
 	icon.offset_bottom = NUM_H + ICON_H
 	add_child(icon)
 
-	# Ammo count
-	var ammo_lbl := Label.new()
-	ammo_lbl.add_theme_font_size_override("font_size", 8)
-	ammo_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ammo_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	ammo_lbl.offset_left   = x
-	ammo_lbl.offset_right  = x + SLOT_W
-	ammo_lbl.offset_top    = NUM_H + ICON_H
-	ammo_lbl.offset_bottom = SLOT_H
-	add_child(ammo_lbl)
+	# Ammo bar — background track + foreground fill
+	var bar_top    := NUM_H + ICON_H + 2.0
+	var bar_bottom := SLOT_H - 2.0
 
-	return ammo_lbl
+	var ammo_bg := ColorRect.new()
+	ammo_bg.color = Color(0.15, 0.15, 0.15, 0.9)
+	ammo_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ammo_bg.offset_left   = x
+	ammo_bg.offset_right  = x + SLOT_W
+	ammo_bg.offset_top    = bar_top
+	ammo_bg.offset_bottom = bar_bottom
+	add_child(ammo_bg)
+
+	var ammo_fg := ColorRect.new()
+	ammo_fg.color = Color(0.2, 0.85, 0.3, 1.0)
+	ammo_fg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ammo_fg.offset_left   = x
+	ammo_fg.offset_right  = x + SLOT_W   # full on spawn; updated each frame
+	ammo_fg.offset_top    = bar_top
+	ammo_fg.offset_bottom = bar_bottom
+	add_child(ammo_fg)
+
+	return ammo_fg
 
 func _weapon_color(weapon: Node) -> Color:
 	var path: String = weapon.get_script().resource_path
@@ -99,7 +110,8 @@ func _process(_delta: float) -> void:
 		if not is_instance_valid(entry["weapon"]):
 			continue
 		var max_ammo = entry["weapon"].get("max_ammo")
-		if max_ammo == null or int(max_ammo) < 0:
-			entry["ammo_label"].text = "∞"
-		else:
-			entry["ammo_label"].text = str(entry["weapon"].get("ammo"))
+		var pct := 1.0
+		if max_ammo != null and int(max_ammo) > 0:
+			pct = clampf(float(int(entry["weapon"].get("ammo"))) / float(int(max_ammo)), 0.0, 1.0)
+		# infinite (max_ammo < 0) keeps pct = 1.0 — always full
+		entry["ammo_fg"].offset_right = entry["bar_left"] + SLOT_W * pct
