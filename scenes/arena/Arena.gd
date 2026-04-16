@@ -45,14 +45,15 @@ func _spawn_mechs() -> void:
 	player_mech.leg_rotation_speed = mech_def.leg_rotation_speed
 	add_child(player_mech)
 
-	bot_mech = mech_def.scene.instantiate()
+	var bot_def = load("res://resources/mechs/Hippogriff.tres")
+	bot_mech = bot_def.scene.instantiate()
 	bot_mech.name = "BotMech"
 	bot_mech.position = Vector3(20, 0, 0)
 	bot_mech.team = 1
-	bot_mech.max_health = mech_def.max_health
-	bot_mech.base_walk_speed = mech_def.walk_speed
-	bot_mech.turn_acceleration = mech_def.turn_acceleration
-	bot_mech.leg_rotation_speed = mech_def.leg_rotation_speed
+	bot_mech.max_health = bot_def.max_health
+	bot_mech.base_walk_speed = bot_def.walk_speed
+	bot_mech.turn_acceleration = bot_def.turn_acceleration
+	bot_mech.leg_rotation_speed = bot_def.leg_rotation_speed
 	add_child(bot_mech)
 
 func _create_walls() -> void:
