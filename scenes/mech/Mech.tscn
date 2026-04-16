@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="Script" path="res://scripts/Mech.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/BipedLegs.gd" id="2"]
@@ -21,10 +21,13 @@ shading_mode = 0
 size = Vector3(0.95, 0.22, 0.52)
 
 [sub_resource type="BoxMesh" id="10"]
-size = Vector3(0.22, 0.48, 0.20)
+size = Vector3(0.22, 0.55, 0.20)
 
 [sub_resource type="BoxMesh" id="11"]
-size = Vector3(0.20, 0.48, 0.18)
+size = Vector3(0.20, 0.55, 0.18)
+
+[sub_resource type="BoxMesh" id="16"]
+size = Vector3(0.18, 0.55, 0.16)
 
 [sub_resource type="BoxMesh" id="12"]
 size = Vector3(0.65, 0.18, 0.58)
@@ -49,44 +52,62 @@ shape = SubResource("3")
 script = ExtResource("2")
 
 [node name="Hips" type="MeshInstance3D" parent="Legs"]
-position = Vector3(0, 0.85, 0)
+position = Vector3(0, 0.88, 0)
 mesh = SubResource("9")
 surface_material_override/0 = SubResource("7")
 
 [node name="LeftHip" type="Node3D" parent="Legs"]
-position = Vector3(-0.38, 0.85, 0)
-rotation = Vector3(-0.524, 0, 0)
+position = Vector3(-0.38, 1.0, 0)
+rotation = Vector3(0.785, 0, 0)
 
 [node name="UpperLeft" type="MeshInstance3D" parent="Legs/LeftHip"]
-position = Vector3(0, -0.24, 0)
+position = Vector3(0, -0.275, 0)
 mesh = SubResource("10")
 surface_material_override/0 = SubResource("7")
 
-[node name="LeftKnee" type="Node3D" parent="Legs/LeftHip"]
-position = Vector3(0, -0.48, 0)
-rotation = Vector3(1.047, 0, 0)
+[node name="LeftKnee1" type="Node3D" parent="Legs/LeftHip"]
+position = Vector3(0, -0.55, 0)
+rotation = Vector3(-2.094, 0, 0)
 
-[node name="LowerLeft" type="MeshInstance3D" parent="Legs/LeftHip/LeftKnee"]
-position = Vector3(0, -0.24, 0)
+[node name="MidLeft" type="MeshInstance3D" parent="Legs/LeftHip/LeftKnee1"]
+position = Vector3(0, -0.275, 0)
 mesh = SubResource("11")
+surface_material_override/0 = SubResource("7")
+
+[node name="LeftKnee2" type="Node3D" parent="Legs/LeftHip/LeftKnee1"]
+position = Vector3(0, -0.55, 0)
+rotation = Vector3(2.094, 0, 0)
+
+[node name="LowerLeft" type="MeshInstance3D" parent="Legs/LeftHip/LeftKnee1/LeftKnee2"]
+position = Vector3(0, -0.275, 0)
+mesh = SubResource("16")
 surface_material_override/0 = SubResource("7")
 
 [node name="RightHip" type="Node3D" parent="Legs"]
-position = Vector3(0.38, 0.85, 0)
-rotation = Vector3(-0.524, 0, 0)
+position = Vector3(0.38, 1.0, 0)
+rotation = Vector3(0.785, 0, 0)
 
 [node name="UpperRight" type="MeshInstance3D" parent="Legs/RightHip"]
-position = Vector3(0, -0.24, 0)
+position = Vector3(0, -0.275, 0)
 mesh = SubResource("10")
 surface_material_override/0 = SubResource("7")
 
-[node name="RightKnee" type="Node3D" parent="Legs/RightHip"]
-position = Vector3(0, -0.48, 0)
-rotation = Vector3(1.047, 0, 0)
+[node name="RightKnee1" type="Node3D" parent="Legs/RightHip"]
+position = Vector3(0, -0.55, 0)
+rotation = Vector3(-2.094, 0, 0)
 
-[node name="LowerRight" type="MeshInstance3D" parent="Legs/RightHip/RightKnee"]
-position = Vector3(0, -0.24, 0)
+[node name="MidRight" type="MeshInstance3D" parent="Legs/RightHip/RightKnee1"]
+position = Vector3(0, -0.275, 0)
 mesh = SubResource("11")
+surface_material_override/0 = SubResource("7")
+
+[node name="RightKnee2" type="Node3D" parent="Legs/RightHip/RightKnee1"]
+position = Vector3(0, -0.55, 0)
+rotation = Vector3(2.094, 0, 0)
+
+[node name="LowerRight" type="MeshInstance3D" parent="Legs/RightHip/RightKnee1/RightKnee2"]
+position = Vector3(0, -0.275, 0)
+mesh = SubResource("16")
 surface_material_override/0 = SubResource("7")
 
 [node name="Torso" type="Node3D" parent="."]

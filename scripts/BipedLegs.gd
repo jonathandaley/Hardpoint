@@ -13,10 +13,12 @@ extends Node3D
 # For a four-legged mech, create QuadLegs.gd with the same update_gait()
 # signature and attach it to that mech's Legs node instead.
 
-@onready var left_hip:   Node3D = $LeftHip
-@onready var right_hip:  Node3D = $RightHip
-@onready var left_knee:  Node3D = $LeftHip/LeftKnee
-@onready var right_knee: Node3D = $RightHip/RightKnee
+@onready var left_hip:    Node3D = $LeftHip
+@onready var right_hip:   Node3D = $RightHip
+@onready var left_knee1:  Node3D = $LeftHip/LeftKnee1
+@onready var left_knee2:  Node3D = $LeftHip/LeftKnee1/LeftKnee2
+@onready var right_knee1: Node3D = $RightHip/RightKnee1
+@onready var right_knee2: Node3D = $RightHip/RightKnee1/RightKnee2
 
 func update_gait(velocity: Vector3, mech_basis: Basis, rot_speed: float, delta: float) -> void:
 	_face_velocity(velocity, mech_basis, rot_speed, delta)
