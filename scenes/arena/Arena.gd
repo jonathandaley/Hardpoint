@@ -22,7 +22,7 @@ func _ready() -> void:
 	_set_mech_color(bot_mech,    Color(0.92, 0.28, 0.22))
 	hud.setup(match_node, player_mech, 0)
 	hud.setup_bot_bar(bot_mech)
-	var gun := player_mech.get_node_or_null("HardpointRight/RaycastGun")
+	var gun := player_mech.get_node_or_null("Torso/HardpointRight/RaycastGun")
 	if gun:
 		gun.hit_confirmed.connect(hud.register_hit)
 	player_mech.damaged.connect(hud.show_damage)
@@ -47,16 +47,24 @@ func _create_walls() -> void:
 		add_child(body)
 
 func _set_mech_color(mech: Node3D, color: Color) -> void:
-	var body := mech.get_node_or_null("Body") as MeshInstance3D
-	if body == null:
-		return
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = color
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 	mat.emission_enabled = true
 	mat.emission = color
 	mat.emission_energy_multiplier = 0.3
-	body.set_surface_override_material(0, mat)
+	var leg_mat := StandardMaterial3D.new()
+	leg_mat.albedo_color = color.darkened(0.2)
+	leg_mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	leg_mat.emission_enabled = true
+	leg_mat.emission = color.darkened(0.2)
+	leg_mat.emission_energy_multiplier = 0.3
+	var body := mech.get_node_or_null("Torso/BodyMesh") as MeshInstance3D
+	if body:
+		body.set_surface_override_material(0, mat)
+	var legs := mech.get_node_or_null("Legs/LegMesh") as MeshInstance3D
+	if legs:
+		legs.set_surface_override_material(0, leg_mat)
 
 func _create_cover() -> void:
 	var mat := StandardMaterial3D.new()

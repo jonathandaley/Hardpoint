@@ -7,6 +7,7 @@ extends Node3D
 @export var fire_rate: float = 2.0   # shots per second
 @export var range: float = 100.0
 
+var owner_mech: Node3D = null   # set by Mech._setup_weapon_owners() at ready time
 var _cooldown: float = 0.0
 
 func _process(delta: float) -> void:

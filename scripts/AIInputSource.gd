@@ -68,19 +68,19 @@ func _process(delta: float) -> void:
 	var dist      := to_target.length()
 	var sens: float = Game.settings.get("mouse_sensitivity", 0.003)
 
-	# Horizontal aim — rotate mech body toward player
+	# Horizontal aim — rotate torso toward player
 	var to_flat := Vector3(to_target.x, 0.0, to_target.z)
 	var h_dist  := to_flat.length()
 	var angle_h := 0.0
 	if h_dist > 0.01:
 		to_flat = to_flat / h_dist
-		angle_h = (-bot_mech.global_transform.basis.z).signed_angle_to(to_flat, Vector3.UP)
+		angle_h = (-bot_mech.get_aim_basis().z).signed_angle_to(to_flat, Vector3.UP)
 	var turn_h: float = clamp(angle_h, -TURN_SPEED * delta, TURN_SPEED * delta)
 	_look_delta.x = -turn_h / sens
 
 	# Vertical aim — compute angle from the camera's actual position to target centre
-	var cam_arm := bot_mech.get_node_or_null("CameraArm") as SpringArm3D
-	var cam     := bot_mech.get_node_or_null("CameraArm/Camera3D") as Camera3D
+	var cam_arm := bot_mech.get_node_or_null("Torso/CameraArm") as SpringArm3D
+	var cam     := bot_mech.get_node_or_null("Torso/CameraArm/Camera3D") as Camera3D
 	if cam_arm and cam:
 		var target_centre := _target.global_position + Vector3(0, 1.0, 0)
 		var cam_to_target := target_centre - cam.global_position
@@ -97,9 +97,10 @@ func _process(delta: float) -> void:
 		to_beacon.y = 0.0
 		var beacon_dist: float = to_beacon.length()
 		if beacon_dist > 3.0:
-			# Walk toward beacon in mech-local space
-			var fwd   := -bot_mech.global_transform.basis.z
-			var right := bot_mech.global_transform.basis.x
+			# Walk toward beacon in torso-local space (matches _handle_movement)
+			var aim_basis := bot_mech.get_aim_basis()
+			var fwd   := -aim_basis.z
+			var right := aim_basis.x
 			to_beacon = to_beacon / beacon_dist
 			_move_dir = Vector2(to_beacon.dot(right), -to_beacon.dot(fwd)).normalized()
 		else:
