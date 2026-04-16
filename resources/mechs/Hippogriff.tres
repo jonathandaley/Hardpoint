@@ -7,7 +7,7 @@
 script = ExtResource("1")
 display_name = "Hippogriff"
 class_tag = "Medium"
-max_health = 100.0
+max_health = 500.0
 walk_speed = 3.15
 has_shields = false
 hardpoint_count = 2
