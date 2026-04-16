@@ -16,7 +16,7 @@ extends CharacterBody3D
 signal died
 signal damaged
 
-@export var base_walk_speed: float = 7.0
+@export var base_walk_speed: float = 5.25
 @export var base_reload_rate: float = 1.0
 @export var max_health: float = 100.0
 @export var team: int = 0
