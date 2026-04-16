@@ -96,14 +96,7 @@ func _physics_process(delta: float) -> void:
 	_update_legs(delta)
 
 func _update_legs(delta: float) -> void:
-	var horiz_vel := Vector3(velocity.x, 0.0, velocity.z)
-	if horiz_vel.length_squared() > 0.25:
-		# Convert world-space velocity to mech-local space so the angle is
-		# relative to legs.rotation.y (which is local, not world).
-		var local_vel := global_transform.basis.inverse() * horiz_vel
-		var target_y := atan2(-local_vel.x, -local_vel.z)
-		var diff := angle_difference(legs.rotation.y, target_y)
-		legs.rotation.y += clamp(diff, -leg_rotation_speed * delta, leg_rotation_speed * delta)
+	legs.call("update_gait", velocity, global_transform.basis, leg_rotation_speed, delta)
 
 func _handle_look() -> void:
 	var look: Vector2 = _input_source.get_look_delta()

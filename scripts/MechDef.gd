@@ -12,4 +12,5 @@ extends Resource
 @export var hardpoint_count: int = 2
 @export var turn_acceleration: float = 60.0   # m/s² per axis — how fast velocity changes direction
 @export var leg_rotation_speed: float = 15.0  # rad/s — how fast legs swing to match velocity
+@export var body_scale: float = 1.0            # uniform scale applied to the spawned mech node
 @export var scene: PackedScene                 # mech scene to instantiate in Arena

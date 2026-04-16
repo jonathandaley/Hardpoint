@@ -39,6 +39,7 @@ func _spawn_mechs() -> void:
 	player_mech.name = "PlayerMech"
 	player_mech.position = Vector3(-20, 0, 0)
 	player_mech.rotation_degrees = Vector3(0, -90, 0)
+	player_mech.scale = Vector3.ONE * mech_def.body_scale
 	player_mech.max_health = mech_def.max_health
 	player_mech.base_walk_speed = mech_def.walk_speed
 	player_mech.turn_acceleration = mech_def.turn_acceleration
@@ -50,6 +51,7 @@ func _spawn_mechs() -> void:
 	bot_mech.name = "BotMech"
 	bot_mech.position = Vector3(20, 0, 0)
 	bot_mech.team = 1
+	bot_mech.scale = Vector3.ONE * bot_def.body_scale
 	bot_mech.max_health = bot_def.max_health
 	bot_mech.base_walk_speed = bot_def.walk_speed
 	bot_mech.turn_acceleration = bot_def.turn_acceleration

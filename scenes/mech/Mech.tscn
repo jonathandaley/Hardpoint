@@ -1,10 +1,11 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/Mech.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/BipedLegs.gd" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/RaycastGun.tscn" id="5"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/ProjectileGun.tscn" id="8"]
 
-[sub_resource type="CapsuleShape3D" id="2"]
+[sub_resource type="CapsuleShape3D" id="3"]
 radius = 0.5
 height = 2.0
 
@@ -17,21 +18,24 @@ albedo_color = Color(0.45, 0.5, 0.55, 1)
 shading_mode = 0
 
 [sub_resource type="BoxMesh" id="9"]
-size = Vector3(0.32, 0.75, 0.42)
-
-[sub_resource type="BoxMesh" id="10"]
 size = Vector3(0.95, 0.22, 0.52)
 
+[sub_resource type="BoxMesh" id="10"]
+size = Vector3(0.18, 0.45, 0.18)
+
 [sub_resource type="BoxMesh" id="11"]
-size = Vector3(0.65, 0.18, 0.58)
+size = Vector3(0.16, 0.42, 0.16)
 
 [sub_resource type="BoxMesh" id="12"]
-size = Vector3(0.98, 0.60, 0.72)
+size = Vector3(0.65, 0.18, 0.58)
 
 [sub_resource type="BoxMesh" id="13"]
-size = Vector3(0.22, 0.24, 0.52)
+size = Vector3(0.98, 0.60, 0.72)
 
 [sub_resource type="BoxMesh" id="14"]
+size = Vector3(0.22, 0.24, 0.52)
+
+[sub_resource type="BoxMesh" id="15"]
 size = Vector3(0.40, 0.30, 0.36)
 
 [node name="Mech" type="CharacterBody3D"]
@@ -39,50 +43,77 @@ script = ExtResource("1")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 position = Vector3(0, 1, 0)
-shape = SubResource("2")
+shape = SubResource("3")
 
 [node name="Legs" type="Node3D" parent="."]
-
-[node name="LeftLeg" type="MeshInstance3D" parent="Legs"]
-position = Vector3(-0.35, 0.38, 0)
-mesh = SubResource("9")
-surface_material_override/0 = SubResource("7")
-
-[node name="RightLeg" type="MeshInstance3D" parent="Legs"]
-position = Vector3(0.35, 0.38, 0)
-mesh = SubResource("9")
-surface_material_override/0 = SubResource("7")
+script = ExtResource("2")
 
 [node name="Hips" type="MeshInstance3D" parent="Legs"]
 position = Vector3(0, 0.82, 0)
+mesh = SubResource("9")
+surface_material_override/0 = SubResource("7")
+
+[node name="LeftHip" type="Node3D" parent="Legs"]
+position = Vector3(-0.35, 0.82, 0)
+rotation = Vector3(0.436, 0, 0)
+
+[node name="UpperLeft" type="MeshInstance3D" parent="Legs/LeftHip"]
+position = Vector3(0, -0.225, 0)
 mesh = SubResource("10")
+surface_material_override/0 = SubResource("7")
+
+[node name="LeftKnee" type="Node3D" parent="Legs/LeftHip"]
+position = Vector3(0, -0.45, 0)
+rotation = Vector3(-0.873, 0, 0)
+
+[node name="LowerLeft" type="MeshInstance3D" parent="Legs/LeftHip/LeftKnee"]
+position = Vector3(0, -0.21, 0)
+mesh = SubResource("11")
+surface_material_override/0 = SubResource("7")
+
+[node name="RightHip" type="Node3D" parent="Legs"]
+position = Vector3(0.35, 0.82, 0)
+rotation = Vector3(0.436, 0, 0)
+
+[node name="UpperRight" type="MeshInstance3D" parent="Legs/RightHip"]
+position = Vector3(0, -0.225, 0)
+mesh = SubResource("10")
+surface_material_override/0 = SubResource("7")
+
+[node name="RightKnee" type="Node3D" parent="Legs/RightHip"]
+position = Vector3(0, -0.45, 0)
+rotation = Vector3(-0.873, 0, 0)
+
+[node name="LowerRight" type="MeshInstance3D" parent="Legs/RightHip/RightKnee"]
+position = Vector3(0, -0.21, 0)
+mesh = SubResource("11")
 surface_material_override/0 = SubResource("7")
 
 [node name="Torso" type="Node3D" parent="."]
 
 [node name="Waist" type="MeshInstance3D" parent="Torso"]
 position = Vector3(0, 1.02, 0)
-mesh = SubResource("11")
+mesh = SubResource("12")
 surface_material_override/0 = SubResource("4")
 
 [node name="Body" type="MeshInstance3D" parent="Torso"]
 position = Vector3(0, 1.42, 0)
-mesh = SubResource("12")
+mesh = SubResource("13")
 surface_material_override/0 = SubResource("4")
 
 [node name="ShoulderLeft" type="MeshInstance3D" parent="Torso"]
 position = Vector3(-0.68, 1.72, 0)
-mesh = SubResource("13")
+mesh = SubResource("14")
 surface_material_override/0 = SubResource("4")
 
 [node name="ShoulderRight" type="MeshInstance3D" parent="Torso"]
 position = Vector3(0.68, 1.72, 0)
-mesh = SubResource("13")
+mesh = SubResource("14")
 surface_material_override/0 = SubResource("4")
 
 [node name="Head" type="MeshInstance3D" parent="Torso"]
 position = Vector3(0, 1.92, 0)
-mesh = SubResource("14")
+mesh = SubResource("15")
 surface_material_override/0 = SubResource("4")
 
 [node name="HardpointLeft" type="Node3D" parent="Torso"]
