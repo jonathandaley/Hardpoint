@@ -6,6 +6,13 @@ This file tracks **what has shipped**. For what's planned and what to build next
 
 ## Shipped
 
+### Phase 2 — Weapon system completion (commit c210cde, 2026-04-17)
+- Hardpoint generalization: `Mech._get_hardpoints()` scans `Torso/Hardpoint*`; `get_weapons()` / `get_active_set()` public API; no fixed cap
+- `MechDef.weapon_slots: Array` replaces `hardpoint_count`
+- Firing model: left-click = all weapons; right-click = active subset; number keys 1-4 toggle slots; dimmed HUD icon = inactive
+- Magazine types: `FIXED` (reload all-at-once, R key, auto-reload on empty) and `REFILLING` (constant regen); ammo bar greys during reload
+- Input actions: `weapon_slot_1..4`, `reload`
+
 ### Phase 1 — Quick wins (commit 46e8593, 2026-04-17)
 - Scratch files deleted (`test_damage.gd`, `temp_recover.md`)
 - Win/loss tracking: `_on_match_ended` updates `Game.profile`, persisted to `user://profile.cfg`

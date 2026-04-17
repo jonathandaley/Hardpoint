@@ -6,6 +6,13 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="11"]
 
 [sub_resource type="ProceduralSkyMaterial" id="5"]
+sky_top_color = Color(0.08, 0.10, 0.20, 1)
+sky_horizon_color = Color(0.45, 0.52, 0.70, 1)
+sky_curve = 0.15
+ground_bottom_color = Color(0.12, 0.14, 0.20, 1)
+ground_horizon_color = Color(0.38, 0.44, 0.58, 1)
+sun_angle_max = 30.0
+sun_curve = 0.18
 
 [sub_resource type="Sky" id="6"]
 sky_material = SubResource("5")
@@ -14,7 +21,8 @@ sky_material = SubResource("5")
 background_mode = 2
 sky = SubResource("6")
 ambient_light_source = 2
-ambient_light_energy = 0.6
+ambient_light_color = Color(0.72, 0.78, 0.92, 1)
+ambient_light_energy = 0.55
 
 [sub_resource type="PlaneMesh" id="8"]
 size = Vector2(150, 150)
@@ -23,8 +31,9 @@ size = Vector2(150, 150)
 size = Vector3(150, 0.2, 150)
 
 [sub_resource type="StandardMaterial3D" id="10"]
-albedo_color = Color(0.28, 0.28, 0.28, 1)
+albedo_color = Color(0.82, 0.84, 0.88, 1)
 shading_mode = 0
+roughness = 0.75
 
 [node name="Arena" type="Node3D"]
 script = ExtResource("1")
@@ -37,7 +46,8 @@ environment = SubResource("7")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
 transform = Transform3D(0.866, -0.354, 0.354, 0, 0.707, 0.707, -0.5, -0.612, 0.612, 0, 10, 0)
-light_energy = 1.2
+light_color = Color(0.90, 0.94, 1.0, 1)
+light_energy = 1.4
 shadow_enabled = true
 
 [node name="Floor" type="StaticBody3D" parent="."]
@@ -51,12 +61,18 @@ position = Vector3(0, -0.1, 0)
 shape = SubResource("9")
 
 [node name="Beacon1" parent="." instance=ExtResource("4")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 25)
 
 [node name="Beacon2" parent="." instance=ExtResource("4")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -28, 0, -28)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 23.78, 1.1, 7.73)
 
 [node name="Beacon3" parent="." instance=ExtResource("4")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 28, 0, 28)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.7, 1.1, -20.23)
+
+[node name="Beacon4" parent="." instance=ExtResource("4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.7, 1.1, -20.23)
+
+[node name="Beacon5" parent="." instance=ExtResource("4")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.78, 1.1, 7.73)
 
 [node name="HUD" parent="." instance=ExtResource("11")]
