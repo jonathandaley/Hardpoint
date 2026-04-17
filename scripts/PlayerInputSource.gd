@@ -26,5 +26,14 @@ func is_firing_primary() -> bool:
 func is_firing_secondary() -> bool:
 	return Input.is_action_pressed("fire_secondary")
 
+func get_slot_toggle() -> int:
+	for i in range(4):
+		if Input.is_action_just_pressed("weapon_slot_%d" % (i + 1)):
+			return i
+	return -1
+
+func is_reload_pressed() -> bool:
+	return Input.is_action_just_pressed("reload")
+
 func is_human_input() -> bool:
 	return true

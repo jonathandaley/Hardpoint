@@ -14,5 +14,12 @@ func is_firing_primary() -> bool:
 func is_firing_secondary() -> bool:
 	return false
 
+# Returns 0-based slot index to toggle, or -1 if no toggle this frame.
+func get_slot_toggle() -> int:
+	return -1
+
+func is_reload_pressed() -> bool:
+	return false
+
 func is_human_input() -> bool:
 	return false

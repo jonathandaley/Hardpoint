@@ -10,7 +10,6 @@ class_tag = "Heavy"
 max_health = 900.0
 walk_speed = 1.8
 has_shields = true
-hardpoint_count = 3
 turn_acceleration = 4.2
 leg_rotation_speed = 8.0
 scene = ExtResource("2")
