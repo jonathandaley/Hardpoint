@@ -4,7 +4,7 @@ extends Node3D
 @onready var match_node: Node = $BeaconMatch
 @onready var hud: CanvasLayer = $HUD
 
-const DEBUG_PENROSE := true
+const DEBUG_PENROSE := false
 
 const _PENROSE_VERTS: Array = [
   Vector2(9.511, -71.631),
@@ -700,13 +700,9 @@ func _ready() -> void:
 	_set_mech_color(bot_mech,    Color(0.92, 0.28, 0.22))
 	hud.setup(match_node, player_mech, 0)
 	hud.setup_bot_bar(bot_mech)
-	for hp_name in ["HardpointLeft", "HardpointRight"]:
-		var hp := player_mech.get_node_or_null("Torso/" + hp_name)
-		if hp == null:
-			continue
-		for weapon in hp.get_children():
-			if weapon.has_signal("hit_confirmed"):
-				weapon.hit_confirmed.connect(hud.register_hit)
+	for weapon in player_mech.get_weapons():
+		if weapon.has_signal("hit_confirmed"):
+			weapon.hit_confirmed.connect(hud.register_hit)
 	player_mech.damaged.connect(hud.show_damage)
 	print("[Arena] Match started. Score to drain: %d" % match_node.score_limit)
 
