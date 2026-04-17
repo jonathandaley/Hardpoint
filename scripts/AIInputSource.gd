@@ -3,14 +3,20 @@ extends "res://scripts/InputSource.gd"
 
 const TURN_SPEED    := 1.8   # rad/s
 const ENGAGE_DIST   := 35.0  # close enough to shoot
-const RETREAT_DIST  := 8.0   # too close — back off
+const RETREAT_DIST  := 8.0   # too close - back off
 const AIM_THRESHOLD := 0.25  # fire when within this many radians of target
-const AIM_SPREAD    := 0.055 # max random jitter added to aim (radians)
 const BURST_FIRE    := 1.6   # seconds of continuous fire per burst
 const BURST_PAUSE   := 0.85  # seconds of pause between bursts
 const STUCK_CHECK   := 0.5   # seconds between stuck checks
 const STUCK_DIST    := 0.5   # minimum movement to not be considered stuck (m)
 const ESCAPE_TIME   := 0.8   # seconds to strafe sideways when stuck
+
+# [aim_jitter_radians, turn_speed_scale]
+const DIFFICULTY_PRESETS: Array = [
+	{"aim_jitter": 0.18,  "turn_scale": 0.55},  # Easy
+	{"aim_jitter": 0.055, "turn_scale": 1.00},  # Normal
+	{"aim_jitter": 0.015, "turn_scale": 1.50},  # Hard
+]
 
 var _target: Node3D = null
 var _beacons: Array = []
@@ -68,17 +74,22 @@ func _process(delta: float) -> void:
 	var dist      := to_target.length()
 	var sens: float = Game.settings.get("mouse_sensitivity", 0.003)
 
-	# Horizontal aim — rotate torso toward player
+	var diff_idx: int = clampi(Game.settings.get("bot_difficulty", 1), 0, 2)
+	var preset: Dictionary = DIFFICULTY_PRESETS[diff_idx]
+	var aim_jitter: float = preset.get("aim_jitter", 0.055)
+	var eff_turn: float = TURN_SPEED * preset.get("turn_scale", 1.0)
+
+	# Horizontal aim - rotate torso toward player
 	var to_flat := Vector3(to_target.x, 0.0, to_target.z)
 	var h_dist  := to_flat.length()
 	var angle_h := 0.0
 	if h_dist > 0.01:
 		to_flat = to_flat / h_dist
 		angle_h = (-bot_mech.get_aim_basis().z).signed_angle_to(to_flat, Vector3.UP)
-	var turn_h: float = clamp(angle_h, -TURN_SPEED * delta, TURN_SPEED * delta)
+	var turn_h: float = clamp(angle_h, -eff_turn * delta, eff_turn * delta)
 	_look_delta.x = -turn_h / sens
 
-	# Vertical aim — compute angle from the camera's actual position to target centre
+	# Vertical aim - compute angle from the camera's actual position to target centre
 	var cam_arm := bot_mech.get_node_or_null("Torso/CameraArm") as SpringArm3D
 	var cam     := bot_mech.get_node_or_null("Torso/CameraArm/Camera3D") as Camera3D
 	if cam_arm and cam:
@@ -87,7 +98,7 @@ func _process(delta: float) -> void:
 		var cam_h_dist: float = Vector2(cam_to_target.x, cam_to_target.z).length()
 		var desired_pitch: float = atan2(cam_to_target.y, maxf(cam_h_dist, 0.01))
 		var pitch_diff: float    = desired_pitch - cam_arm.rotation.x
-		var turn_v: float        = clamp(pitch_diff, -TURN_SPEED * delta, TURN_SPEED * delta)
+		var turn_v: float        = clamp(pitch_diff, -eff_turn * delta, eff_turn * delta)
 		_look_delta.y = -turn_v / sens
 
 	# Movement — retreat takes priority over everything else
@@ -135,12 +146,12 @@ func _process(delta: float) -> void:
 		_escape_timer -= delta
 		_move_dir = Vector2(_escape_dir, -0.5).normalized()
 
-	# Aim jitter — slow random drift that makes the bot miss occasionally
+	# Aim jitter - slow random drift that makes the bot miss occasionally
 	_jitter_timer -= delta
 	if _jitter_timer <= 0.0:
 		_jitter_timer = randf_range(0.08, 0.18)
-		_jitter = Vector2(randf_range(-AIM_SPREAD, AIM_SPREAD),
-						  randf_range(-AIM_SPREAD, AIM_SPREAD))
+		_jitter = Vector2(randf_range(-aim_jitter, aim_jitter),
+						  randf_range(-aim_jitter, aim_jitter))
 	_look_delta += _jitter / sens
 
 	# Burst fire — shoot for BURST_FIRE seconds, pause for BURST_PAUSE seconds

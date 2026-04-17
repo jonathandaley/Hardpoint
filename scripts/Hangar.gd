@@ -38,6 +38,8 @@ func _load_roster() -> void:
 		var md = load(path)
 		if md != null:
 			_mechs.append(md)
+		else:
+			push_error("[Hangar] Failed to load MechDef: " + path)
 
 func _ensure_default_mech() -> void:
 	var current = Game.loadout.get("mech_def")
@@ -105,3 +107,6 @@ func _on_pilot_tab_pressed() -> void:
 
 func _on_matchmaking_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/arena/Arena.tscn")
+
+func _on_settings_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/ui/Settings.tscn")
