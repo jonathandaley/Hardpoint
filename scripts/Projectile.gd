@@ -10,6 +10,8 @@ var team: int = 0          # reserved for friendly-fire checks later
 var _exclude_rids: Array = []   # RIDs excluded from hit tests (mech + own shield)
 var on_hit: Callable       # called when the projectile hits a damageable target
 var damage_override: Callable  # optional: func(distance: float) -> float
+var splash_radius: float = 0.0
+var splash_damage: float = 0.0
 
 var _age: float = 0.0
 var _distance_traveled: float = 0.0
@@ -35,6 +37,13 @@ func _physics_process(delta: float) -> void:
 			result.collider.take_damage(actual)
 			if on_hit.is_valid():
 				on_hit.call()
+		if splash_radius > 0.0:
+			for mech in get_tree().get_nodes_in_group("mechs"):
+				if mech == result.collider:
+					continue
+				var dist: float = (mech as Node3D).global_position.distance_to(global_position)
+				if dist < splash_radius:
+					mech.take_damage(splash_damage * (1.0 - dist / splash_radius))
 		queue_free()
 		return
 
