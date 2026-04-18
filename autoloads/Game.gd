@@ -19,7 +19,8 @@ var profile: Dictionary = {
 # mech_def is a MechDef resource; null until Hangar initialises it.
 var loadout: Dictionary = {
 	"mech_def": null,
-	"weapon_overrides": [],  # Array[PackedScene|null], parallel to mech_def.weapon_slots
+	"weapon_overrides": [],        # Array[PackedScene|null], parallel to mech_def.weapon_slots
+	"mech_weapon_choices": {},     # {mech_resource_path: [weapon_scene_path, ...]}
 }
 
 var settings: Dictionary = {
@@ -30,6 +31,7 @@ var settings: Dictionary = {
 func _ready() -> void:
 	_load_profile()
 	_load_settings()
+	_load_loadout()
 
 func _load_profile() -> void:
 	var cfg := ConfigFile.new()
@@ -52,6 +54,25 @@ func _load_settings() -> void:
 		return
 	settings["mouse_sensitivity"] = cfg.get_value("settings", "mouse_sensitivity", settings["mouse_sensitivity"])
 	settings["bot_difficulty"]    = cfg.get_value("settings", "bot_difficulty",    settings["bot_difficulty"])
+
+func _load_loadout() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(_SAVE_PATH) != OK:
+		return
+	var mech_path: String = cfg.get_value("loadout", "mech_path", "")
+	if mech_path != "":
+		var md = load(mech_path)
+		if md != null:
+			loadout["mech_def"] = md
+	loadout["mech_weapon_choices"] = cfg.get_value("loadout", "mech_weapon_choices", {})
+
+func save_loadout() -> void:
+	var cfg := ConfigFile.new()
+	cfg.load(_SAVE_PATH)  # preserve existing sections
+	var mech_def = loadout.get("mech_def")
+	cfg.set_value("loadout", "mech_path", mech_def.resource_path if mech_def != null else "")
+	cfg.set_value("loadout", "mech_weapon_choices", loadout.get("mech_weapon_choices", {}))
+	cfg.save(_SAVE_PATH)
 
 func save_settings() -> void:
 	var cfg := ConfigFile.new()

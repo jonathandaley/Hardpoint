@@ -77,17 +77,20 @@ func _init_weapon_overrides() -> void:
 		return
 	var slots: Array = md.weapon_slots
 	_weapon_indices.resize(slots.size())
+	var saved: Array = Game.loadout.get("mech_weapon_choices", {}).get(md.resource_path, [])
 	var overrides: Array = []
 	for i in slots.size():
 		var slot = slots[i]
 		var s_size: int = int(slot.get("slot_size")) if "slot_size" in slot else 0
-		var current_path: String = slot.weapon_scene.resource_path if slot.weapon_scene != null else ""
+		var target_path: String = saved[i] if i < saved.size() else ""
+		if target_path == "":
+			target_path = slot.weapon_scene.resource_path if slot.weapon_scene != null else ""
 		var found: int = -1
 		for j in WEAPON_CATALOG.size():
 			if WEAPON_CATALOG[j]["slot_size"] == s_size:
 				if found < 0:
 					found = j
-				if WEAPON_CATALOG[j]["path"] == current_path:
+				if WEAPON_CATALOG[j]["path"] == target_path:
 					found = j
 					break
 		_weapon_indices[i] = found if found >= 0 else 0
@@ -121,6 +124,7 @@ func _on_roster_selected(idx: int) -> void:
 	_selected = idx
 	Game.loadout.mech_def = _mechs[idx]
 	_init_weapon_overrides()
+	Game.save_loadout()
 	_highlight_selected()
 	_update_mech_panel()
 
@@ -226,6 +230,16 @@ func _on_weapon_cycle(slot_idx: int, direction: int) -> void:
 		overrides.append(null)
 	overrides[slot_idx] = load(WEAPON_CATALOG[_weapon_indices[slot_idx]]["path"])
 	Game.loadout["weapon_overrides"] = overrides
+
+	var md = Game.loadout.get("mech_def")
+	if md != null:
+		var choices: Dictionary = Game.loadout.get("mech_weapon_choices", {})
+		var paths: Array = []
+		for o in overrides:
+			paths.append(o.resource_path if o != null else "")
+		choices[md.resource_path] = paths
+		Game.loadout["mech_weapon_choices"] = choices
+		Game.save_loadout()
 
 	if slot_idx < _weapon_name_labels.size() and is_instance_valid(_weapon_name_labels[slot_idx]):
 		_weapon_name_labels[slot_idx].text = WEAPON_CATALOG[_weapon_indices[slot_idx]]["name"]
