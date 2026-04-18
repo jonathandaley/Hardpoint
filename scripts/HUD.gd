@@ -7,6 +7,8 @@ extends CanvasLayer
 @onready var damage_flash: ColorRect = $DamageFlash
 @onready var result_label: Label = $ResultLabel
 @onready var restart_label: Label = $RestartLabel
+@onready var shield_bar_bg: ColorRect = $ShieldBarBG
+@onready var shield_bar_fg: ColorRect = $ShieldBarFG
 @onready var bot_health_bar: ColorRect = $BotHealthBar
 @onready var weapon_hud: Control = $WeaponHUD
 
@@ -49,6 +51,15 @@ func _process(delta: float) -> void:
 	if _player_mech != null:
 		var pct: float = _player_mech.health / _player_mech.max_health
 		health_bar_fg.offset_right = health_bar_fg.offset_left + 162.0 * pct
+		var es: Node = _player_mech.get_node_or_null("EnergyShield")
+		if es != null and es.get("_active"):
+			var spct: float = es.shield_hp / es.max_shield_hp
+			shield_bar_fg.offset_right = shield_bar_fg.offset_left + 162.0 * spct
+			shield_bar_bg.visible = true
+			shield_bar_fg.visible = true
+		else:
+			shield_bar_bg.visible = false
+			shield_bar_fg.visible = false
 
 	if _match != null:
 		var scores: Array = _match.get("scores")
