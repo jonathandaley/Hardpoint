@@ -30,7 +30,8 @@ func _do_fire() -> void:
 			var perp := Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-1.0, 1.0))
 			perp = perp - cam_fwd * perp.dot(cam_fwd)
 			if perp.length_squared() > 0.0001:
-				pellet_fwd = (cam_fwd + perp.normalized() * tan(deg_to_rad(spread_angle))).normalized()
+				var radius := tan(deg_to_rad(spread_angle)) * sqrt(randf())
+				pellet_fwd = (cam_fwd + perp.normalized() * radius).normalized()
 
 		var proj := PROJECTILE_SCENE.instantiate() as Projectile
 		proj.speed = projectile_speed
