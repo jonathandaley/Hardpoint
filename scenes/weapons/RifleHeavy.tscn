@@ -18,7 +18,7 @@ max_ammo = 12
 magazine_type = 1
 refill_rate = 0.5
 projectile_speed = 55.0
-shake_magnitude = 0.03
+shake_magnitude = 0.015
 
 [node name="GunBody" type="MeshInstance3D" parent="."]
 position = Vector3(0, 0, -0.325)
