@@ -4,6 +4,7 @@ extends "res://scripts/ProjectileGun.gd"
 # base_fire_rate -> ramps to max_fire_rate at rate_accel rps/s.
 # Releasing trigger decays back to base at rate_decay rps/s.
 
+@export var spread_angle: float = 1.0  # half-cone degrees; total spread = 2x this
 @export var base_fire_rate: float = 4.0
 @export var max_fire_rate: float = 14.0
 @export var rate_accel: float = 10.0   # rps added per second while held
@@ -11,6 +12,34 @@ extends "res://scripts/ProjectileGun.gd"
 
 var _current_rate: float = 0.0
 var _trigger_held: bool = false
+
+func _do_fire() -> void:
+	if owner_mech == null:
+		return
+	var cam := owner_mech.get("camera") as Camera3D
+	if cam == null:
+		return
+	var cam_fwd := -cam.global_transform.basis.z
+	if spread_angle > 0.0:
+		var perp := Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-1.0, 1.0))
+		perp = perp - cam_fwd * perp.dot(cam_fwd)
+		if perp.length_squared() > 0.0001:
+			cam_fwd = (cam_fwd + perp.normalized() * tan(deg_to_rad(spread_angle))).normalized()
+	var space := get_world_3d().direct_space_state
+	var aim_query := PhysicsRayQueryParameters3D.create(
+		cam.global_position, cam.global_position + cam_fwd * range)
+	aim_query.exclude = owner_mech.get_exclude_rids()
+	var aim_result := space.intersect_ray(aim_query)
+	var aim_point: Vector3 = aim_result.position if aim_result \
+		else cam.global_position + cam_fwd * range
+	var proj: Projectile = PROJECTILE_SCENE.instantiate()
+	proj.damage = damage
+	proj.speed = projectile_speed
+	proj.team = owner_mech.get("team") if owner_mech.get("team") != null else 0
+	proj._exclude_rids = owner_mech.get_exclude_rids()
+	proj.on_hit = func(): hit_confirmed.emit()
+	get_tree().current_scene.add_child(proj)
+	proj.global_transform = Transform3D(Basis(), global_position).looking_at(aim_point)
 
 func _ready() -> void:
 	super._ready()
