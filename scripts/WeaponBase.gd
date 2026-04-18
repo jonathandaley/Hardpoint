@@ -78,6 +78,11 @@ func try_reload() -> void:
 func is_reloading() -> bool:
 	return _reloading
 
+func get_reload_progress() -> float:
+	if not _reloading or reload_time <= 0.0:
+		return 1.0
+	return clampf(1.0 - _reload_timer / reload_time, 0.0, 1.0)
+
 func _start_reload() -> void:
 	_reloading = true
 	_reload_timer = reload_time

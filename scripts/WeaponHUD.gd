@@ -110,15 +110,17 @@ func _process(_delta: float) -> void:
 			continue
 
 		# Ammo bar
-		var max_ammo = entry["weapon"].get("max_ammo")
-		var pct := 1.0
-		if max_ammo != null and int(max_ammo) > 0:
-			pct = clampf(float(int(entry["weapon"].get("ammo"))) / float(int(max_ammo)), 0.0, 1.0)
-		entry["ammo_fg"].offset_right = entry["bar_left"] + SLOT_W * pct
-
 		var reloading: bool = entry["weapon"].has_method("is_reloading") \
 				and entry["weapon"].is_reloading()
-		entry["ammo_fg"].color = Color(0.5, 0.5, 0.5, 0.7) if reloading \
+		var pct := 1.0
+		if reloading and entry["weapon"].has_method("get_reload_progress"):
+			pct = entry["weapon"].get_reload_progress()
+		else:
+			var max_ammo = entry["weapon"].get("max_ammo")
+			if max_ammo != null and int(max_ammo) > 0:
+				pct = clampf(float(int(entry["weapon"].get("ammo"))) / float(int(max_ammo)), 0.0, 1.0)
+		entry["ammo_fg"].offset_right = entry["bar_left"] + SLOT_W * pct
+		entry["ammo_fg"].color = Color(0.5, 0.5, 0.5, 0.9) if reloading \
 				else Color(0.2, 0.85, 0.3, 1.0)
 
 		# Dim icon when not in right-click active set
