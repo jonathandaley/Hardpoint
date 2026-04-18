@@ -13,10 +13,10 @@ shading_mode = 0
 script = ExtResource("1")
 damage = 20.0
 fire_rate = 3.0
-range = 80.0
+range = 100.0
 max_ammo = 20
 magazine_type = 1
-refill_rate = 6.0
+refill_rate = 1.0
 projectile_speed = 55.0
 shake_magnitude = 0.02
 
