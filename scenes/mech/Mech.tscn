@@ -1,9 +1,10 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=20 format=3]
 
 [ext_resource type="Script" path="res://scripts/Mech.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/BipedLegs.gd" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/ProjectileGun.tscn" id="8"]
 [ext_resource type="Script" path="res://scripts/PhysicalShield.gd" id="17"]
+[ext_resource type="Script" path="res://scripts/EnergyShield.gd" id="21"]
 
 [sub_resource type="CapsuleShape3D" id="3"]
 radius = 0.5
@@ -171,6 +172,9 @@ collision_mask = 1
 
 [node name="Camera3D" type="Camera3D" parent="Torso/CameraArm"]
 position = Vector3(0, 0, 5)
+
+[node name="EnergyShield" type="Node" parent="."]
+script = ExtResource("21")
 
 [node name="PhysicalShield" type="StaticBody3D" parent="Torso"]
 position = Vector3(0, 1.1, -0.42)

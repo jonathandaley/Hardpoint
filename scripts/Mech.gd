@@ -34,6 +34,12 @@ var _desired_move_dir: Vector3 = Vector3.ZERO
 @onready var camera: Camera3D = $Torso/CameraArm/Camera3D
 @onready var camera_arm: SpringArm3D = $Torso/CameraArm
 @onready var _shield := $Torso/PhysicalShield
+@onready var _energy_shield: Node = $EnergyShield
+
+var _body_meshes: Array = []
+var _flash_mat: StandardMaterial3D = null
+var _flash_timer_es: float = 0.0
+const _ES_FLASH_DUR := 0.12
 
 var _weapons: Array = []
 var _active_set: Array = []  # parallel bool array; true = included in right-click subset
@@ -50,6 +56,9 @@ func _ready() -> void:
 	health = max_health
 	_setup_weapon_owners()
 	_build_weapon_list()
+	for child in torso.get_children():
+		if child is MeshInstance3D:
+			_body_meshes.append(child)
 
 func _process(delta: float) -> void:
 	if _shake_timer > 0.0:
@@ -58,10 +67,24 @@ func _process(delta: float) -> void:
 		camera_arm.rotation.x = _camera_pitch + randf_range(-_shake_intensity, _shake_intensity) * frac
 	else:
 		camera_arm.rotation.x = _camera_pitch
+	if _flash_timer_es > 0.0:
+		_flash_timer_es = maxf(0.0, _flash_timer_es - delta)
+		if _flash_timer_es == 0.0:
+			for mesh in _body_meshes:
+				mesh.material_overlay = null
 
 func apply_camera_shake(magnitude: float) -> void:
 	_shake_intensity = magnitude
 	_shake_timer = _SHAKE_DURATION
+
+func configure_energy_shield(has_shield: bool, max_hp: float, regen_rate: float, regen_delay: float) -> void:
+	if not has_shield:
+		return
+	_energy_shield.call("activate", max_hp, regen_rate, regen_delay)
+	_flash_mat = StandardMaterial3D.new()
+	_flash_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_flash_mat.albedo_color = Color(0.3, 0.8, 1.0, 0.55)
+	_flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 
 func configure_shield(has_shield: bool, max_hp: float = 300.0) -> void:
 	if has_shield:
@@ -119,12 +142,27 @@ func get_aim_basis() -> Basis:
 func take_damage(amount: float) -> void:
 	if health <= 0.0:
 		return
-	health -= amount
+	var actual := amount
+	if _energy_shield != null:
+		var overflow: float = _energy_shield.call("absorb", amount)
+		if overflow < amount:
+			_do_shield_flash()
+		actual = overflow
+	if actual <= 0.0:
+		return
+	health -= actual
 	damaged.emit()
 	print("[Mech] %s  %.0f / %.0f HP" % [name, health, max_health])
 	if health <= 0.0:
 		health = 0.0
 		_die()
+
+func _do_shield_flash() -> void:
+	if _flash_mat == null:
+		return
+	for mesh in _body_meshes:
+		mesh.material_overlay = _flash_mat
+	_flash_timer_es = _ES_FLASH_DUR
 
 func _die() -> void:
 	print("[Mech] %s destroyed" % name)

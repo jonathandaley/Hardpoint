@@ -10,6 +10,10 @@ extends Resource
 @export var walk_speed: float = 5.25
 @export var has_shields: bool = false
 @export var shield_max_hp: float = 300.0
+@export var has_energy_shield: bool = false
+@export var energy_shield_max_hp: float = 200.0
+@export var energy_shield_regen_rate: float = 30.0
+@export var energy_shield_regen_delay: float = 3.0
 # weapon_slots: Array of {size: "Light"/"Heavy", position: Vector3}
 # Empty means use whatever is in the scene; populated = dynamic instantiation (Phase 2+)
 @export var weapon_slots: Array = []
