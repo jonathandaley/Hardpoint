@@ -1,0 +1,29 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/MachineGun.gd" id="1"]
+
+[sub_resource type="BoxMesh" id="2"]
+size = Vector3(0.09, 0.09, 0.55)
+
+[sub_resource type="StandardMaterial3D" id="3"]
+albedo_color = Color(0.22, 0.12, 0.08, 1)
+shading_mode = 0
+
+[node name="MachineGunLight" type="Node3D"]
+script = ExtResource("1")
+damage = 12.0
+range = 80.0
+max_ammo = 60
+magazine_type = 0
+reload_time = 3.0
+projectile_speed = 60.0
+shake_magnitude = 0.008
+base_fire_rate = 4.0
+max_fire_rate = 14.0
+rate_accel = 10.0
+rate_decay = 25.0
+
+[node name="GunBody" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, -0.275)
+mesh = SubResource("2")
+surface_material_override/0 = SubResource("3")

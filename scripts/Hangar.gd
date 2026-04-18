@@ -10,9 +10,11 @@ const ROSTER: Array = [
 const WEAPON_CATALOG: Array = [
 	{"name": "RIFLE LIGHT",    "path": "res://scenes/weapons/RifleLight.tscn",    "slot_size": 0},
 	{"name": "SNIPER LIGHT",   "path": "res://scenes/weapons/SniperLight.tscn",   "slot_size": 0},
-	{"name": "PROJECTILE GUN", "path": "res://scenes/weapons/ProjectileGun.tscn", "slot_size": 0},
-	{"name": "RIFLE HEAVY",    "path": "res://scenes/weapons/RifleHeavy.tscn",    "slot_size": 1},
-	{"name": "SNIPER HEAVY",   "path": "res://scenes/weapons/SniperHeavy.tscn",   "slot_size": 1},
+	{"name": "MACHINE GUN LIGHT", "path": "res://scenes/weapons/MachineGunLight.tscn", "slot_size": 0},
+	{"name": "PROJECTILE GUN",   "path": "res://scenes/weapons/ProjectileGun.tscn",   "slot_size": 0},
+	{"name": "RIFLE HEAVY",      "path": "res://scenes/weapons/RifleHeavy.tscn",      "slot_size": 1},
+	{"name": "SNIPER HEAVY",     "path": "res://scenes/weapons/SniperHeavy.tscn",     "slot_size": 1},
+	{"name": "MACHINE GUN HEAVY","path": "res://scenes/weapons/MachineGunHeavy.tscn", "slot_size": 1},
 ]
 
 @onready var mech_panel: Control = $Content/MechPanel
