@@ -19,7 +19,7 @@ refill_rate = 2.0
 shake_magnitude = 0.015
 damage = 25.0
 projectile_speed = 35.0
-splash_radius = 4.0
+splash_radius = 12.0
 splash_damage = 15.0
 
 [node name="GunBody" type="MeshInstance3D" parent="."]
