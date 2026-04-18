@@ -23,6 +23,7 @@ func _do_fire() -> void:
 	var proj := PROJECTILE_SCENE.instantiate() as Projectile
 	proj.damage = damage
 	proj.speed = projectile_speed
+	proj.lifetime = range / projectile_speed
 	proj.team = owner_mech.get("team") if owner_mech.get("team") != null else 0
 	proj._exclude_rids = owner_mech.get_exclude_rids()
 	proj.splash_radius = splash_radius

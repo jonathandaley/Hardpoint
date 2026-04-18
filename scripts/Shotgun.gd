@@ -45,6 +45,7 @@ func _do_fire() -> void:
 		var aim_point := cam.global_position + pellet_fwd * aim_dist
 		var proj := PROJECTILE_SCENE.instantiate() as Projectile
 		proj.speed = projectile_speed
+		proj.lifetime = range / projectile_speed
 		proj.damage = dc
 		proj.team = t_val
 		proj._exclude_rids = ex
