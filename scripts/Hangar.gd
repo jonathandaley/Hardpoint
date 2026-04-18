@@ -136,7 +136,7 @@ func _update_mech_panel() -> void:
 func _build_weapon_picker(md) -> void:
 	var existing := mech_panel.get_node_or_null("WeaponPicker")
 	if existing:
-		existing.queue_free()
+		existing.free()
 
 	var slots: Array = md.weapon_slots
 	var row_h := 24.0
