@@ -27,7 +27,8 @@ const WEAPON_CATALOG: Array = [
 
 var _mechs: Array = []
 var _selected: int = 0
-var _weapon_indices: Array = []   # WEAPON_CATALOG index per slot for the selected mech
+var _weapon_indices: Array = []      # WEAPON_CATALOG index per slot for the selected mech
+var _weapon_name_labels: Array = []  # Label refs in the picker, updated in-place on cycle
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -141,6 +142,8 @@ func _build_weapon_picker(md) -> void:
 	var row_h := 24.0
 	var picker_top := 44.0
 
+	_weapon_name_labels.clear()
+
 	var picker := VBoxContainer.new()
 	picker.name = "WeaponPicker"
 	picker.offset_left = 200.0
@@ -184,6 +187,7 @@ func _build_weapon_picker(md) -> void:
 		wep_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		wep_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		row.add_child(wep_lbl)
+		_weapon_name_labels.append(wep_lbl)
 
 		var next_btn := Button.new()
 		next_btn.text = ">"
@@ -223,7 +227,8 @@ func _on_weapon_cycle(slot_idx: int, direction: int) -> void:
 	overrides[slot_idx] = load(WEAPON_CATALOG[_weapon_indices[slot_idx]]["path"])
 	Game.loadout["weapon_overrides"] = overrides
 
-	_update_mech_panel()
+	if slot_idx < _weapon_name_labels.size() and is_instance_valid(_weapon_name_labels[slot_idx]):
+		_weapon_name_labels[slot_idx].text = WEAPON_CATALOG[_weapon_indices[slot_idx]]["name"]
 
 func _show_tab(idx: int) -> void:
 	mech_panel.visible = idx == 0
