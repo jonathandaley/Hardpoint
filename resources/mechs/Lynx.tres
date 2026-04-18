@@ -1,7 +1,20 @@
-[gd_resource type="Resource" script_class="MechDef" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="MechDef" load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/MechDef.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/mech/Mech.tscn" id="2"]
+[ext_resource type="Script" path="res://scripts/WeaponSlotDef.gd" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/RifleLight.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/ProjectileGun.tscn" id="5"]
+
+[sub_resource type="Resource" id="1"]
+script = ExtResource("3")
+position = Vector3(-0.7, 1.1, 0.2)
+weapon_scene = ExtResource("4")
+
+[sub_resource type="Resource" id="2"]
+script = ExtResource("3")
+position = Vector3(0.7, 1.1, 0.2)
+weapon_scene = ExtResource("5")
 
 [resource]
 script = ExtResource("1")
@@ -15,4 +28,5 @@ leg_rotation_speed = 22.0
 leg_hip_sweep = 0.16
 leg_bob_magnitude = 0.03
 leg_cycle_rate = 2.4
+weapon_slots = [SubResource("1"), SubResource("2")]
 scene = ExtResource("2")

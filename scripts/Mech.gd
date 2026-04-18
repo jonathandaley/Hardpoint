@@ -97,6 +97,27 @@ func get_exclude_rids() -> Array:
 		rids.append(_shield.get_rid())
 	return rids
 
+func configure_weapons(slots: Array) -> void:
+	if slots.is_empty():
+		return
+	for child in torso.get_children():
+		if child.name.begins_with("Hardpoint"):
+			child.queue_free()
+	for i in slots.size():
+		var slot = slots[i]
+		var scene: PackedScene = slot.weapon_scene
+		if scene == null:
+			continue
+		var hp := Node3D.new()
+		hp.name = "Hardpoint%d" % i
+		hp.position = slot.position
+		torso.add_child(hp)
+		var weapon: Node = scene.instantiate()
+		if "owner_mech" in weapon:
+			weapon.owner_mech = self
+		hp.add_child(weapon)
+	_build_weapon_list()
+
 func configure_legs(hip_sweep: float, bob_magnitude: float, cycle_rate: float) -> void:
 	legs.set("hip_sweep_amount", hip_sweep)
 	legs.set("bob_magnitude", bob_magnitude)
