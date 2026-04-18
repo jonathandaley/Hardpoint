@@ -6,6 +6,12 @@ This file tracks **what has shipped**. For what's planned and what to build next
 
 ## Shipped
 
+### Phase 3a — Camera shake on weapon fire (2026-04-17)
+- `WeaponBase.shake_magnitude` export (radians); 0 = no shake; per-weapon tunable
+- `Mech.apply_camera_shake(magnitude)` decays over 0.15s using `_shake_timer`/`_shake_intensity`
+- `Mech._process` owns `camera_arm.rotation.x` = `_camera_pitch` + live shake offset; `_handle_look` no longer sets it directly
+- ProjectileGun: 0.03 rad; RaycastGun: 0.015 rad
+
 ### Phase 2 — Weapon system completion (commit c210cde, 2026-04-17)
 - Hardpoint generalization: `Mech._get_hardpoints()` scans `Torso/Hardpoint*`; `get_weapons()` / `get_active_set()` public API; no fixed cap
 - `MechDef.weapon_slots: Array` replaces `hardpoint_count`
@@ -77,6 +83,8 @@ This file tracks **what has shipped**. For what's planned and what to build next
 | `max(0.0, -someFloat)` type inference error | GDScript 4.6 can't infer return type of `max()` on negated variables | Use `maxf()` + explicit `: float` annotation |
 | Em-dash in comments breaks script loading | Encoding/parser edge case in Godot 4.6 on Linux | Use plain hyphens only in `.gd` comments |
 | Step climbing would miss ledges or over-trigger | Only probing input direction missed diagonal ledges; instant teleport felt wrong | Probe both `_desired_move_dir` and `velocity`; apply lift gradually at 2.5 m/s with `_step_up_remaining` |
+| Step climbing broken from non-center spawn; legs rotated 90° at walls | `ConcavePolygonShape3D.backface_collision=false` (default) — shin raycast only hit front face; inner wall normals point inward, so mech approaching from outside hit back face silently | `backface_collision=true`; widen rays to 0.8 m; lower velocity threshold to 0.01; fire `_step_up_remaining` only once per step to prevent overshoot hop |
+| Mouse sensitivity reverted on every session start | `min_value=0.001` assignment in `_ready()` clamped slider from 0→0.001 and fired `value_changed`, overwriting saved value before it was loaded | Block slider signals during init with `set_block_signals(true/false)` |
 | MechDef type hints cause parse errors in Arena/Hangar | GDScript typed dict access with custom Resource types is fragile | Use untyped `var` when reading from `Game.loadout` dict |
 | Projectile aim was wrong at close range | Barrel aimed along mech forward, not toward crosshair target | Cast ray from camera center → crosshair target, then aim barrel toward the hit point |
 | Penrose generator in GDScript was impractical | Recursive substitution in GDScript too slow/complex for interactive tuning | Rewrote as `tools/penrose_gen.py` (pure Python, de Bruijn method); outputs GDScript consts directly |

@@ -37,6 +37,10 @@ var _desired_move_dir: Vector3 = Vector3.ZERO
 var _weapons: Array = []
 var _active_set: Array = []  # parallel bool array; true = included in right-click subset
 
+const _SHAKE_DURATION := 0.15
+var _shake_intensity: float = 0.0
+var _shake_timer: float = 0.0
+
 var walk_speed: float:
 	get: return base_walk_speed * _modifiers.get("walk_speed", 1.0)
 
@@ -45,6 +49,18 @@ func _ready() -> void:
 	health = max_health
 	_setup_weapon_owners()
 	_build_weapon_list()
+
+func _process(delta: float) -> void:
+	if _shake_timer > 0.0:
+		_shake_timer = maxf(0.0, _shake_timer - delta)
+		var frac := _shake_timer / _SHAKE_DURATION
+		camera_arm.rotation.x = _camera_pitch + randf_range(-_shake_intensity, _shake_intensity) * frac
+	else:
+		camera_arm.rotation.x = _camera_pitch
+
+func apply_camera_shake(magnitude: float) -> void:
+	_shake_intensity = magnitude
+	_shake_timer = _SHAKE_DURATION
 
 func _get_hardpoints() -> Array:
 	var hps: Array = []
@@ -182,7 +198,7 @@ func _handle_look() -> void:
 	var sens: float = Game.settings.get("mouse_sensitivity", 0.003)
 	torso.rotate_y(-look.x * sens)
 	_camera_pitch = clamp(_camera_pitch - look.y * sens, -1.2, 0.4)
-	camera_arm.rotation.x = _camera_pitch
+	# camera_arm.rotation.x is owned by _process (shake + pitch combined)
 
 func _handle_movement(delta: float) -> void:
 	var dir2d: Vector2 = _input_source.get_move_direction()

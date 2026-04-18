@@ -14,6 +14,7 @@ enum MagazineType { FIXED, REFILLING }
 @export var magazine_type: MagazineType = MagazineType.FIXED
 @export var reload_time: float = 1.5   # FIXED: seconds to reload full magazine
 @export var refill_rate: float = 5.0   # REFILLING: ammo per second
+@export var shake_magnitude: float = 0.0  # radians; 0 = no shake
 
 var owner_mech: Node3D = null   # set by Mech._setup_weapon_owners() at ready time
 var ammo: int = -1
@@ -58,6 +59,8 @@ func fire() -> void:
 		return
 	_cooldown = 1.0 / fire_rate
 	_do_fire()
+	if shake_magnitude > 0.0 and owner_mech != null and owner_mech.has_method("apply_camera_shake"):
+		owner_mech.apply_camera_shake(shake_magnitude)
 	if max_ammo >= 0:
 		ammo -= 1
 		if ammo <= 0 and magazine_type == MagazineType.FIXED:

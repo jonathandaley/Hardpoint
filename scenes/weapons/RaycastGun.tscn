@@ -19,6 +19,7 @@ shading_mode = 0
 
 [node name="RaycastGun" type="Node3D"]
 script = ExtResource("1")
+shake_magnitude = 0.015
 
 [node name="GunBody" type="MeshInstance3D" parent="."]
 position = Vector3(0, 0, -0.22)
