@@ -9,8 +9,10 @@ var lifetime: float = 3.0
 var team: int = 0          # reserved for friendly-fire checks later
 var _exclude_rids: Array = []   # RIDs excluded from hit tests (mech + own shield)
 var on_hit: Callable       # called when the projectile hits a damageable target
+var damage_override: Callable  # optional: func(distance: float) -> float
 
 var _age: float = 0.0
+var _distance_traveled: float = 0.0
 
 func _physics_process(delta: float) -> void:
 	_age += delta
@@ -19,6 +21,7 @@ func _physics_process(delta: float) -> void:
 		return
 
 	var step := -global_transform.basis.z * speed * delta
+	_distance_traveled += step.length()
 
 	var space := get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(global_position, global_position + step)
@@ -28,7 +31,8 @@ func _physics_process(delta: float) -> void:
 
 	if result:
 		if result.collider.has_method("take_damage"):
-			result.collider.take_damage(damage)
+			var actual := damage_override.call(_distance_traveled) if damage_override.is_valid() else damage
+			result.collider.take_damage(actual)
 			if on_hit.is_valid():
 				on_hit.call()
 		queue_free()

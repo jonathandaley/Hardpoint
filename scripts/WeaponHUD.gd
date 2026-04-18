@@ -94,6 +94,8 @@ func _weapon_color(weapon: Node) -> Color:
 		return Color(0.85, 0.3, 1.0, 1.0)   # purple - sniper
 	if "MachineGun" in path:
 		return Color(1.0, 0.35, 0.1, 1.0)   # red-orange - machine gun
+	if "Shotgun" in path:
+		return Color(0.6, 0.9, 0.2, 1.0)    # yellow-green - shotgun
 	if "Rifle" in path:
 		return Color(0.4, 0.75, 1.0, 1.0)   # blue - rifle
 	if "ProjectileGun" in path:

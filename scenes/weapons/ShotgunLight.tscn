@@ -1,0 +1,29 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/Shotgun.gd" id="1"]
+
+[sub_resource type="BoxMesh" id="2"]
+size = Vector3(0.12, 0.1, 0.6)
+
+[sub_resource type="StandardMaterial3D" id="3"]
+albedo_color = Color(0.28, 0.22, 0.10, 1)
+shading_mode = 0
+
+[node name="ShotgunLight" type="Node3D"]
+script = ExtResource("1")
+fire_rate = 1.5
+range = 40.0
+max_ammo = 8
+magazine_type = 1
+refill_rate = 0.5
+shake_magnitude = 0.025
+pellet_count = 8
+spread_angle = 5.0
+damage_close = 18.0
+damage_far = 3.0
+projectile_speed = 50.0
+
+[node name="GunBody" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, -0.3)
+mesh = SubResource("2")
+surface_material_override/0 = SubResource("3")
