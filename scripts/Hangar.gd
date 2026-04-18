@@ -231,7 +231,6 @@ func _on_weapon_cycle(slot_idx: int, direction: int) -> void:
 	overrides[slot_idx] = load(WEAPON_CATALOG[_weapon_indices[slot_idx]]["path"])
 	Game.loadout["weapon_overrides"] = overrides
 
-	var md = Game.loadout.get("mech_def")
 	if md != null:
 		var choices: Dictionary = Game.loadout.get("mech_weapon_choices", {})
 		var paths: Array = []
