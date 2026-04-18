@@ -737,6 +737,20 @@ func _toggle_overhead() -> void:
 		add_child(_overhead_cam)
 	_overhead_cam.current = not _overhead_cam.current
 
+func _slots_with_overrides(slots: Array) -> Array:
+	var overrides: Array = Game.loadout.get("weapon_overrides", [])
+	if overrides.is_empty():
+		return slots
+	var result: Array = []
+	for i in slots.size():
+		if i < overrides.size() and overrides[i] != null:
+			var s = slots[i].duplicate()
+			s.weapon_scene = overrides[i]
+			result.append(s)
+		else:
+			result.append(slots[i])
+	return result
+
 func _spawn_player_only() -> void:
 	var mech_def = Game.loadout.get("mech_def")
 	if mech_def == null:
@@ -752,7 +766,7 @@ func _spawn_player_only() -> void:
 	player_mech.leg_rotation_speed = mech_def.leg_rotation_speed
 	add_child(player_mech)
 	player_mech.configure_legs(mech_def.leg_hip_sweep, mech_def.leg_bob_magnitude, mech_def.leg_cycle_rate)
-	player_mech.configure_weapons(mech_def.weapon_slots)
+	player_mech.configure_weapons(_slots_with_overrides(mech_def.weapon_slots))
 	_set_mech_color(player_mech, Color(0.25, 0.52, 0.95))
 
 	_player = Node.new()
@@ -791,7 +805,7 @@ func _spawn_mechs() -> void:
 	player_mech.configure_legs(mech_def.leg_hip_sweep, mech_def.leg_bob_magnitude, mech_def.leg_cycle_rate)
 	player_mech.configure_shield(mech_def.has_shields, mech_def.shield_max_hp)
 	player_mech.configure_energy_shield(mech_def.has_energy_shield, mech_def.energy_shield_max_hp, mech_def.energy_shield_regen_rate, mech_def.energy_shield_regen_delay)
-	player_mech.configure_weapons(mech_def.weapon_slots)
+	player_mech.configure_weapons(_slots_with_overrides(mech_def.weapon_slots))
 
 	var bot_def = load("res://resources/mechs/Hippogriff.tres")
 	bot_mech = bot_def.scene.instantiate()

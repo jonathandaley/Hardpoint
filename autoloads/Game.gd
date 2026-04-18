@@ -19,6 +19,7 @@ var profile: Dictionary = {
 # mech_def is a MechDef resource; null until Hangar initialises it.
 var loadout: Dictionary = {
 	"mech_def": null,
+	"weapon_overrides": [],  # Array[PackedScene|null], parallel to mech_def.weapon_slots
 }
 
 var settings: Dictionary = {
