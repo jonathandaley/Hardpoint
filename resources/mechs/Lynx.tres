@@ -12,4 +12,7 @@ walk_speed = 6.3
 has_shields = false
 turn_acceleration = 16.0
 leg_rotation_speed = 22.0
+leg_hip_sweep = 0.16
+leg_bob_magnitude = 0.03
+leg_cycle_rate = 2.4
 scene = ExtResource("2")

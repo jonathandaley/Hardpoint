@@ -17,12 +17,14 @@ const REST_HIP   := 0.524
 const REST_KNEE1 := -2.094
 const REST_KNEE2 :=  2.094
 
-# Walk-cycle tuning.
-const HIP_SWING   := 0.22   # rad  - hip fore/aft amplitude
+# Walk-cycle tuning - overridden per mech class via MechDef.
+@export var hip_sweep_amount: float = 0.22   # rad - hip fore/aft amplitude
+@export var bob_magnitude: float    = 0.06   # m   - torso vertical bob amplitude
+@export var cycle_rate: float       = 1.8    # rad of phase per metre of travel
+
+# Fixed ratios - not per-class.
 const KNEE_LIFT   := 0.55   # rad  - top-knee flex at peak of swing arc
 const STANCE_FLEX := 0.08   # rad  - slight knee bend at mid-stance
-const BODY_BOB    := 0.06   # m    - torso vertical bob amplitude
-const CYCLE_RATE  := 1.8    # rad of phase per metre of travel
 
 @onready var left_hip:    Node3D = $LeftHip
 @onready var right_hip:   Node3D = $RightHip
@@ -43,7 +45,7 @@ func update_gait(velocity: Vector3, mech_basis: Basis, rot_speed: float, delta: 
 func _animate_walk(velocity: Vector3, delta: float) -> void:
 	var horiz := Vector3(velocity.x, 0.0, velocity.z)
 	var speed  := horiz.length()
-	_phase = fposmod(_phase + speed * CYCLE_RATE * delta, TAU)
+	_phase = fposmod(_phase + speed * cycle_rate * delta, TAU)
 
 	# Blend amplitude 0->1 over the first 1 m/s so joints return to rest when idle.
 	var t  := clampf(speed, 0.0, 1.0)
@@ -52,12 +54,12 @@ func _animate_walk(velocity: Vector3, delta: float) -> void:
 
 	# Body bob - torso dips at transition points (inverted-pendulum walk).
 	if _torso != null:
-		_torso.position.y = -BODY_BOB * abs(sl) * t
+		_torso.position.y = -bob_magnitude * abs(sl) * t
 
 	# Hip drive: -cos separates fore/aft sweep from the lift.
 	# phase=0: back(liftoff)  phase=PI/2: neutral  phase=PI: forward(heel-strike)
-	left_hip.rotation.x  = REST_HIP - cos(_phase)      * HIP_SWING * t
-	right_hip.rotation.x = REST_HIP - cos(_phase + PI) * HIP_SWING * t
+	left_hip.rotation.x  = REST_HIP - cos(_phase)      * hip_sweep_amount * t
+	right_hip.rotation.x = REST_HIP - cos(_phase + PI) * hip_sweep_amount * t
 
 	# Swing lift: sin arch peaks at mid-swing when hip is at neutral.
 	# Foot is at apex while leg is mid-arc, plants at max extension.

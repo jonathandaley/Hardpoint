@@ -62,6 +62,11 @@ func apply_camera_shake(magnitude: float) -> void:
 	_shake_intensity = magnitude
 	_shake_timer = _SHAKE_DURATION
 
+func configure_legs(hip_sweep: float, bob_magnitude: float, cycle_rate: float) -> void:
+	legs.set("hip_sweep_amount", hip_sweep)
+	legs.set("bob_magnitude", bob_magnitude)
+	legs.set("cycle_rate", cycle_rate)
+
 func _get_hardpoints() -> Array:
 	var hps: Array = []
 	for child in torso.get_children():

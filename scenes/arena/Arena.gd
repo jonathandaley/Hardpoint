@@ -751,6 +751,7 @@ func _spawn_player_only() -> void:
 	player_mech.turn_acceleration = mech_def.turn_acceleration
 	player_mech.leg_rotation_speed = mech_def.leg_rotation_speed
 	add_child(player_mech)
+	player_mech.configure_legs(mech_def.leg_hip_sweep, mech_def.leg_bob_magnitude, mech_def.leg_cycle_rate)
 	_set_mech_color(player_mech, Color(0.25, 0.52, 0.95))
 
 	_player = Node.new()
@@ -786,6 +787,7 @@ func _spawn_mechs() -> void:
 	player_mech.turn_acceleration = mech_def.turn_acceleration
 	player_mech.leg_rotation_speed = mech_def.leg_rotation_speed
 	add_child(player_mech)
+	player_mech.configure_legs(mech_def.leg_hip_sweep, mech_def.leg_bob_magnitude, mech_def.leg_cycle_rate)
 
 	var bot_def = load("res://resources/mechs/Hippogriff.tres")
 	bot_mech = bot_def.scene.instantiate()
@@ -798,6 +800,7 @@ func _spawn_mechs() -> void:
 	bot_mech.turn_acceleration = bot_def.turn_acceleration
 	bot_mech.leg_rotation_speed = bot_def.leg_rotation_speed
 	add_child(bot_mech)
+	bot_mech.configure_legs(bot_def.leg_hip_sweep, bot_def.leg_bob_magnitude, bot_def.leg_cycle_rate)
 
 func _create_steps() -> void:
 	var mat := StandardMaterial3D.new()

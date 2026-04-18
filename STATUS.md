@@ -6,6 +6,12 @@ This file tracks **what has shipped**. For what's planned and what to build next
 
 ## Shipped
 
+### Phase 3b — Leg system polish per mech class (2026-04-17)
+- `BipedLegs.gd` constants `HIP_SWING`, `BODY_BOB`, `CYCLE_RATE` converted to `@export var` (`hip_sweep_amount`, `bob_magnitude`, `cycle_rate`)
+- `MechDef` gains `leg_hip_sweep`, `leg_bob_magnitude`, `leg_cycle_rate` (defaults match prior hardcoded values)
+- `Mech.configure_legs()` pushes values to legs node after spawn; Arena calls it for both player and bot
+- Lynx: hip=0.16, bob=0.03, rate=2.4 (quick, tight); Warhog: hip=0.32, bob=0.12, rate=1.2 (heavy, slow)
+
 ### Phase 3a — Camera shake on weapon fire (2026-04-17)
 - `WeaponBase.shake_magnitude` export (radians); 0 = no shake; per-weapon tunable
 - `Mech.apply_camera_shake(magnitude)` decays over 0.15s using `_shake_timer`/`_shake_intensity`
