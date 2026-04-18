@@ -43,6 +43,7 @@ func _load_profile() -> void:
 
 func save_profile() -> void:
 	var cfg := ConfigFile.new()
+	cfg.load(_SAVE_PATH)
 	cfg.set_value("profile", "pilot_name", profile.get("pilot_name", "Pilot"))
 	cfg.set_value("profile", "wins",       profile.get("wins",       0))
 	cfg.set_value("profile", "losses",     profile.get("losses",     0))
@@ -76,6 +77,7 @@ func save_loadout() -> void:
 
 func save_settings() -> void:
 	var cfg := ConfigFile.new()
+	cfg.load(_SAVE_PATH)
 	cfg.set_value("settings", "mouse_sensitivity", settings.get("mouse_sensitivity", 0.003))
 	cfg.set_value("settings", "bot_difficulty",    settings.get("bot_difficulty",    1))
 	cfg.save(_SETTINGS_PATH)
