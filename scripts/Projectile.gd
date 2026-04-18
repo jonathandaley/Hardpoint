@@ -31,7 +31,7 @@ func _physics_process(delta: float) -> void:
 
 	if result:
 		if result.collider.has_method("take_damage"):
-			var actual := damage_override.call(_distance_traveled) if damage_override.is_valid() else damage
+			var actual: float = damage_override.call(_distance_traveled) if damage_override.is_valid() else damage
 			result.collider.take_damage(actual)
 			if on_hit.is_valid():
 				on_hit.call()

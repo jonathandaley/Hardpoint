@@ -18,8 +18,8 @@ func _do_fire() -> void:
 	if cam == null:
 		return
 	var cam_fwd := -cam.global_transform.basis.z
-	var ex := owner_mech.get_exclude_rids()
-	var t_val := owner_mech.get("team") if owner_mech.get("team") != null else 0
+	var ex: Array = owner_mech.get_exclude_rids()
+	var t_val: int = owner_mech.get("team") if owner_mech.get("team") != null else 0
 	var dc := damage_close
 	var df := damage_far
 	var r := range
@@ -32,7 +32,7 @@ func _do_fire() -> void:
 			if perp.length_squared() > 0.0001:
 				pellet_fwd = (cam_fwd + perp.normalized() * tan(deg_to_rad(spread_angle))).normalized()
 
-		var proj: Projectile = PROJECTILE_SCENE.instantiate()
+		var proj := PROJECTILE_SCENE.instantiate() as Projectile
 		proj.speed = projectile_speed
 		proj.damage = dc
 		proj.team = t_val

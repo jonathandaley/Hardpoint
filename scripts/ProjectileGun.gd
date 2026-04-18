@@ -25,7 +25,7 @@ func _do_fire() -> void:
 	var aim_point: Vector3 = aim_result.position if aim_result \
 		else cam.global_position + cam_fwd * range
 
-	var proj: Projectile = PROJECTILE_SCENE.instantiate()
+	var proj := PROJECTILE_SCENE.instantiate() as Projectile
 	proj.damage = damage
 	proj.speed = projectile_speed
 	proj.team = owner_mech.get("team") if owner_mech.get("team") != null else 0
