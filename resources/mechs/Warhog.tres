@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="MechDef" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/MechDef.gd" id="1"]
-[ext_resource type="PackedScene" path="res://scenes/mech/Mech.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/mech/WarhogMech.tscn" id="2"]
 
 [resource]
 script = ExtResource("1")
