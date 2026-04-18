@@ -139,7 +139,13 @@ func _update_mech_panel() -> void:
 	if md == null:
 		return
 	mech_name_label.text = "MECH: %s (%s)" % [md.display_name.to_upper(), md.class_tag.to_upper()]
-	var shield_str := "YES" if md.has_shields else "-"
+	var shield_str: String
+	if md.has_shields:
+		shield_str = "PHYSICAL (FRONT)"
+	elif md.has_energy_shield:
+		shield_str = "ENERGY"
+	else:
+		shield_str = "-"
 	mech_stats_label.text = "SPEED: %.2f   HEALTH: %.0f   SHIELDS: %s" % [md.walk_speed, md.max_health, shield_str]
 	_build_weapon_picker(md)
 

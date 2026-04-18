@@ -40,8 +40,8 @@ This file tracks **what has shipped**. For what's planned and what to build next
 - Mouse capture / release (Escape key)
 
 ### Mech System
-- `MechDef` resource: name, speed, HP, shield flag, `body_scale`, weapon slots
-- Named roster: **Lynx** (Light, 200hp, 6.3 m/s), **Hippogriff** (Medium, 500hp, 3.15 m/s), **Warhog** (Heavy, 900hp, shields, 1.8 m/s)
+- `MechDef` resource: name, speed, HP, shield flags, `body_scale`, weapon slots; `description` field added
+- Named roster: **Lynx** (Light, 200hp, 6.3 m/s), **Hippogriff** (Medium, 500hp, 3.15 m/s), **Kestrel** (Medium, energy shield), **Warhog** (Heavy, 900hp, physical front shield, 1.8 m/s)
 - Dual-weapon loadout: ProjectileGun (left, 50 dmg, 1/s) + RaycastGun (right, 10 dmg, 2/s hitscan)
 - Step climbing: `_try_step_up` handles 0.40 m ledges; probes both input dir and velocity; gradual lift at 2.5 m/s
 - Mech death: `died` signal, `take_damage()`, hidden on death
@@ -94,6 +94,7 @@ This file tracks **what has shipped**. For what's planned and what to build next
 | MechDef type hints cause parse errors in Arena/Hangar | GDScript typed dict access with custom Resource types is fragile | Use untyped `var` when reading from `Game.loadout` dict |
 | Projectile aim was wrong at close range | Barrel aimed along mech forward, not toward crosshair target | Cast ray from camera center → crosshair target, then aim barrel toward the hit point |
 | Penrose generator in GDScript was impractical | Recursive substitution in GDScript too slow/complex for interactive tuning | Rewrote as `tools/penrose_gen.py` (pure Python, de Bruijn method); outputs GDScript consts directly |
+| Shots bypassing Warhog's front shield | Mech capsule (radius 0.5) front face at z=-0.5 was 5 cm ahead of shield box front face (z=-0.45); raycast hit capsule first | Moved PhysicalShield z from -0.42 to -0.55; front face now at z=-0.58, clear of capsule |
 
 ---
 
