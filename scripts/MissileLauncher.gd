@@ -27,6 +27,7 @@ func _do_fire() -> void:
 	proj._exclude_rids = owner_mech.get_exclude_rids()
 	proj.splash_radius = splash_radius
 	proj.splash_damage = splash_damage
+	proj.owner_body = owner_mech
 	proj.on_hit = func(): hit_confirmed.emit()
 	get_tree().current_scene.add_child(proj)
 	proj.global_transform = Transform3D(Basis(), global_position).looking_at(aim_point)

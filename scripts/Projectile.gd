@@ -12,6 +12,7 @@ var on_hit: Callable       # called when the projectile hits a damageable target
 var damage_override: Callable  # optional: func(distance: float) -> float
 var splash_radius: float = 0.0
 var splash_damage: float = 0.0
+var owner_body: Node3D = null  # excluded from splash (set by weapon on spawn)
 
 var _age: float = 0.0
 var _distance_traveled: float = 0.0
@@ -39,7 +40,7 @@ func _physics_process(delta: float) -> void:
 				on_hit.call()
 		if splash_radius > 0.0:
 			for mech in get_tree().get_nodes_in_group("mechs"):
-				if mech == result.collider:
+				if mech == result.collider or mech == owner_body:
 					continue
 				var dist: float = (mech as Node3D).global_position.distance_to(global_position)
 				if dist < splash_radius:
