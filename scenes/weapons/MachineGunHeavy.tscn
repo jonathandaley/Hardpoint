@@ -12,15 +12,15 @@ shading_mode = 0
 [node name="MachineGunHeavy" type="Node3D"]
 script = ExtResource("1")
 slot_size = 1
-damage = 24.0
+damage = 6.0
 range = 80.0
-max_ammo = 45
+max_ammo = 135
 magazine_type = 0
-reload_time = 3.5
+reload_time = 13.125
 projectile_speed = 60.0
 shake_magnitude = 0.01
-base_fire_rate = 3.6
-max_fire_rate = 12.6
+base_fire_rate = 7.2
+max_fire_rate = 25.2
 rate_accel = 9.0
 rate_decay = 22.5
 

@@ -44,6 +44,12 @@ const _ES_FLASH_DUR := 0.12
 var _weapons: Array = []
 var _active_set: Array = []  # parallel bool array; true = included in right-click subset
 
+var locked_target: Node3D = null
+var lock_progress: float = 0.0
+var _lock_candidate: Node3D = null
+var _lock_timer: float = 0.0
+const _LOCK_TIME := 3.0
+
 const _SHAKE_DURATION := 0.15
 var _shake_intensity: float = 0.0
 var _shake_timer: float = 0.0
@@ -224,6 +230,8 @@ func _physics_process(delta: float) -> void:
 		_handle_slot_toggle()
 		_handle_reload()
 		_handle_fire()
+		if _input_source.has_method("is_human_input") and _input_source.is_human_input():
+			_update_lock(delta)
 
 	_try_step_up()
 	if _step_up_remaining > 0.0:
@@ -307,6 +315,60 @@ func _handle_reload() -> void:
 	for weapon in _weapons:
 		if is_instance_valid(weapon) and weapon.has_method("try_reload"):
 			weapon.try_reload()
+
+const _LOCK_CONE_COS := 0.99619  # cos(5 degrees)
+
+func _update_lock(delta: float) -> void:
+	var cam_pos := camera.global_position
+	var cam_fwd := -camera.global_transform.basis.z
+	var space := get_world_3d().direct_space_state
+	var ex := get_exclude_rids()
+
+	var q := PhysicsRayQueryParameters3D.create(cam_pos, cam_pos + cam_fwd * 200.0)
+	q.exclude = ex
+	var result := space.intersect_ray(q)
+	var candidate: Node3D = null
+	if result:
+		var col := result.collider as Node3D
+		if col != null and col.is_in_group("mechs"):
+			var col_team: int = int(col.get("team")) if "team" in col else -1
+			if col_team != team:
+				candidate = col
+
+	if candidate == null:
+		var best_cos := _LOCK_CONE_COS
+		for mech: Node in get_tree().get_nodes_in_group("mechs"):
+			if mech == self:
+				continue
+			var mech_team: int = int(mech.get("team")) if "team" in mech else -1
+			if mech_team == team:
+				continue
+			var mech3d := mech as Node3D
+			var to_mech := mech3d.global_position - cam_pos
+			var dist := to_mech.length()
+			if dist > 200.0 or dist < 0.001:
+				continue
+			var dot := cam_fwd.dot(to_mech / dist)
+			if dot < best_cos:
+				continue
+			best_cos = dot
+			candidate = mech3d
+
+	if candidate == null:
+		_lock_timer = 0.0
+		_lock_candidate = null
+		locked_target = null
+		lock_progress = 0.0
+	elif candidate != _lock_candidate:
+		_lock_candidate = candidate
+		_lock_timer = 0.0
+		locked_target = null
+		lock_progress = 0.0
+	else:
+		_lock_timer = minf(_lock_timer + delta, _LOCK_TIME)
+		lock_progress = _lock_timer / _LOCK_TIME
+		if _lock_timer >= _LOCK_TIME:
+			locked_target = _lock_candidate
 
 func _handle_fire() -> void:
 	var primary: bool   = _input_source.is_firing_primary()

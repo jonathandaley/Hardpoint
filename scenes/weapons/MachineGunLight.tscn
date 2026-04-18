@@ -11,15 +11,15 @@ shading_mode = 0
 
 [node name="MachineGunLight" type="Node3D"]
 script = ExtResource("1")
-damage = 12.0
+damage = 3.0
 range = 80.0
-max_ammo = 60
+max_ammo = 135
 magazine_type = 0
-reload_time = 3.0
+reload_time = 13.125
 projectile_speed = 60.0
 shake_magnitude = 0.008
-base_fire_rate = 4.0
-max_fire_rate = 14.0
+base_fire_rate = 8.0
+max_fire_rate = 28.0
 rate_accel = 10.0
 rate_decay = 25.0
 

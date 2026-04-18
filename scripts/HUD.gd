@@ -49,6 +49,8 @@ func _process(delta: float) -> void:
 		_damage_alpha = move_toward(_damage_alpha, 0.0, delta * 2.0)
 		damage_flash.modulate.a = _damage_alpha
 	if _player_mech != null:
+		var lp: float = _player_mech.get("lock_progress") if "lock_progress" in _player_mech else 0.0
+		crosshair.set_lock_progress(lp)
 		var pct: float = _player_mech.health / _player_mech.max_health
 		health_bar_fg.offset_right = health_bar_fg.offset_left + 162.0 * pct
 		var es: Node = _player_mech.get_node_or_null("EnergyShield")

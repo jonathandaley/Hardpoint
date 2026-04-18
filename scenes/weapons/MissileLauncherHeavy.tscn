@@ -18,10 +18,10 @@ max_ammo = 9
 magazine_type = 1
 refill_rate = 1.2
 shake_magnitude = 0.002
-damage = 45.0
+damage = 22.5
 projectile_speed = 35.0
 splash_radius = 8.0
-splash_damage = 25.0
+splash_damage = 12.5
 
 [node name="GunBody" type="MeshInstance3D" parent="."]
 position = Vector3(0, 0, -0.4)
