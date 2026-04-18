@@ -12,7 +12,7 @@ shading_mode = 0
 [node name="MissileLauncherHeavy" type="Node3D"]
 script = ExtResource("1")
 slot_size = 1
-fire_rate = 2.7
+fire_rate = 8.1
 range = 30.0
 max_ammo = 9
 magazine_type = 1
