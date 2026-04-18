@@ -9,6 +9,7 @@ extends Resource
 @export var max_health: float = 100.0
 @export var walk_speed: float = 5.25
 @export var has_shields: bool = false
+@export var shield_max_hp: float = 300.0
 # weapon_slots: Array of {size: "Light"/"Heavy", position: Vector3}
 # Empty means use whatever is in the scene; populated = dynamic instantiation (Phase 2+)
 @export var weapon_slots: Array = []

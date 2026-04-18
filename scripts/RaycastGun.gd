@@ -25,7 +25,7 @@ func _do_fire() -> void:
 
 	var space := get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(from, to)
-	query.exclude = [owner_mech.get_rid()]
+	query.exclude = owner_mech.get_exclude_rids()
 
 	var hit_pos := to
 	var result := space.intersect_ray(query)

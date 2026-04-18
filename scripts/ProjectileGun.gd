@@ -20,7 +20,7 @@ func _do_fire() -> void:
 	var space := get_world_3d().direct_space_state
 	var aim_query := PhysicsRayQueryParameters3D.create(
 		cam.global_position, cam.global_position + cam_fwd * range)
-	aim_query.exclude = [owner_mech.get_rid()]
+	aim_query.exclude = owner_mech.get_exclude_rids()
 	var aim_result := space.intersect_ray(aim_query)
 	var aim_point: Vector3 = aim_result.position if aim_result \
 		else cam.global_position + cam_fwd * range
@@ -29,7 +29,7 @@ func _do_fire() -> void:
 	proj.damage = damage
 	proj.speed = projectile_speed
 	proj.team = owner_mech.get("team") if owner_mech.get("team") != null else 0
-	proj._exclude_rid = owner_mech.get_rid()
+	proj._exclude_rids = owner_mech.get_exclude_rids()
 
 	proj.on_hit = func(): hit_confirmed.emit()
 	get_tree().current_scene.add_child(proj)

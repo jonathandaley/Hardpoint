@@ -10,6 +10,7 @@ class_tag = "Heavy"
 max_health = 900.0
 walk_speed = 1.8
 has_shields = true
+shield_max_hp = 400.0
 turn_acceleration = 4.2
 leg_rotation_speed = 8.0
 leg_hip_sweep = 0.32

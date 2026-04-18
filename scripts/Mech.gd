@@ -33,6 +33,7 @@ var _desired_move_dir: Vector3 = Vector3.ZERO
 @onready var legs: Node3D = $Legs
 @onready var camera: Camera3D = $Torso/CameraArm/Camera3D
 @onready var camera_arm: SpringArm3D = $Torso/CameraArm
+@onready var _shield := $Torso/PhysicalShield
 
 var _weapons: Array = []
 var _active_set: Array = []  # parallel bool array; true = included in right-click subset
@@ -61,6 +62,17 @@ func _process(delta: float) -> void:
 func apply_camera_shake(magnitude: float) -> void:
 	_shake_intensity = magnitude
 	_shake_timer = _SHAKE_DURATION
+
+func configure_shield(has_shield: bool, max_hp: float = 300.0) -> void:
+	if has_shield:
+		_shield.activate(max_hp)
+	# disabled by default in scene; no action needed for mechs without shields
+
+func get_exclude_rids() -> Array:
+	var rids: Array = [get_rid()]
+	if is_instance_valid(_shield) and _shield.visible:
+		rids.append(_shield.get_rid())
+	return rids
 
 func configure_legs(hip_sweep: float, bob_magnitude: float, cycle_rate: float) -> void:
 	legs.set("hip_sweep_amount", hip_sweep)

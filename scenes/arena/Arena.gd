@@ -788,6 +788,7 @@ func _spawn_mechs() -> void:
 	player_mech.leg_rotation_speed = mech_def.leg_rotation_speed
 	add_child(player_mech)
 	player_mech.configure_legs(mech_def.leg_hip_sweep, mech_def.leg_bob_magnitude, mech_def.leg_cycle_rate)
+	player_mech.configure_shield(mech_def.has_shields, mech_def.shield_max_hp)
 
 	var bot_def = load("res://resources/mechs/Hippogriff.tres")
 	bot_mech = bot_def.scene.instantiate()
@@ -801,6 +802,7 @@ func _spawn_mechs() -> void:
 	bot_mech.leg_rotation_speed = bot_def.leg_rotation_speed
 	add_child(bot_mech)
 	bot_mech.configure_legs(bot_def.leg_hip_sweep, bot_def.leg_bob_magnitude, bot_def.leg_cycle_rate)
+	bot_mech.configure_shield(bot_def.has_shields, bot_def.shield_max_hp)
 
 func _create_steps() -> void:
 	var mat := StandardMaterial3D.new()
