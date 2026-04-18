@@ -5,7 +5,7 @@ extends Control
 @onready var vol_slider:  HSlider = $Content/VolRow/VolSlider
 @onready var vol_label:   Label   = $Content/VolRow/VolValue
 
-const DIFF_LABELS := ["EASY", "NORMAL", "HARD"]
+const DIFF_LABELS := ["EASY", "NORMAL", "MEDIUM", "HARD", "ELITE"]
 
 var _diff_buttons: Array = []
 

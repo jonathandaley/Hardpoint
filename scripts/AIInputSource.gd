@@ -15,7 +15,9 @@ const ESCAPE_TIME   := 0.8   # seconds to strafe sideways when stuck
 const DIFFICULTY_PRESETS: Array = [
 	{"aim_jitter": 0.18,  "turn_scale": 0.55},  # Easy
 	{"aim_jitter": 0.055, "turn_scale": 1.00},  # Normal
-	{"aim_jitter": 0.015, "turn_scale": 1.50},  # Hard
+	{"aim_jitter": 0.015, "turn_scale": 1.50},  # Medium
+	{"aim_jitter": 0.005, "turn_scale": 1.85},  # Hard
+	{"aim_jitter": 0.0,   "turn_scale": 2.20},  # Elite
 ]
 
 var _target: Node3D = null
@@ -74,7 +76,7 @@ func _process(delta: float) -> void:
 	var dist      := to_target.length()
 	var sens: float = Game.settings.get("mouse_sensitivity", 0.003)
 
-	var diff_idx: int = clampi(Game.settings.get("bot_difficulty", 1), 0, 2)
+	var diff_idx: int = clampi(Game.settings.get("bot_difficulty", 1), 0, 4)
 	var preset: Dictionary = DIFFICULTY_PRESETS[diff_idx]
 	var aim_jitter: float = preset.get("aim_jitter", 0.055)
 	var eff_turn: float = TURN_SPEED * preset.get("turn_scale", 1.0)

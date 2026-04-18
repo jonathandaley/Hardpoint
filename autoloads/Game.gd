@@ -25,7 +25,7 @@ var loadout: Dictionary = {
 
 var settings: Dictionary = {
 	"mouse_sensitivity": 0.003,
-	"bot_difficulty": 1,  # 0=Easy  1=Normal  2=Hard
+	"bot_difficulty": 1,  # 0=Easy  1=Normal  2=Medium  3=Hard  4=Elite
 }
 
 func _ready() -> void:
