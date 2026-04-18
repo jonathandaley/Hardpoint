@@ -11,12 +11,13 @@ shading_mode = 0
 
 [node name="SniperHeavy" type="Node3D"]
 script = ExtResource("1")
+slot_size = 1
 damage = 160.0
 fire_rate = 0.45
 range = 200.0
 max_ammo = 3
 magazine_type = 0
-reload_time = 3.5
+reload_time = 7.0
 projectile_speed = 120.0
 shake_magnitude = 0.025
 

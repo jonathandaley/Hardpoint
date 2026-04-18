@@ -108,11 +108,17 @@ func configure_weapons(slots: Array) -> void:
 		var scene: PackedScene = slot.weapon_scene
 		if scene == null:
 			continue
+		var weapon: Node = scene.instantiate()
+		var s_size: int = int(slot.get("slot_size")) if "slot_size" in slot else 0
+		var w_size: int = int(weapon.get("slot_size")) if "slot_size" in weapon else 0
+		if s_size != w_size:
+			push_warning("[Mech] slot %d size mismatch (slot=%d weapon=%d) -- skipped" % [i, s_size, w_size])
+			weapon.queue_free()
+			continue
 		var hp := Node3D.new()
 		hp.name = "Hardpoint%d" % i
 		hp.position = slot.position
 		torso.add_child(hp)
-		var weapon: Node = scene.instantiate()
 		if "owner_mech" in weapon:
 			weapon.owner_mech = self
 		hp.add_child(weapon)

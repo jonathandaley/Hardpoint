@@ -16,7 +16,7 @@ fire_rate = 0.5
 range = 200.0
 max_ammo = 5
 magazine_type = 0
-reload_time = 2.5
+reload_time = 5.0
 projectile_speed = 120.0
 shake_magnitude = 0.02
 

@@ -11,6 +11,7 @@ shading_mode = 0
 
 [node name="RifleHeavy" type="Node3D"]
 script = ExtResource("1")
+slot_size = 1
 damage = 40.0
 fire_rate = 2.7
 range = 100.0

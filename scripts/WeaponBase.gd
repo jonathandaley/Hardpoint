@@ -7,6 +7,8 @@ signal hit_confirmed   # emitted when a shot lands on a valid target
 
 enum MagazineType { FIXED, REFILLING }
 
+# 0 = Light, 1 = Heavy -- must match the slot this weapon is placed in
+@export var slot_size: int = 0
 @export var damage: float = 10.0
 @export var fire_rate: float = 2.0      # shots per second
 @export var range: float = 100.0
