@@ -112,8 +112,8 @@ func apply_modifier(stat: String, value: float) -> void:
 func remove_modifier(stat: String) -> void:
 	_modifiers.erase(stat)
 
-const _MAX_STEP := 0.40        # slightly above step geometry (0.35m) for margin
-const _STEP_RATE := 2.5        # m/s vertical lift speed while stepping up
+const _MAX_STEP  := 0.37   # slightly above step geometry (0.35m) for margin
+const _STEP_RATE := 2.5    # m/s vertical lift speed while stepping up
 var _step_up_remaining: float = 0.0
 
 func _physics_process(delta: float) -> void:
@@ -136,7 +136,7 @@ func _physics_process(delta: float) -> void:
 	_update_legs(delta)
 
 func _try_step_up() -> void:
-	if not is_on_floor():
+	if not is_on_floor() and _step_up_remaining <= 0.0:
 		return
 	var horiz := Vector3(velocity.x, 0.0, velocity.z)
 
@@ -144,7 +144,7 @@ func _try_step_up() -> void:
 	var dirs: Array[Vector3] = []
 	if _desired_move_dir != Vector3.ZERO:
 		dirs.append(_desired_move_dir)
-	if horiz.length_squared() >= 0.04:
+	if horiz.length_squared() >= 0.01:
 		var vel_dir := horiz.normalized()
 		if dirs.is_empty() or vel_dir.dot(dirs[0]) < 0.99:
 			dirs.append(vel_dir)
@@ -157,17 +157,18 @@ func _try_step_up() -> void:
 	for dir in dirs:
 		var shin := PhysicsRayQueryParameters3D.create(
 			global_position + Vector3(0, 0.1, 0),
-			global_position + Vector3(0, 0.1, 0) + dir * 0.55, mask)
+			global_position + Vector3(0, 0.1, 0) + dir * 0.8, mask)
 		shin.exclude = ex
 		if not space.intersect_ray(shin):
 			continue
 		var clear := PhysicsRayQueryParameters3D.create(
 			global_position + Vector3(0, _MAX_STEP + 0.05, 0),
-			global_position + Vector3(0, _MAX_STEP + 0.05, 0) + dir * 0.55, mask)
+			global_position + Vector3(0, _MAX_STEP + 0.05, 0) + dir * 0.8, mask)
 		clear.exclude = ex
 		if space.intersect_ray(clear):
 			continue
-		_step_up_remaining = maxf(_step_up_remaining, _MAX_STEP)
+		if _step_up_remaining <= 0.0:
+			_step_up_remaining = _MAX_STEP
 		velocity.y = 0.0
 		return
 

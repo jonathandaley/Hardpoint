@@ -851,6 +851,7 @@ func _place_pent_ring(r_out: float, r_in: float, top: float, mat: StandardMateri
 			faces.append(a); faces.append(b); faces.append(c)
 
 	var shape := ConcavePolygonShape3D.new()
+	shape.backface_collision = true
 	shape.set_faces(faces)
 	var body := StaticBody3D.new()
 	var col := CollisionShape3D.new()

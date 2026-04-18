@@ -12,10 +12,12 @@ var _diff_buttons: Array = []
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
+	sens_slider.set_block_signals(true)
 	sens_slider.min_value = 0.001
 	sens_slider.max_value = 0.010
 	sens_slider.step      = 0.0005
 	sens_slider.value     = Game.settings.get("mouse_sensitivity", 0.003)
+	sens_slider.set_block_signals(false)
 	_update_sens_label()
 
 	vol_slider.min_value = 0.0
@@ -45,6 +47,7 @@ func _update_vol_label() -> void:
 func _on_sens_changed(value: float) -> void:
 	Game.settings["mouse_sensitivity"] = value
 	_update_sens_label()
+	Game.save_settings()
 
 func _on_vol_changed(_value: float) -> void:
 	_update_vol_label()
@@ -52,6 +55,7 @@ func _on_vol_changed(_value: float) -> void:
 func _on_diff_pressed(idx: int) -> void:
 	Game.settings["bot_difficulty"] = idx
 	_highlight_diff(idx)
+	Game.save_settings()
 
 func _highlight_diff(idx: int) -> void:
 	for i in _diff_buttons.size():
