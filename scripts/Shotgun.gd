@@ -24,6 +24,15 @@ func _do_fire() -> void:
 	var df := damage_far
 	var r := range
 
+	# One center raycast to find aim distance, so pellets converge on the crosshair target.
+	var space := get_world_3d().direct_space_state
+	var center_query := PhysicsRayQueryParameters3D.create(
+		cam.global_position, cam.global_position + cam_fwd * r)
+	center_query.exclude = ex
+	var center_result := space.intersect_ray(center_query)
+	var aim_dist: float = cam.global_position.distance_to(center_result.position) \
+		if center_result else r
+
 	for _i in pellet_count:
 		var pellet_fwd := cam_fwd
 		if spread_angle > 0.0:
@@ -33,6 +42,7 @@ func _do_fire() -> void:
 				var radius := tan(deg_to_rad(spread_angle)) * sqrt(randf())
 				pellet_fwd = (cam_fwd + perp.normalized() * radius).normalized()
 
+		var aim_point := cam.global_position + pellet_fwd * aim_dist
 		var proj := PROJECTILE_SCENE.instantiate() as Projectile
 		proj.speed = projectile_speed
 		proj.damage = dc
@@ -42,5 +52,4 @@ func _do_fire() -> void:
 			return lerpf(dc, df, clampf(dist / r, 0.0, 1.0))
 		proj.on_hit = func(): hit_confirmed.emit()
 		get_tree().current_scene.add_child(proj)
-		proj.global_transform = Transform3D(Basis(), global_position).looking_at(
-			global_position + pellet_fwd * 100.0)
+		proj.global_transform = Transform3D(Basis(), global_position).looking_at(aim_point)
