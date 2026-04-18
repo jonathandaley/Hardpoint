@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="MechDef" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/MechDef.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/mech/Mech.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+display_name = "Kestrel"
+class_tag = "Medium"
+max_health = 300.0
+walk_speed = 3.15
+has_shields = false
+turn_acceleration = 8.4
+leg_rotation_speed = 15.0
+scene = ExtResource("2")

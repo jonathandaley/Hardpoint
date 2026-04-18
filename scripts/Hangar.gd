@@ -3,6 +3,7 @@ extends Control
 const ROSTER: Array = [
 	"res://resources/mechs/Lynx.tres",
 	"res://resources/mechs/Hippogriff.tres",
+	"res://resources/mechs/Kestrel.tres",
 	"res://resources/mechs/Warhog.tres",
 ]
 
