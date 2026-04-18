@@ -4,7 +4,7 @@
 [ext_resource type="PackedScene" path="res://scenes/mech/Mech.tscn" id="2"]
 [ext_resource type="Script" path="res://scripts/WeaponSlotDef.gd" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/RifleLight.tscn" id="4"]
-[ext_resource type="PackedScene" path="res://scenes/weapons/ProjectileGun.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/SniperLight.tscn" id="5"]
 
 [sub_resource type="Resource" id="1"]
 script = ExtResource("3")

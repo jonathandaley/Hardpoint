@@ -90,6 +90,8 @@ func _weapon_color(weapon: Node) -> Color:
 	var path: String = weapon.get_script().resource_path
 	if "RaycastGun" in path:
 		return Color(1.0, 0.85, 0.2, 1.0)   # yellow - hitscan
+	if "Sniper" in path:
+		return Color(0.85, 0.3, 1.0, 1.0)   # purple - sniper
 	if "Rifle" in path:
 		return Color(0.4, 0.75, 1.0, 1.0)   # blue - rifle
 	if "ProjectileGun" in path:
