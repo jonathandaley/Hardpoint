@@ -16,7 +16,7 @@ func _do_fire() -> void:
 	if lock_target == null:
 		return
 
-	var proj := HOMING_SCENE.instantiate() as HomingProjectile
+	var proj := HOMING_SCENE.instantiate() as Node3D
 	proj.damage = damage
 	proj.speed = projectile_speed
 	proj.lifetime = range / projectile_speed
