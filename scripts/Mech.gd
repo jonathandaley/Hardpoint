@@ -46,6 +46,8 @@ var _active_set: Array = []  # parallel bool array; true = included in right-cli
 
 var locked_target: Node3D = null
 var lock_progress: float = 0.0
+var lock_eligible: bool = false
+var lock_eligible_target: Node3D = null
 var _lock_candidate: Node3D = null
 var _lock_timer: float = 0.0
 const _LOCK_TIME := 3.0
@@ -96,6 +98,12 @@ func configure_shield(has_shield: bool, max_hp: float = 300.0) -> void:
 	if has_shield:
 		_shield.activate(max_hp)
 	# disabled by default in scene; no action needed for mechs without shields
+
+func has_lock_weapon() -> bool:
+	for w in _weapons:
+		if is_instance_valid(w) and w.get("requires_lock") == true:
+			return true
+	return false
 
 func get_exclude_rids() -> Array:
 	var rids: Array = [get_rid()]
@@ -354,6 +362,14 @@ func _update_lock(delta: float) -> void:
 			best_cos = dot
 			candidate = mech3d
 
+	lock_eligible = candidate != null
+	lock_eligible_target = candidate
+	if not has_lock_weapon():
+		locked_target = null
+		lock_progress = 0.0
+		_lock_timer = 0.0
+		_lock_candidate = null
+		return
 	if candidate == null:
 		_lock_timer = 0.0
 		_lock_candidate = null

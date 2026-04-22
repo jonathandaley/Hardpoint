@@ -14,6 +14,7 @@ const WEAPON_CATALOG: Array = [
 	{"name": "SHOTGUN LIGHT",        "path": "res://scenes/weapons/ShotgunLight.tscn",        "slot_size": 0},
 	{"name": "MISSILE LAUNCHER LT", "path": "res://scenes/weapons/MissileLauncherLight.tscn", "slot_size": 0},
 	{"name": "ROCKET LAUNCHER LT",  "path": "res://scenes/weapons/RocketLauncherLight.tscn",  "slot_size": 0},
+	{"name": "LASER CANNON LT",     "path": "res://scenes/weapons/LaserCannonLight.tscn",     "slot_size": 0},
 	{"name": "PROJECTILE GUN",   "path": "res://scenes/weapons/ProjectileGun.tscn",   "slot_size": 0},
 	{"name": "RIFLE HEAVY",      "path": "res://scenes/weapons/RifleHeavy.tscn",      "slot_size": 1},
 	{"name": "SNIPER HEAVY",     "path": "res://scenes/weapons/SniperHeavy.tscn",     "slot_size": 1},
@@ -21,6 +22,7 @@ const WEAPON_CATALOG: Array = [
 	{"name": "SHOTGUN HEAVY",        "path": "res://scenes/weapons/ShotgunHeavy.tscn",        "slot_size": 1},
 	{"name": "MISSILE LAUNCHER HV", "path": "res://scenes/weapons/MissileLauncherHeavy.tscn", "slot_size": 1},
 	{"name": "ROCKET LAUNCHER HV",  "path": "res://scenes/weapons/RocketLauncherHeavy.tscn",  "slot_size": 1},
+	{"name": "LASER CANNON HV",     "path": "res://scenes/weapons/LaserCannonHeavy.tscn",     "slot_size": 1},
 ]
 
 @onready var mech_panel: Control = $Content/MechPanel

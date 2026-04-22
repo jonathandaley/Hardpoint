@@ -76,7 +76,7 @@ T16|x|Shotgun L/H: pellet spread, range falloff damage_close → damage_far|V9
 T17|x|Missile Launcher L/H: splash damage on impact, REFILLING mag|V9
 T18|x|target lock system: `Mech.locked_target`, `lock_progress`, `_LOCK_TIME=3.0s`|V15
 T19|x|Rocket Launcher L: single-shot, homing, arc up then track target down, requires lock|V15
-T20|.|Laser Cannon L/H: continuous beam, fixed-interval DPS, REFILLING = overheat budget|V11,V9
+T20|x|Laser Cannon L/H: continuous beam, fixed-interval DPS, REFILLING = overheat budget|V11,V9
 T21|.|Arc weapon L/H: continuous homing beam, curved path, requires lock, FIXED mag|V11,V15,V9
 T22|.|Aerial Strike H: single-shot, locked target, fires up, descends + AoE|V15
 T23|.|Patience H: two-stage (reload → charge → fire), damage scales with charge, FIXED|-

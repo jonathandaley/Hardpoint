@@ -9,12 +9,13 @@ const HOMING_SCENE := preload("res://scenes/weapons/HomingProjectile.tscn")
 @export var arc_up_blend: float = 0.65
 @export var turn_rate: float = 2.1
 
+func fire() -> void:
+	if owner_mech == null or owner_mech.get("locked_target") == null:
+		return
+	super.fire()
+
 func _do_fire() -> void:
-	if owner_mech == null:
-		return
 	var lock_target := owner_mech.get("locked_target") as Node3D
-	if lock_target == null:
-		return
 
 	var proj := HOMING_SCENE.instantiate() as Node3D
 	proj.damage = damage

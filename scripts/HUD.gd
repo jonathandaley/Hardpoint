@@ -11,6 +11,7 @@ extends CanvasLayer
 @onready var shield_bar_fg: ColorRect = $ShieldBarFG
 @onready var bot_health_bar: ColorRect = $BotHealthBar
 @onready var weapon_hud: Control = $WeaponHUD
+@onready var eligible_indicator: Control = $EligibleIndicator
 
 const BOT_BAR_FULL_WIDTH := 32.0
 const BOT_BAR_HEIGHT     := 6.0
@@ -51,6 +52,7 @@ func _process(delta: float) -> void:
 	if _player_mech != null:
 		var lp: float = _player_mech.get("lock_progress") if "lock_progress" in _player_mech else 0.0
 		crosshair.set_lock_progress(lp)
+		_update_eligible_indicator()
 		var pct: float = _player_mech.health / _player_mech.max_health
 		health_bar_fg.offset_right = health_bar_fg.offset_left + 162.0 * pct
 		var es: Node = _player_mech.get_node_or_null("EnergyShield")
@@ -68,6 +70,23 @@ func _process(delta: float) -> void:
 		score_label.text = "A: %d     B: %d" % [scores[0], scores[1]]
 
 	_update_bot_bar()
+
+const ELIGIBLE_HALF := 9.5
+
+func _update_eligible_indicator() -> void:
+	var target: Node3D = _player_mech.get("lock_eligible_target") if "lock_eligible_target" in _player_mech else null
+	if target == null or not is_instance_valid(target):
+		eligible_indicator.visible = false
+		return
+	var camera := get_viewport().get_camera_3d()
+	if camera == null or not camera.is_position_in_frustum(target.global_position):
+		eligible_indicator.visible = false
+		return
+	var screen_pos := camera.unproject_position(target.global_position + BOT_BAR_HEAD_OFFSET * 0.20)
+	eligible_indicator.position = screen_pos - Vector2(ELIGIBLE_HALF, ELIGIBLE_HALF)
+	eligible_indicator.size = Vector2(ELIGIBLE_HALF * 2.0, ELIGIBLE_HALF * 2.0)
+	eligible_indicator.visible = true
+	eligible_indicator.queue_redraw()
 
 func _update_bot_bar() -> void:
 	if _bot_mech == null or not is_instance_valid(_bot_mech) or not _bot_mech.visible:

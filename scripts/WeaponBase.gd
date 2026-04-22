@@ -17,6 +17,7 @@ enum MagazineType { FIXED, REFILLING }
 @export var reload_time: float = 1.5   # FIXED: seconds to reload full magazine
 @export var refill_rate: float = 5.0   # REFILLING: ammo per second
 @export var shake_magnitude: float = 0.0  # radians; 0 = no shake
+@export var requires_lock: bool = false
 
 var owner_mech: Node3D = null   # set by Mech._setup_weapon_owners() at ready time
 var ammo: int = -1

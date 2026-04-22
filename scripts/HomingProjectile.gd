@@ -17,7 +17,7 @@ var arc_time: float = 0.8       # seconds to fly in arc-up phase
 var arc_up_blend: float = 0.65  # how much to blend toward up during arc (rest = forward)
 
 # Phase 2 steering
-var turn_rate: float = 2.1      # rad/s max steering rate
+var turn_rate: float = 3.5      # rad/s max steering rate
 
 var _age: float = 0.0
 var _velocity_dir: Vector3 = Vector3.ZERO  # zero = uninit; set from transform on first frame
@@ -39,7 +39,9 @@ func _physics_process(delta: float) -> void:
 		# Phase 2: steer toward target
 		if is_instance_valid(target):
 			var to_target := (target.global_position - global_position).normalized()
-			_velocity_dir = _velocity_dir.slerp(to_target, minf(1.0, delta * turn_rate))
+			var angle := _velocity_dir.angle_to(to_target)
+			var t := minf(1.0, turn_rate * delta / maxf(angle, 0.0001))
+			_velocity_dir = _velocity_dir.slerp(to_target, t)
 		_velocity_dir = _velocity_dir.normalized()
 
 	var step := _velocity_dir * speed * delta

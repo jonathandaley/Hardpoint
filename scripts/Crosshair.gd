@@ -53,9 +53,11 @@ func _draw() -> void:
 		var arm := LOCK_ARM_LEN
 		for sx: float in [-1.0, 1.0]:
 			for sy: float in [-1.0, 1.0]:
-				var corner := c + Vector2(sx * dist, sy * dist)
-				draw_line(corner, corner + Vector2(-sx * arm, 0.0), lk_color, LINE_WIDTH)
-				draw_line(corner, corner + Vector2(0.0, -sy * arm), lk_color, LINE_WIDTH)
+				var corner := c + Vector2(sx * dist, sy * dist).rotated(PI / 4.0)
+				var rarm1 := Vector2(-sx * arm, 0.0).rotated(PI / 4.0)
+				var rarm2 := Vector2(0.0, -sy * arm).rotated(PI / 4.0)
+				draw_line(corner, corner + rarm1, lk_color, LINE_WIDTH)
+				draw_line(corner, corner + rarm2, lk_color, LINE_WIDTH)
 
 	if _hit_timer > 0.0:
 		for d: Vector2 in [Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]:
