@@ -51,6 +51,6 @@ func _do_fire() -> void:
 		proj._exclude_rids = ex
 		proj.damage_override = func(dist: float) -> float:
 			return lerpf(dc, df, clampf(dist / r, 0.0, 1.0))
-		proj.on_hit = func(body): _emit_hit_if_visible(body)
+		proj.on_hit = func(body, pos): _emit_hit_if_visible(body, pos)
 		get_tree().current_scene.add_child(proj)
 		proj.global_transform = Transform3D(Basis(), global_position).looking_at(aim_point)

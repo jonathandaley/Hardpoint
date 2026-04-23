@@ -37,7 +37,7 @@ func _physics_process(delta: float) -> void:
 			var actual: float = damage_override.call(_distance_traveled) if damage_override.is_valid() else damage
 			result.collider.take_damage(actual)
 			if on_hit.is_valid():
-				on_hit.call(result.collider)
+				on_hit.call(result.collider, result.position)
 		if splash_radius > 0.0:
 			for mech in get_tree().get_nodes_in_group("mechs"):
 				if mech == result.collider or mech == owner_body:

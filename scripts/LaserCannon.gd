@@ -51,7 +51,7 @@ func _do_fire() -> void:
 		hit_pos = result.position
 		if result.collider.has_method("take_damage"):
 			result.collider.take_damage(damage)
-			_emit_hit_if_visible(result.collider)
+			_emit_hit_if_visible(result.collider, result.position)
 
 	var hit_dist := maxf(0.01, global_position.distance_to(hit_pos))
 	_beam.position = Vector3(0.0, 0.0, -hit_dist * 0.5)

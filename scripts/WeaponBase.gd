@@ -95,13 +95,14 @@ func _start_reload() -> void:
 	_reloading = true
 	_reload_timer = reload_time
 
-func _emit_hit_if_visible(target: Node) -> void:
+func _emit_hit_if_visible(target: Node, hit_pos: Vector3 = Vector3.ZERO) -> void:
 	if target != null and target.get("is_stealthy"):
 		return
 	hit_confirmed.emit()
 	SoundManager.play_sfx_2d("hit_impact")
-	if target is Node3D:
-		VFX.hit_sparks((target as Node3D).global_position + Vector3(0, 1.0, 0))
+	var spark_pos := hit_pos if hit_pos != Vector3.ZERO \
+		else (target as Node3D).global_position + Vector3(0, 1.0, 0)
+	VFX.hit_sparks(spark_pos)
 
 func _do_fire() -> void:
 	print("[WeaponBase] _do_fire() -- override in subclass")

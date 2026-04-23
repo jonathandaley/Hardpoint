@@ -4,7 +4,7 @@ extends Node
 
 func muzzle_flash(pos: Vector3, color: Color = Color(1.0, 0.80, 0.30)) -> void:
 	var mi := _sphere(0.14, color, 6.0)
-	mi.scale = Vector3(2.5, 2.5, 2.5)
+	mi.scale = Vector3(1.875, 1.875, 1.875)
 	get_tree().current_scene.add_child(mi)
 	mi.global_position = pos
 	var tw := mi.create_tween()
