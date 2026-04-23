@@ -38,7 +38,7 @@ func _do_fire() -> void:
 	proj.lifetime = range / projectile_speed
 	proj.team = owner_mech.get("team") if owner_mech.get("team") != null else 0
 	proj._exclude_rids = owner_mech.get_exclude_rids()
-	proj.on_hit = func(): hit_confirmed.emit()
+	proj.on_hit = func(body): _emit_hit_if_visible(body)
 	get_tree().current_scene.add_child(proj)
 	proj.global_transform = Transform3D(Basis(), global_position).looking_at(aim_point)
 

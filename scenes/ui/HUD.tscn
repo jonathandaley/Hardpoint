@@ -95,3 +95,12 @@ script = ExtResource("4")
 [node name="WeaponHUD" type="Control" parent="."]
 mouse_filter = 2
 script = ExtResource("3")
+
+[node name="AbilityLabel" type="Label" parent="."]
+offset_left = 16.0
+offset_top = 44.0
+offset_right = 250.0
+offset_bottom = 62.0
+theme_override_font_sizes/font_size = 14
+mouse_filter = 2
+visible = false

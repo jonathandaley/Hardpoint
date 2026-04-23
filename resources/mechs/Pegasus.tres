@@ -1,9 +1,10 @@
-[gd_resource type="Resource" script_class="MechDef" load_steps=7 format=3]
+[gd_resource type="Resource" script_class="MechDef" load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/MechDef.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/mech/Mech.tscn" id="2"]
 [ext_resource type="Script" path="res://scripts/WeaponSlotDef.gd" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/RifleLight.tscn" id="4"]
+[ext_resource type="Resource" path="res://resources/abilities/JumpHeal.tres" id="5"]
 
 [sub_resource type="Resource" id="1"]
 script = ExtResource("3")
@@ -30,5 +31,6 @@ leg_hip_sweep = 0.24
 leg_bob_magnitude = 0.06
 leg_cycle_rate = 1.8
 body_scale = 1.0
+abilities = [ExtResource("5")]
 weapon_slots = [SubResource("1"), SubResource("2")]
 scene = ExtResource("2")

@@ -1,5 +1,7 @@
 extends Control
 
+const DEBUG_BOT_PICKER := false
+
 const ROSTER: Array = [
 	"res://resources/mechs/Slip.tres",
 	"res://resources/mechs/Cesh.tres",
@@ -38,9 +40,11 @@ const WEAPON_CATALOG: Array = [
 @onready var mech_stats_label: Label = $Content/MechPanel/MechStats
 @onready var weapon_slot_label: Label = $Content/MechPanel/WeaponSlot
 @onready var roster_list: VBoxContainer = $Content/MechPanel/RosterPanel/RosterScroll/RosterList
+@onready var bot_roster_list: VBoxContainer = $Content/MechPanel/RosterPanel/BotRosterScroll/BotRosterList
 
 var _mechs: Array = []
 var _selected: int = 0
+var _bot_selected: int = 0
 var _weapon_indices: Array = []      # WEAPON_CATALOG index per slot for the selected mech
 var _weapon_name_labels: Array = []  # Label refs in the picker, updated in-place on cycle
 
@@ -57,6 +61,13 @@ func _ready() -> void:
 	_ensure_default_mech()
 	_build_roster_buttons()
 	_update_mech_panel()
+	if DEBUG_BOT_PICKER:
+		_ensure_default_bot()
+		_build_bot_roster_buttons()
+	else:
+		_hide_bot_picker()
+		if Game.loadout.get("bot_def") == null and _mechs.size() > 0:
+			Game.loadout["bot_def"] = _mechs[0]
 	_show_tab(0)
 
 func _load_roster() -> void:
@@ -84,6 +95,58 @@ func _ensure_default_mech() -> void:
 		if _mechs.size() > 0:
 			Game.loadout.mech_def = _mechs[0]
 	_init_weapon_overrides()
+
+func _hide_bot_picker() -> void:
+	for name in ["RosterMidDivider", "BotHeader", "BotRosterScroll"]:
+		var n = $Content/MechPanel/RosterPanel.get_node_or_null(name)
+		if n:
+			n.visible = false
+	var scroll = $Content/MechPanel/RosterPanel.get_node_or_null("RosterScroll")
+	if scroll:
+		scroll.offset_bottom = 240.0
+
+func _ensure_default_bot() -> void:
+	var current = Game.loadout.get("bot_def")
+	if current == null:
+		_bot_selected = 0
+		if _mechs.size() > 0:
+			Game.loadout["bot_def"] = _mechs[0]
+	else:
+		for i in _mechs.size():
+			if _mechs[i] == current:
+				_bot_selected = i
+				return
+		_bot_selected = 0
+		if _mechs.size() > 0:
+			Game.loadout["bot_def"] = _mechs[0]
+
+func _build_bot_roster_buttons() -> void:
+	for child in bot_roster_list.get_children():
+		child.queue_free()
+	for i in _mechs.size():
+		var md = _mechs[i]
+		var btn := Button.new()
+		btn.text = "%s\n%s" % [md.display_name.to_upper(), md.class_tag.to_upper()]
+		btn.custom_minimum_size = Vector2(160, 44)
+		btn.add_theme_font_size_override("font_size", 14)
+		btn.pressed.connect(_on_bot_roster_selected.bind(i))
+		bot_roster_list.add_child(btn)
+	_highlight_bot_selected()
+
+func _highlight_bot_selected() -> void:
+	var buttons := bot_roster_list.get_children()
+	for i in buttons.size():
+		var btn: Button = buttons[i]
+		if i == _bot_selected:
+			btn.add_theme_color_override("font_color", Color(1.0, 0.5, 0.2))
+		else:
+			btn.remove_theme_color_override("font_color")
+
+func _on_bot_roster_selected(idx: int) -> void:
+	_bot_selected = idx
+	Game.loadout["bot_def"] = _mechs[idx]
+	Game.save_loadout()
+	_highlight_bot_selected()
 
 func _init_weapon_overrides() -> void:
 	var md = Game.loadout.get("mech_def")

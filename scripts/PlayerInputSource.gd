@@ -39,5 +39,10 @@ func get_slot_toggle() -> int:
 func is_reload_pressed() -> bool:
 	return Input.is_action_just_pressed("reload")
 
+func is_ability_pressed() -> bool:
+	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+		return false
+	return Input.is_action_just_pressed("ability_1")
+
 func is_human_input() -> bool:
 	return true

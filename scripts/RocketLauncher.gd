@@ -28,7 +28,7 @@ func _do_fire() -> void:
 	proj.arc_time = arc_time
 	proj.arc_up_blend = arc_up_blend
 	proj.turn_rate = turn_rate
-	proj.on_hit = func(): hit_confirmed.emit()
+	proj.on_hit = func(body): _emit_hit_if_visible(body)
 
 	get_tree().current_scene.add_child(proj)
 	var fwd_point := global_position - global_transform.basis.z

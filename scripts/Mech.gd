@@ -24,8 +24,12 @@ signal damaged
 @export var leg_rotation_speed: float = 15.0  # rad/s — leg visual tracking speed
 
 var health: float = 0.0
+var is_stealthy: bool = false
 var _modifiers: Dictionary = {}
 var _input_source: Node = null   # InputSource — untyped to avoid cache dependency
+var _abilities: Array = []
+var _ability_cooldowns: Dictionary = {}
+var _ability_active_timers: Dictionary = {}
 var _camera_pitch: float = -0.3  # matches CameraArm initial rotation.x
 var _desired_move_dir: Vector3 = Vector3.ZERO
 
@@ -143,6 +147,24 @@ func configure_legs(hip_sweep: float, bob_magnitude: float, cycle_rate: float) -
 	legs.set("bob_magnitude", bob_magnitude)
 	legs.set("cycle_rate", cycle_rate)
 
+func configure_abilities(abilities: Array) -> void:
+	_abilities = abilities
+	_ability_cooldowns.clear()
+	_ability_active_timers.clear()
+	is_stealthy = false
+	for ability in abilities:
+		var key: String = ability.effect_key
+		if ability.trigger == 1:
+			_apply_passive(key)
+		else:
+			_ability_cooldowns[key] = 0.0
+			if ability.duration > 0.0:
+				_ability_active_timers[key] = 0.0
+
+func _apply_passive(key: String) -> void:
+	if key == "stealth":
+		is_stealthy = true
+
 func _get_hardpoints() -> Array:
 	var hps: Array = []
 	for child in torso.get_children():
@@ -238,6 +260,7 @@ func _physics_process(delta: float) -> void:
 		_handle_slot_toggle()
 		_handle_reload()
 		_handle_fire()
+		_handle_ability()
 		if _input_source.has_method("is_human_input") and _input_source.is_human_input():
 			_update_lock(delta)
 
@@ -338,7 +361,7 @@ func _update_lock(delta: float) -> void:
 	var candidate: Node3D = null
 	if result:
 		var col := result.collider as Node3D
-		if col != null and col.is_in_group("mechs"):
+		if col != null and col.is_in_group("mechs") and not col.get("is_stealthy"):
 			var col_team: int = int(col.get("team")) if "team" in col else -1
 			if col_team != team:
 				candidate = col
@@ -347,6 +370,8 @@ func _update_lock(delta: float) -> void:
 		var best_cos := _LOCK_CONE_COS
 		for mech: Node in get_tree().get_nodes_in_group("mechs"):
 			if mech == self:
+				continue
+			if mech.get("is_stealthy"):
 				continue
 			var mech_team: int = int(mech.get("team")) if "team" in mech else -1
 			if mech_team == team:
@@ -396,3 +421,47 @@ func _handle_fire() -> void:
 			continue
 		if primary or (secondary and _active_set[i]):
 			_weapons[i].fire()
+
+func _handle_ability() -> void:
+	var delta: float = get_physics_process_delta_time()
+	for key in _ability_cooldowns.keys():
+		if _ability_cooldowns[key] > 0.0:
+			_ability_cooldowns[key] = maxf(0.0, _ability_cooldowns[key] - delta)
+	for key in _ability_active_timers.keys():
+		if _ability_active_timers[key] > 0.0:
+			_ability_active_timers[key] = maxf(0.0, _ability_active_timers[key] - delta)
+			if _ability_active_timers[key] == 0.0:
+				_deactivate_ability(key)
+	if not _input_source.is_ability_pressed():
+		return
+	for ability in _abilities:
+		if ability.trigger != 0:
+			continue
+		var key: String = ability.effect_key
+		if _ability_cooldowns.get(key, 0.0) > 0.0:
+			return
+		if _ability_active_timers.get(key, 0.0) > 0.0:
+			return
+		_activate_ability(ability)
+
+func _activate_ability(ability: Resource) -> void:
+	match ability.effect_key:
+		"jump_heal":
+			velocity.y = 15.6
+			health = minf(health + 80.0, max_health)
+			damaged.emit()
+		"stealth":
+			is_stealthy = true
+	if ability.duration > 0.0:
+		_ability_active_timers[ability.effect_key] = ability.duration
+	else:
+		_ability_cooldowns[ability.effect_key] = ability.cooldown
+
+func _deactivate_ability(key: String) -> void:
+	match key:
+		"stealth":
+			is_stealthy = false
+	for ability in _abilities:
+		if ability.effect_key == key:
+			_ability_cooldowns[key] = ability.cooldown
+			break

@@ -771,6 +771,7 @@ func _spawn_player_only() -> void:
 	add_child(player_mech)
 	player_mech.configure_legs(mech_def.leg_hip_sweep, mech_def.leg_bob_magnitude, mech_def.leg_cycle_rate)
 	player_mech.configure_weapons(_slots_with_overrides(mech_def.weapon_slots))
+	player_mech.configure_abilities(mech_def.abilities)
 	_set_mech_color(player_mech, Color(0.25, 0.52, 0.95))
 
 	_player = Node.new()
@@ -810,8 +811,12 @@ func _spawn_mechs() -> void:
 	player_mech.configure_shield(mech_def.has_shields, mech_def.shield_max_hp)
 	player_mech.configure_energy_shield(mech_def.has_energy_shield, mech_def.energy_shield_max_hp, mech_def.energy_shield_regen_rate, mech_def.energy_shield_regen_delay)
 	player_mech.configure_weapons(_slots_with_overrides(mech_def.weapon_slots))
+	player_mech.configure_abilities(mech_def.abilities)
 
-	var bot_def = load("res://resources/mechs/Hippogriff.tres")
+	var bot_def = Game.loadout.get("bot_def")
+	if bot_def == null:
+		push_error("[Arena] No bot_def in loadout; falling back to Hippogriff")
+		bot_def = load("res://resources/mechs/Hippogriff.tres")
 	bot_mech = bot_def.scene.instantiate()
 	bot_mech.name = "BotMech"
 	bot_mech.position = Vector3(20, 3.0, 0)
@@ -826,6 +831,7 @@ func _spawn_mechs() -> void:
 	bot_mech.configure_shield(bot_def.has_shields, bot_def.shield_max_hp)
 	bot_mech.configure_energy_shield(bot_def.has_energy_shield, bot_def.energy_shield_max_hp, bot_def.energy_shield_regen_rate, bot_def.energy_shield_regen_delay)
 	bot_mech.configure_weapons(bot_def.weapon_slots)
+	bot_mech.configure_abilities(bot_def.abilities)
 
 func _create_steps() -> void:
 	var mat := StandardMaterial3D.new()

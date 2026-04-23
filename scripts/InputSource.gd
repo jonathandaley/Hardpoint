@@ -21,5 +21,8 @@ func get_slot_toggle() -> int:
 func is_reload_pressed() -> bool:
 	return false
 
+func is_ability_pressed() -> bool:
+	return false
+
 func is_human_input() -> bool:
 	return false

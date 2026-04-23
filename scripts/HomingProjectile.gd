@@ -56,7 +56,7 @@ func _physics_process(delta: float) -> void:
 		if result.collider.has_method("take_damage"):
 			result.collider.take_damage(damage)
 			if on_hit.is_valid():
-				on_hit.call()
+				on_hit.call(result.collider)
 		queue_free()
 		return
 

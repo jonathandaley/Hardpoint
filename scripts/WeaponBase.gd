@@ -88,5 +88,10 @@ func _start_reload() -> void:
 	_reloading = true
 	_reload_timer = reload_time
 
+func _emit_hit_if_visible(target: Node) -> void:
+	if target != null and target.get("is_stealthy"):
+		return
+	hit_confirmed.emit()
+
 func _do_fire() -> void:
 	print("[WeaponBase] _do_fire() -- override in subclass")

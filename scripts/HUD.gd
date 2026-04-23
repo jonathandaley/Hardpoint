@@ -12,6 +12,7 @@ extends CanvasLayer
 @onready var bot_health_bar: ColorRect = $BotHealthBar
 @onready var weapon_hud: Control = $WeaponHUD
 @onready var eligible_indicator: Control = $EligibleIndicator
+@onready var ability_label: Label = $AbilityLabel
 
 const BOT_BAR_FULL_WIDTH := 32.0
 const BOT_BAR_HEIGHT     := 6.0
@@ -69,6 +70,7 @@ func _process(delta: float) -> void:
 		var scores: Array = _match.get("scores")
 		score_label.text = "A: %d     B: %d" % [scores[0], scores[1]]
 
+	_update_ability_label()
 	_update_bot_bar()
 
 const ELIGIBLE_HALF := 9.5
@@ -88,8 +90,34 @@ func _update_eligible_indicator() -> void:
 	eligible_indicator.visible = true
 	eligible_indicator.queue_redraw()
 
+func _update_ability_label() -> void:
+	if _player_mech == null:
+		ability_label.visible = false
+		return
+	var cooldowns: Dictionary = _player_mech.get("_ability_cooldowns") if "_ability_cooldowns" in _player_mech else {}
+	var active_timers: Dictionary = _player_mech.get("_ability_active_timers") if "_ability_active_timers" in _player_mech else {}
+	var abilities: Array = _player_mech.get("_abilities") if "_abilities" in _player_mech else []
+	var actives: Array = abilities.filter(func(a): return a.trigger == 0)
+	if actives.is_empty():
+		ability_label.visible = false
+		return
+	var ability = actives[0]
+	var key: String = ability.effect_key
+	var remaining_active: float = active_timers.get(key, 0.0)
+	var cd: float = cooldowns.get(key, 0.0)
+	if remaining_active > 0.0:
+		ability_label.text = "SPACE: %s  %.1fs" % [ability.ability_name, remaining_active]
+	elif cd > 0.0:
+		ability_label.text = "SPACE: %s  RECHARGING %.1fs" % [ability.ability_name, cd]
+	else:
+		ability_label.text = "SPACE: %s  READY" % ability.ability_name
+	ability_label.visible = true
+
 func _update_bot_bar() -> void:
 	if _bot_mech == null or not is_instance_valid(_bot_mech) or not _bot_mech.visible:
+		bot_health_bar.visible = false
+		return
+	if _bot_mech.get("is_stealthy"):
 		bot_health_bar.visible = false
 		return
 	var camera := get_viewport().get_camera_3d()

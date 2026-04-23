@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="Ability" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/Ability.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+ability_name = "JUMP+HEAL"
+trigger = 0
+effect_key = "jump_heal"
+cooldown = 8.0

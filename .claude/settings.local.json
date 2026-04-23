@@ -4,5 +4,7 @@
       "Skill(update-config)"
     ],
     "defaultMode": "bypassPermissions"
-  }
+  },
+  "spinnerTipsEnabled": false,
+  "prefersReducedMotion": true
 }
