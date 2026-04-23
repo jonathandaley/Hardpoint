@@ -25,11 +25,32 @@ func hit_sparks(pos: Vector3, color: Color = Color(1.0, 0.55, 0.15)) -> void:
 		tw.finished.connect(mi.queue_free)
 
 func death_explosion(pos: Vector3) -> void:
-	_explode_sphere(pos, 1.0, Color(1.0, 0.55, 0.15), 6.0, 3.5, 0.10, 0.24, 2.4)
-	_explode_sphere(pos, 0.5, Color(1.0, 0.95, 0.7), 11.0, 2.0, 0.06, 0.18, 2.0)
-	# Particles carry the energy after the flash
+	# Instant white-orange core flash — brief, not dominant
+	_explode_sphere(pos, 0.35, Color(1.0, 0.95, 0.82), 14.0, 2.8, 0.05, 0.09, 1.0)
+	# 12 medium chunks replace the solid sphere — fragmented from frame 1
+	for _i in 12:
+		_explosion_chunk(pos)
+	# 26 fine debris particles
 	for _i in 26:
 		_death_particle(pos)
+
+func _explosion_chunk(pos: Vector3) -> void:
+	var hot := randf()
+	var col := Color(1.0, lerpf(0.30, 0.72, hot), lerpf(0.0, 0.12, hot))
+	var emit := randf_range(4.5, 7.5)
+	var mi := _sphere(randf_range(0.18, 0.42), col, emit)
+	var mat := mi.get_surface_override_material(0) as StandardMaterial3D
+	mi.scale = Vector3.ONE * randf_range(0.6, 1.2)
+	get_tree().current_scene.add_child(mi)
+	mi.global_position = pos + Vector3(randf_range(-0.25, 0.25), randf_range(-0.1, 0.25), randf_range(-0.25, 0.25))
+	var dir := Vector3(randf_range(-1.0, 1.0), randf_range(-0.1, 1.3), randf_range(-1.0, 1.0)).normalized()
+	var end_pos := pos + dir * randf_range(1.2, 2.8)
+	var dur := randf_range(0.22, 0.48)
+	var tw := mi.create_tween().set_parallel(true)
+	tw.tween_property(mi, "global_position", end_pos, dur).set_ease(Tween.EASE_OUT)
+	tw.tween_property(mi, "scale", Vector3.ZERO, dur).set_ease(Tween.EASE_IN)
+	tw.tween_method(func(v: float) -> void: mat.emission_energy_multiplier = v, emit, 0.0, dur)
+	tw.finished.connect(mi.queue_free)
 
 func _death_particle(pos: Vector3) -> void:
 	var hot := randf()
