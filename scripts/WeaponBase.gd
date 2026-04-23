@@ -18,6 +18,7 @@ enum MagazineType { FIXED, REFILLING }
 @export var refill_rate: float = 5.0   # REFILLING: ammo per second
 @export var shake_magnitude: float = 0.0  # radians; 0 = no shake
 @export var requires_lock: bool = false
+@export var fire_sound_key: String = ""
 
 var owner_mech: Node3D = null   # set by Mech._setup_weapon_owners() at ready time
 var ammo: int = -1
@@ -62,6 +63,8 @@ func fire() -> void:
 		return
 	_cooldown = 1.0 / fire_rate
 	_do_fire()
+	if fire_sound_key != "":
+		SoundManager.play_sfx(fire_sound_key, global_position)
 	if shake_magnitude > 0.0 and owner_mech != null and owner_mech.has_method("apply_camera_shake"):
 		owner_mech.apply_camera_shake(shake_magnitude)
 	if max_ammo >= 0:
@@ -92,6 +95,7 @@ func _emit_hit_if_visible(target: Node) -> void:
 	if target != null and target.get("is_stealthy"):
 		return
 	hit_confirmed.emit()
+	SoundManager.play_sfx_2d("hit_impact")
 
 func _do_fire() -> void:
 	print("[WeaponBase] _do_fire() -- override in subclass")

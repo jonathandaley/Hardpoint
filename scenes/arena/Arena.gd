@@ -700,6 +700,7 @@ func _ready() -> void:
 	_setup_players()
 	match_node.match_ended.connect(_on_match_ended)
 	match_node.start()
+	SoundManager.play_music("arena")
 	_set_mech_color(player_mech, Color(0.25, 0.52, 0.95))
 	_set_mech_color(bot_mech,    Color(0.92, 0.28, 0.22))
 	hud.setup(match_node, player_mech, 0)
@@ -1088,6 +1089,7 @@ func on_player_eliminated(p: Node) -> void:
 
 func _on_match_ended(winning_team: int) -> void:
 	_match_over = true
+	SoundManager.stop_music()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	hud.show_result(winning_team)
 	if winning_team == 0:

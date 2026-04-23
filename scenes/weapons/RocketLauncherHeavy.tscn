@@ -24,6 +24,7 @@ projectile_speed = 16.0
 arc_time = 1.0
 arc_up_blend = 0.65
 turn_rate = 1.8
+fire_sound_key = "rocket_launch"
 
 [node name="GunBody" type="MeshInstance3D" parent="."]
 position = Vector3(0, 0, -0.45)

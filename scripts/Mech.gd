@@ -215,6 +215,7 @@ func take_damage(amount: float) -> void:
 		return
 	health -= actual
 	damaged.emit()
+	SoundManager.play_sfx("damage_hit", global_position)
 	print("[Mech] %s  %.0f / %.0f HP" % [name, health, max_health])
 	if health <= 0.0:
 		health = 0.0
@@ -229,6 +230,7 @@ func _do_shield_flash() -> void:
 
 func _die() -> void:
 	print("[Mech] %s destroyed" % name)
+	SoundManager.play_sfx("mech_death", global_position)
 	set_physics_process(false)
 	set_process(false)
 	$CollisionShape3D.disabled = true

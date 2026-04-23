@@ -19,6 +19,7 @@ magazine_type = 0
 reload_time = 10.0
 projectile_speed = 168.0
 shake_magnitude = 0.02
+fire_sound_key = "sniper_fire"
 
 [node name="GunBody" type="MeshInstance3D" parent="."]
 position = Vector3(0, 0, -0.55)

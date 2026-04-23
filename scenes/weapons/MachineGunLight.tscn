@@ -22,6 +22,7 @@ base_fire_rate = 8.0
 max_fire_rate = 28.0
 rate_accel = 10.0
 rate_decay = 25.0
+fire_sound_key = "machinegun_fire"
 
 [node name="GunBody" type="MeshInstance3D" parent="."]
 position = Vector3(0, 0, -0.275)

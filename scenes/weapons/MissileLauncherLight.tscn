@@ -21,6 +21,7 @@ damage = 12.5
 projectile_speed = 35.0
 splash_radius = 6.0
 splash_damage = 7.5
+fire_sound_key = "missile_launch"
 
 [node name="GunBody" type="MeshInstance3D" parent="."]
 position = Vector3(0, 0, -0.325)

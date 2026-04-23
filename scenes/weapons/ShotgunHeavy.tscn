@@ -22,6 +22,7 @@ pellet_count = 25
 spread_angle = 4.0
 damage_close = 15.0
 damage_far = 2.5
+fire_sound_key = "shotgun_fire"
 projectile_speed = 50.0
 
 [node name="GunBody" type="MeshInstance3D" parent="."]

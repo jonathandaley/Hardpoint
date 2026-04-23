@@ -5,6 +5,7 @@ extends "res://scripts/WeaponBase.gd"
 
 var _beam: MeshInstance3D = null
 var _beam_timer: float = 0.0
+var _loop_player: AudioStreamPlayer3D = null
 
 func _ready() -> void:
 	super._ready()
@@ -29,6 +30,8 @@ func _process(delta: float) -> void:
 		_beam_timer -= delta
 		if _beam_timer <= 0.0:
 			_beam.visible = false
+			if _loop_player != null and _loop_player.playing:
+				_loop_player.stop()
 
 func _do_fire() -> void:
 	if owner_mech == null:
@@ -53,5 +56,23 @@ func _do_fire() -> void:
 	var hit_dist := maxf(0.01, global_position.distance_to(hit_pos))
 	_beam.position = Vector3(0.0, 0.0, -hit_dist * 0.5)
 	_beam.scale.z = hit_dist
-	_beam.visible = true
+	if not _beam.visible:
+		_beam.visible = true
+		_start_laser_loop()
 	_beam_timer = 0.12
+
+func _start_laser_loop() -> void:
+	var stream := SoundManager.get_sfx_stream("laser_loop")
+	if stream == null:
+		return
+	if _loop_player == null:
+		_loop_player = AudioStreamPlayer3D.new()
+		_loop_player.bus = "SFX"
+		_loop_player.attenuation_model = AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE
+		_loop_player.unit_size = 10.0
+		_loop_player.max_distance = 80.0
+		add_child(_loop_player)
+	if stream is AudioStreamOggVorbis:
+		(stream as AudioStreamOggVorbis).loop = true
+	_loop_player.stream = stream
+	_loop_player.play()
