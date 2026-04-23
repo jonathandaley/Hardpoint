@@ -101,7 +101,7 @@ func _emit_hit_if_visible(target: Node) -> void:
 	hit_confirmed.emit()
 	SoundManager.play_sfx_2d("hit_impact")
 	if target is Node3D:
-		VFX.hit_sparks((target as Node3D).global_position)
+		VFX.hit_sparks((target as Node3D).global_position + Vector3(0, 1.0, 0))
 
 func _do_fire() -> void:
 	print("[WeaponBase] _do_fire() -- override in subclass")
