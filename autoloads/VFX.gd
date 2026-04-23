@@ -25,19 +25,26 @@ func hit_sparks(pos: Vector3, color: Color = Color(1.0, 0.55, 0.15)) -> void:
 		tw.finished.connect(mi.queue_free)
 
 func death_explosion(pos: Vector3) -> void:
-	_explode_sphere(pos, 1.0, Color(1.0, 0.45, 0.10), 5.0, 3.0, 0.14, 0.35)
-	_explode_sphere(pos, 0.55, Color(1.0, 0.92, 0.60), 9.0, 1.8, 0.09, 0.28)
-	for _i in 14:
-		var mi := _sphere(0.07, Color(1.0, 0.65, 0.2), 3.5)
-		get_tree().current_scene.add_child(mi)
-		mi.global_position = pos
-		var dir := Vector3(randf_range(-1.0, 1.0), randf_range(0.0, 1.5), randf_range(-1.0, 1.0)).normalized()
-		var end_pos := pos + dir * randf_range(1.0, 3.0)
-		var dur := randf_range(0.3, 0.6)
-		var tw := mi.create_tween().set_parallel(true)
-		tw.tween_property(mi, "global_position", end_pos, dur).set_ease(Tween.EASE_OUT)
-		tw.tween_property(mi, "scale", Vector3.ZERO, dur).set_ease(Tween.EASE_IN)
-		tw.finished.connect(mi.queue_free)
+	# Flash — brief, fades fast so particles take over
+	_explode_sphere(pos, 1.0, Color(1.0, 0.55, 0.15), 6.0, 3.0, 0.08, 0.14)
+	_explode_sphere(pos, 0.5, Color(1.0, 0.95, 0.7), 11.0, 1.6, 0.05, 0.10)
+	# Particles carry the energy after the flash
+	for _i in 26:
+		_death_particle(pos)
+
+func _death_particle(pos: Vector3) -> void:
+	var hot := randf()
+	var col := Color(1.0, lerpf(0.25, 0.80, hot), lerpf(0.0, 0.18, hot))
+	var mi := _sphere(randf_range(0.05, 0.11), col, randf_range(3.0, 5.5))
+	get_tree().current_scene.add_child(mi)
+	mi.global_position = pos
+	var dir := Vector3(randf_range(-1.0, 1.0), randf_range(-0.15, 1.4), randf_range(-1.0, 1.0)).normalized()
+	var end_pos := pos + dir * randf_range(1.0, 3.8)
+	var dur := randf_range(0.38, 0.75)
+	var tw := mi.create_tween().set_parallel(true)
+	tw.tween_property(mi, "global_position", end_pos, dur).set_ease(Tween.EASE_OUT)
+	tw.tween_property(mi, "scale", Vector3.ZERO, dur * 0.85).set_ease(Tween.EASE_IN)
+	tw.finished.connect(mi.queue_free)
 
 # --- helpers ---
 
