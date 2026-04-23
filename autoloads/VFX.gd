@@ -25,9 +25,8 @@ func hit_sparks(pos: Vector3, color: Color = Color(1.0, 0.55, 0.15)) -> void:
 		tw.finished.connect(mi.queue_free)
 
 func death_explosion(pos: Vector3) -> void:
-	# Flash — brief, fades fast so particles take over
-	_explode_sphere(pos, 1.0, Color(1.0, 0.55, 0.15), 6.0, 3.0, 0.08, 0.14)
-	_explode_sphere(pos, 0.5, Color(1.0, 0.95, 0.7), 11.0, 1.6, 0.05, 0.10)
+	_explode_sphere(pos, 1.0, Color(1.0, 0.55, 0.15), 6.0, 3.5, 0.10, 0.24, 2.4)
+	_explode_sphere(pos, 0.5, Color(1.0, 0.95, 0.7), 11.0, 2.0, 0.06, 0.18, 2.0)
 	# Particles carry the energy after the flash
 	for _i in 26:
 		_death_particle(pos)
@@ -49,7 +48,7 @@ func _death_particle(pos: Vector3) -> void:
 # --- helpers ---
 
 func _explode_sphere(pos: Vector3, radius: float, color: Color, emission: float,
-		peak_scale: float, rise: float, fade: float) -> void:
+		peak_scale: float, rise: float, fade: float, expand: float = 1.0) -> void:
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = color
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -71,10 +70,16 @@ func _explode_sphere(pos: Vector3, radius: float, color: Color, emission: float,
 	get_tree().current_scene.add_child(mi)
 	mi.global_position = pos
 
-	var tw := mi.create_tween()
-	tw.tween_property(mi, "scale", Vector3.ONE * peak_scale, rise).set_ease(Tween.EASE_OUT)
-	tw.tween_method(func(v: float) -> void: mat.emission_energy_multiplier = v, emission, 0.0, fade)
-	tw.tween_callback(mi.queue_free)
+	# Rise: scale 0 → peak
+	var tw_rise := mi.create_tween()
+	tw_rise.tween_property(mi, "scale", Vector3.ONE * peak_scale, rise).set_ease(Tween.EASE_OUT)
+	# Fade: scale continues expanding AND emission fades simultaneously
+	tw_rise.finished.connect(func() -> void:
+		var tw_fade := mi.create_tween().set_parallel(true)
+		tw_fade.tween_property(mi, "scale", Vector3.ONE * peak_scale * expand, fade).set_ease(Tween.EASE_IN)
+		tw_fade.tween_method(func(v: float) -> void: mat.emission_energy_multiplier = v, emission, 0.0, fade)
+		tw_fade.finished.connect(mi.queue_free)
+	)
 
 func _sphere(radius: float, color: Color, emission: float) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
