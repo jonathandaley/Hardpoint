@@ -231,6 +231,7 @@ func _do_shield_flash() -> void:
 func _die() -> void:
 	print("[Mech] %s destroyed" % name)
 	SoundManager.play_sfx("mech_death", global_position)
+	VFX.death_explosion(global_position + Vector3(0, 0.8, 0))
 	set_physics_process(false)
 	set_process(false)
 	$CollisionShape3D.disabled = true

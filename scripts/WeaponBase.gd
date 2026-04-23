@@ -19,6 +19,8 @@ enum MagazineType { FIXED, REFILLING }
 @export var shake_magnitude: float = 0.0  # radians; 0 = no shake
 @export var requires_lock: bool = false
 @export var fire_sound_key: String = ""
+@export var muzzle_flash_enabled: bool = true
+@export var muzzle_color: Color = Color(1.0, 0.80, 0.30)
 
 var owner_mech: Node3D = null   # set by Mech._setup_weapon_owners() at ready time
 var ammo: int = -1
@@ -65,6 +67,8 @@ func fire() -> void:
 	_do_fire()
 	if fire_sound_key != "":
 		SoundManager.play_sfx(fire_sound_key, global_position)
+	if muzzle_flash_enabled:
+		VFX.muzzle_flash(global_position - global_transform.basis.z * 0.4, muzzle_color)
 	if shake_magnitude > 0.0 and owner_mech != null and owner_mech.has_method("apply_camera_shake"):
 		owner_mech.apply_camera_shake(shake_magnitude)
 	if max_ammo >= 0:
@@ -96,6 +100,8 @@ func _emit_hit_if_visible(target: Node) -> void:
 		return
 	hit_confirmed.emit()
 	SoundManager.play_sfx_2d("hit_impact")
+	if target is Node3D:
+		VFX.hit_sparks((target as Node3D).global_position)
 
 func _do_fire() -> void:
 	print("[WeaponBase] _do_fire() -- override in subclass")

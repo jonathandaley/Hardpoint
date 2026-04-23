@@ -19,6 +19,7 @@ max_ammo = 40
 magazine_type = 1
 refill_rate = 3.0
 shake_magnitude = 0.004
+muzzle_flash_enabled = false
 
 [node name="GunBody" type="MeshInstance3D" parent="."]
 position = Vector3(0, 0, -0.3)
