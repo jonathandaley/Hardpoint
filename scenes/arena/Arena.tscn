@@ -1,9 +1,10 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scenes/arena/Arena.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/BeaconMatch.gd" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/beacon/Beacon.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="11"]
+[ext_resource type="PackedScene" path="res://scenes/ui/PauseMenu.tscn" id="12"]
 
 [sub_resource type="ProceduralSkyMaterial" id="5"]
 sky_top_color = Color(0.08, 0.10, 0.20, 1)
@@ -76,3 +77,5 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.7, 1.1, -20.23)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -23.78, 1.1, 7.73)
 
 [node name="HUD" parent="." instance=ExtResource("11")]
+
+[node name="PauseMenu" parent="." instance=ExtResource("12")]

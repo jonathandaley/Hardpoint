@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="MechDef" load_steps=8 format=3]
+[gd_resource type="Resource" script_class="MechDef" load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/MechDef.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/mech/Mech.tscn" id="2"]
@@ -8,33 +8,27 @@
 [sub_resource type="Resource" id="1"]
 script = ExtResource("3")
 slot_size = 0
-position = Vector3(-0.8, 1.1, 0.2)
+position = Vector3(-0.7, 1.1, 0.2)
 weapon_scene = ExtResource("4")
 
 [sub_resource type="Resource" id="2"]
 script = ExtResource("3")
 slot_size = 0
-position = Vector3(0.0, 1.1, 0.2)
-weapon_scene = ExtResource("4")
-
-[sub_resource type="Resource" id="3"]
-script = ExtResource("3")
-slot_size = 0
-position = Vector3(0.8, 1.1, 0.2)
+position = Vector3(0.7, 1.1, 0.2)
 weapon_scene = ExtResource("4")
 
 [resource]
 script = ExtResource("1")
-display_name = "Hippogriff"
-description = "Versatile medium mech with three light hardpoints. Reliable all-around fire platform."
+display_name = "Pegasus"
+description = "Medium mech with jump and heal ability. Low HP offset by mobility."
 class_tag = "Medium"
-max_health = 500.0
-walk_speed = 3.5
-turn_acceleration = 8.4
+max_health = 300.0
+walk_speed = 4.0
+turn_acceleration = 12.0
 leg_rotation_speed = 15.0
-leg_hip_sweep = 0.26
-leg_bob_magnitude = 0.08
-leg_cycle_rate = 1.7
+leg_hip_sweep = 0.24
+leg_bob_magnitude = 0.06
+leg_cycle_rate = 1.8
 body_scale = 1.0
-weapon_slots = [SubResource("1"), SubResource("2"), SubResource("3")]
+weapon_slots = [SubResource("1"), SubResource("2")]
 scene = ExtResource("2")

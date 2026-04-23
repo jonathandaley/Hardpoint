@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="MechDef" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/MechDef.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/mech/Mech.tscn" id="2"]
+[ext_resource type="Script" path="res://scripts/WeaponSlotDef.gd" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/RifleLight.tscn" id="4"]
+
+[sub_resource type="Resource" id="1"]
+script = ExtResource("3")
+slot_size = 0
+position = Vector3(0.0, 1.1, 0.2)
+weapon_scene = ExtResource("4")
+
+[resource]
+script = ExtResource("1")
+display_name = "Slip"
+description = "Sleek light mech. Single light hardpoint. Fastest chassis in the roster."
+class_tag = "Light"
+max_health = 175.0
+walk_speed = 7.5
+turn_acceleration = 22.0
+leg_rotation_speed = 25.0
+leg_hip_sweep = 0.14
+leg_bob_magnitude = 0.02
+leg_cycle_rate = 2.8
+body_scale = 0.85
+weapon_slots = [SubResource("1")]
+scene = ExtResource("2")

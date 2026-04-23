@@ -100,11 +100,15 @@ offset_bottom = 24.0
 theme_override_font_sizes/font_size = 14
 text = "ROSTER"
 
-[node name="RosterList" type="VBoxContainer" parent="Content/MechPanel/RosterPanel"]
+[node name="RosterScroll" type="ScrollContainer" parent="Content/MechPanel/RosterPanel"]
 offset_left = 4.0
 offset_top = 28.0
 offset_right = 184.0
 offset_bottom = 240.0
+horizontal_scroll_mode = 0
+
+[node name="RosterList" type="VBoxContainer" parent="Content/MechPanel/RosterPanel/RosterScroll"]
+size_flags_horizontal = 3
 
 [node name="RosterDivider" type="ColorRect" parent="Content/MechPanel"]
 offset_left = 190.0

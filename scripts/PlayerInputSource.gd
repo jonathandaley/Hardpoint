@@ -21,9 +21,13 @@ func get_look_delta() -> Vector2:
 	return delta
 
 func is_firing_primary() -> bool:
+	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+		return false
 	return Input.is_action_pressed("fire_primary")
 
 func is_firing_secondary() -> bool:
+	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+		return false
 	return Input.is_action_pressed("fire_secondary")
 
 func get_slot_toggle() -> int:

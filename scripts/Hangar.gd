@@ -1,10 +1,14 @@
 extends Control
 
 const ROSTER: Array = [
-	"res://resources/mechs/Lynx.tres",
+	"res://resources/mechs/Slip.tres",
+	"res://resources/mechs/Cesh.tres",
+	"res://resources/mechs/Seeker.tres",
+	"res://resources/mechs/Hornet.tres",
 	"res://resources/mechs/Hippogriff.tres",
-	"res://resources/mechs/Kestrel.tres",
-	"res://resources/mechs/Warhog.tres",
+	"res://resources/mechs/Pegasus.tres",
+	"res://resources/mechs/Everest.tres",
+	"res://resources/mechs/Vesuvius.tres",
 ]
 
 const WEAPON_CATALOG: Array = [
@@ -33,7 +37,7 @@ const WEAPON_CATALOG: Array = [
 @onready var mech_name_label: Label = $Content/MechPanel/MechName
 @onready var mech_stats_label: Label = $Content/MechPanel/MechStats
 @onready var weapon_slot_label: Label = $Content/MechPanel/WeaponSlot
-@onready var roster_list: VBoxContainer = $Content/MechPanel/RosterPanel/RosterList
+@onready var roster_list: VBoxContainer = $Content/MechPanel/RosterPanel/RosterScroll/RosterList
 
 var _mechs: Array = []
 var _selected: int = 0

@@ -3,6 +3,7 @@ extends Node3D
 
 @onready var match_node: Node = $BeaconMatch
 @onready var hud: CanvasLayer = $HUD
+@onready var pause_menu: CanvasLayer = $PauseMenu
 
 const DEBUG_PENROSE := false
 
@@ -681,6 +682,9 @@ var _bot_player: Node
 var _match_over: bool = false
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	pause_menu.resume_requested.connect(_on_pause_resume)
+	pause_menu.quit_requested.connect(_on_pause_quit)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	if DEBUG_PENROSE:
 		_create_walls()
@@ -1050,11 +1054,26 @@ func _input(event: InputEvent) -> void:
 	if _match_over and event.is_action_pressed("ui_accept"):
 		get_tree().change_scene_to_file("res://scenes/ui/Hangar.tscn")
 		return
-	if event.is_action_pressed("ui_cancel"):
-		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-		else:
-			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	if event.is_action_pressed("ui_cancel") and not _match_over:
+		_toggle_pause()
+
+func _toggle_pause() -> void:
+	if get_tree().paused:
+		_on_pause_resume()
+	else:
+		get_tree().paused = true
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		pause_menu.show()
+
+func _on_pause_resume() -> void:
+	pause_menu.hide()
+	get_tree().paused = false
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+func _on_pause_quit() -> void:
+	get_tree().paused = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	get_tree().change_scene_to_file("res://scenes/ui/Hangar.tscn")
 
 func on_player_eliminated(p: Node) -> void:
 	var losing_team: int = p.get("team") if p.get("team") != null else 0

@@ -1,0 +1,34 @@
+[gd_resource type="Resource" script_class="MechDef" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/MechDef.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/mech/Mech.tscn" id="2"]
+[ext_resource type="Script" path="res://scripts/WeaponSlotDef.gd" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/RifleLight.tscn" id="4"]
+
+[sub_resource type="Resource" id="1"]
+script = ExtResource("3")
+slot_size = 0
+position = Vector3(-0.8, 1.0, 0.0)
+weapon_scene = ExtResource("4")
+
+[sub_resource type="Resource" id="2"]
+script = ExtResource("3")
+slot_size = 0
+position = Vector3(0.8, 1.0, 0.0)
+weapon_scene = ExtResource("4")
+
+[resource]
+script = ExtResource("1")
+display_name = "Hornet"
+description = "Fast medium mech with side-mounted dual light hardpoints. Aggressive skirmisher."
+class_tag = "Medium"
+max_health = 450.0
+walk_speed = 6.0
+turn_acceleration = 14.0
+leg_rotation_speed = 16.0
+leg_hip_sweep = 0.22
+leg_bob_magnitude = 0.06
+leg_cycle_rate = 2.0
+body_scale = 1.0
+weapon_slots = [SubResource("1"), SubResource("2")]
+scene = ExtResource("2")

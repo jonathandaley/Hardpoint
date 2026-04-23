@@ -3,38 +3,38 @@
 [ext_resource type="Script" path="res://scripts/MechDef.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/mech/Mech.tscn" id="2"]
 [ext_resource type="Script" path="res://scripts/WeaponSlotDef.gd" id="3"]
-[ext_resource type="PackedScene" path="res://scenes/weapons/RifleLight.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/RifleHeavy.tscn" id="4"]
 
 [sub_resource type="Resource" id="1"]
 script = ExtResource("3")
-slot_size = 0
-position = Vector3(-0.8, 1.1, 0.2)
+slot_size = 1
+position = Vector3(-0.9, 1.1, 0.2)
 weapon_scene = ExtResource("4")
 
 [sub_resource type="Resource" id="2"]
 script = ExtResource("3")
-slot_size = 0
+slot_size = 1
 position = Vector3(0.0, 1.1, 0.2)
 weapon_scene = ExtResource("4")
 
 [sub_resource type="Resource" id="3"]
 script = ExtResource("3")
-slot_size = 0
-position = Vector3(0.8, 1.1, 0.2)
+slot_size = 1
+position = Vector3(0.9, 1.1, 0.2)
 weapon_scene = ExtResource("4")
 
 [resource]
 script = ExtResource("1")
-display_name = "Hippogriff"
-description = "Versatile medium mech with three light hardpoints. Reliable all-around fire platform."
-class_tag = "Medium"
-max_health = 500.0
-walk_speed = 3.5
-turn_acceleration = 8.4
-leg_rotation_speed = 15.0
-leg_hip_sweep = 0.26
-leg_bob_magnitude = 0.08
-leg_cycle_rate = 1.7
-body_scale = 1.0
+display_name = "Vesuvius"
+description = "Heavy mech with three heavy hardpoints. Devastating firepower at the cost of speed."
+class_tag = "Heavy"
+max_health = 1000.0
+walk_speed = 2.2
+turn_acceleration = 5.5
+leg_rotation_speed = 9.0
+leg_hip_sweep = 0.34
+leg_bob_magnitude = 0.12
+leg_cycle_rate = 1.3
+body_scale = 1.25
 weapon_slots = [SubResource("1"), SubResource("2"), SubResource("3")]
 scene = ExtResource("2")
