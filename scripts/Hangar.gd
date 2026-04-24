@@ -9,6 +9,7 @@ const ROSTER: Array = [
 	"res://resources/mechs/Hornet.tres",
 	"res://resources/mechs/Hippogriff.tres",
 	"res://resources/mechs/Pegasus.tres",
+	"res://resources/mechs/Kestrel.tres",
 	"res://resources/mechs/Everest.tres",
 	"res://resources/mechs/Vesuvius.tres",
 ]
