@@ -19,7 +19,7 @@ var profile: Dictionary = {
 # mech_def is a MechDef resource; null until Hangar initialises it.
 var loadout: Dictionary = {
 	"mech_def": null,
-	"bot_def": null,
+	"bot_def": preload("res://resources/mechs/Hippogriff.tres"),
 	"weapon_overrides": [],        # Array[PackedScene|null], parallel to mech_def.weapon_slots
 	"mech_weapon_choices": {},     # {mech_resource_path: [weapon_scene_path, ...]}
 }
