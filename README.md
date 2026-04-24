@@ -9,7 +9,10 @@ Built in Godot 4.6 (Compatibility renderer / OpenGL ES 3.0), targeting low-end h
 ## Running
 
 ```
-build/mechbattle.x86_64
+Download latest release "mechbattle_X.X.X.x86_64"
+
+chmod +x mechbattle_X.X.X.x86_64
+
 ```
 
 Linux x86_64 binary. No install. Godot editor not required to play.
