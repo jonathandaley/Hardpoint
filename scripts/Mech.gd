@@ -478,9 +478,18 @@ func _apply_stealth_visual(active: bool) -> void:
 	var all_meshes := find_children("*", "MeshInstance3D", true, false)
 	if active:
 		_stealth_saved_mats.clear()
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(0.07, 0.10, 0.07)
-		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		var shader := load("res://shaders/stealth_camo.gdshader") as Shader
+		var mat: Material
+		if shader != null:
+			var sm := ShaderMaterial.new()
+			sm.shader = shader
+			sm.render_priority = 1
+			mat = sm
+		else:
+			var fb := StandardMaterial3D.new()
+			fb.albedo_color = Color(0.07, 0.10, 0.07)
+			fb.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			mat = fb
 		for mesh in all_meshes:
 			if mesh is MeshInstance3D:
 				_stealth_saved_mats[mesh] = mesh.get_surface_override_material(0)
