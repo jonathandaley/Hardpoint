@@ -45,6 +45,7 @@ var _body_meshes: Array = []
 var _flash_mat: StandardMaterial3D = null
 var _flash_timer_es: float = 0.0
 const _ES_FLASH_DUR := 0.12
+var _stealth_saved_mats: Dictionary = {}  # MeshInstance3D -> original material
 
 var _weapons: Array = []
 var _active_set: Array = []  # parallel bool array; true = included in right-click subset
@@ -473,6 +474,23 @@ func _handle_ability() -> void:
 			return
 		_activate_ability(ability)
 
+func _apply_stealth_visual(active: bool) -> void:
+	var all_meshes := find_children("*", "MeshInstance3D", true, false)
+	if active:
+		_stealth_saved_mats.clear()
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = Color(0.07, 0.10, 0.07)
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		for mesh in all_meshes:
+			if mesh is MeshInstance3D:
+				_stealth_saved_mats[mesh] = mesh.get_surface_override_material(0)
+				mesh.set_surface_override_material(0, mat)
+	else:
+		for mesh in all_meshes:
+			if mesh is MeshInstance3D and _stealth_saved_mats.has(mesh):
+				mesh.set_surface_override_material(0, _stealth_saved_mats[mesh])
+		_stealth_saved_mats.clear()
+
 func _activate_ability(ability: Resource) -> void:
 	match ability.effect_key:
 		"jump_heal":
@@ -481,6 +499,7 @@ func _activate_ability(ability: Resource) -> void:
 			damaged.emit()
 		"stealth":
 			is_stealthy = true
+			_apply_stealth_visual(true)
 	if ability.duration > 0.0:
 		_ability_active_timers[ability.effect_key] = ability.duration
 	else:
@@ -490,6 +509,7 @@ func _deactivate_ability(key: String) -> void:
 	match key:
 		"stealth":
 			is_stealthy = false
+			_apply_stealth_visual(false)
 	for ability in _abilities:
 		if ability.effect_key == key:
 			_ability_cooldowns[key] = ability.cooldown
