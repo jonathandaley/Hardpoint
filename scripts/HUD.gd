@@ -40,11 +40,65 @@ func show_damage() -> void:
 func register_hit() -> void:
 	crosshair.register_hit()
 
-func show_result(winning_team: int) -> void:
+func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
+
+func show_result(winning_team: int, stats: Dictionary = {}) -> void:
 	result_label.text = "YOU WIN" if winning_team == _player_team else "YOU LOSE"
 	result_label.visible = true
-	restart_label.visible = true
 	crosshair.visible = false
+	_build_stats_panel(stats)
+
+func _build_stats_panel(stats: Dictionary) -> void:
+	var backdrop := ColorRect.new()
+	backdrop.process_mode = Node.PROCESS_MODE_ALWAYS
+	backdrop.color = Color(0, 0, 0, 1)
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(backdrop)
+
+	# Full-screen centering container
+	var center := CenterContainer.new()
+	center.process_mode = Node.PROCESS_MODE_ALWAYS
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(center)
+
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(320, 0)
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	panel.add_child(vbox)
+	center.add_child(panel)
+
+	var rows := [
+		["DAMAGE DEALT",     "%.0f" % stats.get("damage_dealt",     0.0)],
+		["DAMAGE TAKEN",     "%.0f" % stats.get("damage_taken",     0.0)],
+		["BEACONS CAPTURED", "%d"   % stats.get("beacons_captured", 0)],
+		["ENEMY BEACONS",    "%d"   % stats.get("bot_beacons",      0)],
+	]
+	for row in rows:
+		var hbox := HBoxContainer.new()
+		hbox.add_theme_constant_override("separation", 32)
+		var lbl := Label.new()
+		lbl.text = row[0]
+		lbl.add_theme_font_size_override("font_size", 15)
+		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var val := Label.new()
+		val.text = row[1]
+		val.add_theme_font_size_override("font_size", 15)
+		val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		hbox.add_child(lbl)
+		hbox.add_child(val)
+		vbox.add_child(hbox)
+
+	vbox.add_child(HSeparator.new())
+
+	var btn := Button.new()
+	btn.text = "RETURN TO HANGAR"
+	btn.add_theme_font_size_override("font_size", 15)
+	btn.pressed.connect(func(): get_tree().change_scene_to_file("res://scenes/ui/Hangar.tscn"))
+	vbox.add_child(btn)
+	# focus so Enter activates it
+	btn.grab_focus.call_deferred()
 
 func _process(delta: float) -> void:
 	if _damage_alpha > 0.0:

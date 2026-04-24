@@ -680,6 +680,7 @@ var bot_mech: CharacterBody3D
 var _player: Node
 var _bot_player: Node
 var _match_over: bool = false
+var _beacons_captured: Array[int] = [0, 0]
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -1016,6 +1017,7 @@ func _wire_beacons() -> void:
 	for child in get_children():
 		if child.is_in_group("beacons"):
 			match_node.register_beacon(child)
+			child.captured.connect(func(team: int): _beacons_captured[team] += 1)
 
 func _setup_players() -> void:
 	# Human player
@@ -1058,9 +1060,6 @@ func _input(event: InputEvent) -> void:
 	if DEBUG_PENROSE and event is InputEventKey and event.pressed and event.keycode == KEY_F5:
 		_toggle_overhead()
 		return
-	if _match_over and event.is_action_pressed("ui_accept"):
-		get_tree().change_scene_to_file("res://scenes/ui/Hangar.tscn")
-		return
 	if event.is_action_pressed("ui_cancel") and not _match_over:
 		_toggle_pause()
 
@@ -1091,7 +1090,18 @@ func _on_match_ended(winning_team: int) -> void:
 	_match_over = true
 	SoundManager.stop_music()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	hud.show_result(winning_team)
+	var player_team: int = _player.get("team") if _player != null else 0
+	var stats := {
+		"damage_dealt":       bot_mech.damage_taken_total if is_instance_valid(bot_mech) else 0.0,
+		"damage_taken":       player_mech.damage_taken_total if is_instance_valid(player_mech) else 0.0,
+		"beacons_captured":   _beacons_captured[player_team],
+		"bot_beacons":        _beacons_captured[1 - player_team],
+	}
+	if is_instance_valid(player_mech):
+		player_mech.process_mode = Node.PROCESS_MODE_DISABLED
+	if is_instance_valid(bot_mech):
+		bot_mech.process_mode = Node.PROCESS_MODE_DISABLED
+	hud.show_result(winning_team, stats)
 	if winning_team == 0:
 		Game.profile["wins"] = Game.profile.get("wins", 0) + 1
 	else:

@@ -20,10 +20,12 @@ func _ready() -> void:
 	sens_slider.set_block_signals(false)
 	_update_sens_label()
 
+	vol_slider.set_block_signals(true)
 	vol_slider.min_value = 0.0
 	vol_slider.max_value = 1.0
 	vol_slider.step      = 0.05
-	vol_slider.value     = 1.0
+	vol_slider.value     = Game.settings.get("master_volume", 1.0)
+	vol_slider.set_block_signals(false)
 	_update_vol_label()
 
 	var diff_row: HBoxContainer = $Content/DiffRow/DiffButtons
@@ -49,7 +51,10 @@ func _on_sens_changed(value: float) -> void:
 	_update_sens_label()
 	Game.save_settings()
 
-func _on_vol_changed(_value: float) -> void:
+func _on_vol_changed(value: float) -> void:
+	Game.settings["master_volume"] = value
+	Game.apply_volume(value)
+	Game.save_settings()
 	_update_vol_label()
 
 func _on_diff_pressed(idx: int) -> void:

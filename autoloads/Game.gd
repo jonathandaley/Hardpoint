@@ -27,6 +27,7 @@ var loadout: Dictionary = {
 var settings: Dictionary = {
 	"mouse_sensitivity": 0.003,
 	"bot_difficulty": 1,  # 0=Easy  1=Normal  2=Medium  3=Hard  4=Elite
+	"master_volume": 1.0,
 }
 
 func _ready() -> void:
@@ -56,6 +57,8 @@ func _load_settings() -> void:
 		return
 	settings["mouse_sensitivity"] = cfg.get_value("settings", "mouse_sensitivity", settings["mouse_sensitivity"])
 	settings["bot_difficulty"]    = cfg.get_value("settings", "bot_difficulty",    settings["bot_difficulty"])
+	settings["master_volume"]     = cfg.get_value("settings", "master_volume",     settings["master_volume"])
+	apply_volume(settings["master_volume"])
 
 func _load_loadout() -> void:
 	var cfg := ConfigFile.new()
@@ -88,4 +91,8 @@ func save_settings() -> void:
 	cfg.load(_SAVE_PATH)
 	cfg.set_value("settings", "mouse_sensitivity", settings.get("mouse_sensitivity", 0.003))
 	cfg.set_value("settings", "bot_difficulty",    settings.get("bot_difficulty",    1))
+	cfg.set_value("settings", "master_volume",     settings.get("master_volume",     1.0))
 	cfg.save(_SETTINGS_PATH)
+
+func apply_volume(linear: float) -> void:
+	AudioServer.set_bus_volume_db(AudioServer.get_bus_index("Master"), linear_to_db(linear))

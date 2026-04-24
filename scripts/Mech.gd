@@ -24,6 +24,7 @@ signal damaged
 @export var leg_rotation_speed: float = 15.0  # rad/s — leg visual tracking speed
 
 var health: float = 0.0
+var damage_taken_total: float = 0.0
 var is_stealthy: bool = false
 var _modifiers: Dictionary = {}
 var _input_source: Node = null   # InputSource — untyped to avoid cache dependency
@@ -215,6 +216,7 @@ func take_damage(amount: float) -> void:
 	if actual <= 0.0:
 		return
 	health -= actual
+	damage_taken_total += actual
 	damaged.emit()
 	SoundManager.play_sfx("damage_hit", global_position)
 	print("[Mech] %s  %.0f / %.0f HP" % [name, health, max_health])
@@ -274,6 +276,7 @@ func _physics_process(delta: float) -> void:
 		position.y += lift
 		_step_up_remaining -= lift
 	move_and_slide()
+	_try_step_up_from_collisions()
 	_update_legs(delta)
 
 func _try_step_up() -> void:
@@ -281,7 +284,6 @@ func _try_step_up() -> void:
 		return
 	var horiz := Vector3(velocity.x, 0.0, velocity.z)
 
-	# Probe both input direction and velocity direction so angled approaches work.
 	var dirs: Array[Vector3] = []
 	if _desired_move_dir != Vector3.ZERO:
 		dirs.append(_desired_move_dir)
@@ -296,22 +298,40 @@ func _try_step_up() -> void:
 	var ex    := [get_rid()]
 	var mask  := collision_mask
 	for dir in dirs:
-		var shin := PhysicsRayQueryParameters3D.create(
-			global_position + Vector3(0, 0.1, 0),
-			global_position + Vector3(0, 0.1, 0) + dir * 0.8, mask)
-		shin.exclude = ex
-		if not space.intersect_ray(shin):
-			continue
-		var clear := PhysicsRayQueryParameters3D.create(
-			global_position + Vector3(0, _MAX_STEP + 0.05, 0),
-			global_position + Vector3(0, _MAX_STEP + 0.05, 0) + dir * 0.8, mask)
-		clear.exclude = ex
-		if space.intersect_ray(clear):
-			continue
-		if _step_up_remaining <= 0.0:
-			_step_up_remaining = _MAX_STEP
-		velocity.y = 0.0
+		if _check_step_dir(dir, space, ex, mask):
+			return
+
+func _try_step_up_from_collisions() -> void:
+	if _step_up_remaining > 0.0:
 		return
+	var space := get_world_3d().direct_space_state
+	var ex    := [get_rid()]
+	var mask  := collision_mask
+	for i in get_slide_collision_count():
+		var col := get_slide_collision(i)
+		var n   := col.get_normal()
+		if abs(n.y) > 0.3:
+			continue
+		var step_dir := Vector3(-n.x, 0.0, -n.z).normalized()
+		if _check_step_dir(step_dir, space, ex, mask):
+			return
+
+func _check_step_dir(dir: Vector3, space: PhysicsDirectSpaceState3D, ex: Array, mask: int) -> bool:
+	var shin := PhysicsRayQueryParameters3D.create(
+		global_position + Vector3(0, 0.1, 0),
+		global_position + Vector3(0, 0.1, 0) + dir * 0.8, mask)
+	shin.exclude = ex
+	if not space.intersect_ray(shin):
+		return false
+	var clear := PhysicsRayQueryParameters3D.create(
+		global_position + Vector3(0, _MAX_STEP + 0.05, 0),
+		global_position + Vector3(0, _MAX_STEP + 0.05, 0) + dir * 0.8, mask)
+	clear.exclude = ex
+	if space.intersect_ray(clear):
+		return false
+	_step_up_remaining = _MAX_STEP
+	velocity.y = 0.0
+	return true
 
 func _update_legs(delta: float) -> void:
 	legs.call("update_gait", velocity, global_transform.basis, leg_rotation_speed, delta)
