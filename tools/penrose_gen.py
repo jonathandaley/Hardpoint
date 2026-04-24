@@ -53,7 +53,7 @@ def main():
 
             for n in range(-GRID_RANGE, GRID_RANGE+1):
                 for m in range(-GRID_RANGE, GRID_RANGE+1):
-                    g  = 1e-6 if (GAMMA == 0.0 and n == 0 and m == 0) else GAMMA
+                    g  = 1e-6 if GAMMA == 0.0 else GAMMA
                     rj = (n + g) * SIDE
                     rk = (m + g) * SIDE
                     px = (rj * ek_[1] - rk * ej[1]) / det
