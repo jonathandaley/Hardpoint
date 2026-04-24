@@ -76,13 +76,7 @@ func play_music(key: String, loop: bool = true) -> void:
 	var path: String = _MUSIC_PATHS[key]
 	var stream: AudioStream = _streams.get(key)
 	if stream == null:
-		if not FileAccess.file_exists(path):
-			return
-		var file := FileAccess.open(path, FileAccess.READ)
-		if file == null:
-			return
-		var data := file.get_buffer(file.get_length())
-		stream = AudioStreamOggVorbis.load_from_buffer(data)
+		stream = ResourceLoader.load(path, "AudioStream") as AudioStream
 		if stream == null:
 			return
 		_streams[key] = stream
@@ -115,17 +109,9 @@ func _load_sfx(key: String) -> AudioStream:
 	if not _SFX_PATHS.has(key):
 		return null
 	var path: String = _SFX_PATHS[key]
-	if not FileAccess.file_exists(path):
-		push_warning("SoundManager: file not found: " + path)
-		return null
-	var file := FileAccess.open(path, FileAccess.READ)
-	if file == null:
-		push_warning("SoundManager: could not open: " + path)
-		return null
-	var data := file.get_buffer(file.get_length())
-	var stream := AudioStreamOggVorbis.load_from_buffer(data)
+	var stream := ResourceLoader.load(path, "AudioStream") as AudioStream
 	if stream == null:
-		push_warning("SoundManager: failed to decode: " + path)
+		push_warning("SoundManager: file not found: " + path)
 		return null
 	_streams[key] = stream
 	return stream
