@@ -26,6 +26,7 @@ signal damaged
 var health: float = 0.0
 var damage_taken_total: float = 0.0
 var is_stealthy: bool = false
+var invincible: bool = false
 var _modifiers: Dictionary = {}
 var _input_source: Node = null   # InputSource — untyped to avoid cache dependency
 var _abilities: Array = []
@@ -206,7 +207,7 @@ func get_aim_basis() -> Basis:
 	return torso.global_transform.basis
 
 func take_damage(amount: float) -> void:
-	if health <= 0.0:
+	if health <= 0.0 or invincible:
 		return
 	var actual := amount
 	if _energy_shield != null:

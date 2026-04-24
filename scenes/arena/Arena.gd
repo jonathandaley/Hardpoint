@@ -1548,6 +1548,7 @@ func _spawn_mechs() -> void:
 	player_mech.configure_energy_shield(mech_def.has_energy_shield, mech_def.energy_shield_max_hp, mech_def.energy_shield_regen_rate, mech_def.energy_shield_regen_delay)
 	player_mech.configure_weapons(_slots_with_overrides(mech_def.weapon_slots))
 	player_mech.configure_abilities(mech_def.abilities)
+	player_mech.invincible = mech_def.invincible
 
 	var bot_def = Game.loadout.get("bot_def")
 	if bot_def == null:

@@ -3,6 +3,7 @@ extends Control
 const DEBUG_BOT_PICKER := false
 
 const ROSTER: Array = [
+	"res://resources/mechs/DebugMech.tres",
 	"res://resources/mechs/Slip.tres",
 	"res://resources/mechs/Cesh.tres",
 	"res://resources/mechs/Seeker.tres",

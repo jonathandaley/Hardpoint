@@ -24,5 +24,6 @@ extends Resource
 @export var leg_bob_magnitude: float = 0.06    # m - torso vertical bob amplitude
 @export var leg_cycle_rate: float = 1.0        # multiplier on geometric no-slide rate
 @export var body_scale: float = 1.0            # uniform scale applied to the spawned mech node
+@export var invincible: bool = false           # debug flag — take_damage() is a no-op
 @export var abilities: Array = []              # Array[Ability]
 @export var scene: PackedScene                 # mech scene to instantiate in Arena

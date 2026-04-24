@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MechDef" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/MechDef.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/mech/Mech.tscn" id="2"]
+[ext_resource type="Script" path="res://scripts/WeaponSlotDef.gd" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/RifleLight.tscn" id="4"]
+
+[sub_resource type="Resource" id="1"]
+script = ExtResource("3")
+slot_size = 0
+position = Vector3(0.0, 1.1, 0.2)
+weapon_scene = ExtResource("4")
+
+[resource]
+script = ExtResource("1")
+display_name = "DEBUG"
+description = "4x tall, 2x Slip speed, invincible. Arena scouting only."
+class_tag = "Debug"
+max_health = 9999.0
+walk_speed = 7.5
+turn_acceleration = 22.0
+leg_rotation_speed = 25.0
+leg_hip_sweep = 0.14
+leg_bob_magnitude = 0.08
+leg_cycle_rate = 1.0
+body_scale = 3.4
+invincible = true
+weapon_slots = [SubResource("1")]
+scene = ExtResource("2")
