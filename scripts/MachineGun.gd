@@ -12,6 +12,7 @@ extends "res://scripts/ProjectileGun.gd"
 
 var _current_rate: float = 0.0
 var _trigger_held: bool = false
+var _loop_player: AudioStreamPlayer3D = null
 
 func _do_fire() -> void:
 	if owner_mech == null:
@@ -52,7 +53,30 @@ func _process(delta: float) -> void:
 		_current_rate = minf(_current_rate + rate_accel * delta, max_fire_rate)
 	else:
 		_current_rate = maxf(_current_rate - rate_decay * delta, base_fire_rate)
+	if _reloading and _loop_player != null and _loop_player.playing:
+		_loop_player.stop()
 	_trigger_held = false
+
+func _start_mg_loop() -> void:
+	var stream := SoundManager.get_sfx_stream("machinegun_fire")
+	if stream == null:
+		return
+	if _loop_player == null:
+		_loop_player = AudioStreamPlayer3D.new()
+		_loop_player.bus = "SFX"
+		_loop_player.attenuation_model = AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE
+		_loop_player.unit_size = 10.0
+		_loop_player.max_distance = 80.0
+		add_child(_loop_player)
+	if stream is AudioStreamOggVorbis:
+		(stream as AudioStreamOggVorbis).loop = true
+	if not _loop_player.playing:
+		_loop_player.stream = stream
+		_loop_player.play()
+
+func on_fire_release() -> void:
+	if _loop_player != null and _loop_player.playing:
+		_loop_player.stop()
 
 func fire() -> void:
 	_trigger_held = true
@@ -65,6 +89,7 @@ func fire() -> void:
 			_start_reload()
 		return
 	_cooldown = 1.0 / _current_rate
+	_start_mg_loop()
 	_do_fire()
 	if shake_magnitude > 0.0 and owner_mech != null and owner_mech.has_method("apply_camera_shake"):
 		owner_mech.apply_camera_shake(shake_magnitude)

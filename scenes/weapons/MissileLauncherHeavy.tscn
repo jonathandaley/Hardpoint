@@ -18,10 +18,10 @@ max_ammo = 9
 magazine_type = 1
 refill_rate = 1.2
 shake_magnitude = 0.002
-damage = 22.5
+damage = 11.25
 projectile_speed = 35.0
 splash_radius = 8.0
-splash_damage = 12.5
+splash_damage = 6.25
 fire_sound_key = "missile_launch"
 
 [node name="GunBody" type="MeshInstance3D" parent="."]

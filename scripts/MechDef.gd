@@ -22,7 +22,7 @@ extends Resource
 @export var leg_rotation_speed: float = 15.0  # rad/s — how fast legs swing to match velocity
 @export var leg_hip_sweep: float = 0.22        # rad - hip fore/aft amplitude
 @export var leg_bob_magnitude: float = 0.06    # m - torso vertical bob amplitude
-@export var leg_cycle_rate: float = 1.8        # rad of phase per metre of travel
+@export var leg_cycle_rate: float = 1.0        # multiplier on geometric no-slide rate
 @export var body_scale: float = 1.0            # uniform scale applied to the spawned mech node
 @export var abilities: Array = []              # Array[Ability]
 @export var scene: PackedScene                 # mech scene to instantiate in Arena

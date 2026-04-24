@@ -11,7 +11,7 @@ shading_mode = 0
 
 [node name="MachineGunLight" type="Node3D"]
 script = ExtResource("1")
-damage = 3.0
+damage = 1.5
 range = 80.0
 max_ammo = 135
 magazine_type = 0

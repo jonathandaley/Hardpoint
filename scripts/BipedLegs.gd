@@ -20,7 +20,12 @@ const REST_KNEE2 :=  2.094
 # Walk-cycle tuning - overridden per mech class via MechDef.
 @export var hip_sweep_amount: float = 0.22   # rad - hip fore/aft amplitude
 @export var bob_magnitude: float    = 0.06   # m   - torso vertical bob amplitude
-@export var cycle_rate: float       = 1.8    # rad of phase per metre of travel
+@export var cycle_rate: float       = 1.0    # multiplier on geometric no-slide rate (1.0 = exact match)
+
+# Geometric constant: foot z-sweep per radian of hip rotation.
+# J = L*(cos(REST_HIP) + cos(REST_HIP+REST_KNEE1) + cos(REST_HIP+REST_KNEE1+REST_KNEE2))
+# Middle term = cos(-pi/2) = 0, so J = 2*L*cos(REST_HIP) = 2*0.55*0.866 ≈ 0.952.
+const _J := 2.0 * 0.55 * 0.866
 
 # Fixed ratios - not per-class.
 const KNEE_LIFT   := 0.55   # rad  - top-knee flex at peak of swing arc
@@ -45,7 +50,8 @@ func update_gait(velocity: Vector3, mech_basis: Basis, rot_speed: float, delta: 
 func _animate_walk(velocity: Vector3, delta: float) -> void:
 	var horiz := Vector3(velocity.x, 0.0, velocity.z)
 	var speed  := horiz.length()
-	_phase = fposmod(_phase + speed * cycle_rate * delta, TAU)
+	var no_slide_rate := 1.0 / (_J * maxf(hip_sweep_amount, 0.01))
+	_phase = fposmod(_phase + speed * no_slide_rate * cycle_rate * delta, TAU)
 
 	# Blend amplitude 0->1 over the first 1 m/s so joints return to rest when idle.
 	var t  := clampf(speed, 0.0, 1.0)

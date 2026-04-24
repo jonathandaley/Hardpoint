@@ -37,7 +37,7 @@ func setup(player_mech: Node) -> void:
 	for i in range(weapons.size()):
 		var x := float(i) * (SLOT_W + SLOT_GAP)
 		var icon_and_ammo := _build_slot(weapons[i], i + 1, x)
-		_entries.append({"weapon": weapons[i], "icon": icon_and_ammo[0], "ammo_fg": icon_and_ammo[1], "bar_left": x})
+		_entries.append({"weapon": weapons[i], "icon": icon_and_ammo[0], "ammo_fg": icon_and_ammo[1], "charge_fg": icon_and_ammo[2], "bar_left": x})
 
 func _build_slot(weapon: Node, number: int, x: float) -> Array:
 	# Number-key indicator
@@ -62,6 +62,16 @@ func _build_slot(weapon: Node, number: int, x: float) -> Array:
 	icon.offset_bottom = NUM_H + ICON_H
 	add_child(icon)
 
+	# Charge overlay - yellow fill grows left-to-right over the icon (Patience only)
+	var charge_fg := ColorRect.new()
+	charge_fg.color = Color(1.0, 0.88, 0.1, 0.72)
+	charge_fg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	charge_fg.offset_left   = x
+	charge_fg.offset_right  = x           # zero width until charging
+	charge_fg.offset_top    = NUM_H
+	charge_fg.offset_bottom = NUM_H + ICON_H
+	add_child(charge_fg)
+
 	# Ammo bar - background track + foreground fill
 	var bar_top    := NUM_H + ICON_H + 2.0
 	var bar_bottom := SLOT_H - 2.0
@@ -84,7 +94,7 @@ func _build_slot(weapon: Node, number: int, x: float) -> Array:
 	ammo_fg.offset_bottom = bar_bottom
 	add_child(ammo_fg)
 
-	return [icon, ammo_fg]
+	return [icon, ammo_fg, charge_fg]
 
 func _weapon_color(weapon: Node) -> Color:
 	var path: String = weapon.get_script().resource_path
@@ -128,6 +138,11 @@ func _process(_delta: float) -> void:
 		entry["ammo_fg"].offset_right = entry["bar_left"] + SLOT_W * pct
 		entry["ammo_fg"].color = Color(0.5, 0.5, 0.5, 0.9) if reloading \
 				else Color(0.2, 0.85, 0.3, 1.0)
+
+		# Charge overlay (Patience)
+		if entry["weapon"].has_method("get_charge_progress"):
+			var cp: float = entry["weapon"].get_charge_progress()
+			entry["charge_fg"].offset_right = entry["bar_left"] + SLOT_W * cp
 
 		# Dim icon when not in right-click active set
 		var active: bool = active_set.is_empty() or (i < active_set.size() and active_set[i])

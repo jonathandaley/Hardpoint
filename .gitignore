@@ -6,3 +6,6 @@ export_credentials.cfg
 .DS_Store
 Thumbs.db
 build/
+
+# Audio source/import staging — processed files live in audio/sfx/
+audio/import/

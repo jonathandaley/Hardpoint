@@ -19,8 +19,8 @@ refill_rate = 0.5
 shake_magnitude = 0.025
 pellet_count = 20
 spread_angle = 5.0
-damage_close = 9.0
-damage_far = 1.5
+damage_close = 4.5
+damage_far = 0.75
 fire_sound_key = "shotgun_fire"
 projectile_speed = 50.0
 

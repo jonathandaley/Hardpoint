@@ -8,7 +8,10 @@ const _SFX_PATHS: Dictionary = {
 	"sniper_fire":     "res://audio/sfx/weapons/sniper_fire.ogg",
 	"missile_launch":  "res://audio/sfx/weapons/missile_launch.ogg",
 	"rocket_launch":   "res://audio/sfx/weapons/rocket_launch.ogg",
+	"aerial_strike":   "res://audio/sfx/weapons/aerial_strike.ogg",
+	"patience_shot":   "res://audio/sfx/weapons/patience_shot.ogg",
 	"laser_loop":      "res://audio/sfx/weapons/laser_loop.ogg",
+	"arc_loop":        "res://audio/sfx/weapons/arc_loop.ogg",
 	"hit_impact":      "res://audio/sfx/weapons/hit_impact.ogg",
 	"mech_death":      "res://audio/sfx/mech/death_explosion.ogg",
 	"damage_hit":      "res://audio/sfx/mech/damage_hit.ogg",
@@ -71,11 +74,17 @@ func play_music(key: String, loop: bool = true) -> void:
 	if not _MUSIC_PATHS.has(key):
 		return
 	var path: String = _MUSIC_PATHS[key]
-	if not ResourceLoader.exists(path):
-		return
 	var stream: AudioStream = _streams.get(key)
 	if stream == null:
-		stream = load(path)
+		if not FileAccess.file_exists(path):
+			return
+		var file := FileAccess.open(path, FileAccess.READ)
+		if file == null:
+			return
+		var data := file.get_buffer(file.get_length())
+		stream = AudioStreamOggVorbis.load_from_buffer(data)
+		if stream == null:
+			return
 		_streams[key] = stream
 	if stream is AudioStreamOggVorbis:
 		(stream as AudioStreamOggVorbis).loop = loop
@@ -106,8 +115,17 @@ func _load_sfx(key: String) -> AudioStream:
 	if not _SFX_PATHS.has(key):
 		return null
 	var path: String = _SFX_PATHS[key]
-	if not ResourceLoader.exists(path):
+	if not FileAccess.file_exists(path):
+		push_warning("SoundManager: file not found: " + path)
 		return null
-	var stream: AudioStream = load(path)
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		push_warning("SoundManager: could not open: " + path)
+		return null
+	var data := file.get_buffer(file.get_length())
+	var stream := AudioStreamOggVorbis.load_from_buffer(data)
+	if stream == null:
+		push_warning("SoundManager: failed to decode: " + path)
+		return null
 	_streams[key] = stream
 	return stream

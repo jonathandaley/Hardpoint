@@ -11,6 +11,9 @@ var target: Node3D = null
 var owner_body: Node3D = null
 var _exclude_rids: Array = []
 var on_hit: Callable
+var splash_radius: float = 0.0
+var splash_damage: float = 0.0
+var target_offset: Vector3 = Vector3.ZERO
 
 # Arc phase
 var arc_time: float = 0.8       # seconds to fly in arc-up phase
@@ -38,7 +41,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		# Phase 2: steer toward target
 		if is_instance_valid(target):
-			var to_target := (target.global_position - global_position).normalized()
+			var to_target := (target.global_position + target_offset - global_position).normalized()
 			var angle := _velocity_dir.angle_to(to_target)
 			var t := minf(1.0, turn_rate * delta / maxf(angle, 0.0001))
 			_velocity_dir = _velocity_dir.slerp(to_target, t)
@@ -57,6 +60,13 @@ func _physics_process(delta: float) -> void:
 			result.collider.take_damage(damage)
 			if on_hit.is_valid():
 				on_hit.call(result.collider, result.position)
+		if splash_radius > 0.0:
+			for mech in get_tree().get_nodes_in_group("mechs"):
+				if mech == result.collider or mech == owner_body:
+					continue
+				var dist: float = (mech as Node3D).global_position.distance_to(result.position)
+				if dist < splash_radius:
+					mech.take_damage(splash_damage * (1.0 - dist / splash_radius))
 		queue_free()
 		return
 

@@ -29,6 +29,10 @@ const WEAPON_CATALOG: Array = [
 	{"name": "MISSILE LAUNCHER HV", "path": "res://scenes/weapons/MissileLauncherHeavy.tscn", "slot_size": 1},
 	{"name": "ROCKET LAUNCHER HV",  "path": "res://scenes/weapons/RocketLauncherHeavy.tscn",  "slot_size": 1},
 	{"name": "LASER CANNON HV",     "path": "res://scenes/weapons/LaserCannonHeavy.tscn",     "slot_size": 1},
+	{"name": "ARC WEAPON LT",       "path": "res://scenes/weapons/ArcWeaponLight.tscn",        "slot_size": 0},
+	{"name": "ARC WEAPON HV",       "path": "res://scenes/weapons/ArcWeaponHeavy.tscn",        "slot_size": 1},
+	{"name": "AERIAL STRIKE HV",    "path": "res://scenes/weapons/AerialStrikeHeavy.tscn",     "slot_size": 1},
+	{"name": "PATIENCE HV",         "path": "res://scenes/weapons/PatienceHeavy.tscn",         "slot_size": 1},
 ]
 
 @onready var mech_panel: Control = $Content/MechPanel
@@ -143,6 +147,7 @@ func _highlight_bot_selected() -> void:
 			btn.remove_theme_color_override("font_color")
 
 func _on_bot_roster_selected(idx: int) -> void:
+	SoundManager.play_sfx_2d("ui_click")
 	_bot_selected = idx
 	Game.loadout["bot_def"] = _mechs[idx]
 	Game.save_loadout()
@@ -198,6 +203,7 @@ func _highlight_selected() -> void:
 			btn.remove_theme_color_override("font_color")
 
 func _on_roster_selected(idx: int) -> void:
+	SoundManager.play_sfx_2d("ui_click")
 	_selected = idx
 	Game.loadout.mech_def = _mechs[idx]
 	_init_weapon_overrides()
@@ -288,6 +294,7 @@ func _build_weapon_picker(md) -> void:
 	mech_stats_label.offset_bottom = stats_top + 28.0
 
 func _on_weapon_cycle(slot_idx: int, direction: int) -> void:
+	SoundManager.play_sfx_2d("ui_click")
 	var md = Game.loadout.get("mech_def")
 	if md == null or slot_idx >= md.weapon_slots.size():
 		return
@@ -331,13 +338,17 @@ func _show_tab(idx: int) -> void:
 	pilot_panel.visible = idx == 1
 
 func _on_mech_tab_pressed() -> void:
+	SoundManager.play_sfx_2d("ui_click")
 	_show_tab(0)
 
 func _on_pilot_tab_pressed() -> void:
+	SoundManager.play_sfx_2d("ui_click")
 	_show_tab(1)
 
 func _on_matchmaking_pressed() -> void:
+	SoundManager.play_sfx_2d("ui_click")
 	get_tree().change_scene_to_file("res://scenes/arena/Arena.tscn")
 
 func _on_settings_pressed() -> void:
+	SoundManager.play_sfx_2d("ui_click")
 	get_tree().change_scene_to_file("res://scenes/ui/Settings.tscn")

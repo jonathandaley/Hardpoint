@@ -47,6 +47,7 @@ const _ES_FLASH_DUR := 0.12
 
 var _weapons: Array = []
 var _active_set: Array = []  # parallel bool array; true = included in right-click subset
+var _was_firing_primary: bool = false
 
 var locked_target: Node3D = null
 var lock_progress: float = 0.0
@@ -417,6 +418,11 @@ func _update_lock(delta: float) -> void:
 func _handle_fire() -> void:
 	var primary: bool   = _input_source.is_firing_primary()
 	var secondary: bool = _input_source.is_firing_secondary()
+	if _was_firing_primary and not primary:
+		for i in _weapons.size():
+			if is_instance_valid(_weapons[i]):
+				_weapons[i].on_fire_release()
+	_was_firing_primary = primary
 	if not primary and not secondary:
 		return
 	for i in _weapons.size():

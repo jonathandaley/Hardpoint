@@ -104,5 +104,8 @@ func _emit_hit_if_visible(target: Node, hit_pos: Vector3 = Vector3.ZERO) -> void
 		else (target as Node3D).global_position + Vector3(0, 1.0, 0)
 	VFX.hit_sparks(spark_pos)
 
+func on_fire_release() -> void:
+	pass
+
 func _do_fire() -> void:
 	print("[WeaponBase] _do_fire() -- override in subclass")

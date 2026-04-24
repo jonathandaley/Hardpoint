@@ -5,6 +5,7 @@ extends "res://scripts/WeaponBase.gd"
 
 var _beam: MeshInstance3D = null
 var _beam_timer: float = 0.0
+var _audio_timer: float = 0.0
 var _loop_player: AudioStreamPlayer3D = null
 
 func _ready() -> void:
@@ -30,6 +31,9 @@ func _process(delta: float) -> void:
 		_beam_timer -= delta
 		if _beam_timer <= 0.0:
 			_beam.visible = false
+	if _audio_timer > 0.0:
+		_audio_timer -= delta
+		if _audio_timer <= 0.0:
 			if _loop_player != null and _loop_player.playing:
 				_loop_player.stop()
 
@@ -58,8 +62,9 @@ func _do_fire() -> void:
 	_beam.scale.z = hit_dist
 	if not _beam.visible:
 		_beam.visible = true
-		_start_laser_loop()
+	_start_laser_loop()
 	_beam_timer = 0.12
+	_audio_timer = 0.35
 
 func _start_laser_loop() -> void:
 	var stream := SoundManager.get_sfx_stream("laser_loop")
@@ -74,5 +79,6 @@ func _start_laser_loop() -> void:
 		add_child(_loop_player)
 	if stream is AudioStreamOggVorbis:
 		(stream as AudioStreamOggVorbis).loop = true
-	_loop_player.stream = stream
-	_loop_player.play()
+	if not _loop_player.playing:
+		_loop_player.stream = stream
+		_loop_player.play()

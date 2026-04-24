@@ -12,7 +12,7 @@ shading_mode = 0
 [node name="MachineGunHeavy" type="Node3D"]
 script = ExtResource("1")
 slot_size = 1
-damage = 6.0
+damage = 3.0
 range = 80.0
 max_ammo = 135
 magazine_type = 0
