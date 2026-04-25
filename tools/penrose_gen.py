@@ -35,28 +35,28 @@ def initial_sun():
 
 def subdivide(tris):
     """
-    Robinson triangle substitution rules (P3 / kite-dart):
-      S (sharp, apex=36°):  apex=A, base=B,C
-        -> S(A, P, C) + O(B, P, A)   where P splits AB at ratio 1/phi from A
-      O (obtuse, apex=108°): apex=A, base=B,C
-        -> S(A, P, B) + O(P, C, B)   where P splits AC at ratio 1/phi from A
+    P3 Robinson triangle deflation rules.
+    S (apex A at 36°, equal legs AB=AC=L, short base BC=L/phi):
+      P on AB with AP=L/phi → O(P,A,C) [apex P] + S(C,P,B) [apex C]
+    O (apex A at 108°, equal legs AB=AC=L, long base BC=phi*L):
+      P on BC with BP=L → S(B,A,P) [apex B] + O(P,A,C) [apex P]
     """
     out = []
     for tri in tris:
         kind = tri[0]
         ax, ay, bx, by, cx, cy = tri[1], tri[2], tri[3], tri[4], tri[5], tri[6]
         if kind == "S":
-            # P on AB, 1/phi from A
+            # P on AB, AP = L/phi
             px = ax + (bx - ax) / PHI
             py = ay + (by - ay) / PHI
-            out.append(("S", ax, ay, px, py, cx, cy))
-            out.append(("O", bx, by, px, py, ax, ay))
+            out.append(("O", px, py, ax, ay, cx, cy))
+            out.append(("S", cx, cy, px, py, bx, by))
         else:  # O
-            # P on AC, 1/phi from A
-            px = ax + (cx - ax) / PHI
-            py = ay + (cy - ay) / PHI
-            out.append(("S", ax, ay, px, py, bx, by))
-            out.append(("O", px, py, cx, cy, bx, by))
+            # P on BC, BP = L (= leg length = BC/phi)
+            px = bx + (cx - bx) / PHI
+            py = by + (cy - by) / PHI
+            out.append(("S", bx, by, ax, ay, px, py))
+            out.append(("O", px, py, ax, ay, cx, cy))
     return out
 
 def extract(tris):
