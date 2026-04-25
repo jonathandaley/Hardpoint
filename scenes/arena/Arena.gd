@@ -2931,7 +2931,7 @@ func _on_match_ended(winning_team: int) -> void:
 	print("[Arena] Match over. Team %d wins." % winning_team)
 
 func _create_penrose_bowl() -> void:
-	const STEP_H := 0.35
+	const STEP_H := 1.4
 	const STEP_W := 20.0
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(0.52, 0.52, 0.56)
