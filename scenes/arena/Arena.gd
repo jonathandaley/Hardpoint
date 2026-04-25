@@ -2936,32 +2936,26 @@ func _create_penrose_bowl() -> void:
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(0.52, 0.52, 0.56)
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
-	var pos := []
+	var pos: Array[Vector3] = []
 	for i in range(0, _BOWL_V.size(), 2):
-		var x: float = _BOWL_V[i]
-		var z: float = _BOWL_V[i + 1]
-		var h: float = floor(sqrt(x * x + z * z) / STEP_W) * STEP_H
+		var x := float(_BOWL_V[i])
+		var z := float(_BOWL_V[i + 1])
+		var h := floor(sqrt(x * x + z * z) / STEP_W) * STEP_H
 		pos.append(Vector3(x, h, z))
+	print("[Bowl] verts=%d quads=%d sample_h_50m=%.2f" % [
+		pos.size(), _BOWL_Q.size() / 4,
+		floor(50.0 / STEP_W) * STEP_H])
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var col_faces := PackedVector3Array()
 	for q in range(0, _BOWL_Q.size(), 4):
-		var a: Vector3 = pos[_BOWL_Q[q]]
-		var b: Vector3 = pos[_BOWL_Q[q + 1]]
-		var c: Vector3 = pos[_BOWL_Q[q + 2]]
-		var d: Vector3 = pos[_BOWL_Q[q + 3]]
-		for tri: Array in [[a, b, c], [a, c, d]]:
-			var p0: Vector3 = tri[0]
-			var p1: Vector3 = tri[1]
-			var p2: Vector3 = tri[2]
-			var n := (p1 - p0).cross(p2 - p0).normalized()
-			if n.y < 0:
-				n = -n
-				var tmp := p1; p1 = p2; p2 = tmp
-			st.set_normal(n); st.add_vertex(p0)
-			st.set_normal(n); st.add_vertex(p1)
-			st.set_normal(n); st.add_vertex(p2)
-			col_faces.append(p0); col_faces.append(p1); col_faces.append(p2)
+		var a := pos[int(_BOWL_Q[q])]
+		var b := pos[int(_BOWL_Q[q + 1])]
+		var c := pos[int(_BOWL_Q[q + 2])]
+		var d := pos[int(_BOWL_Q[q + 3])]
+		_add_tri(st, col_faces, a, b, c)
+		_add_tri(st, col_faces, a, c, d)
+	print("[Bowl] tris=%d" % [col_faces.size() / 3])
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
 	mi.set_surface_override_material(0, mat)
@@ -2974,3 +2968,14 @@ func _create_penrose_bowl() -> void:
 	body.add_child(col)
 	body.add_child(mi)
 	add_child(body)
+
+func _add_tri(st: SurfaceTool, col: PackedVector3Array,
+		p0: Vector3, p1: Vector3, p2: Vector3) -> void:
+	var n := (p1 - p0).cross(p2 - p0).normalized()
+	if n.y < 0:
+		n = -n
+		var tmp := p1; p1 = p2; p2 = tmp
+	st.set_normal(n); st.add_vertex(p0)
+	st.set_normal(n); st.add_vertex(p1)
+	st.set_normal(n); st.add_vertex(p2)
+	col.append(p0); col.append(p1); col.append(p2)
