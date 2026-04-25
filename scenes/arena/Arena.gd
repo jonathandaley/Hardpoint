@@ -2940,7 +2940,7 @@ func _create_penrose_bowl() -> void:
 	for i in range(0, _BOWL_V.size(), 2):
 		var x := float(_BOWL_V[i])
 		var z := float(_BOWL_V[i + 1])
-		var h := floor(sqrt(x * x + z * z) / STEP_W) * STEP_H
+		var h: float = floor(sqrt(x * x + z * z) / STEP_W) * STEP_H
 		pos.append(Vector3(x, h, z))
 	print("[Bowl] verts=%d quads=%d sample_h_50m=%.2f" % [
 		pos.size(), _BOWL_Q.size() / 4,
