@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scenes/arena/Arena.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/BeaconMatch.gd" id="2"]
@@ -25,16 +25,6 @@ ambient_light_source = 2
 ambient_light_color = Color(0.72, 0.78, 0.92, 1)
 ambient_light_energy = 0.55
 
-[sub_resource type="PlaneMesh" id="8"]
-size = Vector2(240, 240)
-
-[sub_resource type="BoxShape3D" id="9"]
-size = Vector3(240, 0.2, 240)
-
-[sub_resource type="StandardMaterial3D" id="10"]
-albedo_color = Color(0.82, 0.84, 0.88, 1)
-shading_mode = 0
-roughness = 0.75
 
 [node name="Arena" type="Node3D"]
 script = ExtResource("1")
@@ -51,30 +41,21 @@ light_color = Color(0.90, 0.94, 1.0, 1)
 light_energy = 1.4
 shadow_enabled = true
 
-[node name="Floor" type="StaticBody3D" parent="."]
-
-[node name="FloorMesh" type="MeshInstance3D" parent="Floor"]
-mesh = SubResource("8")
-surface_material_override/0 = SubResource("10")
-
-[node name="FloorCollision" type="CollisionShape3D" parent="Floor"]
-position = Vector3(0, -0.1, 0)
-shape = SubResource("9")
 
 [node name="Beacon1" parent="." instance=ExtResource("4")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 50)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.1, 1.1, 11.2)
 
 [node name="Beacon2" parent="." instance=ExtResource("4")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 47.553, 1.1, 15.451)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.1, 1.1, 51.2)
 
 [node name="Beacon3" parent="." instance=ExtResource("4")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29.389, 1.1, -40.451)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.1, 1.1, -28.8)
 
 [node name="Beacon4" parent="." instance=ExtResource("4")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -29.389, 1.1, -40.451)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.9, 1.1, 51.2)
 
 [node name="Beacon5" parent="." instance=ExtResource("4")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -47.553, 1.1, 15.451)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.9, 1.1, -28.8)
 
 [node name="HUD" parent="." instance=ExtResource("11")]
 

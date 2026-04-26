@@ -6,6 +6,14 @@ extends Node3D
 @onready var pause_menu: CanvasLayer = $PauseMenu
 
 const DEBUG_PENROSE := false
+const DEBUG_NO_BOT := false
+const BOWL_STEP_H := 2.1
+const BOWL_STEP_W := 20.0
+const BOWL_SUN_X := 5.1
+const BOWL_SUN_Z := 11.2
+const BOWL_CUTOFF_R := 100.0
+
+# Cross-ring edges to suppress (trap pockets identified by mark session).
 
 const _PENROSE_VERTS: Array = [
   Vector2(90.085, -39.270),
@@ -2580,6 +2588,8 @@ func _ready() -> void:
 	_spawn_mechs()
 	_create_walls()
 	_create_penrose_bowl()
+	if DEBUG_PENROSE:
+		_add_sun_marker()
 	_paint_penrose_floor()
 	_wire_beacons()
 	_setup_players()
@@ -2680,8 +2690,8 @@ func _spawn_mechs() -> void:
 
 	player_mech = mech_def.scene.instantiate()
 	player_mech.name = "PlayerMech"
-	player_mech.position = Vector3(-40, 1.0, 0)
-	player_mech.rotation_degrees = Vector3(0, -90, 0)
+	player_mech.position = Vector3(-40 + BOWL_SUN_X, _bowl_height(-40 + BOWL_SUN_X, BOWL_SUN_Z + 40) + 1.0, BOWL_SUN_Z + 40)
+	player_mech.rotation_degrees = Vector3(0, -45, 0)
 	player_mech.scale = Vector3.ONE * mech_def.body_scale
 	player_mech.max_health = mech_def.max_health
 	player_mech.base_walk_speed = mech_def.walk_speed
@@ -2694,14 +2704,18 @@ func _spawn_mechs() -> void:
 	player_mech.configure_weapons(_slots_with_overrides(mech_def.weapon_slots))
 	player_mech.configure_abilities(mech_def.abilities)
 	player_mech.invincible = mech_def.invincible
+	player_mech.mark_requested.connect(_on_mark_requested)
 
+	if DEBUG_NO_BOT:
+		return
 	var bot_def = Game.loadout.get("bot_def")
 	if bot_def == null:
 		push_error("[Arena] No bot_def in loadout; falling back to Hippogriff")
 		bot_def = load("res://resources/mechs/Hippogriff.tres")
 	bot_mech = bot_def.scene.instantiate()
 	bot_mech.name = "BotMech"
-	bot_mech.position = Vector3(40, 1.0, 0)
+	bot_mech.position = Vector3(40 + BOWL_SUN_X, _bowl_height(40 + BOWL_SUN_X, BOWL_SUN_Z - 40) + 1.0, BOWL_SUN_Z - 40)
+	bot_mech.rotation_degrees = Vector3(0, 135, 0)
 	bot_mech.team = 1
 	bot_mech.scale = Vector3.ONE * bot_def.body_scale
 	bot_mech.max_health = bot_def.max_health
@@ -2717,16 +2731,49 @@ func _spawn_mechs() -> void:
 
 func _create_steps() -> void:
 	_create_penrose_bowl()
+	if DEBUG_PENROSE:
+		_add_sun_marker()
 
+func _add_sun_marker() -> void:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(1.0, 0.1, 0.9)
+	mat.emission_enabled = true
+	mat.emission = Color(1.0, 0.1, 0.9)
+	mat.emission_energy_multiplier = 4.0
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = 0.4
+	mesh.bottom_radius = 0.4
+	mesh.height = 20.0
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.set_surface_override_material(0, mat)
+	mi.position = Vector3(BOWL_SUN_X, 10.0, BOWL_SUN_Z)
+	add_child(mi)
 
+func _on_mark_requested(pos: Vector3) -> void:
+	print("[MARK] x=%.3f y=%.3f z=%.3f" % [pos.x, pos.y, pos.z])
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(1.0, 0.8, 0.0)
+	mat.emission_enabled = true
+	mat.emission = Color(1.0, 0.8, 0.0)
+	mat.emission_energy_multiplier = 3.0
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.4
+	mesh.height = 0.8
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.set_surface_override_material(0, mat)
+	mi.position = pos + Vector3(0, 0.4, 0)
+	add_child(mi)
 
 func _create_walls() -> void:
-	# Invisible boundary walls at the floor edge (±120m). 10m tall so nothing flies over.
+	var rim_h := _bowl_height(120, 0)
+	var wcy := rim_h + 5.0
 	var walls := [
-		[Vector3(   0, 5,  120), Vector3(240, 10, 1)],
-		[Vector3(   0, 5, -120), Vector3(240, 10, 1)],
-		[Vector3( 120, 5,    0), Vector3(1, 10, 240)],
-		[Vector3(-120, 5,    0), Vector3(1, 10, 240)],
+		[Vector3(   0, wcy,  120), Vector3(240, 10, 1)],
+		[Vector3(   0, wcy, -120), Vector3(240, 10, 1)],
+		[Vector3( 120, wcy,    0), Vector3(1, 10, 240)],
+		[Vector3(-120, wcy,    0), Vector3(1, 10, 240)],
 	]
 	for w in walls:
 		var body := StaticBody3D.new()
@@ -2837,6 +2884,8 @@ func _create_temple_walls() -> void:
 func _wire_beacons() -> void:
 	for child in get_children():
 		if child.is_in_group("beacons"):
+			var n3d := child as Node3D
+			n3d.position.y = _bowl_height(n3d.position.x, n3d.position.z) + 1.1
 			match_node.register_beacon(child)
 			child.captured.connect(func(team: int): _beacons_captured[team] += 1)
 
@@ -2930,31 +2979,53 @@ func _on_match_ended(winning_team: int) -> void:
 	Game.save_profile()
 	print("[Arena] Match over. Team %d wins." % winning_team)
 
+func _bowl_height(x: float, z: float) -> float:
+	var dx := x - BOWL_SUN_X
+	var dz := z - BOWL_SUN_Z
+	return floor(sqrt(dx * dx + dz * dz) / BOWL_STEP_W) * BOWL_STEP_H
+
 func _create_penrose_bowl() -> void:
-	const STEP_H := 1.4
-	const STEP_W := 20.0
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.52, 0.52, 0.56)
+	mat.vertex_color_use_as_albedo = true
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	var ring_colors: Array[Color] = [
+		Color(0.28, 0.29, 0.34),
+		Color(0.55, 0.55, 0.60),
+		Color(0.28, 0.29, 0.34),
+		Color(0.55, 0.55, 0.60),
+		Color(0.28, 0.29, 0.34),
+		Color(0.55, 0.55, 0.60),
+		Color(0.28, 0.29, 0.34),
+		Color(0.55, 0.55, 0.60),
+	]
 	var pos: Array[Vector3] = []
+	var rings: Array[int] = []
 	for i in range(0, _BOWL_V.size(), 2):
 		var x := float(_BOWL_V[i])
 		var z := float(_BOWL_V[i + 1])
-		var h: float = floor(sqrt(x * x + z * z) / STEP_W) * STEP_H
-		pos.append(Vector3(x, h, z))
+		pos.append(Vector3(x, _bowl_height(x, z), z))
+		var rdx := x - BOWL_SUN_X
+		var rdz := z - BOWL_SUN_Z
+		rings.append(int(floor(sqrt(rdx * rdx + rdz * rdz) / BOWL_STEP_W)))
 	print("[Bowl] verts=%d quads=%d sample_h_50m=%.2f" % [
 		pos.size(), _BOWL_Q.size() / 4,
-		floor(50.0 / STEP_W) * STEP_H])
+		floor(50.0 / BOWL_STEP_W) * BOWL_STEP_H])
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var col_faces := PackedVector3Array()
+	# Treads
 	for q in range(0, _BOWL_Q.size(), 4):
-		var a := pos[int(_BOWL_Q[q])]
-		var b := pos[int(_BOWL_Q[q + 1])]
-		var c := pos[int(_BOWL_Q[q + 2])]
-		var d := pos[int(_BOWL_Q[q + 3])]
-		_add_tri(st, col_faces, a, b, c)
-		_add_tri(st, col_faces, a, c, d)
+		var ia := int(_BOWL_Q[q]); var ib := int(_BOWL_Q[q + 1])
+		var ic := int(_BOWL_Q[q + 2]); var id := int(_BOWL_Q[q + 3])
+		var cx := (pos[ia].x + pos[ib].x + pos[ic].x + pos[id].x) * 0.25
+		var cz := (pos[ia].z + pos[ib].z + pos[ic].z + pos[id].z) * 0.25
+		var cdx := cx - BOWL_SUN_X; var cdz := cz - BOWL_SUN_Z
+		if sqrt(cdx * cdx + cdz * cdz) > BOWL_CUTOFF_R:
+			continue
+		var ring := mini(mini(rings[ia], rings[ib]), mini(rings[ic], rings[id]))
+		var color := ring_colors[clampi(ring, 0, ring_colors.size() - 1)]
+		_add_tri(st, col_faces, pos[ia], pos[ib], pos[ic], color)
+		_add_tri(st, col_faces, pos[ia], pos[ic], pos[id], color)
 	print("[Bowl] tris=%d" % [col_faces.size() / 3])
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
@@ -2970,12 +3041,16 @@ func _create_penrose_bowl() -> void:
 	add_child(body)
 
 func _add_tri(st: SurfaceTool, col: PackedVector3Array,
-		p0: Vector3, p1: Vector3, p2: Vector3) -> void:
+		p0: Vector3, p1: Vector3, p2: Vector3, color: Color) -> void:
 	var n := (p1 - p0).cross(p2 - p0).normalized()
-	if n.y < 0:
-		n = -n
+	# In Godot 4 right-hand coords, CCW-from-above winding → n.y < 0.
+	# Flip winding when n.y > 0 (CW from above = back-facing from above).
+	# Lighting normal always stored with positive y (faces sun).
+	var ln := -n if n.y < 0.0 else n
+	if n.y > 0.0:
 		var tmp := p1; p1 = p2; p2 = tmp
-	st.set_normal(n); st.add_vertex(p0)
-	st.set_normal(n); st.add_vertex(p1)
-	st.set_normal(n); st.add_vertex(p2)
+	st.set_color(color); st.set_normal(ln); st.add_vertex(p0)
+	st.set_color(color); st.set_normal(ln); st.add_vertex(p1)
+	st.set_color(color); st.set_normal(ln); st.add_vertex(p2)
 	col.append(p0); col.append(p1); col.append(p2)
+

@@ -44,5 +44,8 @@ func is_ability_pressed() -> bool:
 		return false
 	return Input.is_action_just_pressed("ability_1")
 
+func is_mark_pressed() -> bool:
+	return Input.is_action_just_pressed("mark_debug")
+
 func is_human_input() -> bool:
 	return true
