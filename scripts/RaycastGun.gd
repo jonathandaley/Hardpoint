@@ -1,7 +1,7 @@
 class_name RaycastGun
 extends "res://scripts/WeaponBase.gd"
 # Hitscan weapon. Ray fires from screen centre in camera's forward direction.
-# Muzzle flash is cosmetic — stays at hardpoint position.
+# Muzzle flash is cosmetic - stays at hardpoint position.
 
 @onready var muzzle_flash: MeshInstance3D = $MuzzleFlash
 var _flash_timer: float = 0.0

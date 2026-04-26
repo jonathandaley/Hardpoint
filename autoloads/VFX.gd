@@ -25,9 +25,9 @@ func hit_sparks(pos: Vector3, color: Color = Color(1.0, 0.55, 0.15)) -> void:
 		tw.finished.connect(mi.queue_free)
 
 func death_explosion(pos: Vector3) -> void:
-	# Instant white-orange core flash — brief, not dominant
+	# Instant white-orange core flash - brief, not dominant
 	_explode_sphere(pos, 0.35, Color(1.0, 0.95, 0.82), 14.0, 2.8, 0.05, 0.09, 1.0)
-	# 12 medium chunks replace the solid sphere — fragmented from frame 1
+	# 12 medium chunks replace the solid sphere - fragmented from frame 1
 	for _i in 12:
 		_explosion_chunk(pos)
 	# 26 fine debris particles

@@ -185,7 +185,7 @@ func _update_bot_bar() -> void:
 	var screen_pos: Vector2 = camera.unproject_position(world_pos)
 	var pct: float = _bot_mech.health / _bot_mech.max_health
 	var bar_w: float = BOT_BAR_FULL_WIDTH * pct
-	# Use offsets — the reliable way to set position+size on a free Control
+	# Use offsets - the reliable way to set position+size on a free Control
 	var left: float = screen_pos.x - BOT_BAR_FULL_WIDTH * 0.5
 	var top: float  = screen_pos.y - BOT_BAR_HEIGHT * 0.5
 	bot_health_bar.offset_left   = left

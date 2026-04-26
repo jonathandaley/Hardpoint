@@ -1,7 +1,7 @@
 class_name Mech
 extends CharacterBody3D
 # The Pawn. Handles movement and weapon firing.
-# Ignorant of who pilots it — all control comes through InputSource.
+# Ignorant of who pilots it - all control comes through InputSource.
 #
 # Node hierarchy:
 #   Mech (CharacterBody3D)
@@ -21,15 +21,15 @@ signal mark_requested(pos: Vector3)
 @export var base_reload_rate: float = 1.0
 @export var max_health: float = 500.0
 @export var team: int = 0
-@export var turn_acceleration: float = 60.0   # m/s² per axis — velocity direction change rate
-@export var leg_rotation_speed: float = 15.0  # rad/s — leg visual tracking speed
+@export var turn_acceleration: float = 60.0   # m/s² per axis - velocity direction change rate
+@export var leg_rotation_speed: float = 15.0  # rad/s - leg visual tracking speed
 
 var health: float = 0.0
 var damage_taken_total: float = 0.0
 var is_stealthy: bool = false
 var invincible: bool = false
 var _modifiers: Dictionary = {}
-var _input_source: Node = null   # InputSource — untyped to avoid cache dependency
+var _input_source: Node = null   # InputSource - untyped to avoid cache dependency
 var _abilities: Array = []
 var _ability_cooldowns: Dictionary = {}
 var _ability_active_timers: Dictionary = {}
@@ -202,7 +202,7 @@ func _setup_weapon_owners() -> void:
 			if "owner_mech" in child:
 				child.owner_mech = self
 
-# Returns the torso's world-space basis — use this for aim direction and
+# Returns the torso's world-space basis - use this for aim direction and
 # for decomposing world vectors into mech-local movement axes.
 func get_aim_basis() -> Basis:
 	return torso.global_transform.basis

@@ -11,7 +11,7 @@ Mech arena FPS, single-player vs bots, beacon capture win condition. Fun solo fi
 - Target hardware: T3500-class. Viewport 640x360 → 1280x720 nearest-neighbor.
 - OS: Linux x86_64 (Debian). Binary at `build/mechbattle.x86_64`.
 - Budget: CC0/free assets only.
-- One autoload: `Game.gd`. ⊥ add more.
+- Autoloads: `Game.gd`, `SoundManager.gd`, `VFX.gd`. ⊥ add more.
 - Algorithms / one-time bake → `tools/*.py`. ⊥ runtime GDScript for offline computation.
 - No paid tools.
 - GDScript landmines (must re-read before new code):
@@ -41,7 +41,7 @@ V1: ∀ control input → routes through `InputSource`; `Mech` ⊥ reads raw inp
 V2: `Player/Pawn` split ! exist from day 1; retrofitting is ⊥ acceptable
 V3: `Mech` ignorant of weapon type; calls `fire()` on child nodes only
 V4: new weapon = new `.tscn`; ⊥ mech code changes required
-V5: `Game.gd` only autoload; ⊥ second autoload added
+V5: only `Game.gd`, `SoundManager.gd`, `VFX.gd` as autoloads; ⊥ more added
 V6: ⊥ `Shader.new()` at runtime; load from file only
 V7: ⊥ `depth_test_disabled` on transparent mats; screen-space overlay → CanvasLayer + `Camera3D.unproject_position()`
 V8: ∀ `.tres` field → has default value; ⊥ silent load failure
@@ -77,11 +77,11 @@ T17|x|Missile Launcher L/H: splash damage on impact, REFILLING mag|V9
 T18|x|target lock system: `Mech.locked_target`, `lock_progress`, `_LOCK_TIME=3.0s`|V15
 T19|x|Rocket Launcher L: single-shot, homing, arc up then track target down, requires lock|V15
 T20|x|Laser Cannon L/H: continuous beam, fixed-interval DPS, REFILLING = overheat budget|V11,V9
-T21|.|Arc weapon L/H: continuous homing beam, curved path, requires lock, FIXED mag|V11,V15,V9
-T22|.|Aerial Strike H: single-shot, locked target, fires up, descends + AoE|V15
-T23|.|Patience H: two-stage (reload → charge → fire), damage scales with charge, FIXED|-
+T21|x|Arc weapon L/H: continuous homing beam, curved path, requires lock, FIXED mag|V11,V15,V9
+T22|x|Aerial Strike H: single-shot, locked target, fires up, descends + AoE|V15
+T23|x|Patience H: two-stage (reload → charge → fire), damage scales with charge, FIXED|-
 T24|.|canonical mech roster: Slip/Cesh/Seeker/Hornet/Hippogriff/Pegasus/Everest/Vesuvius `.tres`|V8
-T25|.|mech ability system: `Ability` resource (trigger, cooldown, effect), `MechDef.abilities`|V2
+T25|x|mech ability system: `Ability` resource (trigger, cooldown, effect), `MechDef.abilities`|V2
 T26|.|Pegasus jump+heal: active Q, impulse up + restore HP, ~8s cooldown|T25
 T27|.|Cesh stealth: passive, hide nametag/HP bar from enemies, desaturate (stub team check = always enemy)|T25,V7
 T28|.|audio scaffolding: bus layout, folders, `AudioStreamPlayer3D` hooks with placeholder streams|-

@@ -41,7 +41,7 @@ func _setup_buses() -> void:
 		AudioServer.set_bus_name(idx, "SFX")
 		AudioServer.set_bus_send(idx, "Master")
 
-# 3D positional SFX — attenuates with distance from pos
+# 3D positional SFX - attenuates with distance from pos
 func play_sfx(key: String, pos: Vector3 = Vector3.ZERO) -> void:
 	var stream := _load_sfx(key)
 	if stream == null:
@@ -57,7 +57,7 @@ func play_sfx(key: String, pos: Vector3 = Vector3.ZERO) -> void:
 	player.play()
 	player.finished.connect(player.queue_free)
 
-# 2D non-positional SFX — UI hits, crosshair flashes, etc.
+# 2D non-positional SFX - UI hits, crosshair flashes, etc.
 func play_sfx_2d(key: String, volume_db: float = 0.0) -> void:
 	var stream := _load_sfx(key)
 	if stream == null:

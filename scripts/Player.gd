@@ -3,7 +3,7 @@ extends Node
 # Owns a pilot, an input source, and possesses one pawn (mech) at a time.
 # Stage 1: 1 life, single mech in hangar.
 
-var input_source: Node = null   # InputSource — untyped to avoid cache dependency
+var input_source: Node = null   # InputSource - untyped to avoid cache dependency
 var pilot: Node = null           # Pilot
 var pawn: Node = null
 var lives: int = 1

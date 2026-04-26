@@ -53,7 +53,7 @@ func _pick_target_beacon(bot_mech: Node3D) -> Node:
 		if not is_instance_valid(b):
 			continue
 		var owner: int = b.get("owner_team") if b.get("owner_team") != null else -1
-		if owner == 1:   # already ours — skip
+		if owner == 1:   # already ours - skip
 			continue
 		var priority: float = 10.0 if owner == -1 else 5.0   # neutral > enemy
 		var dist: float = bot_mech.global_position.distance_to(b.global_position)
@@ -109,7 +109,7 @@ func _process(delta: float) -> void:
 		_look_delta = Vector2.ZERO
 		_firing = false
 
-	# Movement — retreat takes priority; otherwise beacon nav or fight
+	# Movement - retreat takes priority; otherwise beacon nav or fight
 	if has_target and dist < RETREAT_DIST:
 		_move_dir = Vector2(0.0, 1.0)
 	else:
@@ -127,7 +127,7 @@ func _process(delta: float) -> void:
 			else:
 				_move_dir = Vector2.ZERO
 		elif has_target:
-			# All beacons owned — circle-strafe and fight
+			# All beacons owned - circle-strafe and fight
 			_strafe_timer -= delta
 			if _strafe_timer <= 0.0:
 				_strafe_timer = randf_range(1.5, 3.0)
@@ -139,7 +139,7 @@ func _process(delta: float) -> void:
 		else:
 			_move_dir = Vector2.ZERO
 
-	# Stuck detection — if not making progress while moving, escape sideways
+	# Stuck detection - if not making progress while moving, escape sideways
 	_stuck_timer -= delta
 	if _stuck_timer <= 0.0:
 		_stuck_timer = STUCK_CHECK
@@ -162,7 +162,7 @@ func _process(delta: float) -> void:
 							  randf_range(-aim_jitter, aim_jitter))
 		_look_delta += _jitter / sens
 
-		# Burst fire — shoot for BURST_FIRE seconds, pause for BURST_PAUSE seconds
+		# Burst fire - shoot for BURST_FIRE seconds, pause for BURST_PAUSE seconds
 		_burst_timer -= delta
 		if _burst_timer <= 0.0:
 			_in_burst = not _in_burst
