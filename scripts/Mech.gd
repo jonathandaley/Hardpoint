@@ -15,7 +15,6 @@ extends CharacterBody3D
 
 signal died
 signal damaged
-signal mark_requested(pos: Vector3)
 
 @export var base_walk_speed: float = 3.15
 @export var base_reload_rate: float = 1.0
@@ -272,8 +271,6 @@ func _physics_process(delta: float) -> void:
 		_handle_ability()
 		if _input_source.has_method("is_human_input") and _input_source.is_human_input():
 			_update_lock(delta)
-			if _input_source.is_mark_pressed():
-				mark_requested.emit(global_position)
 
 	_try_step_up()
 	if _step_up_remaining > 0.0:

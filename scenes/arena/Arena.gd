@@ -2704,7 +2704,6 @@ func _spawn_mechs() -> void:
 	player_mech.configure_weapons(_slots_with_overrides(mech_def.weapon_slots))
 	player_mech.configure_abilities(mech_def.abilities)
 	player_mech.invincible = mech_def.invincible
-	player_mech.mark_requested.connect(_on_mark_requested)
 
 	if DEBUG_NO_BOT:
 		return
@@ -2748,22 +2747,6 @@ func _add_sun_marker() -> void:
 	mi.mesh = mesh
 	mi.set_surface_override_material(0, mat)
 	mi.position = Vector3(BOWL_SUN_X, 10.0, BOWL_SUN_Z)
-	add_child(mi)
-
-func _on_mark_requested(pos: Vector3) -> void:
-	print("[MARK] x=%.3f y=%.3f z=%.3f" % [pos.x, pos.y, pos.z])
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(1.0, 0.8, 0.0)
-	mat.emission_enabled = true
-	mat.emission = Color(1.0, 0.8, 0.0)
-	mat.emission_energy_multiplier = 3.0
-	var mesh := SphereMesh.new()
-	mesh.radius = 0.4
-	mesh.height = 0.8
-	var mi := MeshInstance3D.new()
-	mi.mesh = mesh
-	mi.set_surface_override_material(0, mat)
-	mi.position = pos + Vector3(0, 0.4, 0)
 	add_child(mi)
 
 func _create_walls() -> void:
