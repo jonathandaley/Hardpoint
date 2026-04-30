@@ -60,10 +60,8 @@ DebugMech: 4x tall, invincible, 2x Slip speed. Dev use only.
 |---|---|
 | `DESIGN.md` | Architecture decisions: Player/Pawn split, rendering constraints, team model, multiplayer plan. The canonical "why" doc. Read before any architectural change. |
 | `SPEC.md` | Machine-readable spec: §G goal, §C constraints, §I interfaces, §V invariants, §T task list, §B bug log. Source of truth for Claude Code sessions. |
-| `ROADMAP.md` | Prioritized work queue organized by phase (1–9). Includes Godot 4.6 landmines, per-task risk levels, and "what Jonathan does vs Claude." |
-| `STATUS.md` | Ledger of shipped features: what's done, commit references, known issues table, and a quick file map. |
 
-**Short version:** DESIGN = why, SPEC = rules, ROADMAP = what's next, STATUS = what shipped.
+**Short version:** DESIGN = why, SPEC = rules + tasks + bugs.
 
 ---
 

@@ -23,6 +23,7 @@ Mech arena FPS, single-player vs bots, beacon capture win condition. Fun solo fi
   - `.tres` fields need default values or silent load failure.
   - `depth_test_disabled` transparent materials → undefined sort order → flicker; ⊥ use.
   - If approach fails 3x with variations → stop, report symptoms, ask to pivot.
+- Lives per match: configurable 3-6; stub at 5.
 - Visuals: opaque emissive meshes + Tween for FX. ⊥ transparent bubbles, ⊥ GPUParticles3D.
 
 ## §I INTERFACES
@@ -53,6 +54,7 @@ V13: algorithms & baked data → `tools/*.py`; ⊥ runtime GDScript for offline 
 V14: `Game.loadout` dict access → untyped `var`; ⊥ typed Resource access
 V15: bot AI target lock & homing → built once, shared by Rocket Launcher & Arc weapon; ⊥ duplicate system
 V16: ⊥ em-dashes in `.gd` comments; hyphens only
+V17: Heavy slot → Heavy weapon only; Light slot → Light weapon only; ⊥ cross-size fit
 
 ## §T TASKS
 
@@ -80,13 +82,13 @@ T20|x|Laser Cannon L/H: continuous beam, fixed-interval DPS, REFILLING = overhea
 T21|x|Arc weapon L/H: continuous homing beam, curved path, requires lock, FIXED mag|V11,V15,V9
 T22|x|Aerial Strike H: single-shot, locked target, fires up, descends + AoE|V15
 T23|x|Patience H: two-stage (reload → charge → fire), damage scales with charge, FIXED|-
-T24|.|canonical mech roster: Slip/Cesh/Seeker/Hornet/Hippogriff/Pegasus/Everest/Vesuvius `.tres`|V8
+T24|.|canonical mech roster: Slip/Cesh/Seeker/Hornet/Hippogriff/Pegasus/Everest/Vesuvius `.tres` -- visuals: Slip=sleek silver; Cesh=dark green; Seeker=red; Hornet=blue+yellow (F-18); Hippogriff=beige (B-29); Pegasus=white+pale blue; Everest=white paladin; Vesuvius=black/grey+crimson|V8
 T25|x|mech ability system: `Ability` resource (trigger, cooldown, effect), `MechDef.abilities`|V2
 T26|.|Pegasus jump+heal: active Q, impulse up + restore HP, ~8s cooldown|T25
 T27|.|Cesh stealth: passive, hide nametag/HP bar from enemies, desaturate (stub team check = always enemy)|T25,V7
-T28|.|audio scaffolding: bus layout, folders, `AudioStreamPlayer3D` hooks with placeholder streams|-
+T28|.|audio scaffolding: bus layout (Master/SFX/Music), folders (`audio/weapons/footsteps/ui/ambient/impacts/abilities`), `AudioStreamPlayer3D` hooks (WeaponBase.fire, BipedLegs step, Mech.take_damage, Beacon state change, Match.on_match_ended, ability activations, UI clicks) with placeholder streams|-
 T29|.|audio content: list CC0 files (Kenney/Sonniss), wire after Jonathan downloads|T28
-T30|.|visual FX: muzzle flash, hit sparks, death explosion, shield hit -- opaque emissive + Tween|V7
+T30|.|visual FX: muzzle flash (0.08s decay), hit sparks (3-4 emissive cubes, 0.2s), death explosion (emissive sphere 0.3s + optional opaque chunks), shield hit -- opaque emissive + Tween|V7
 T31|.|floor art: `tools/hat_tile_gen.py` → baked mesh or GDScript consts|V13
 T32|.|lighting pass: directional + 2-3 points, try baked lightmap (2 fail → fall back)|-
 T33|.|fractal wall/ceiling art: `tools/fractal_wall_gen.py` → relief geometry|V13

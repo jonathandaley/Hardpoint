@@ -20,6 +20,7 @@ This document is the canonical reference. Load it at the start of every session.
 - Chunky-pixel 3D: render at ~320×180 internal, blit nearest-neighbor to window.
 - Flat shading, limited palette, no textures-as-detail.
 - Reference point: Minecraft mobs (guardian, warden). Coarser than Lunacid or Dread Delusion.
+- Arena tone: mathematical temple. White/grey/blue palette throughout.
 
 ### Locked non-goals
 - No normal maps.
