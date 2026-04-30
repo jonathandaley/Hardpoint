@@ -91,7 +91,7 @@ T29|.|audio content: list CC0 files (Kenney/Sonniss), wire after Jonathan downlo
 T30|.|visual FX: muzzle flash (0.08s decay), hit sparks (3-4 emissive cubes, 0.2s), death explosion (emissive sphere 0.3s + optional opaque chunks), shield hit -- opaque emissive + Tween|V7
 T31|.|floor art: `tools/hat_tile_gen.py` → baked mesh or GDScript consts|V13
 T32|.|lighting pass: directional + 2-3 points, try baked lightmap (2 fail → fall back)|-
-T33|.|fractal wall/ceiling art: `tools/fractal_wall_gen.py` → relief geometry|V13
+T33|x|fractal wall/ceiling art: `tools/fractal_wall_gen.py` → exterior circular walls only (archived for interior); interior walls use `_PENROSE_SVG_EDGES` directly|V13
 T34|.|hangar 3D diorama: lineup 3-6 mechs, turntable platform, CanvasLayer UI, swap on loadout change|-
 T35|.|team vs team: 5v5/6v6 bots, scaled arena, `Match` configurable team counts|-
 T36|.|bot role assignment: attacker/defender/flanker, role biases beacon priority & positioning|T35

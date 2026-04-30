@@ -2572,6 +2572,48 @@ const _BOWL_Q: Array = [
   76, 85, 67, 58
 ]
 
+const _WALL_SEGS: Array = [
+	[112.100, 11.200, 1.57080],
+	[106.863, 44.265, 1.25664],
+	[91.665, 74.093, 0.94248],
+	[67.993, 97.765, 0.62832],
+	[38.165, 112.963, 0.31416],
+	[5.100, 118.200, 0.00000],
+	[-27.965, 112.963, -0.31416],
+	[-57.793, 97.765, -0.62832],
+	[-81.465, 74.093, -0.94248],
+	[-96.663, 44.265, -1.25664],
+	[-101.900, 11.200, -1.57080],
+	[-96.663, -21.865, -1.88496],
+	[-81.465, -51.693, -2.19911],
+	[-57.793, -75.365, -2.51327],
+	[-27.965, -90.563, -2.82743],
+	[5.100, -95.800, -3.14159],
+	[38.165, -90.563, -3.45575],
+	[67.993, -75.365, -3.76991],
+	[91.665, -51.693, -4.08407],
+	[106.863, -21.865, -4.39823],
+]
+
+const _WALL_PARTS: Array = [
+	[0.000, 11.000, 0.600, 35.877, 22.000, 1.200],
+	[0.000, 1.400, -0.550, 35.877, 2.800, 1.100],
+	[0.000, 21.200, -0.450, 35.877, 1.600, 0.900],
+	[0.000, 11.000, -0.225, 35.877, 0.500, 0.450],
+	[-16.738, 11.000, -0.375, 2.200, 22.000, 0.750],
+	[-5.579, 11.000, -0.375, 2.200, 22.000, 0.750],
+	[5.579, 11.000, -0.375, 2.200, 22.000, 0.750],
+	[16.738, 11.000, -0.375, 2.200, 22.000, 0.750],
+	[-11.159, 11.000, -0.190, 0.850, 22.000, 0.380],
+	[-13.949, 11.000, -0.100, 0.380, 22.000, 0.200],
+	[-8.369, 11.000, -0.100, 0.380, 22.000, 0.200],
+	[0.000, 11.000, -0.190, 0.850, 22.000, 0.380],
+	[-2.790, 11.000, -0.100, 0.380, 22.000, 0.200],
+	[2.790, 11.000, -0.100, 0.380, 22.000, 0.200],
+	[11.159, 11.000, -0.190, 0.850, 22.000, 0.380],
+	[8.369, 11.000, -0.100, 0.380, 22.000, 0.200],
+	[13.949, 11.000, -0.100, 0.380, 22.000, 0.200],
+]
 var player_mech: CharacterBody3D
 var bot_mech: CharacterBody3D
 
@@ -2587,6 +2629,9 @@ func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_spawn_mechs()
 	_create_walls()
+	_create_wall_art()
+	_create_columns()
+	_create_temple_walls()
 	_create_penrose_bowl()
 	if DEBUG_PENROSE:
 		_add_sun_marker()
@@ -2750,20 +2795,16 @@ func _add_sun_marker() -> void:
 	add_child(mi)
 
 func _create_walls() -> void:
-	var rim_h := _bowl_height(120, 0)
-	var wcy := rim_h + 5.0
-	var walls := [
-		[Vector3(   0, wcy,  120), Vector3(240, 10, 1)],
-		[Vector3(   0, wcy, -120), Vector3(240, 10, 1)],
-		[Vector3( 120, wcy,    0), Vector3(1, 10, 240)],
-		[Vector3(-120, wcy,    0), Vector3(1, 10, 240)],
-	]
-	for w in walls:
+	const COL_W := 36.0
+	const COL_H := 22.0
+	const COL_D := 1.8
+	for seg in _WALL_SEGS:
 		var body := StaticBody3D.new()
-		body.position = w[0]
+		body.position = Vector3(seg[0], COL_H * 0.5, seg[1])
+		body.rotation.y = seg[2]
 		var col := CollisionShape3D.new()
 		var shape := BoxShape3D.new()
-		shape.size = w[1]
+		shape.size = Vector3(COL_W, COL_H, COL_D)
 		col.shape = shape
 		body.add_child(col)
 		add_child(body)
@@ -2834,9 +2875,7 @@ func _create_temple_walls() -> void:
 	const T := 0.4
 	const L := 10.0
 
-	for e in _PENROSE_EDGES:
-		if e[3] != "thin":
-			continue
+	for e in _PENROSE_SVG_EDGES:
 		if Vector2(e[0], e[1]).length() > 30.0:
 			continue
 		var cx: float = e[0]
@@ -2863,6 +2902,25 @@ func _create_temple_walls() -> void:
 		body.add_child(mi)
 
 		add_child(body)
+
+func _create_wall_art() -> void:
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.80, 0.84, 0.92)
+	mat.roughness = 0.75
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	for seg in _WALL_SEGS:
+		var seg_node := Node3D.new()
+		seg_node.position = Vector3(seg[0], 0.0, seg[1])
+		seg_node.rotation.y = seg[2]
+		add_child(seg_node)
+		for p in _WALL_PARTS:
+			var mi := MeshInstance3D.new()
+			var mesh := BoxMesh.new()
+			mesh.size = Vector3(p[3], p[4], p[5])
+			mi.mesh = mesh
+			mi.position = Vector3(p[0], p[1], p[2])
+			mi.set_surface_override_material(0, mat)
+			seg_node.add_child(mi)
 
 func _wire_beacons() -> void:
 	for child in get_children():
