@@ -2726,6 +2726,7 @@ func _spawn_player_only() -> void:
 	_player.set("pilot", pilot)
 	_player.call("possess", player_mech)
 	player_mech.died.connect(Callable(_player, "on_pawn_destroyed"))
+	player_mech.mark_requested.connect(_on_mark_requested)
 
 func _spawn_mechs() -> void:
 	var mech_def = Game.loadout.get("mech_def")
@@ -2874,22 +2875,48 @@ func _create_temple_walls() -> void:
 	const H := 3.2
 	const T := 0.4
 	const L := 10.0
+	const MIN_SPACING := 9.5  # tune: 8=dense(335), 9.5=240, 10=165, 12=medium(128), 15=sparse(99), 20=very sparse(61)
+
+	var _kept: Array[Vector2] = []
 
 	for e in _PENROSE_SVG_EDGES:
-		if Vector2(e[0], e[1]).length() > 30.0:
+		if Vector2(e[0], e[1]).length() > 110.0:
 			continue
 		var cx: float = e[0]
 		var cz: float = e[1]
+		var ec := Vector2(cx, cz)
+		var _skip := false
+		for k in _kept:
+			if ec.distance_to(k) < MIN_SPACING:
+				_skip = true
+				break
+		if _skip:
+			continue
+		_kept.append(ec)
 		var rot: float = PI / 2.0 - e[2]
 		var body := StaticBody3D.new()
-		body.position = Vector3(cx, 0.0, cz)
+		var _wdx := -sin(rot)
+		var _wdz :=  cos(rot)
+		var _half := L * 0.5
+		# closest point on wall segment to bowl center (minimum radius = minimum height)
+		var _t := clampf((BOWL_SUN_X - cx) * _wdx + (BOWL_SUN_Z - cz) * _wdz, -_half, _half)
+		var _base_y := minf(_bowl_height(cx, cz),
+				minf(_bowl_height(cx + _wdx * _half, cz + _wdz * _half),
+				minf(_bowl_height(cx - _wdx * _half, cz - _wdz * _half),
+				     _bowl_height(cx + _wdx * _t, cz + _wdz * _t))))
+		# Extend downward one step so wall grounds on adjacent lower step.
+		# Extension hides below the wall's own floor surface.
+		var _ext := minf(_base_y, BOWL_STEP_H)
+		_base_y -= _ext
+		var h := H + _ext
+		body.position = Vector3(cx, _base_y, cz)
 		body.rotation.y = rot
 
-		var sz := Vector3(T, H, L)
+		var sz := Vector3(T, h, L)
 		var col := CollisionShape3D.new()
 		var shape := BoxShape3D.new()
 		shape.size = sz
-		col.position = Vector3(0, H * 0.5, 0)
+		col.position = Vector3(0, h * 0.5, 0)
 		col.shape = shape
 		body.add_child(col)
 
@@ -2897,7 +2924,7 @@ func _create_temple_walls() -> void:
 		var mesh := BoxMesh.new()
 		mesh.size = sz
 		mi.mesh = mesh
-		mi.position = Vector3(0, H * 0.5, 0)
+		mi.position = Vector3(0, h * 0.5, 0)
 		mi.set_surface_override_material(0, mat)
 		body.add_child(mi)
 
@@ -2951,6 +2978,7 @@ func _setup_players() -> void:
 
 	_player.call("possess", player_mech)
 	player_mech.died.connect(Callable(_player, "on_pawn_destroyed"))
+	player_mech.mark_requested.connect(_on_mark_requested)
 
 	# Bot player
 	_bot_player = Node.new()
@@ -3094,4 +3122,20 @@ func _add_tri(st: SurfaceTool, col: PackedVector3Array,
 	st.set_color(color); st.set_normal(ln); st.add_vertex(p1)
 	st.set_color(color); st.set_normal(ln); st.add_vertex(p2)
 	col.append(p0); col.append(p1); col.append(p2)
+
+func _on_mark_requested(pos: Vector3) -> void:
+	print("[MARK] x=%.3f y=%.3f z=%.3f" % [pos.x, pos.y, pos.z])
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(1.0, 0.8, 0.0)
+	mat.emission_enabled = true
+	mat.emission = Color(1.0, 0.8, 0.0)
+	mat.emission_energy_multiplier = 3.0
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.4
+	mesh.height = 0.8
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	mi.set_surface_override_material(0, mat)
+	mi.position = pos + Vector3(0, 0.4, 0)
+	add_child(mi)
 
