@@ -9,19 +9,23 @@ UV mapping (for GDScript):
 
 import re, struct, zlib
 
-SVG      = "hat_01.svg"
-OUT      = "scenes/arena/hat_floor.png"
-SVG_W    = 17940.0
-SVG_H    = 12714.0
-IMG_W    = 4096
-IMG_H    = int(SVG_H / SVG_W * IMG_W)   # 2903
+SVG   = "hat_01.svg"
+OUT   = "scenes/arena/hat_floor.png"
+SVG_W = 17940.0
+SVG_H = 12714.0
+IMG_W = 4096
+IMG_H = int(SVG_H / SVG_W * IMG_W)
 
-BG       = (68,  70,  82)    # background / uncovered
-COLORS   = [
-    (148, 143, 168),          # bucket 0: warm/purple-grey
-    (118, 138, 142),          # bucket 1: cool/green-grey
-    (122, 135, 172),          # bucket 2: blue-grey
+BG     = (68,  70,  82)
+COLORS = [
+    (148, 143, 168),   # warm/purple-grey
+    (118, 138, 142),   # cool/green-grey
+    (122, 135, 172),   # blue-grey
+    (138, 152, 146),   # sage-grey
+    (108, 125, 148),   # steel-grey
 ]
+
+SNAP = 0.5   # SVG units; shared edges snap within this tolerance
 
 
 def color_bucket(style):
@@ -31,11 +35,15 @@ def color_bucket(style):
     r, g, b = float(m[1]), float(m[2]), float(m[3])
     if min(r, g, b) > 85.0:
         return -1
-    if r >= g and r >= b:
-        return 0
-    if g >= r and g >= b:
-        return 1
-    return 2
+    return -1 if False else 0   # placeholder; overridden by graph coloring
+
+
+def is_bg(style):
+    m = re.search(r'fill:rgb\(([\d.]+)%,([\d.]+)%,([\d.]+)%\)', style)
+    if not m:
+        return True
+    r, g, b = float(m[1]), float(m[2]), float(m[3])
+    return min(r, g, b) > 85.0
 
 
 def to_img(sx, sy):
@@ -71,12 +79,10 @@ def write_png(path, buf, w, h):
     def chunk(tag, data):
         crc = zlib.crc32(tag + data) & 0xffffffff
         return struct.pack('>I', len(data)) + tag + data + struct.pack('>I', crc)
-
     raw = bytearray()
     for y in range(h):
         raw.append(0)
         raw += buf[y * w * 3 : (y + 1) * w * 3]
-
     compressed = zlib.compress(bytes(raw), 6)
     with open(path, 'wb') as f:
         f.write(b'\x89PNG\r\n\x1a\n')
@@ -85,33 +91,76 @@ def write_png(path, buf, w, h):
         f.write(chunk(b'IEND', b''))
 
 
+def snap_key(x, y):
+    return (round(x / SNAP), round(y / SNAP))
+
+
+def build_adjacency(polys):
+    # Map snapped edge → list of polygon indices
+    edge_map = {}
+    for idx, coords in enumerate(polys):
+        n = len(coords)
+        for i in range(n):
+            a = snap_key(*coords[i])
+            b = snap_key(*coords[(i + 1) % n])
+            key = (min(a, b), max(a, b))
+            edge_map.setdefault(key, []).append(idx)
+
+    adj = [set() for _ in range(len(polys))]
+    for clusters in edge_map.values():
+        if len(clusters) == 2:
+            a, b = clusters[0], clusters[1]
+            adj[a].add(b)
+            adj[b].add(a)
+    return adj
+
+
+def greedy_color(adj, n_polys):
+    colors = [-1] * n_polys
+    # Order by descending degree for better coloring
+    order = sorted(range(n_polys), key=lambda i: len(adj[i]), reverse=True)
+    max_color = 0
+    for i in order:
+        used = {colors[j] for j in adj[i] if colors[j] >= 0}
+        c = 0
+        while c in used:
+            c += 1
+        colors[i] = c
+        max_color = max(max_color, c)
+    return colors, max_color
+
+
 def main():
     src = open(SVG).read()
     entries = re.findall(r'<path\s+style="([^"]+)"[^>]+d="([^"]+)"', src)
 
-    buf = bytearray(bytes(BG) * IMG_W * IMG_H)
-
-    drawn = 0
+    polys = []
     for style, d in entries:
-        bucket = color_bucket(style)
-        if bucket < 0:
+        if is_bg(style):
             continue
-
-        pts_svg = re.findall(r'[ML]\s+([\d.]+)\s+([\d.]+)', d)
-        if len(pts_svg) < 5:
+        pts = re.findall(r'[ML]\s+([\d.]+)\s+([\d.]+)', d)
+        if len(pts) < 5:
             continue
-
-        coords = [(float(x), float(y)) for x, y in pts_svg]
-        # drop closing duplicate
+        coords = [(float(x), float(y)) for x, y in pts]
         if len(coords) > 1 and abs(coords[-1][0] - coords[0][0]) < 0.1 \
                             and abs(coords[-1][1] - coords[0][1]) < 0.1:
             coords = coords[:-1]
+        polys.append(coords)
 
+    adj = build_adjacency(polys)
+    graph_colors, max_color = greedy_color(adj, len(polys))
+    n_colors_used = max_color + 1
+    print(f"Graph coloring: {len(polys)} clusters, {n_colors_used} colors used")
+    if n_colors_used > len(COLORS):
+        print(f"WARNING: need {n_colors_used} colors but only {len(COLORS)} defined")
+
+    buf = bytearray(bytes(BG) * IMG_W * IMG_H)
+    for idx, coords in enumerate(polys):
+        c = graph_colors[idx] % len(COLORS)
         pts_img = [to_img(sx, sy) for sx, sy in coords]
-        fill_polygon(buf, pts_img, COLORS[bucket])
-        drawn += 1
+        fill_polygon(buf, pts_img, COLORS[c])
 
-    print(f"Rasterized {drawn} clusters → {OUT} ({IMG_W}×{IMG_H})")
+    print(f"Rasterized {len(polys)} clusters → {OUT} ({IMG_W}×{IMG_H})")
     write_png(OUT, buf, IMG_W, IMG_H)
 
 
