@@ -4177,7 +4177,6 @@ func _ready() -> void:
 	if DEBUG_PENROSE:
 		_add_sun_marker()
 	_paint_penrose_floor()
-	_paint_hat_floor()
 	_wire_beacons()
 	_setup_players()
 	match_node.match_ended.connect(_on_match_ended)
@@ -4208,93 +4207,6 @@ func _paint_penrose_floor() -> void:
 		mi.set_surface_override_material(0, mat)
 		add_child(mi)
 
-func _hat_step(x: float, z: float) -> int:
-	var dx := x - BOWL_SUN_X; var dz := z - BOWL_SUN_Z
-	return int(floor(sqrt(dx * dx + dz * dz) / BOWL_STEP_W))
-
-func _hat_edge_split(ax: float, az: float, bx: float, bz: float) -> float:
-	var sa := _hat_step(ax, az); var sb := _hat_step(bx, bz)
-	if sa == sb: return -1.0
-	var dax := ax - BOWL_SUN_X; var daz := az - BOWL_SUN_Z
-	var dbx := bx - ax; var dbz := bz - az
-	var A := dbx * dbx + dbz * dbz
-	if A < 1e-9: return -1.0
-	var B := 2.0 * (dax * dbx + daz * dbz)
-	var best_t := 2.0
-	for k in range(mini(sa, sb) + 1, maxi(sa, sb) + 1):
-		var r := float(k) * BOWL_STEP_W
-		var C := dax * dax + daz * daz - r * r
-		var disc := B * B - 4.0 * A * C
-		if disc < 0.0: continue
-		var sq := sqrt(disc)
-		for si: float in [-1.0, 1.0]:
-			var t := (-B + si * sq) / (2.0 * A)
-			if t > 1e-6 and t < 1.0 - 1e-6 and t < best_t:
-				best_t = t
-	return best_t if best_t < 1.5 else -1.0
-
-func _hat_emit_tri(bucket: Array,
-		ax: float, az: float, bx: float, bz: float, cx: float, cz: float,
-		depth: int) -> void:
-	var sa := _hat_step(ax, az); var sb := _hat_step(bx, bz); var sc := _hat_step(cx, cz)
-	if (sa == sb and sb == sc) or depth >= 4:
-		var y := _bowl_height((ax + bx + cx) / 3.0, (az + bz + cz) / 3.0) + 0.01
-		bucket.append_array([Vector3(ax, y, az), Vector3(bx, y, bz), Vector3(cx, y, cz)])
-		return
-	var t := _hat_edge_split(ax, az, bx, bz)
-	if t > 0.0:
-		var mx := ax + t * (bx - ax); var mz := az + t * (bz - az)
-		_hat_emit_tri(bucket, ax, az, mx, mz, cx, cz, depth + 1)
-		_hat_emit_tri(bucket, mx, mz, bx, bz, cx, cz, depth + 1)
-		return
-	t = _hat_edge_split(bx, bz, cx, cz)
-	if t > 0.0:
-		var mx := bx + t * (cx - bx); var mz := bz + t * (cz - bz)
-		_hat_emit_tri(bucket, ax, az, bx, bz, mx, mz, depth + 1)
-		_hat_emit_tri(bucket, ax, az, mx, mz, cx, cz, depth + 1)
-		return
-	t = _hat_edge_split(cx, cz, ax, az)
-	if t > 0.0:
-		var mx := cx + t * (ax - cx); var mz := cz + t * (az - cz)
-		_hat_emit_tri(bucket, ax, az, bx, bz, mx, mz, depth + 1)
-		_hat_emit_tri(bucket, bx, bz, cx, cz, mx, mz, depth + 1)
-		return
-	var y := _bowl_height((ax + bx + cx) / 3.0, (az + bz + cz) / 3.0) + 0.01
-	bucket.append_array([Vector3(ax, y, az), Vector3(bx, y, bz), Vector3(cx, y, cz)])
-
-func _paint_hat_floor() -> void:
-	var colors := [
-		Color(0.58, 0.60, 0.68),  # bucket 0
-		Color(0.50, 0.56, 0.62),  # bucket 1
-		Color(0.62, 0.66, 0.76),  # bucket 2
-	]
-	var buckets: Array = [[], [], []]
-	for entry: Array in _HAT_CLUSTERS:
-		var b: int = entry[0]
-		var n: int = (entry.size() - 1) / 2
-		var cx: float = 0.0; var cz: float = 0.0
-		for i in n:
-			cx += float(entry[1 + i * 2]); cz += float(entry[2 + i * 2])
-		cx /= n; cz /= n
-		for i in n:
-			var x0: float = float(entry[1 + i * 2])
-			var z0: float = float(entry[2 + i * 2])
-			var x1: float = float(entry[1 + ((i + 1) % n) * 2])
-			var z1: float = float(entry[2 + ((i + 1) % n) * 2])
-			_hat_emit_tri(buckets[b], cx, cz, x1, z1, x0, z0, 0)
-	for i in 3:
-		if buckets[i].is_empty(): continue
-		var arr: Array = []; arr.resize(Mesh.ARRAY_MAX)
-		arr[Mesh.ARRAY_VERTEX] = PackedVector3Array(buckets[i])
-		var amesh := ArrayMesh.new()
-		amesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = colors[i]
-		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		amesh.surface_set_material(0, mat)
-		var mi := MeshInstance3D.new()
-		mi.mesh = amesh
-		add_child(mi)
 
 var _overhead_cam: Camera3D
 
@@ -4784,27 +4696,14 @@ func _bowl_height(x: float, z: float) -> float:
 
 func _create_penrose_bowl() -> void:
 	var mat := StandardMaterial3D.new()
-	mat.vertex_color_use_as_albedo = true
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
-	var ring_colors: Array[Color] = [
-		Color(0.28, 0.29, 0.34),
-		Color(0.55, 0.55, 0.60),
-		Color(0.28, 0.29, 0.34),
-		Color(0.55, 0.55, 0.60),
-		Color(0.28, 0.29, 0.34),
-		Color(0.55, 0.55, 0.60),
-		Color(0.28, 0.29, 0.34),
-		Color(0.55, 0.55, 0.60),
-	]
+	var _hat_img := Image.load_from_file("res://scenes/arena/hat_floor.png")
+	mat.albedo_texture = ImageTexture.create_from_image(_hat_img)
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	var pos: Array[Vector3] = []
-	var rings: Array[int] = []
 	for i in range(0, _BOWL_V.size(), 2):
 		var x := float(_BOWL_V[i])
 		var z := float(_BOWL_V[i + 1])
 		pos.append(Vector3(x, _bowl_height(x, z), z))
-		var rdx := x - BOWL_SUN_X
-		var rdz := z - BOWL_SUN_Z
-		rings.append(int(floor(sqrt(rdx * rdx + rdz * rdz) / BOWL_STEP_W)))
 	print("[Bowl] verts=%d quads=%d sample_h_50m=%.2f" % [
 		pos.size(), _BOWL_Q.size() / 4,
 		floor(50.0 / BOWL_STEP_W) * BOWL_STEP_H])
@@ -4818,12 +4717,10 @@ func _create_penrose_bowl() -> void:
 		var cx := (pos[ia].x + pos[ib].x + pos[ic].x + pos[id].x) * 0.25
 		var cz := (pos[ia].z + pos[ib].z + pos[ic].z + pos[id].z) * 0.25
 		var cdx := cx - BOWL_SUN_X; var cdz := cz - BOWL_SUN_Z
-		if sqrt(cdx * cdx + cdz * cdz) > BOWL_CUTOFF_R:
+		if cdx * cdx + cdz * cdz > BOWL_CUTOFF_R * BOWL_CUTOFF_R:
 			continue
-		var ring := mini(mini(rings[ia], rings[ib]), mini(rings[ic], rings[id]))
-		var color := ring_colors[clampi(ring, 0, ring_colors.size() - 1)]
-		_add_tri(st, col_faces, pos[ia], pos[ib], pos[ic], color)
-		_add_tri(st, col_faces, pos[ia], pos[ic], pos[id], color)
+		_add_tri(st, col_faces, pos[ia], pos[ib], pos[ic], Color.WHITE)
+		_add_tri(st, col_faces, pos[ia], pos[ic], pos[id], Color.WHITE)
 	print("[Bowl] tris=%d" % [col_faces.size() / 3])
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
@@ -4847,9 +4744,10 @@ func _add_tri(st: SurfaceTool, col: PackedVector3Array,
 	var ln := -n if n.y < 0.0 else n
 	if n.y > 0.0:
 		var tmp := p1; p1 = p2; p2 = tmp
-	st.set_color(color); st.set_normal(ln); st.add_vertex(p0)
-	st.set_color(color); st.set_normal(ln); st.add_vertex(p1)
-	st.set_color(color); st.set_normal(ln); st.add_vertex(p2)
+	for p: Vector3 in [p0, p1, p2]:
+		var u := (p.x / 0.03 + 8970.0) / 17940.0
+		var v := (p.z / 0.03 + 6357.0) / 12714.0
+		st.set_uv(Vector2(u, v)); st.set_normal(ln); st.add_vertex(p)
 	col.append(p0); col.append(p1); col.append(p2)
 
 func _on_mark_requested(pos: Vector3) -> void:
