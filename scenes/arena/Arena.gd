@@ -4208,38 +4208,83 @@ func _paint_penrose_floor() -> void:
 		mi.set_surface_override_material(0, mat)
 		add_child(mi)
 
+func _hat_step(x: float, z: float) -> int:
+	var dx := x - BOWL_SUN_X; var dz := z - BOWL_SUN_Z
+	return int(floor(sqrt(dx * dx + dz * dz) / BOWL_STEP_W))
+
+func _hat_edge_split(ax: float, az: float, bx: float, bz: float) -> float:
+	var sa := _hat_step(ax, az); var sb := _hat_step(bx, bz)
+	if sa == sb: return -1.0
+	var dax := ax - BOWL_SUN_X; var daz := az - BOWL_SUN_Z
+	var dbx := bx - ax; var dbz := bz - az
+	var A := dbx * dbx + dbz * dbz
+	if A < 1e-9: return -1.0
+	var B := 2.0 * (dax * dbx + daz * dbz)
+	var best_t := 2.0
+	for k in range(mini(sa, sb) + 1, maxi(sa, sb) + 1):
+		var r := float(k) * BOWL_STEP_W
+		var C := dax * dax + daz * daz - r * r
+		var disc := B * B - 4.0 * A * C
+		if disc < 0.0: continue
+		var sq := sqrt(disc)
+		for si: float in [-1.0, 1.0]:
+			var t := (-B + si * sq) / (2.0 * A)
+			if t > 1e-6 and t < 1.0 - 1e-6 and t < best_t:
+				best_t = t
+	return best_t if best_t < 1.5 else -1.0
+
+func _hat_emit_tri(bucket: Array,
+		ax: float, az: float, bx: float, bz: float, cx: float, cz: float,
+		depth: int) -> void:
+	var sa := _hat_step(ax, az); var sb := _hat_step(bx, bz); var sc := _hat_step(cx, cz)
+	if (sa == sb and sb == sc) or depth >= 4:
+		var y := _bowl_height((ax + bx + cx) / 3.0, (az + bz + cz) / 3.0) + 0.01
+		bucket.append_array([Vector3(ax, y, az), Vector3(bx, y, bz), Vector3(cx, y, cz)])
+		return
+	var t := _hat_edge_split(ax, az, bx, bz)
+	if t > 0.0:
+		var mx := ax + t * (bx - ax); var mz := az + t * (bz - az)
+		_hat_emit_tri(bucket, ax, az, mx, mz, cx, cz, depth + 1)
+		_hat_emit_tri(bucket, mx, mz, bx, bz, cx, cz, depth + 1)
+		return
+	t = _hat_edge_split(bx, bz, cx, cz)
+	if t > 0.0:
+		var mx := bx + t * (cx - bx); var mz := bz + t * (cz - bz)
+		_hat_emit_tri(bucket, ax, az, bx, bz, mx, mz, depth + 1)
+		_hat_emit_tri(bucket, ax, az, mx, mz, cx, cz, depth + 1)
+		return
+	t = _hat_edge_split(cx, cz, ax, az)
+	if t > 0.0:
+		var mx := cx + t * (ax - cx); var mz := cz + t * (az - cz)
+		_hat_emit_tri(bucket, ax, az, bx, bz, mx, mz, depth + 1)
+		_hat_emit_tri(bucket, bx, bz, cx, cz, mx, mz, depth + 1)
+		return
+	var y := _bowl_height((ax + bx + cx) / 3.0, (az + bz + cz) / 3.0) + 0.01
+	bucket.append_array([Vector3(ax, y, az), Vector3(bx, y, bz), Vector3(cx, y, cz)])
+
 func _paint_hat_floor() -> void:
 	var colors := [
-		Color(0.58, 0.60, 0.68),  # bucket 0: warm grey (pink/peach clusters)
-		Color(0.50, 0.56, 0.62),  # bucket 1: cool grey  (green/teal clusters)
-		Color(0.62, 0.66, 0.76),  # bucket 2: blue-grey  (blue/purple clusters)
+		Color(0.58, 0.60, 0.68),  # bucket 0
+		Color(0.50, 0.56, 0.62),  # bucket 1
+		Color(0.62, 0.66, 0.76),  # bucket 2
 	]
 	var buckets: Array = [[], [], []]
 	for entry: Array in _HAT_CLUSTERS:
 		var b: int = entry[0]
 		var n: int = (entry.size() - 1) / 2
-		var cx: float = 0.0
-		var cz: float = 0.0
+		var cx: float = 0.0; var cz: float = 0.0
 		for i in n:
-			cx += float(entry[1 + i * 2])
-			cz += float(entry[2 + i * 2])
-		cx /= n
-		cz /= n
+			cx += float(entry[1 + i * 2]); cz += float(entry[2 + i * 2])
+		cx /= n; cz /= n
 		for i in n:
 			var x0: float = float(entry[1 + i * 2])
 			var z0: float = float(entry[2 + i * 2])
 			var x1: float = float(entry[1 + ((i + 1) % n) * 2])
 			var z1: float = float(entry[2 + ((i + 1) % n) * 2])
-			buckets[b].append_array([
-				Vector3(cx, _bowl_height(cx, cz) + 0.01, cz),
-				Vector3(x1, _bowl_height(x1, z1) + 0.01, z1),
-				Vector3(x0, _bowl_height(x0, z0) + 0.01, z0),
-			])
+			_hat_emit_tri(buckets[b], cx, cz, x1, z1, x0, z0, 0)
 	for i in 3:
-		if buckets[i].is_empty():
-			continue
-		var arr: Array = []
-		arr.resize(Mesh.ARRAY_MAX)
+		if buckets[i].is_empty(): continue
+		var arr: Array = []; arr.resize(Mesh.ARRAY_MAX)
 		arr[Mesh.ARRAY_VERTEX] = PackedVector3Array(buckets[i])
 		var amesh := ArrayMesh.new()
 		amesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
