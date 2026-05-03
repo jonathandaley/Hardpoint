@@ -73,9 +73,7 @@ func _ready() -> void:
 	health = max_health
 	_setup_weapon_owners()
 	_build_weapon_list()
-	for child in torso.get_children():
-		if child is MeshInstance3D:
-			_body_meshes.append(child)
+	_body_meshes = torso.find_children("*", "MeshInstance3D", true, false)
 
 func _process(delta: float) -> void:
 	if _shake_timer > 0.0:

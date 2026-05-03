@@ -1,6 +1,8 @@
 class_name Arena
 extends Node3D
 
+const MechVisuals = preload("res://scripts/MechVisuals.gd")
+
 @onready var match_node: Node = $BeaconMatch
 @onready var hud: CanvasLayer = $HUD
 @onready var pause_menu: CanvasLayer = $PauseMenu
@@ -4263,6 +4265,7 @@ func _spawn_player_only() -> void:
 	player_mech.base_walk_speed = mech_def.walk_speed
 	player_mech.turn_acceleration = mech_def.turn_acceleration
 	player_mech.leg_rotation_speed = mech_def.leg_rotation_speed
+	MechVisuals.apply(player_mech, mech_def.display_name)
 	add_child(player_mech)
 	player_mech.configure_legs(mech_def.leg_hip_sweep, mech_def.leg_bob_magnitude, mech_def.leg_cycle_rate)
 	player_mech.configure_weapons(_slots_with_overrides(mech_def.weapon_slots))
@@ -4302,6 +4305,7 @@ func _spawn_mechs() -> void:
 	player_mech.base_walk_speed = mech_def.walk_speed
 	player_mech.turn_acceleration = mech_def.turn_acceleration
 	player_mech.leg_rotation_speed = mech_def.leg_rotation_speed
+	MechVisuals.apply(player_mech, mech_def.display_name)
 	add_child(player_mech)
 	player_mech.configure_legs(mech_def.leg_hip_sweep, mech_def.leg_bob_magnitude, mech_def.leg_cycle_rate)
 	player_mech.configure_shield(mech_def.has_shields, mech_def.shield_max_hp)
@@ -4326,6 +4330,7 @@ func _spawn_mechs() -> void:
 	bot_mech.base_walk_speed = bot_def.walk_speed
 	bot_mech.turn_acceleration = bot_def.turn_acceleration
 	bot_mech.leg_rotation_speed = bot_def.leg_rotation_speed
+	MechVisuals.apply(bot_mech, bot_def.display_name)
 	add_child(bot_mech)
 	bot_mech.configure_legs(bot_def.leg_hip_sweep, bot_def.leg_bob_magnitude, bot_def.leg_cycle_rate)
 	bot_mech.configure_shield(bot_def.has_shields, bot_def.shield_max_hp)

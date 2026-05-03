@@ -82,15 +82,15 @@ T20|x|Laser Cannon L/H: continuous beam, fixed-interval DPS, REFILLING = overhea
 T21|x|Arc weapon L/H: continuous homing beam, curved path, requires lock, FIXED mag|V11,V15,V9
 T22|x|Aerial Strike H: single-shot, locked target, fires up, descends + AoE|V15
 T23|x|Patience H: two-stage (reload → charge → fire), damage scales with charge, FIXED|-
-T24|.|canonical mech roster: Slip/Cesh/Seeker/Hornet/Hippogriff/Pegasus/Everest/Vesuvius `.tres` -- visuals: Slip=sleek silver; Cesh=dark green; Seeker=red; Hornet=blue+yellow (F-18); Hippogriff=beige (B-29); Pegasus=white+pale blue; Everest=white paladin; Vesuvius=black/grey+crimson|V8
+T24|x|canonical mech roster: Slip/Cesh/Seeker/Hornet/Hippogriff/Pegasus/Everest/Vesuvius `.tres` -- visuals: Slip=sleek silver; Cesh=dark green; Seeker=red; Hornet=blue+yellow (F-18); Hippogriff=beige (B-29); Pegasus=white+pale blue; Everest=white paladin; Vesuvius=black/grey+crimson|V8
 T25|x|mech ability system: `Ability` resource (trigger, cooldown, effect), `MechDef.abilities`|V2
-T26|.|Pegasus jump+heal: active Q, impulse up + restore HP, ~8s cooldown|T25
-T27|.|Cesh stealth: passive, hide nametag/HP bar from enemies, desaturate (stub team check = always enemy)|T25,V7
-T28|.|audio scaffolding: bus layout (Master/SFX/Music), folders (`audio/weapons/footsteps/ui/ambient/impacts/abilities`), `AudioStreamPlayer3D` hooks (WeaponBase.fire, BipedLegs step, Mech.take_damage, Beacon state change, Match.on_match_ended, ability activations, UI clicks) with placeholder streams|-
-T29|.|audio content: list CC0 files (Kenney/Sonniss), wire after Jonathan downloads|T28
-T30|.|visual FX: muzzle flash (0.08s decay), hit sparks (3-4 emissive cubes, 0.2s), death explosion (emissive sphere 0.3s + optional opaque chunks), shield hit -- opaque emissive + Tween|V7
-T31|.|floor art: `tools/hat_tile_gen.py` → baked mesh or GDScript consts|V13
-T32|.|lighting pass: directional + 2-3 points, try baked lightmap (2 fail → fall back)|-
+T26|x|Pegasus jump+heal: active Q, impulse up + restore HP, ~8s cooldown|T25
+T27|x|Cesh stealth: passive, hide nametag/HP bar from enemies, desaturate (stub team check = always enemy)|T25,V7
+T28|x|audio scaffolding: bus layout (Master/SFX/Music), folders (`audio/weapons/footsteps/ui/ambient/impacts/abilities`), `AudioStreamPlayer3D` hooks (WeaponBase.fire, BipedLegs step, Mech.take_damage, Beacon state change, Match.on_match_ended, ability activations, UI clicks) with placeholder streams|-
+T29|.|audio content: background music pending; SFX wired|T28
+T30|x|visual FX: muzzle flash (0.08s decay), hit sparks (3-4 emissive cubes, 0.2s), death explosion (emissive sphere 0.3s + optional opaque chunks), shield hit -- opaque emissive + Tween|V7
+T31|x|floor art: `tools/hat_tile_gen.py` → baked mesh or GDScript consts|V13
+T32|x|lighting pass: directional + 2-3 points, try baked lightmap (2 fail → fall back)|-
 T33|x|fractal wall/ceiling art: `tools/fractal_wall_gen.py` → exterior circular walls only (archived for interior); interior walls use `_PENROSE_SVG_EDGES` directly|V13
 T34|.|hangar 3D diorama: lineup 3-6 mechs, turntable platform, CanvasLayer UI, swap on loadout change|-
 T35|.|team vs team: 5v5/6v6 bots, scaled arena, `Match` configurable team counts|-
