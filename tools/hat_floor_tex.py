@@ -9,11 +9,11 @@ UV mapping (for GDScript):
 
 import re, struct, zlib
 
-SVG   = "hat_01.svg"
+SVG   = "tools/hat_01.svg"
 OUT   = "scenes/arena/hat_floor.png"
 SVG_W = 17940.0
 SVG_H = 12714.0
-IMG_W = 4096
+IMG_W = 1024
 IMG_H = int(SVG_H / SVG_W * IMG_W)
 
 BG     = (68,  70,  82)
