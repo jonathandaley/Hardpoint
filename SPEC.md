@@ -89,7 +89,7 @@ T27|x|Cesh stealth: passive, hide nametag/HP bar from enemies, desaturate (stub 
 T28|x|audio scaffolding: bus layout (Master/SFX/Music), folders (`audio/weapons/footsteps/ui/ambient/impacts/abilities`), `AudioStreamPlayer3D` hooks (WeaponBase.fire, BipedLegs step, Mech.take_damage, Beacon state change, Match.on_match_ended, ability activations, UI clicks) with placeholder streams|-
 T29|.|audio content: background music pending; SFX wired|T28
 T30|x|visual FX: muzzle flash (0.08s decay), hit sparks (3-4 emissive cubes, 0.2s), death explosion (emissive sphere 0.3s + optional opaque chunks), shield hit -- opaque emissive + Tween|V7
-T31|x|floor art: `tools/hat_tile_gen.py` → baked mesh or GDScript consts|V13
+T31|x|floor art: `tools/hat_floor_tex.py` → hat_floor.png (1024px) UV-mapped to bowl mesh|V13
 T32|x|lighting pass: directional + 2-3 points, try baked lightmap (2 fail → fall back)|-
 T33|x|fractal wall/ceiling art: `tools/fractal_wall_gen.py` → exterior circular walls only (archived for interior); interior walls use `_PENROSE_SVG_EDGES` directly|V13
 T34|.|hangar 3D diorama: lineup 3-6 mechs, turntable platform, CanvasLayer UI, swap on loadout change|-

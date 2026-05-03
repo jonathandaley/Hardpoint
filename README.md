@@ -80,6 +80,7 @@ scripts/
   PlayerInputSource.gd
   WeaponBase.gd     -- ammo, fire rate, hit signal; FIXED and REFILLING magazine types
   MechDef.gd        -- Resource: mech stats, weapon slots, body scale
+  MechVisuals.gd    -- per-mech body geometry (scale, proportions, color)
   BeaconMatch.gd    -- beacon scoring; drain model
   Match.gd / Player.gd / Pilot.gd / Ability.gd
   HUD.gd / Crosshair.gd / WeaponHUD.gd
@@ -90,11 +91,15 @@ resources/
 
 shaders/
   health_bar.gdshader
-  stealth_camo.gdshader
+  stealth_camo.gdshader   -- per-mech stealth effect
 
-tools/
-  penrose_gen.py    -- de Bruijn Penrose tile generator; outputs GDScript constants
-  penrose_gen.gd    -- GDScript prototype (superseded by .py)
+tools/                    -- .gdignore: Godot skips this directory
+  hat_floor_tex.py        -- rasterizes hat_01.svg cluster polygons → hat_floor.png
+  hat_floor_gen.py        -- generates hat tiling geometry data
+  hat_01.svg              -- aperiodic hat tiling source (generator output)
+  penrose_faces_gen.py    -- de Bruijn Penrose face generator
+  penrose_int_faces_gen.py
+  fractal_wall_gen.py     -- exterior wall geometry generator
 
 build/
   mechbattle_*.x86_64   -- versioned Linux binaries
@@ -106,4 +111,4 @@ Scenes live under `scenes/`: `arena/`, `beacon/`, `mech/`, `ui/`, `weapons/`.
 
 ## Architecture in One Paragraph
 
-`InputSource → Player → Mech → Weapons`. The player is not the mech. `PlayerInputSource` and `AIInputSource` are interchangeable — bots use the same code path as the human player. `Mech` calls `fire()` on whatever weapon scenes are attached to its hardpoints; it does not know weapon types. New weapon = new `.tscn`, zero mech changes. `Game.gd` is the only autoload; match state lives in the arena scene and resets for free on scene change.
+`InputSource → Player → Mech → Weapons`. The player is not the mech. `PlayerInputSource` and `AIInputSource` are interchangeable — bots use the same code path as the human player. `Mech` calls `fire()` on whatever weapon scenes are attached to its hardpoints; it does not know weapon types. New weapon = new `.tscn`, zero mech changes. `Game.gd`, `SoundManager.gd`, and `VFX.gd` are the only autoloads; match state lives in the arena scene and resets for free on scene change.
