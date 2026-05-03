@@ -12,7 +12,7 @@ shading_mode = 0
 [node name="AerialStrikeHeavy" type="Node3D"]
 script = ExtResource("1")
 slot_size = 1
-damage = 1.6
+damage = 4.8
 fire_rate = 0.12
 range = 200.0
 max_ammo = 1
@@ -26,7 +26,7 @@ arc_time = 1.8
 arc_up_blend = 0.92
 turn_rate = 2.8
 splash_radius = 8.0
-splash_damage = 0.8
+splash_damage = 2.4
 jitter_radius = 3.0
 
 [node name="GunBody" type="MeshInstance3D" parent="."]

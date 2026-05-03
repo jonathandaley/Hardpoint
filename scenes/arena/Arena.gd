@@ -4191,6 +4191,7 @@ func _ready() -> void:
 	_set_mech_color(bot_mech,    Color(0.92, 0.28, 0.22))
 	hud.setup(match_node, player_mech, 0)
 	hud.setup_bot_bar(bot_mech)
+	hud.setup_beacon_bars(get_tree().get_nodes_in_group("beacons"))
 	for weapon in player_mech.get_weapons():
 		if weapon.has_signal("hit_confirmed"):
 			weapon.hit_confirmed.connect(hud.register_hit)
@@ -4664,7 +4665,7 @@ func _wire_beacons() -> void:
 	for child in get_children():
 		if child.is_in_group("beacons"):
 			var n3d := child as Node3D
-			n3d.position.y = _bowl_height(n3d.position.x, n3d.position.z) + 1.1
+			n3d.position.y = _bowl_height(n3d.position.x, n3d.position.z)
 			match_node.register_beacon(child)
 			child.captured.connect(func(team: int): _beacons_captured[team] += 1)
 

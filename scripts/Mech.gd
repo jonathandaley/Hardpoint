@@ -86,7 +86,7 @@ func _process(delta: float) -> void:
 		_flash_timer_es = maxf(0.0, _flash_timer_es - delta)
 		if _flash_timer_es == 0.0:
 			for mesh in _body_meshes:
-				mesh.material_overlay = null
+				mesh.material_override = null
 
 func apply_camera_shake(magnitude: float) -> void:
 	_shake_intensity = magnitude
@@ -98,8 +98,10 @@ func configure_energy_shield(has_shield: bool, max_hp: float, regen_rate: float,
 	_energy_shield.call("activate", max_hp, regen_rate, regen_delay)
 	_flash_mat = StandardMaterial3D.new()
 	_flash_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_flash_mat.albedo_color = Color(0.3, 0.8, 1.0, 0.55)
-	_flash_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_flash_mat.albedo_color = Color(0.3, 0.8, 1.0)
+	_flash_mat.emission_enabled = true
+	_flash_mat.emission = Color(0.3, 0.8, 1.0)
+	_flash_mat.emission_energy_multiplier = 2.0
 
 func configure_shield(has_shield: bool, max_hp: float = 300.0) -> void:
 	if has_shield:
@@ -229,7 +231,7 @@ func _do_shield_flash() -> void:
 	if _flash_mat == null:
 		return
 	for mesh in _body_meshes:
-		mesh.material_overlay = _flash_mat
+		mesh.material_override = _flash_mat
 	_flash_timer_es = _ES_FLASH_DUR
 
 func _die() -> void:
@@ -506,8 +508,11 @@ func _activate_ability(ability: Resource) -> void:
 	match ability.effect_key:
 		"jump_heal":
 			velocity.y = 15.6
+			var launch_dir: Vector3 = _desired_move_dir if _desired_move_dir != Vector3.ZERO \
+				else -torso.global_transform.basis.z
+			velocity.x = launch_dir.x * walk_speed * 4.5
+			velocity.z = launch_dir.z * walk_speed * 4.5
 			health = minf(health + 80.0, max_health)
-			damaged.emit()
 		"stealth":
 			is_stealthy = true
 			_apply_stealth_visual(true)

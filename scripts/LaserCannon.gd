@@ -4,12 +4,15 @@ extends "res://scripts/WeaponBase.gd"
 # REFILLING magazine = overheat budget; refill_rate < fire_rate enforces burst play (V10).
 
 var _beam: MeshInstance3D = null
+var _beam_pivot: Node3D = null
 var _beam_timer: float = 0.0
 var _audio_timer: float = 0.0
 var _loop_player: AudioStreamPlayer3D = null
 
 func _ready() -> void:
 	super._ready()
+	_beam_pivot = Node3D.new()
+	add_child(_beam_pivot)
 	var mesh_inst := MeshInstance3D.new()
 	var box := BoxMesh.new()
 	box.size = Vector3(0.03, 0.03, 1.0)
@@ -21,7 +24,7 @@ func _ready() -> void:
 	mat.emission = Color(1.0, 0.25, 0.1, 1.0)
 	mat.emission_energy_multiplier = 3.0
 	mesh_inst.set_surface_override_material(0, mat)
-	add_child(mesh_inst)
+	_beam_pivot.add_child(mesh_inst)
 	_beam = mesh_inst
 	_beam.visible = false
 
@@ -58,6 +61,7 @@ func _do_fire() -> void:
 			_emit_hit_if_visible(result.collider, result.position)
 
 	var hit_dist := maxf(0.01, global_position.distance_to(hit_pos))
+	_beam_pivot.look_at(hit_pos, Vector3.UP)
 	_beam.position = Vector3(0.0, 0.0, -hit_dist * 0.5)
 	_beam.scale.z = hit_dist
 	if not _beam.visible:

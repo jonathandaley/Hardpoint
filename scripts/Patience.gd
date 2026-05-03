@@ -8,7 +8,7 @@ const PROJECTILE_SCENE := preload("res://scenes/weapons/Projectile.tscn")
 @export var min_damage: float = 30.0
 @export var max_damage: float = 250.0
 @export var max_charge_time: float = 3.0
-@export var projectile_speed: float = 180.0
+@export var projectile_speed: float = 360.0
 
 var _charge_time: float = 0.0
 var _charge_visual: MeshInstance3D = null
@@ -81,3 +81,4 @@ func _do_fire() -> void:
 
 	_charge_time = 0.0
 	_charge_visual.visible = false
+	VFX.tracer(global_position, aim_point, Color(0.75, 0.5, 1.0), 0.35)

@@ -99,6 +99,23 @@ T37|.|bot blackboard coordination: `AIDirector` autoload per team, intent signal
 T38|.|navmesh pathing: `NavigationAgent3D` + baked `NavigationMesh` per arena|T35
 T39|.|bot threat assessment: retreat low HP, focus-fire weak enemies|T35
 T40|.|multiplayer: `MultiplayerAPI`, server-authoritative, client prediction [DEFERRED until 1-8.5 fun]|V1,V2
+T41|x|beacon capture: world-space capture-progress bar above each beacon (unproject_position, shows during capture/contested)|-
+T42|x|beacon HUD widget: colored dot row (top-center) per beacon showing neutral/A/B/contested state|-
+T43|x|beacon visual: 30m tall team-colored emissive beam + ground capture-radius circle (emissive CylinderMesh, r=3m)|-
+T44|x|reload SFX: `reload_start_sound_key` / `reload_done_sound_key` exports on WeaponBase; wired in `_start_reload` and reload completion|T28
+T45|x|cooldown indicator: gray overlay bar on Sniper weapon icon in WeaponHUD, driven by `get_cooldown_fraction()`|T7
+T46|x|impact sound distance gate: `hit_impact` now played as 3D at hit position via `SoundManager.play_sfx`; uses existing attenuation|T28
+T47|x|arc continuous beam: beam stays while trigger held; hides on `on_fire_release` / no lock / empty ammo; audio restarts only on beam-visible transition|V11
+T48|x|beacon drain always-on: each captured beacon drains opponent by `points_per_tick * 0.25` per tick (was zero-sum advantage-based)|-
+T49|x|match-end screen: "YOU WIN" / "YOU LOSE" shown; stats panel + return-to-hangar button (already existed in HUD.gd)|T2,T28
+T50|x|aerial strike damage: 3x -- direct 1.6→4.8, splash 0.8→2.4|V9
+T51|x|patience tuning: projectile speed 180→360 m/s; fading tracer beam via `VFX.tracer()` on fire|T23
+T52|x|heavy sniper rebalance: clip 3→5, damage 80→60|V9
+T53|.|weapon clip balancing pass: align L/H clip sizes across all weapon pairs then re-balance damage/RoF|V9,V10
+T54|x|jump forward bias: horizontal impulse = facing_dir * walk_speed * 3 added on Pegasus jump|T26
+T55|x|pegasus nerf: cooldown 8→16s|T26
+T56|x|jump landing hurt flash removed: `damaged.emit()` no longer called from `jump_heal` activation|−
+T57|.|spawnpoints multi-life: spawnpoint logic activates only once lives > 1; no-op until T35 lives system|T35
 
 ## §B BUGS
 
@@ -114,3 +131,9 @@ B8|2026-04-17|typed dict access with custom Resource → parse errors in Arena/H
 B9|2026-04-17|projectile barrel aimed along mech forward, not crosshair → aim wrong close range; fix: camera center ray → aim_point|-
 B10|2026-04-17|Penrose substitution in GDScript too slow → moved to `tools/penrose_gen.py` (de Bruijn)|V13
 B11|2026-04-21|Warhog capsule front (z=-0.5) ahead of shield face (z=-0.45) → raycast hit capsule, bypassed shield; fix: shield z → -0.55|V12
+B12|2026-05-02|Laser/Arc called `_emit_hit_if_visible` → played `hit_impact` on every damage tick; added `impact_sound_enabled` export, set false on both|V11
+B13|2026-05-02|`MachineGun.fire()` overrides `super.fire()` without calling `VFX.muzzle_flash`; flash never shown; added explicit VFX call in `MG.fire()`|-
+B14|2026-05-02|energy shield flash material used `TRANSPARENCY_ALPHA` → invisible in Compatibility renderer; fixed to opaque emissive|V7
+B15|2026-05-02|`LaserCannon` beam drawn along weapon local -Z, not toward camera hit point; added `_beam_pivot.look_at(hit_pos)`|B9
+B16|2026-05-02|`material_overlay` not reliably rendered in Compatibility renderer; energy shield flash uses `material_override` instead (whole-mesh color replace for flash duration)|-
+B17|2026-05-02|`body_test_motion` crashes with null space after bot killed; root cause: `_on_match_ended` sets `process_mode=DISABLED` synchronously inside physics callback chain, removing body from physics space before `move_and_slide()` returns; fix pending|-

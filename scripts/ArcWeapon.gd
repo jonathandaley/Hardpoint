@@ -5,7 +5,6 @@ extends "res://scripts/WeaponBase.gd"
 
 var _beam_pivot: Node3D = null
 var _beam_mesh: MeshInstance3D = null
-var _beam_timer: float = 0.0
 var _loop_player: AudioStreamPlayer3D = null
 
 func _ready() -> void:
@@ -30,17 +29,22 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	super._process(delta)
-	if _beam_timer > 0.0:
-		_beam_timer -= delta
-		if _beam_timer <= 0.0:
-			_beam_mesh.visible = false
-			if _loop_player != null and _loop_player.playing:
-				_loop_player.stop()
 
 func fire() -> void:
 	if owner_mech == null or owner_mech.get("locked_target") == null:
+		_hide_beam()
 		return
+	if max_ammo >= 0 and ammo <= 0:
+		_hide_beam()
 	super.fire()
+
+func on_fire_release() -> void:
+	_hide_beam()
+
+func _hide_beam() -> void:
+	_beam_mesh.visible = false
+	if _loop_player != null and _loop_player.playing:
+		_loop_player.stop()
 
 func _do_fire() -> void:
 	if owner_mech == null:
@@ -64,10 +68,10 @@ func _do_fire() -> void:
 	_beam_pivot.look_at(target_pos, Vector3.UP)
 	_beam_mesh.position = Vector3(0.0, 0.0, -dist * 0.5)
 	_beam_mesh.scale.z = dist
-	if not _beam_mesh.visible:
-		_beam_mesh.visible = true
+	var was_visible := _beam_mesh.visible
+	_beam_mesh.visible = true
+	if not was_visible:
 		_start_arc_loop()
-	_beam_timer = 0.15
 
 func _start_arc_loop() -> void:
 	var stream := SoundManager.get_sfx_stream("arc_loop")

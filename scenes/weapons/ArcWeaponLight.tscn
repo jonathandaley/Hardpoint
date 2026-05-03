@@ -21,6 +21,7 @@ reload_time = 8.0
 shake_magnitude = 0.002
 requires_lock = true
 muzzle_flash_enabled = false
+impact_sound_enabled = false
 
 [node name="GunBody" type="MeshInstance3D" parent="."]
 position = Vector3(0, 0, -0.275)

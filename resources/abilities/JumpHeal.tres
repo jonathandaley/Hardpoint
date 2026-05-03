@@ -7,4 +7,4 @@ script = ExtResource("1")
 ability_name = "JUMP+HEAL"
 trigger = 0
 effect_key = "jump_heal"
-cooldown = 8.0
+cooldown = 16.0

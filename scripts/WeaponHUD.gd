@@ -11,7 +11,7 @@ const SLOT_H   := NUM_H + ICON_H + AMMO_H   # 42 px
 const SLOT_GAP := 4.0
 const PADDING  := 8.0
 
-var _entries: Array = []   # [{weapon, icon, ammo_fg, bar_left}]
+var _entries: Array = []   # [{weapon, icon, ammo_fg, charge_fg, cooldown_fg, bar_left}]
 var _player_mech: Node = null
 
 func setup(player_mech: Node) -> void:
@@ -37,7 +37,7 @@ func setup(player_mech: Node) -> void:
 	for i in range(weapons.size()):
 		var x := float(i) * (SLOT_W + SLOT_GAP)
 		var icon_and_ammo := _build_slot(weapons[i], i + 1, x)
-		_entries.append({"weapon": weapons[i], "icon": icon_and_ammo[0], "ammo_fg": icon_and_ammo[1], "charge_fg": icon_and_ammo[2], "bar_left": x})
+		_entries.append({"weapon": weapons[i], "icon": icon_and_ammo[0], "ammo_fg": icon_and_ammo[1], "charge_fg": icon_and_ammo[2], "cooldown_fg": icon_and_ammo[3], "bar_left": x})
 
 func _build_slot(weapon: Node, number: int, x: float) -> Array:
 	# Number-key indicator
@@ -72,6 +72,16 @@ func _build_slot(weapon: Node, number: int, x: float) -> Array:
 	charge_fg.offset_bottom = NUM_H + ICON_H
 	add_child(charge_fg)
 
+	# Cooldown overlay - gray shrinks left-to-right as cooldown expires (Sniper only)
+	var cooldown_fg := ColorRect.new()
+	cooldown_fg.color = Color(0.15, 0.15, 0.15, 0.78)
+	cooldown_fg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cooldown_fg.offset_left   = x
+	cooldown_fg.offset_right  = x           # zero width when ready
+	cooldown_fg.offset_top    = NUM_H
+	cooldown_fg.offset_bottom = NUM_H + ICON_H
+	add_child(cooldown_fg)
+
 	# Ammo bar - background track + foreground fill
 	var bar_top    := NUM_H + ICON_H + 2.0
 	var bar_bottom := SLOT_H - 2.0
@@ -94,7 +104,7 @@ func _build_slot(weapon: Node, number: int, x: float) -> Array:
 	ammo_fg.offset_bottom = bar_bottom
 	add_child(ammo_fg)
 
-	return [icon, ammo_fg, charge_fg]
+	return [icon, ammo_fg, charge_fg, cooldown_fg]
 
 func _weapon_color(weapon: Node) -> Color:
 	var path: String = weapon.get_script().resource_path
@@ -143,6 +153,12 @@ func _process(_delta: float) -> void:
 		if entry["weapon"].has_method("get_charge_progress"):
 			var cp: float = entry["weapon"].get_charge_progress()
 			entry["charge_fg"].offset_right = entry["bar_left"] + SLOT_W * cp
+
+		# Cooldown overlay (Sniper only)
+		var wpath: String = entry["weapon"].get_script().resource_path
+		if "Sniper" in wpath and entry["weapon"].has_method("get_cooldown_fraction"):
+			var cf: float = entry["weapon"].get_cooldown_fraction()
+			entry["cooldown_fg"].offset_right = entry["bar_left"] + SLOT_W * cf
 
 		# Dim icon when not in right-click active set
 		var active: bool = active_set.is_empty() or (i < active_set.size() and active_set[i])

@@ -91,6 +91,8 @@ func fire() -> void:
 	_cooldown = 1.0 / _current_rate
 	_start_mg_loop()
 	_do_fire()
+	if muzzle_flash_enabled:
+		VFX.muzzle_flash(global_position - global_transform.basis.z * 0.4, muzzle_color)
 	if shake_magnitude > 0.0 and owner_mech != null and owner_mech.has_method("apply_camera_shake"):
 		owner_mech.apply_camera_shake(shake_magnitude)
 	if max_ammo >= 0:

@@ -11,6 +11,29 @@ func muzzle_flash(pos: Vector3, color: Color = Color(1.0, 0.80, 0.30)) -> void:
 	tw.tween_property(mi, "scale", Vector3.ZERO, 0.12).set_ease(Tween.EASE_OUT)
 	tw.tween_callback(mi.queue_free)
 
+func tracer(from: Vector3, to: Vector3, color: Color = Color(0.75, 0.5, 1.0), duration: float = 0.35) -> void:
+	var dist := from.distance_to(to)
+	if dist < 0.01:
+		return
+	var mi := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = Vector3(0.04, 0.04, dist)
+	mi.mesh = box
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = color
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.emission_enabled = true
+	mat.emission = color
+	mat.emission_energy_multiplier = 4.0
+	mi.set_surface_override_material(0, mat)
+	get_tree().current_scene.add_child(mi)
+	mi.global_position = (from + to) * 0.5
+	var up := Vector3.UP if abs((to - from).normalized().dot(Vector3.UP)) < 0.99 else Vector3.RIGHT
+	mi.look_at(to, up)
+	var tw := mi.create_tween()
+	tw.tween_method(func(v: float) -> void: mat.emission_energy_multiplier = v, 4.0, 0.0, duration)
+	tw.tween_callback(mi.queue_free)
+
 func hit_sparks(pos: Vector3, color: Color = Color(1.0, 0.55, 0.15)) -> void:
 	for i in 6:
 		var mi := _sphere(0.055, color, 3.5)

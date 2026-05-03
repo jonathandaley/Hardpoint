@@ -19,7 +19,10 @@ enum MagazineType { FIXED, REFILLING }
 @export var shake_magnitude: float = 0.0  # radians; 0 = no shake
 @export var requires_lock: bool = false
 @export var fire_sound_key: String = ""
+@export var reload_start_sound_key: String = ""
+@export var reload_done_sound_key: String = ""
 @export var muzzle_flash_enabled: bool = true
+@export var impact_sound_enabled: bool = true
 @export var muzzle_color: Color = Color(1.0, 0.80, 0.30)
 
 var owner_mech: Node3D = null   # set by Mech._setup_weapon_owners() at ready time
@@ -46,6 +49,8 @@ func _process(delta: float) -> void:
 				if _reload_timer <= 0.0:
 					_reloading = false
 					ammo = max_ammo
+					if reload_done_sound_key != "":
+						SoundManager.play_sfx(reload_done_sound_key, global_position)
 		MagazineType.REFILLING:
 			if ammo < max_ammo:
 				_refill_accum += refill_rate * delta
@@ -86,6 +91,11 @@ func try_reload() -> void:
 func is_reloading() -> bool:
 	return _reloading
 
+func get_cooldown_fraction() -> float:
+	if fire_rate <= 0.0:
+		return 0.0
+	return clampf(_cooldown * fire_rate, 0.0, 1.0)
+
 func get_reload_progress() -> float:
 	if not _reloading or reload_time <= 0.0:
 		return 1.0
@@ -94,12 +104,16 @@ func get_reload_progress() -> float:
 func _start_reload() -> void:
 	_reloading = true
 	_reload_timer = reload_time
+	if reload_start_sound_key != "":
+		SoundManager.play_sfx(reload_start_sound_key, global_position)
 
 func _emit_hit_if_visible(target: Node, hit_pos: Vector3 = Vector3.ZERO) -> void:
 	if target != null and target.get("is_stealthy"):
 		return
 	hit_confirmed.emit()
-	SoundManager.play_sfx_2d("hit_impact")
+	if impact_sound_enabled:
+		var sfx_pos := hit_pos if hit_pos != Vector3.ZERO else (target as Node3D).global_position
+		SoundManager.play_sfx("hit_impact", sfx_pos)
 	var spark_pos := hit_pos if hit_pos != Vector3.ZERO \
 		else (target as Node3D).global_position + Vector3(0, 1.0, 0)
 	VFX.hit_sparks(spark_pos)

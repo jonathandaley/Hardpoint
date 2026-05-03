@@ -25,14 +25,80 @@ var _player_mech: Node = null
 var _player_team: int = 0
 var _bot_mech: Node = null
 
+var _beacons: Array = []
+var _beacon_dots: Array = []       # BeaconDot per beacon, top-center ownership circles
+var _score_bars: Array = []        # [{bg, fg, max_w}] team 0 and 1 score bars
+
 func setup(match_node: Node, player_mech: Node, player_team: int) -> void:
 	_match = match_node
 	_player_mech = player_mech
 	_player_team = player_team
 	weapon_hud.setup(player_mech)
+	score_label.visible = false
 
 func setup_bot_bar(bot_mech: Node) -> void:
 	_bot_mech = bot_mech
+
+const _DOT_SIZE   := 18.0
+const _DOT_GAP    := 4.0
+const _BAR_W      := 120.0
+const _BAR_H      := 14.0
+const _BAR_Y      := 6.0
+const _BAR_GAP    := 8.0   # gap between bar and dot strip
+
+func setup_beacon_bars(beacons: Array) -> void:
+	for dot in _beacon_dots:
+		if is_instance_valid(dot): dot.queue_free()
+	_beacon_dots.clear()
+	for entry in _score_bars:
+		if is_instance_valid(entry.bg): entry.bg.queue_free()
+		if is_instance_valid(entry.fg): entry.fg.queue_free()
+	_score_bars.clear()
+	_beacons = beacons
+
+	var n := beacons.size()
+	var vp: Vector2 = get_viewport().get_visible_rect().size
+	var strip_w: float = float(n) * _DOT_SIZE + float(max(0, n - 1)) * _DOT_GAP
+	var strip_x: float = (vp.x - strip_w) * 0.5
+
+	# Beacon dot circles
+	var dot_script := load("res://scripts/BeaconDot.gd")
+	for i in n:
+		var dot: Control = dot_script.new()
+		var dx: float = strip_x + float(i) * (_DOT_SIZE + _DOT_GAP)
+		dot.offset_left   = dx
+		dot.offset_right  = dx + _DOT_SIZE
+		dot.offset_top    = _BAR_Y + (_BAR_H - _DOT_SIZE) * 0.5
+		dot.offset_bottom = dot.offset_top + _DOT_SIZE
+		add_child(dot)
+		_beacon_dots.append(dot)
+
+	# Team score bars flanking the dot strip
+	var colors: Array = [Color(0.2, 0.5, 1.0), Color(1.0, 0.3, 0.2)]
+	for t in 2:
+		var bar_left: float
+		var bar_right: float
+		if t == 0:
+			bar_right = strip_x - _BAR_GAP
+			bar_left  = bar_right - _BAR_W
+		else:
+			bar_left  = strip_x + strip_w + _BAR_GAP
+			bar_right = bar_left + _BAR_W
+		var bg := ColorRect.new()
+		bg.color = Color(0.08, 0.08, 0.08, 0.88)
+		bg.offset_left   = bar_left
+		bg.offset_right  = bar_right
+		bg.offset_top    = _BAR_Y
+		bg.offset_bottom = _BAR_Y + _BAR_H
+		add_child(bg)
+		var fg := ColorRect.new()
+		fg.color = colors[t]
+		fg.offset_left   = bar_left
+		fg.offset_right  = bar_right
+		fg.offset_top    = _BAR_Y
+		fg.offset_bottom = _BAR_Y + _BAR_H
+		add_child(fg)
+		_score_bars.append({"bg": bg, "fg": fg, "left": bar_left, "right": bar_right, "max_w": _BAR_W})
 
 func show_damage() -> void:
 	_damage_alpha = 0.45
@@ -122,10 +188,21 @@ func _process(delta: float) -> void:
 
 	if _match != null:
 		var scores: Array = _match.get("scores")
-		score_label.text = "A: %d     B: %d" % [scores[0], scores[1]]
+		var s_limit: int = _match.get("score_limit") if "score_limit" in _match else 1000
+		for t in _score_bars.size():
+			var entry: Dictionary = _score_bars[t]
+			var pct: float = clampf(float(scores[t]) / float(s_limit), 0.0, 1.0)
+			var fg: ColorRect = entry.fg
+			if t == 0:
+				fg.offset_left  = entry.left
+				fg.offset_right = entry.left + entry.max_w * pct
+			else:
+				fg.offset_right = entry.right
+				fg.offset_left  = entry.right - entry.max_w * pct
 
 	_update_ability_label()
 	_update_bot_bar()
+	_update_beacon_bars()
 
 const ELIGIBLE_HALF := 9.5
 
@@ -166,6 +243,19 @@ func _update_ability_label() -> void:
 	else:
 		ability_label.text = "SPACE: %s  READY" % ability.ability_name
 	ability_label.visible = true
+
+func _update_beacon_bars() -> void:
+	for i in _beacons.size():
+		if i >= _beacon_dots.size():
+			break
+		var beacon: Node = _beacons[i]
+		var dot: Control = _beacon_dots[i]
+		if not is_instance_valid(beacon) or not is_instance_valid(dot):
+			continue
+		dot.set("state",    beacon.get("state")             if "state"             in beacon else 0)
+		dot.set("progress", beacon.get("_capture_progress") if "_capture_progress" in beacon else 0.0)
+		dot.set("cap_team", beacon.get("_capturing_team")   if "_capturing_team"   in beacon else -1)
+		dot.queue_redraw()
 
 func _update_bot_bar() -> void:
 	if _bot_mech == null or not is_instance_valid(_bot_mech) or not _bot_mech.visible:

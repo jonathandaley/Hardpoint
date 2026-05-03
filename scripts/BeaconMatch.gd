@@ -28,15 +28,13 @@ func _tick(delta: float) -> void:
 func _drain_tick() -> void:
 	var a := _count_beacons(0)
 	var b := _count_beacons(1)
-	if a == b:
-		return
-	if a > b:
-		scores[1] = max(0, scores[1] - points_per_tick * (a - b))
-	else:
-		scores[0] = max(0, scores[0] - points_per_tick * (b - a))
-	print("[Match] Scores  A:%d  B:%d  |  Beacons  A:%d  B:%d  neutral:%d" % [
-		scores[0], scores[1], a, b, beacons.size() - a - b
-	])
+	var per_beacon := int(points_per_tick * 0.25)   # each captured beacon drains opponent slowly
+	if per_beacon < 1:
+		per_beacon = 1
+	if a > 0:
+		scores[1] = max(0, scores[1] - per_beacon * a)
+	if b > 0:
+		scores[0] = max(0, scores[0] - per_beacon * b)
 
 func _check_win() -> void:
 	for i in scores.size():
