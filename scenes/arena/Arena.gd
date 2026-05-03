@@ -4766,8 +4766,7 @@ func _bowl_height(x: float, z: float) -> float:
 
 func _create_penrose_bowl() -> void:
 	var mat := StandardMaterial3D.new()
-	var _hat_img := Image.load_from_file("res://scenes/arena/hat_floor.png")
-	mat.albedo_texture = ImageTexture.create_from_image(_hat_img)
+	mat.albedo_texture = load("res://scenes/arena/hat_floor.png") as Texture2D
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 	var pos: Array[Vector3] = []
 	for i in range(0, _BOWL_V.size(), 2):
