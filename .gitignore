@@ -9,3 +9,6 @@ build/
 
 # Audio source/import staging — processed files live in audio/sfx/
 audio/import/
+
+# Python
+tools/__pycache__/

@@ -4333,11 +4333,6 @@ func _spawn_mechs() -> void:
 	bot_mech.configure_weapons(bot_def.weapon_slots)
 	bot_mech.configure_abilities(bot_def.abilities)
 
-func _create_steps() -> void:
-	_create_penrose_bowl()
-	if DEBUG_PENROSE:
-		_add_sun_marker()
-
 func _add_sun_marker() -> void:
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(1.0, 0.1, 0.9)
@@ -4774,9 +4769,6 @@ func _create_penrose_bowl() -> void:
 		var x := float(_BOWL_V[i])
 		var z := float(_BOWL_V[i + 1])
 		pos.append(Vector3(x, _bowl_height(x, z), z))
-	print("[Bowl] verts=%d quads=%d sample_h_50m=%.2f" % [
-		pos.size(), _BOWL_Q.size() / 4,
-		floor(50.0 / BOWL_STEP_W) * BOWL_STEP_H])
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var col_faces := PackedVector3Array()
@@ -4791,7 +4783,6 @@ func _create_penrose_bowl() -> void:
 			continue
 		_add_tri(st, col_faces, pos[ia], pos[ib], pos[ic], Color.WHITE)
 		_add_tri(st, col_faces, pos[ia], pos[ic], pos[id], Color.WHITE)
-	print("[Bowl] tris=%d" % [col_faces.size() / 3])
 	var mi := MeshInstance3D.new()
 	mi.mesh = st.commit()
 	mi.set_surface_override_material(0, mat)
