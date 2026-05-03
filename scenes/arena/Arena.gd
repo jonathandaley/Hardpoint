@@ -7,6 +7,7 @@ extends Node3D
 
 const DEBUG_PENROSE := false
 const DEBUG_NO_BOT := false
+const BAKE_WALLS := true
 const BOWL_STEP_H := 2.1
 const BOWL_STEP_W := 20.0
 const BOWL_SUN_X := 5.1
@@ -4177,6 +4178,8 @@ func _ready() -> void:
 	if DEBUG_PENROSE:
 		_add_sun_marker()
 	_paint_penrose_floor()
+	if BAKE_WALLS:
+		_bake_wall_visuals()
 	_wire_beacons()
 	_setup_players()
 	match_node.match_ended.connect(_on_match_ended)
@@ -4197,15 +4200,29 @@ func _paint_penrose_floor() -> void:
 	mat.albedo_color = Color(0.30, 0.30, 0.35)
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 
+	const HX := 0.075
+	const HY := 0.01
+	const HZ := 5.0
+	var lv := [
+		Vector3(-HX, -HY, -HZ), Vector3( HX, -HY, -HZ),
+		Vector3( HX,  HY, -HZ), Vector3(-HX,  HY, -HZ),
+		Vector3(-HX, -HY,  HZ), Vector3( HX, -HY,  HZ),
+		Vector3( HX,  HY,  HZ), Vector3(-HX,  HY,  HZ),
+	]
+	var tris := [0,1,2, 0,2,3, 5,4,7, 5,7,6, 4,0,3, 4,3,7, 1,5,6, 1,6,2, 3,2,6, 3,6,7, 4,5,1, 4,1,0]
+
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for e in _PENROSE_SVG_EDGES:
-		var mi := MeshInstance3D.new()
-		var mesh := BoxMesh.new()
-		mesh.size = Vector3(0.15, 0.02, 10.0)
-		mi.mesh = mesh
-		mi.position = Vector3(e[0], 0.02, e[1])
-		mi.rotation.y = PI / 2.0 - e[2]
-		mi.set_surface_override_material(0, mat)
-		add_child(mi)
+		var xf := Transform3D(Basis(Vector3.UP, PI / 2.0 - e[2]), Vector3(e[0], 0.02, e[1]))
+		for i in tris:
+			st.add_vertex(xf * lv[i])
+	st.generate_normals()
+
+	var mi := MeshInstance3D.new()
+	mi.mesh = st.commit()
+	mi.set_surface_override_material(0, mat)
+	add_child(mi)
 
 
 var _overhead_cam: Camera3D
@@ -4471,6 +4488,7 @@ func _create_temple_walls() -> void:
 		mi.mesh = mesh
 		mi.position = Vector3(0, h * 0.5, 0)
 		mi.set_surface_override_material(0, mat)
+		mi.add_to_group("wall_visual")
 		body.add_child(mi)
 
 		# Penrose art on both wall faces — u→local z, v→local y
@@ -4510,6 +4528,7 @@ func _create_temple_walls() -> void:
 			art_surf += 1
 		var art_mi := MeshInstance3D.new()
 		art_mi.mesh = art_mesh
+		art_mi.add_to_group("wall_visual")
 		body.add_child(art_mi)
 
 		add_child(body)
@@ -4564,6 +4583,7 @@ func _paint_wall_penrose() -> void:
 		mi.mesh = amesh
 		mi.position = Vector3(seg[0], 0.0, seg[1])
 		mi.rotation.y = seg[2]
+		mi.add_to_group("wall_visual")
 		add_child(mi)
 
 func _create_wall_art() -> void:
@@ -4588,7 +4608,57 @@ func _create_wall_art() -> void:
 			mi.mesh = mesh
 			mi.position = Vector3(p[0], p[1], p[2])
 			mi.set_surface_override_material(0, slab_mat if i == 0 else mat)
+			mi.add_to_group("wall_visual")
 			seg_node.add_child(mi)
+
+func _bake_wall_visuals() -> void:
+	var sts: Dictionary = {}
+	var to_free: Array = []
+	for node in get_tree().get_nodes_in_group("wall_visual"):
+		var mi := node as MeshInstance3D
+		if mi == null:
+			continue
+		var xf := mi.global_transform
+		var mesh := mi.mesh
+		if mesh == null:
+			continue
+		for s in mesh.get_surface_count():
+			var mat = mi.get_surface_override_material(s)
+			if mat == null:
+				mat = mesh.surface_get_material(s)
+			if mat == null:
+				continue
+			if not sts.has(mat):
+				var st := SurfaceTool.new()
+				st.begin(Mesh.PRIMITIVE_TRIANGLES)
+				sts[mat] = st
+			var st: SurfaceTool = sts[mat]
+			var arrays = mesh.surface_get_arrays(s)
+			var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+			var indices = arrays[Mesh.ARRAY_INDEX]
+			if indices != null and indices.size() > 0:
+				for i in range(0, indices.size(), 3):
+					st.add_vertex(xf * verts[indices[i]])
+					st.add_vertex(xf * verts[indices[i + 1]])
+					st.add_vertex(xf * verts[indices[i + 2]])
+			else:
+				for v in verts:
+					st.add_vertex(xf * v)
+		to_free.append(mi)
+
+	var merged := ArrayMesh.new()
+	for mat in sts:
+		var st: SurfaceTool = sts[mat]
+		st.generate_normals()
+		merged.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, st.commit_to_arrays())
+		merged.surface_set_material(merged.get_surface_count() - 1, mat)
+
+	var merged_mi := MeshInstance3D.new()
+	merged_mi.mesh = merged
+	add_child(merged_mi)
+
+	for node in to_free:
+		node.queue_free()
 
 func _wire_beacons() -> void:
 	for child in get_children():
@@ -4698,7 +4768,7 @@ func _create_penrose_bowl() -> void:
 	var mat := StandardMaterial3D.new()
 	var _hat_img := Image.load_from_file("res://scenes/arena/hat_floor.png")
 	mat.albedo_texture = ImageTexture.create_from_image(_hat_img)
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 	var pos: Array[Vector3] = []
 	for i in range(0, _BOWL_V.size(), 2):
 		var x := float(_BOWL_V[i])
