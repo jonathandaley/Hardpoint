@@ -10,6 +10,7 @@ const BURST_PAUSE   := 0.85  # seconds of pause between bursts
 const STUCK_CHECK   := 0.5   # seconds between stuck checks
 const STUCK_DIST    := 0.5   # minimum movement to not be considered stuck (m)
 const ESCAPE_TIME   := 0.8   # seconds to strafe sideways when stuck
+const LOS_INTERVAL  := 0.12  # seconds between line-of-sight raycasts
 
 # [aim_jitter_radians, turn_speed_scale]
 const DIFFICULTY_PRESETS: Array = [
@@ -37,6 +38,8 @@ var _stuck_timer: float = STUCK_CHECK
 var _escape_timer: float = 0.0
 var _escape_dir: float = 1.0
 var _target_refresh: float = 0.0
+var _has_clear_shot: bool = false
+var _los_timer: float = 0.0
 
 func _ready() -> void:
 	call_deferred("_find_targets")
@@ -79,6 +82,36 @@ func _pick_target_beacon(bot_mech: Node3D) -> Node:
 			best = b
 	return best
 
+# Returns true when no collideable geometry lies between the bot's eye and the
+# target's centre.  Uses the same PhysicsRayQueryParameters3D pattern as the
+# weapon scripts so it respects the same collision layers.
+func _check_los(bot_mech: Node3D) -> void:
+	if _target == null or not is_instance_valid(_target) or not _target.visible:
+		_has_clear_shot = false
+		return
+	var eye: Vector3 = bot_mech.global_position + Vector3(0, 2.0, 0)
+	var tgt: Vector3 = _target.global_position + Vector3(0, 1.5, 0)
+	var space := bot_mech.get_world_3d().direct_space_state
+	var query := PhysicsRayQueryParameters3D.create(eye, tgt)
+	query.exclude = bot_mech.get_exclude_rids()
+	var result := space.intersect_ray(query)
+	# Clear shot if nothing blocked, or if what we hit IS the target body.
+	_has_clear_shot = result.is_empty() or result.get("collider") == _target
+
+# Returns the immediate nav-path waypoint toward goal_pos, or Vector3.ZERO if
+# the navmesh is not ready yet (caller falls back to direct steering).
+func _nav_next(bot_mech: Node3D, goal_pos: Vector3) -> Vector3:
+	var nav_agent := bot_mech.get_node_or_null("NavAgent") as NavigationAgent3D
+	if nav_agent == null:
+		return Vector3.ZERO
+	# Check that the nav map has been baked at least once.
+	if NavigationServer3D.map_get_iteration_id(nav_agent.get_navigation_map()) == 0:
+		return Vector3.ZERO
+	nav_agent.target_position = goal_pos
+	if nav_agent.is_navigation_finished():
+		return Vector3.ZERO
+	return nav_agent.get_next_path_position()
+
 func _process(delta: float) -> void:
 	var bot_mech: Node3D = get_parent().get("pawn")
 	if bot_mech == null:
@@ -92,6 +125,12 @@ func _process(delta: float) -> void:
 	if _target_refresh <= 0.0 or not is_instance_valid(_target) or not _target.visible:
 		_target_refresh = 0.5
 		_target = _pick_closest_enemy(bot_mech)
+
+	# Periodically check line-of-sight to target.
+	_los_timer -= delta
+	if _los_timer <= 0.0:
+		_los_timer = LOS_INTERVAL
+		_check_los(bot_mech)
 
 	var has_target: bool = _target != null and is_instance_valid(_target) and _target.visible and not _target.get("is_stealthy")
 	var sens: float = Game.settings.get("mouse_sensitivity", 0.003)
@@ -131,25 +170,37 @@ func _process(delta: float) -> void:
 		_look_delta = Vector2.ZERO
 		_firing = false
 
-	# Movement - retreat takes priority; otherwise beacon nav or fight
+	# Movement - retreat takes priority; otherwise navigate to beacon/enemy.
 	if has_target and dist < RETREAT_DIST:
 		_move_dir = Vector2(0.0, 1.0)
 	else:
 		var beacon := _pick_target_beacon(bot_mech)
+		var goal_pos: Vector3 = Vector3.ZERO
 		if beacon != null:
-			var to_beacon: Vector3 = beacon.global_position - bot_mech.global_position
-			to_beacon.y = 0.0
-			var beacon_dist: float = to_beacon.length()
-			if beacon_dist > 3.0:
-				var aim_basis: Basis = bot_mech.call("get_aim_basis")
-				var fwd: Vector3   = -aim_basis.z
-				var right: Vector3 = aim_basis.x
-				to_beacon = to_beacon / beacon_dist
-				_move_dir = Vector2(to_beacon.dot(right), -to_beacon.dot(fwd)).normalized()
+			goal_pos = beacon.global_position
+		elif has_target:
+			goal_pos = _target.global_position
+
+		if goal_pos != Vector3.ZERO:
+			var aim_basis: Basis = bot_mech.call("get_aim_basis")
+			var fwd:   Vector3 = -aim_basis.z
+			var right: Vector3 = aim_basis.x
+			# Try nav-agent path first; fall back to direct steering if not ready.
+			var next := _nav_next(bot_mech, goal_pos)
+			var steer: Vector3
+			if next != Vector3.ZERO:
+				steer = next - bot_mech.global_position
+			else:
+				steer = goal_pos - bot_mech.global_position
+			steer.y = 0.0
+			var sd := steer.length()
+			if sd > 1.5:
+				steer = steer / sd
+				_move_dir = Vector2(steer.dot(right), -steer.dot(fwd)).normalized()
 			else:
 				_move_dir = Vector2.ZERO
 		elif has_target:
-			# All beacons owned - circle-strafe and fight
+			# All beacons owned - circle-strafe and fight.
 			_strafe_timer -= delta
 			if _strafe_timer <= 0.0:
 				_strafe_timer = randf_range(1.5, 3.0)
@@ -190,8 +241,8 @@ func _process(delta: float) -> void:
 			_in_burst = not _in_burst
 			_burst_timer = BURST_FIRE if _in_burst else BURST_PAUSE
 
-		# Fire when aimed closely enough, in range, and in burst window
-		_firing = _in_burst and abs(angle_h) < AIM_THRESHOLD and dist < ENGAGE_DIST + 15.0
+		# Fire when aimed closely enough, in range, in burst window, and LOS is clear.
+		_firing = _in_burst and abs(angle_h) < AIM_THRESHOLD and dist < ENGAGE_DIST + 15.0 and _has_clear_shot
 
 func get_move_direction() -> Vector2:
 	return _move_dir
