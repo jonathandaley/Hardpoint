@@ -51,6 +51,7 @@ var _selected: int = 0
 var _bot_selected: int = 0
 var _weapon_indices: Array = []      # WEAPON_CATALOG index per slot for the selected mech
 var _weapon_name_labels: Array = []  # Label refs in the picker, updated in-place on cycle
+var _team_size_label: Label = null   # shows "1v1", "2v2", etc.
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -72,6 +73,7 @@ func _ready() -> void:
 		_hide_bot_picker()
 		if Game.loadout.get("bot_def") == null and _mechs.size() > 0:
 			Game.loadout["bot_def"] = _mechs[0]
+	_build_team_size_picker()
 	_show_tab(0)
 
 func _load_roster() -> void:
@@ -332,6 +334,59 @@ func _on_weapon_cycle(slot_idx: int, direction: int) -> void:
 
 	if slot_idx < _weapon_name_labels.size() and is_instance_valid(_weapon_name_labels[slot_idx]):
 		_weapon_name_labels[slot_idx].text = WEAPON_CATALOG[_weapon_indices[slot_idx]]["name"]
+
+func _build_team_size_picker() -> void:
+	# Placed bottom-left, leaving the existing FIND MATCH and SETTINGS buttons in place.
+	var container := HBoxContainer.new()
+	container.offset_left   = 4.0
+	container.offset_top    = 316.0
+	container.offset_right  = 190.0
+	container.offset_bottom = 348.0
+	container.add_theme_constant_override("separation", 4)
+	add_child(container)
+
+	var lbl := Label.new()
+	lbl.text = "TEAM SIZE"
+	lbl.add_theme_font_size_override("font_size", 14)
+	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	container.add_child(lbl)
+
+	var prev_btn := Button.new()
+	prev_btn.text = "<"
+	prev_btn.custom_minimum_size = Vector2(26, 0)
+	prev_btn.add_theme_font_size_override("font_size", 14)
+	prev_btn.pressed.connect(_on_team_size_change.bind(-1))
+	container.add_child(prev_btn)
+
+	_team_size_label = Label.new()
+	_team_size_label.add_theme_font_size_override("font_size", 14)
+	_team_size_label.custom_minimum_size = Vector2(36, 0)
+	_team_size_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_team_size_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	container.add_child(_team_size_label)
+
+	var next_btn := Button.new()
+	next_btn.text = ">"
+	next_btn.custom_minimum_size = Vector2(26, 0)
+	next_btn.add_theme_font_size_override("font_size", 14)
+	next_btn.pressed.connect(_on_team_size_change.bind(1))
+	container.add_child(next_btn)
+
+	_refresh_team_size_label()
+
+func _refresh_team_size_label() -> void:
+	if _team_size_label == null:
+		return
+	var ts: int = clampi(Game.loadout.get("team_size", 1), 1, 6)
+	_team_size_label.text = "%dv%d" % [ts, ts]
+
+func _on_team_size_change(delta: int) -> void:
+	SoundManager.play_sfx_2d("ui_click")
+	var ts: int = clampi(Game.loadout.get("team_size", 1) + delta, 1, 6)
+	Game.loadout["team_size"] = ts
+	Game.save_loadout()
+	_refresh_team_size_label()
 
 func _show_tab(idx: int) -> void:
 	mech_panel.visible = idx == 0

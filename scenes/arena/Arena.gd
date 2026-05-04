@@ -4158,10 +4158,10 @@ const _WALL_PARTS: Array = [
 	[11.146, 11.000, -0.100, 0.380, 22.000, 0.200],
 ]
 var player_mech: CharacterBody3D
-var bot_mech: CharacterBody3D
+var _team_mechs: Array = [[], []]   # mechs per team; player_mech is _team_mechs[0][0]
 
-var _player: Node
-var _bot_player: Node
+var _player: Node                   # human player (team 0)
+var _players: Array = []            # all Player nodes across both teams
 var _match_over: bool = false
 var _beacons_captured: Array[int] = [0, 0]
 
@@ -4188,9 +4188,13 @@ func _ready() -> void:
 	match_node.start()
 	SoundManager.play_music("arena")
 	_set_mech_color(player_mech, Color(0.25, 0.52, 0.95))
-	_set_mech_color(bot_mech,    Color(0.92, 0.28, 0.22))
+	for m in _team_mechs[0]:
+		if m != player_mech:
+			_set_mech_color(m, Color(0.25, 0.52, 0.95))
+	for m in _team_mechs[1]:
+		_set_mech_color(m, Color(0.92, 0.28, 0.22))
 	hud.setup(match_node, player_mech, 0)
-	hud.setup_bot_bar(bot_mech)
+	hud.setup_bot_bars(_team_mechs[1])
 	hud.setup_beacon_bars(get_tree().get_nodes_in_group("beacons"))
 	for weapon in player_mech.get_weapons():
 		if weapon.has_signal("hit_confirmed"):
@@ -4291,53 +4295,70 @@ func _spawn_player_only() -> void:
 	player_mech.died.connect(Callable(_player, "on_pawn_destroyed"))
 	player_mech.mark_requested.connect(_on_mark_requested)
 
+# Perpendicular to the SW-NE team axis; mechs fan out along this direction.
+const _SPAWN_PERP    := Vector3(0.70711, 0.0, 0.70711)
+const _SPAWN_SPACING := 8.0   # metres between mechs in a team line
+
+func _spawn_one_mech(mech_def, is_player_mech: bool, team: int, idx: int, count: int) -> CharacterBody3D:
+	var perp_offset: float = (float(idx) - float(count - 1) * 0.5) * _SPAWN_SPACING
+	var bx: float
+	var bz: float
+	var facing_y: float
+	if team == 0:
+		bx = -40.0 + BOWL_SUN_X
+		bz = BOWL_SUN_Z + 40.0
+		facing_y = -45.0
+	else:
+		bx = 40.0 + BOWL_SUN_X
+		bz = BOWL_SUN_Z - 40.0
+		facing_y = 135.0
+	var sx: float = bx + _SPAWN_PERP.x * perp_offset
+	var sz: float = bz + _SPAWN_PERP.z * perp_offset
+	var m: CharacterBody3D = mech_def.scene.instantiate()
+	m.name = "PlayerMech" if is_player_mech else ("Mech_%d_%d" % [team, idx])
+	m.position = Vector3(sx, _bowl_height(sx, sz) + 1.0, sz)
+	m.rotation_degrees = Vector3(0, facing_y, 0)
+	m.team = team
+	m.scale = Vector3.ONE * mech_def.body_scale
+	m.max_health = mech_def.max_health
+	m.base_walk_speed = mech_def.walk_speed
+	m.turn_acceleration = mech_def.turn_acceleration
+	m.leg_rotation_speed = mech_def.leg_rotation_speed
+	MechVisuals.apply(m, mech_def.display_name)
+	add_child(m)
+	m.configure_legs(mech_def.leg_hip_sweep, mech_def.leg_bob_magnitude, mech_def.leg_cycle_rate)
+	m.configure_shield(mech_def.has_shields, mech_def.shield_max_hp)
+	m.configure_energy_shield(mech_def.has_energy_shield, mech_def.energy_shield_max_hp,
+		mech_def.energy_shield_regen_rate, mech_def.energy_shield_regen_delay)
+	var slots = _slots_with_overrides(mech_def.weapon_slots) if is_player_mech else mech_def.weapon_slots
+	m.configure_weapons(slots)
+	m.configure_abilities(mech_def.abilities)
+	m.invincible = mech_def.invincible
+	_team_mechs[team].append(m)
+	return m
+
 func _spawn_mechs() -> void:
 	var mech_def = Game.loadout.get("mech_def")
 	if mech_def == null:
 		push_error("[Arena] No mech_def in loadout; falling back to Hippogriff")
 		mech_def = load("res://resources/mechs/Hippogriff.tres")
-
-	player_mech = mech_def.scene.instantiate()
-	player_mech.name = "PlayerMech"
-	player_mech.position = Vector3(-40 + BOWL_SUN_X, _bowl_height(-40 + BOWL_SUN_X, BOWL_SUN_Z + 40) + 1.0, BOWL_SUN_Z + 40)
-	player_mech.rotation_degrees = Vector3(0, -45, 0)
-	player_mech.scale = Vector3.ONE * mech_def.body_scale
-	player_mech.max_health = mech_def.max_health
-	player_mech.base_walk_speed = mech_def.walk_speed
-	player_mech.turn_acceleration = mech_def.turn_acceleration
-	player_mech.leg_rotation_speed = mech_def.leg_rotation_speed
-	MechVisuals.apply(player_mech, mech_def.display_name)
-	add_child(player_mech)
-	player_mech.configure_legs(mech_def.leg_hip_sweep, mech_def.leg_bob_magnitude, mech_def.leg_cycle_rate)
-	player_mech.configure_shield(mech_def.has_shields, mech_def.shield_max_hp)
-	player_mech.configure_energy_shield(mech_def.has_energy_shield, mech_def.energy_shield_max_hp, mech_def.energy_shield_regen_rate, mech_def.energy_shield_regen_delay)
-	player_mech.configure_weapons(_slots_with_overrides(mech_def.weapon_slots))
-	player_mech.configure_abilities(mech_def.abilities)
-	player_mech.invincible = mech_def.invincible
-
-	if DEBUG_NO_BOT:
-		return
 	var bot_def = Game.loadout.get("bot_def")
 	if bot_def == null:
 		push_error("[Arena] No bot_def in loadout; falling back to Hippogriff")
 		bot_def = load("res://resources/mechs/Hippogriff.tres")
-	bot_mech = bot_def.scene.instantiate()
-	bot_mech.name = "BotMech"
-	bot_mech.position = Vector3(40 + BOWL_SUN_X, _bowl_height(40 + BOWL_SUN_X, BOWL_SUN_Z - 40) + 1.0, BOWL_SUN_Z - 40)
-	bot_mech.rotation_degrees = Vector3(0, 135, 0)
-	bot_mech.team = 1
-	bot_mech.scale = Vector3.ONE * bot_def.body_scale
-	bot_mech.max_health = bot_def.max_health
-	bot_mech.base_walk_speed = bot_def.walk_speed
-	bot_mech.turn_acceleration = bot_def.turn_acceleration
-	bot_mech.leg_rotation_speed = bot_def.leg_rotation_speed
-	MechVisuals.apply(bot_mech, bot_def.display_name)
-	add_child(bot_mech)
-	bot_mech.configure_legs(bot_def.leg_hip_sweep, bot_def.leg_bob_magnitude, bot_def.leg_cycle_rate)
-	bot_mech.configure_shield(bot_def.has_shields, bot_def.shield_max_hp)
-	bot_mech.configure_energy_shield(bot_def.has_energy_shield, bot_def.energy_shield_max_hp, bot_def.energy_shield_regen_rate, bot_def.energy_shield_regen_delay)
-	bot_mech.configure_weapons(bot_def.weapon_slots)
-	bot_mech.configure_abilities(bot_def.abilities)
+	var team_size: int = clampi(Game.loadout.get("team_size", 1), 1, 6)
+
+	# Team 0: 1 human mech + (team_size - 1) ally bot mechs
+	player_mech = _spawn_one_mech(mech_def, true, 0, 0, team_size)
+	for i in range(1, team_size):
+		_spawn_one_mech(bot_def, false, 0, i, team_size)
+
+	if DEBUG_NO_BOT:
+		return
+
+	# Team 1: team_size enemy bot mechs
+	for i in range(team_size):
+		_spawn_one_mech(bot_def, false, 1, i, team_size)
 
 func _add_sun_marker() -> void:
 	var mat := StandardMaterial3D.new()
@@ -4669,8 +4690,22 @@ func _wire_beacons() -> void:
 			match_node.register_beacon(child)
 			child.captured.connect(func(team: int): _beacons_captured[team] += 1)
 
+func _spawn_bot_player(mech: CharacterBody3D, team: int, idx: int) -> void:
+	var p := Node.new()
+	p.set_script(load("res://scripts/Player.gd"))
+	p.name = "BotPlayer_%d_%d" % [team, idx]
+	p.set("team", team)
+	add_child(p)
+	var ai_input := Node.new()
+	ai_input.set_script(load("res://scripts/AIInputSource.gd"))
+	p.add_child(ai_input)
+	p.set("input_source", ai_input)
+	p.call("possess", mech)
+	mech.died.connect(Callable(p, "on_pawn_destroyed"))
+	_players.append(p)
+
 func _setup_players() -> void:
-	# Human player
+	# Human player (team 0, mech 0)
 	_player = Node.new()
 	_player.set_script(load("res://scripts/Player.gd"))
 	_player.name = "Player"
@@ -4691,21 +4726,15 @@ func _setup_players() -> void:
 	_player.call("possess", player_mech)
 	player_mech.died.connect(Callable(_player, "on_pawn_destroyed"))
 	player_mech.mark_requested.connect(_on_mark_requested)
+	_players.append(_player)
 
-	# Bot player
-	_bot_player = Node.new()
-	_bot_player.set_script(load("res://scripts/Player.gd"))
-	_bot_player.name = "BotPlayer"
-	_bot_player.set("team", 1)
-	add_child(_bot_player)
+	# Ally bots (team 0, mechs 1..N-1)
+	for i in range(1, _team_mechs[0].size()):
+		_spawn_bot_player(_team_mechs[0][i], 0, i)
 
-	var ai_input := Node.new()
-	ai_input.set_script(load("res://scripts/AIInputSource.gd"))
-	_bot_player.add_child(ai_input)
-	_bot_player.set("input_source", ai_input)
-
-	_bot_player.call("possess", bot_mech)
-	bot_mech.died.connect(Callable(_bot_player, "on_pawn_destroyed"))
+	# Enemy bots (team 1)
+	for i in range(_team_mechs[1].size()):
+		_spawn_bot_player(_team_mechs[1][i], 1, i)
 
 func _input(event: InputEvent) -> void:
 	if DEBUG_PENROSE and event is InputEventKey and event.pressed and event.keycode == KEY_F5:
@@ -4734,26 +4763,33 @@ func _on_pause_quit() -> void:
 
 func on_player_eliminated(p: Node) -> void:
 	var losing_team: int = p.get("team") if p.get("team") != null else 0
+	print("[Arena] %s eliminated (team %d)." % [p.name, losing_team])
+	# Only end the match when the entire team has been wiped out.
+	for pl in _players:
+		if pl.get("team") == losing_team and (pl.get("lives") == null or pl.get("lives") > 0):
+			return
 	match_node.force_end(1 - losing_team)
-	print("[Arena] Player eliminated." if p == _player else "[Arena] Bot eliminated.")
 
 func _on_match_ended(winning_team: int) -> void:
 	_match_over = true
 	SoundManager.stop_music()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	var player_team: int = _player.get("team") if _player != null else 0
+	var enemy_damage_total: float = 0.0
+	for m in _team_mechs[1]:
+		if is_instance_valid(m):
+			enemy_damage_total += m.damage_taken_total
 	var stats := {
-		"damage_dealt":       bot_mech.damage_taken_total if is_instance_valid(bot_mech) else 0.0,
+		"damage_dealt":       enemy_damage_total,
 		"damage_taken":       player_mech.damage_taken_total if is_instance_valid(player_mech) else 0.0,
 		"beacons_captured":   _beacons_captured[player_team],
 		"bot_beacons":        _beacons_captured[1 - player_team],
 	}
-	# Deferred so any in-flight _physics_process (body_test_motion) completes before
-	# the CharacterBody3D is removed from the physics space (B17).
-	if is_instance_valid(player_mech):
-		player_mech.set_deferred("process_mode", Node.PROCESS_MODE_DISABLED)
-	if is_instance_valid(bot_mech):
-		bot_mech.set_deferred("process_mode", Node.PROCESS_MODE_DISABLED)
+	# Disable all mechs (deferred so in-flight _physics_process finishes first - B17).
+	for team_mechs in _team_mechs:
+		for m in team_mechs:
+			if is_instance_valid(m):
+				m.set_deferred("process_mode", Node.PROCESS_MODE_DISABLED)
 	hud.show_result(winning_team, stats)
 	if winning_team == 0:
 		Game.profile["wins"] = Game.profile.get("wins", 0) + 1
