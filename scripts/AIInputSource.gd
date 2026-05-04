@@ -104,13 +104,14 @@ func _nav_next(bot_mech: Node3D, goal_pos: Vector3) -> Vector3:
 	var nav_agent := bot_mech.get_node_or_null("NavAgent") as NavigationAgent3D
 	if nav_agent == null:
 		return Vector3.ZERO
-	# Check that the nav map has been baked at least once.
-	if NavigationServer3D.map_get_iteration_id(nav_agent.get_navigation_map()) == 0:
-		return Vector3.ZERO
 	nav_agent.target_position = goal_pos
-	if nav_agent.is_navigation_finished():
+	var next := nav_agent.get_next_path_position()
+	# When no path exists yet (navmesh not baked or no route found),
+	# get_next_path_position() returns the agent's current position.
+	# Treat that as "not ready" and fall back to direct steering.
+	if bot_mech.global_position.distance_to(next) < 1.0:
 		return Vector3.ZERO
-	return nav_agent.get_next_path_position()
+	return next
 
 func _process(delta: float) -> void:
 	var bot_mech: Node3D = get_parent().get("pawn")
