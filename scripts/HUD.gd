@@ -25,6 +25,7 @@ var _player_mech: Node = null
 var _player_team: int = 0
 var _bot_mechs: Array = []
 var _bot_health_bars: Array = []
+var _spectate_label: Label = null
 
 var _beacons: Array = []
 var _beacon_dots: Array = []       # BeaconDot per beacon, top-center ownership circles
@@ -124,6 +125,23 @@ func register_hit() -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+
+func start_spectating(mech: Node) -> void:
+	_player_mech = mech
+	crosshair.visible = false
+	weapon_hud.visible = false
+	if _spectate_label == null:
+		_spectate_label = Label.new()
+		_spectate_label.add_theme_font_size_override("font_size", 14)
+		_spectate_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_spectate_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
+		_spectate_label.offset_top = 12.0
+		_spectate_label.offset_left  = -160.0
+		_spectate_label.offset_right =  160.0
+		_spectate_label.offset_bottom = 30.0
+		add_child(_spectate_label)
+	_spectate_label.text = "SPECTATING: %s" % mech.name.to_upper()
+	_spectate_label.visible = true
 
 func show_result(winning_team: int, stats: Dictionary = {}) -> void:
 	result_label.text = "YOU WIN" if winning_team == _player_team else "YOU LOSE"

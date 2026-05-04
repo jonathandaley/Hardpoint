@@ -4162,6 +4162,7 @@ var _team_mechs: Array = [[], []]   # mechs per team; player_mech is _team_mechs
 
 var _player: Node                   # human player (team 0)
 var _players: Array = []            # all Player nodes across both teams
+var _spectated_mech: Node = null    # mech whose camera is currently active
 var _match_over: bool = false
 var _beacons_captured: Array[int] = [0, 0]
 
@@ -4735,6 +4736,25 @@ func _setup_players() -> void:
 	# Enemy bots (team 1)
 	for i in range(_team_mechs[1].size()):
 		_spawn_bot_player(_team_mechs[1][i], 1, i)
+
+	# Spectator chain - starts on the human mech; advances through alive allies on death.
+	_spectated_mech = player_mech
+	player_mech.died.connect(_on_spectated_mech_died)
+
+func _on_spectated_mech_died() -> void:
+	if _match_over:
+		return
+	# Find the next living ally on team 0.
+	for m in _team_mechs[0]:
+		if is_instance_valid(m) and m.visible and m != _spectated_mech:
+			_switch_spectator(m)
+			return
+
+func _switch_spectator(m: Node) -> void:
+	_spectated_mech = m
+	m.call("make_camera_current")
+	m.died.connect(_on_spectated_mech_died)
+	hud.start_spectating(m)
 
 func _input(event: InputEvent) -> void:
 	if DEBUG_PENROSE and event is InputEventKey and event.pressed and event.keycode == KEY_F5:
