@@ -136,4 +136,4 @@ B13|2026-05-02|`MachineGun.fire()` overrides `super.fire()` without calling `VFX
 B14|2026-05-02|energy shield flash material used `TRANSPARENCY_ALPHA` → invisible in Compatibility renderer; fixed to opaque emissive|V7
 B15|2026-05-02|`LaserCannon` beam drawn along weapon local -Z, not toward camera hit point; added `_beam_pivot.look_at(hit_pos)`|B9
 B16|2026-05-02|`material_overlay` not reliably rendered in Compatibility renderer; energy shield flash uses `material_override` instead (whole-mesh color replace for flash duration)|-
-B17|2026-05-02|`body_test_motion` crashes with null space after bot killed; root cause: `_on_match_ended` sets `process_mode=DISABLED` synchronously inside physics callback chain, removing body from physics space before `move_and_slide()` returns; fix pending|-
+B17|2026-05-03|`body_test_motion` crashes with null space after bot killed; root cause: `_on_match_ended` sets `process_mode=DISABLED` synchronously inside physics callback chain, removing body from physics space before `move_and_slide()` returns; fix: `set_deferred("process_mode", ...)` in `_on_match_ended` (Arena.gd)|−

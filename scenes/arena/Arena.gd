@@ -4186,7 +4186,7 @@ func _ready() -> void:
 	_setup_players()
 	match_node.match_ended.connect(_on_match_ended)
 	match_node.start()
-	#SoundManager.play_music("arena")  # TODO: add audio/music/arena_loop.ogg
+	SoundManager.play_music("arena")
 	_set_mech_color(player_mech, Color(0.25, 0.52, 0.95))
 	_set_mech_color(bot_mech,    Color(0.92, 0.28, 0.22))
 	hud.setup(match_node, player_mech, 0)
@@ -4748,10 +4748,12 @@ func _on_match_ended(winning_team: int) -> void:
 		"beacons_captured":   _beacons_captured[player_team],
 		"bot_beacons":        _beacons_captured[1 - player_team],
 	}
+	# Deferred so any in-flight _physics_process (body_test_motion) completes before
+	# the CharacterBody3D is removed from the physics space (B17).
 	if is_instance_valid(player_mech):
-		player_mech.process_mode = Node.PROCESS_MODE_DISABLED
+		player_mech.set_deferred("process_mode", Node.PROCESS_MODE_DISABLED)
 	if is_instance_valid(bot_mech):
-		bot_mech.process_mode = Node.PROCESS_MODE_DISABLED
+		bot_mech.set_deferred("process_mode", Node.PROCESS_MODE_DISABLED)
 	hud.show_result(winning_team, stats)
 	if winning_team == 0:
 		Game.profile["wins"] = Game.profile.get("wins", 0) + 1
