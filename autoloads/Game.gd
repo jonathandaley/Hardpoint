@@ -22,6 +22,7 @@ var loadout: Dictionary = {
 	"bot_def": preload("res://resources/mechs/Hippogriff.tres"),
 	"weapon_overrides": [],        # Array[PackedScene|null], parallel to mech_def.weapon_slots
 	"mech_weapon_choices": {},     # {mech_resource_path: [weapon_scene_path, ...]}
+	"team_size": 1,                # mechs per team (1 = 1v1, 5 = 5v5)
 }
 
 var settings: Dictionary = {
@@ -75,6 +76,7 @@ func _load_loadout() -> void:
 		var bd = load(bot_path)
 		if bd != null:
 			loadout["bot_def"] = bd
+	loadout["team_size"] = cfg.get_value("loadout", "team_size", 1)
 
 func save_loadout() -> void:
 	var cfg := ConfigFile.new()
@@ -84,6 +86,7 @@ func save_loadout() -> void:
 	cfg.set_value("loadout", "mech_weapon_choices", loadout.get("mech_weapon_choices", {}))
 	var bot_def = loadout.get("bot_def")
 	cfg.set_value("loadout", "bot_path", bot_def.resource_path if bot_def != null else "")
+	cfg.set_value("loadout", "team_size", loadout.get("team_size", 1))
 	cfg.save(_SAVE_PATH)
 
 func save_settings() -> void:

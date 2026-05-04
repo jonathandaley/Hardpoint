@@ -93,7 +93,7 @@ T31|x|floor art: `tools/hat_floor_tex.py` → hat_floor.png (1024px) UV-mapped t
 T32|x|lighting pass: directional + 2-3 points, try baked lightmap (2 fail → fall back)|-
 T33|x|fractal wall/ceiling art: `tools/fractal_wall_gen.py` → exterior circular walls only (archived for interior); interior walls use `_PENROSE_SVG_EDGES` directly|V13
 T34|.|hangar 3D diorama: lineup 3-6 mechs, turntable platform, CanvasLayer UI, swap on loadout change|-
-T35|.|team vs team: 5v5/6v6 bots, scaled arena, `Match` configurable team counts|-
+T35|x|team vs team: 5v5/6v6 bots, scaled arena, `Match` configurable team counts (`Game.loadout["team_size"]`)|−
 T36|.|bot role assignment: attacker/defender/flanker, role biases beacon priority & positioning|T35
 T37|.|bot blackboard coordination: `AIDirector` autoload per team, intent signals (pushing beacon A etc.)|T35,T36
 T38|.|navmesh pathing: `NavigationAgent3D` + baked `NavigationMesh` per arena|T35

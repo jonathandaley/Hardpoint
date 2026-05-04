@@ -23,7 +23,8 @@ var _damage_alpha: float = 0.0
 var _match: Node = null
 var _player_mech: Node = null
 var _player_team: int = 0
-var _bot_mech: Node = null
+var _bot_mechs: Array = []
+var _bot_health_bars: Array = []
 
 var _beacons: Array = []
 var _beacon_dots: Array = []       # BeaconDot per beacon, top-center ownership circles
@@ -36,8 +37,23 @@ func setup(match_node: Node, player_mech: Node, player_team: int) -> void:
 	weapon_hud.setup(player_mech)
 	score_label.visible = false
 
-func setup_bot_bar(bot_mech: Node) -> void:
-	_bot_mech = bot_mech
+func setup_bot_bars(mechs: Array) -> void:
+	# Free any dynamically created extra bars from a previous call.
+	for bar in _bot_health_bars:
+		if is_instance_valid(bar) and bar != bot_health_bar:
+			bar.queue_free()
+	_bot_health_bars.clear()
+	_bot_mechs = mechs
+	for i in mechs.size():
+		if i == 0:
+			_bot_health_bars.append(bot_health_bar)
+		else:
+			var bar := ColorRect.new()
+			bar.color = Color(1.0, 0.15, 0.1, 1)
+			bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			bar.visible = false
+			add_child(bar)
+			_bot_health_bars.append(bar)
 
 const _DOT_SIZE   := 18.0
 const _DOT_GAP    := 4.0
@@ -258,28 +274,30 @@ func _update_beacon_bars() -> void:
 		dot.queue_redraw()
 
 func _update_bot_bar() -> void:
-	if _bot_mech == null or not is_instance_valid(_bot_mech) or not _bot_mech.visible:
-		bot_health_bar.visible = false
-		return
-	if _bot_mech.get("is_stealthy"):
-		bot_health_bar.visible = false
-		return
 	var camera := get_viewport().get_camera_3d()
-	if camera == null:
-		bot_health_bar.visible = false
-		return
-	var world_pos: Vector3 = _bot_mech.global_position + BOT_BAR_HEAD_OFFSET
-	if not camera.is_position_in_frustum(world_pos):
-		bot_health_bar.visible = false
-		return
-	var screen_pos: Vector2 = camera.unproject_position(world_pos)
-	var pct: float = _bot_mech.health / _bot_mech.max_health
-	var bar_w: float = BOT_BAR_FULL_WIDTH * pct
-	# Use offsets - the reliable way to set position+size on a free Control
-	var left: float = screen_pos.x - BOT_BAR_FULL_WIDTH * 0.5
-	var top: float  = screen_pos.y - BOT_BAR_HEIGHT * 0.5
-	bot_health_bar.offset_left   = left
-	bot_health_bar.offset_top    = top
-	bot_health_bar.offset_right  = left + bar_w
-	bot_health_bar.offset_bottom = top + BOT_BAR_HEIGHT
-	bot_health_bar.visible = true
+	for i in _bot_mechs.size():
+		var m: Node = _bot_mechs[i]
+		var bar: ColorRect = _bot_health_bars[i]
+		if m == null or not is_instance_valid(m) or not m.visible:
+			bar.visible = false
+			continue
+		if m.get("is_stealthy"):
+			bar.visible = false
+			continue
+		if camera == null:
+			bar.visible = false
+			continue
+		var world_pos: Vector3 = m.global_position + BOT_BAR_HEAD_OFFSET
+		if not camera.is_position_in_frustum(world_pos):
+			bar.visible = false
+			continue
+		var screen_pos: Vector2 = camera.unproject_position(world_pos)
+		var pct: float = m.health / m.max_health
+		var bar_w: float = BOT_BAR_FULL_WIDTH * pct
+		var left: float = screen_pos.x - BOT_BAR_FULL_WIDTH * 0.5
+		var top: float  = screen_pos.y - BOT_BAR_HEIGHT * 0.5
+		bar.offset_left   = left
+		bar.offset_top    = top
+		bar.offset_right  = left + bar_w
+		bar.offset_bottom = top + BOT_BAR_HEIGHT
+		bar.visible = true

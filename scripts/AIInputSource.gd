@@ -21,6 +21,7 @@ const DIFFICULTY_PRESETS: Array = [
 ]
 
 var _target: Node3D = null
+var _enemy_mechs: Array = []   # all enemy mechs found at spawn time
 var _beacons: Array = []
 var _look_delta: Vector2 = Vector2.ZERO
 var _move_dir: Vector2 = Vector2.ZERO
@@ -35,16 +36,31 @@ var _last_pos: Vector3 = Vector3.ZERO
 var _stuck_timer: float = STUCK_CHECK
 var _escape_timer: float = 0.0
 var _escape_dir: float = 1.0
+var _target_refresh: float = 0.0
 
 func _ready() -> void:
 	call_deferred("_find_targets")
 
 func _find_targets() -> void:
+	var own_team: int = get_parent().get("team") if get_parent() != null else 1
 	for mech in get_tree().get_nodes_in_group("mechs"):
-		if mech.get("team") == 0 and not mech.get("is_stealthy"):
-			_target = mech
-			break
+		if mech.get("team") != own_team:
+			_enemy_mechs.append(mech)
 	_beacons = get_tree().get_nodes_in_group("beacons")
+
+func _pick_closest_enemy(from: Node3D) -> Node3D:
+	var best: Node3D = null
+	var best_dist := INF
+	for em in _enemy_mechs:
+		if not is_instance_valid(em) or not em.visible:
+			continue
+		if em.get("is_stealthy"):
+			continue
+		var d: float = from.global_position.distance_to(em.global_position)
+		if d < best_dist:
+			best_dist = d
+			best = em
+	return best
 
 func _pick_target_beacon(bot_mech: Node3D) -> Node:
 	var best: Node = null
@@ -70,6 +86,12 @@ func _process(delta: float) -> void:
 		_move_dir   = Vector2.ZERO
 		_firing     = false
 		return
+
+	# Refresh target periodically or when current target is no longer valid.
+	_target_refresh -= delta
+	if _target_refresh <= 0.0 or not is_instance_valid(_target) or not _target.visible:
+		_target_refresh = 0.5
+		_target = _pick_closest_enemy(bot_mech)
 
 	var has_target: bool = _target != null and is_instance_valid(_target) and _target.visible and not _target.get("is_stealthy")
 	var sens: float = Game.settings.get("mouse_sensitivity", 0.003)
