@@ -24,7 +24,8 @@ var _match: Node = null
 var _player_mech: Node = null
 var _player_team: int = 0
 var _bot_mechs: Array = []
-var _bot_health_bars: Array = []
+var _bot_health_bars: Array = []   # red foreground health rects
+var _bot_bg_bars: Array = []       # black background rects (constant full width)
 var _spectate_label: Label = null
 
 var _beacons: Array = []
@@ -39,13 +40,27 @@ func setup(match_node: Node, player_mech: Node, player_team: int) -> void:
 	score_label.visible = false
 
 func setup_bot_bars(mechs: Array) -> void:
-	# Free any dynamically created extra bars from a previous call.
+	# Free all dynamically created bars from a previous call.
 	for bar in _bot_health_bars:
 		if is_instance_valid(bar) and bar != bot_health_bar:
 			bar.queue_free()
+	for bar in _bot_bg_bars:
+		if is_instance_valid(bar):
+			bar.queue_free()
 	_bot_health_bars.clear()
+	_bot_bg_bars.clear()
 	_bot_mechs = mechs
 	for i in mechs.size():
+		# Black background — z_index -1 ensures it always renders behind the fg.
+		var bg := ColorRect.new()
+		bg.color = Color(0.0, 0.0, 0.0, 0.85)
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bg.z_index = -1
+		bg.visible = false
+		add_child(bg)
+		_bot_bg_bars.append(bg)
+
+		# Red foreground health bar.
 		if i == 0:
 			_bot_health_bars.append(bot_health_bar)
 		else:
@@ -295,27 +310,38 @@ func _update_bot_bar() -> void:
 	var camera := get_viewport().get_camera_3d()
 	for i in _bot_mechs.size():
 		var m: Node = _bot_mechs[i]
-		var bar: ColorRect = _bot_health_bars[i]
+		var fg: ColorRect = _bot_health_bars[i]
+		var bg: ColorRect = _bot_bg_bars[i]
 		if m == null or not is_instance_valid(m) or not m.visible:
-			bar.visible = false
+			fg.visible = false
+			bg.visible = false
 			continue
 		if m.get("is_stealthy"):
-			bar.visible = false
+			fg.visible = false
+			bg.visible = false
 			continue
 		if camera == null:
-			bar.visible = false
+			fg.visible = false
+			bg.visible = false
 			continue
 		var world_pos: Vector3 = m.global_position + BOT_BAR_HEAD_OFFSET
 		if not camera.is_position_in_frustum(world_pos):
-			bar.visible = false
+			fg.visible = false
+			bg.visible = false
 			continue
 		var screen_pos: Vector2 = camera.unproject_position(world_pos)
 		var pct: float = m.health / m.max_health
-		var bar_w: float = BOT_BAR_FULL_WIDTH * pct
 		var left: float = screen_pos.x - BOT_BAR_FULL_WIDTH * 0.5
 		var top: float  = screen_pos.y - BOT_BAR_HEIGHT * 0.5
-		bar.offset_left   = left
-		bar.offset_top    = top
-		bar.offset_right  = left + bar_w
-		bar.offset_bottom = top + BOT_BAR_HEIGHT
-		bar.visible = true
+		# Background always spans the full width.
+		bg.offset_left   = left
+		bg.offset_top    = top
+		bg.offset_right  = left + BOT_BAR_FULL_WIDTH
+		bg.offset_bottom = top + BOT_BAR_HEIGHT
+		bg.visible = true
+		# Foreground shrinks with health.
+		fg.offset_left   = left
+		fg.offset_top    = top
+		fg.offset_right  = left + BOT_BAR_FULL_WIDTH * pct
+		fg.offset_bottom = top + BOT_BAR_HEIGHT
+		fg.visible = pct > 0.0
