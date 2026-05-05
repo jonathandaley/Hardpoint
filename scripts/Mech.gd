@@ -244,6 +244,9 @@ func _die() -> void:
 	visible = false
 	died.emit()
 
+func make_camera_current() -> void:
+	camera.make_current()
+
 func set_input_source(source: Node) -> void:
 	_input_source = source
 	if source != null and source.has_method("is_human_input") and source.is_human_input():

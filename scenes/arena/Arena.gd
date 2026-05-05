@@ -4162,8 +4162,16 @@ var _team_mechs: Array = [[], []]   # mechs per team; player_mech is _team_mechs
 
 var _player: Node                   # human player (team 0)
 var _players: Array = []            # all Player nodes across both teams
+var _spectated_mech: Node = null    # mech whose camera is currently active
 var _match_over: bool = false
 var _beacons_captured: Array[int] = [0, 0]
+
+# Free-floating spectator camera (activated when player mech dies).
+var _spec_pivot: Node3D = null
+var _spec_arm: SpringArm3D = null
+var _spec_cam: Camera3D = null
+var _spec_yaw: float = 0.0
+var _spec_pitch: float = -0.3
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -4735,6 +4743,59 @@ func _setup_players() -> void:
 	# Enemy bots (team 1)
 	for i in range(_team_mechs[1].size()):
 		_spawn_bot_player(_team_mechs[1][i], 1, i)
+
+	# Spectator chain - starts on the human mech; advances through alive allies on death.
+	_spectated_mech = player_mech
+	player_mech.died.connect(_on_spectated_mech_died)
+
+func _on_spectated_mech_died() -> void:
+	if _match_over:
+		return
+	# Find the next living ally on team 0.
+	for m in _team_mechs[0]:
+		if is_instance_valid(m) and m.visible and m != _spectated_mech:
+			_switch_spectator(m)
+			return
+
+func _create_spectator_camera() -> void:
+	_spec_pivot = Node3D.new()
+	_spec_arm = SpringArm3D.new()
+	_spec_arm.spring_length = 5.0
+	_spec_arm.collision_mask = 1
+	_spec_arm.position = Vector3.ZERO
+	_spec_pivot.add_child(_spec_arm)
+	_spec_cam = Camera3D.new()
+	_spec_cam.position = Vector3(0, 0, 5)
+	_spec_arm.add_child(_spec_cam)
+	add_child(_spec_pivot)
+
+func _switch_spectator(m: Node) -> void:
+	_spectated_mech = m
+	if _spec_pivot == null:
+		_create_spectator_camera()
+		# Initialise yaw from the mech's current facing so there is no jump.
+		var torso: Node3D = m.get_node_or_null("Torso")
+		_spec_yaw = torso.global_rotation.y if torso else m.global_rotation.y
+	_spec_cam.make_current()
+	m.died.connect(_on_spectated_mech_died)
+	hud.start_spectating(m)
+
+func _process(_delta: float) -> void:
+	if _spec_pivot == null or _spectated_mech == null or not is_instance_valid(_spectated_mech):
+		return
+	# Position pivot at the mech's camera-arm world position for a stable anchor.
+	var arm: SpringArm3D = _spectated_mech.get("camera_arm")
+	if arm != null:
+		_spec_pivot.global_position = arm.global_position
+	# Apply player mouse input to the spectator yaw/pitch.
+	var input_src = _player.get("input_source") if _player != null else null
+	if input_src != null:
+		var look: Vector2 = input_src.call("get_look_delta")
+		var sens: float = Game.settings.get("mouse_sensitivity", 0.003)
+		_spec_yaw   -= look.x * sens
+		_spec_pitch  = clamp(_spec_pitch - look.y * sens, -1.2, 0.4)
+	_spec_pivot.rotation.y = _spec_yaw
+	_spec_arm.rotation.x   = _spec_pitch
 
 func _input(event: InputEvent) -> void:
 	if DEBUG_PENROSE and event is InputEventKey and event.pressed and event.keycode == KEY_F5:
