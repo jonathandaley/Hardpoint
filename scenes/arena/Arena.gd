@@ -4165,6 +4165,7 @@ var _players: Array = []            # all Player nodes across both teams
 var _spectated_mech: Node = null    # mech whose camera is currently active
 var _match_over: bool = false
 var _beacons_captured: Array[int] = [0, 0]
+var _nav_region: NavigationRegion3D = null
 
 # Free-floating spectator camera (activated when player mech dies).
 var _spec_pivot: Node3D = null
@@ -4192,6 +4193,7 @@ func _ready() -> void:
 		_bake_wall_visuals()
 	_wire_beacons()
 	_setup_players()
+	_create_nav_region()
 	match_node.match_ended.connect(_on_match_ended)
 	match_node.start()
 	SoundManager.play_music("arena")
@@ -4699,6 +4701,13 @@ func _wire_beacons() -> void:
 			child.captured.connect(func(team: int): _beacons_captured[team] += 1)
 
 func _spawn_bot_player(mech: CharacterBody3D, team: int, idx: int) -> void:
+	# Attach a NavigationAgent3D directly to the mech so path queries use its position.
+	var nav_agent := NavigationAgent3D.new()
+	nav_agent.name = "NavAgent"
+	nav_agent.path_desired_distance = 1.5
+	nav_agent.target_desired_distance = 2.5
+	mech.add_child(nav_agent)
+
 	var p := Node.new()
 	p.set_script(load("res://scripts/Player.gd"))
 	p.name = "BotPlayer_%d_%d" % [team, idx]
@@ -4930,4 +4939,25 @@ func _on_mark_requested(pos: Vector3) -> void:
 	mi.set_surface_override_material(0, mat)
 	mi.position = pos + Vector3(0, 0.4, 0)
 	add_child(mi)
+
+func _create_nav_region() -> void:
+	_nav_region = NavigationRegion3D.new()
+	var nav_mesh := NavigationMesh.new()
+	# Agent dimensions: mechs are ~3m tall and 2m wide; keep radius snug so
+	# bots fit through Penrose wall gaps.
+	nav_mesh.agent_radius     = 0.8
+	nav_mesh.agent_height     = 4.0
+	# Allow climbing bowl step risers (2.1m per step) so bots can navigate
+	# from spawn level down to the center beacons.
+	nav_mesh.agent_max_climb  = 2.2
+	nav_mesh.agent_max_slope  = 60.0
+	# 0.75m cells give good wall-gap resolution without blowing up bake time.
+	nav_mesh.cell_size        = 0.75
+	nav_mesh.cell_height      = 0.3
+	_nav_region.navigation_mesh = nav_mesh
+	add_child(_nav_region)
+	# Bake on a background thread so the first frame isn't blocked.
+	_nav_region.bake_finished.connect(func():
+		print("[Arena] NavMesh baked OK"))
+	_nav_region.bake_navigation_mesh(true)
 
