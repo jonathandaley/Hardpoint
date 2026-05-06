@@ -9,7 +9,7 @@
 [sub_resource type="Resource" id="1"]
 script = ExtResource("3")
 slot_size = 0
-position = Vector3(0.0, 1.1, 0.2)
+position = Vector3(0.68, 1.72, -0.30)
 weapon_scene = ExtResource("4")
 
 [resource]
