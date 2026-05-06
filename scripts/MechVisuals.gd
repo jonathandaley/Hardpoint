@@ -122,12 +122,12 @@ static func _heavy_legs(l: Node3D) -> void:
 # Key Torso-space landmarks (default): Waist Y=1.02, Body Y=1.42, Shoulders Y=1.72 +/-0.68X, Head Y=1.92
 
 
-# Slip: aerodynamic sprinter -- midnight blue armor, cyan visor glow
+# Slip: aerodynamic sprinter -- navy blue armor, cyan visor glow
 static func _slip(mech: Node3D) -> void:
 	var t := mech.get_node_or_null("Torso") as Node3D
 	var l := mech.get_node_or_null("Legs") as Node3D
-	var armor  := _mat(Color(0.10, 0.13, 0.22))
-	var detail := _mat(Color(0.06, 0.08, 0.14))
+	var armor  := _mat(Color(0.22, 0.30, 0.55))
+	var detail := _mat(Color(0.14, 0.20, 0.38))
 	var glow   := _mat_e(Color(0, 0, 0), Color(0.10, 0.85, 1.0), 3.0)
 	if t:
 		var body  := t.get_node_or_null("Body") as MeshInstance3D
@@ -162,12 +162,12 @@ static func _slip(mech: Node3D) -> void:
 		_paint_all(l, armor)
 
 
-# Cesh: hunched stealth predator -- near-black olive, no emissive
+# Cesh: hunched stealth predator -- dark olive, no emissive
 static func _cesh(mech: Node3D) -> void:
 	var t := mech.get_node_or_null("Torso") as Node3D
 	var l := mech.get_node_or_null("Legs") as Node3D
-	var armor  := _mat(Color(0.09, 0.11, 0.09))
-	var detail := _mat(Color(0.14, 0.18, 0.14))
+	var armor  := _mat(Color(0.22, 0.28, 0.20))
+	var detail := _mat(Color(0.32, 0.40, 0.29))
 	if t:
 		var body  := t.get_node_or_null("Body") as MeshInstance3D
 		var waist := t.get_node_or_null("Waist") as MeshInstance3D
@@ -196,12 +196,12 @@ static func _cesh(mech: Node3D) -> void:
 		_paint_all(l, armor)
 
 
-# Seeker: dense sensor-ball head, asymmetric heavy shoulder -- dark slate, amber sensor glow
+# Seeker: dense sensor-ball head, asymmetric heavy shoulder -- slate purple, amber sensor glow
 static func _seeker(mech: Node3D) -> void:
 	var t := mech.get_node_or_null("Torso") as Node3D
 	var l := mech.get_node_or_null("Legs") as Node3D
-	var armor  := _mat(Color(0.14, 0.12, 0.18))
-	var detail := _mat(Color(0.09, 0.08, 0.12))
+	var armor  := _mat(Color(0.32, 0.28, 0.44))
+	var detail := _mat(Color(0.20, 0.18, 0.28))
 	var glow   := _mat_e(Color(0, 0, 0), Color(1.0, 0.45, 0.05), 3.0)
 	if t:
 		var body  := t.get_node_or_null("Body") as MeshInstance3D
@@ -232,12 +232,12 @@ static func _seeker(mech: Node3D) -> void:
 		_paint_all(l, armor)
 
 
-# Lynx: lithe cat silhouette -- dark forest green, amber antenna glow
+# Lynx: lithe cat silhouette -- forest green, amber antenna glow
 static func _lynx(mech: Node3D) -> void:
 	var t := mech.get_node_or_null("Torso") as Node3D
 	var l := mech.get_node_or_null("Legs") as Node3D
-	var armor  := _mat(Color(0.10, 0.16, 0.10))
-	var detail := _mat(Color(0.07, 0.11, 0.07))
+	var armor  := _mat(Color(0.22, 0.40, 0.22))
+	var detail := _mat(Color(0.14, 0.26, 0.14))
 	var glow   := _mat_e(Color(0, 0, 0), Color(1.0, 0.65, 0.05), 2.5)
 	if t:
 		var body  := t.get_node_or_null("Body") as MeshInstance3D
@@ -272,13 +272,13 @@ static func _lynx(mech: Node3D) -> void:
 		_paint_all(l, armor)
 
 
-# Hornet: F-18 jet -- dark navy grey, pale blue cockpit glow
+# Hornet: F-18 jet -- navy grey, pale blue cockpit glow
 static func _hornet(mech: Node3D) -> void:
 	var t := mech.get_node_or_null("Torso") as Node3D
 	var l := mech.get_node_or_null("Legs") as Node3D
-	var armor  := _mat(Color(0.10, 0.12, 0.18))
-	var detail := _mat(Color(0.07, 0.08, 0.12))
-	var exhaust := _mat(Color(0.06, 0.06, 0.06))
+	var armor  := _mat(Color(0.24, 0.28, 0.44))
+	var detail := _mat(Color(0.16, 0.18, 0.30))
+	var exhaust := _mat(Color(0.14, 0.14, 0.16))
 	var glow   := _mat_e(Color(0, 0, 0), Color(0.60, 0.80, 1.0), 2.0)
 	if t:
 		var body  := t.get_node_or_null("Body") as MeshInstance3D
@@ -312,12 +312,12 @@ static func _hornet(mech: Node3D) -> void:
 		_paint_all(l, armor)
 
 
-# Hippogriff: B-29 bomber -- olive drab, red nose turret glow
+# Hippogriff: B-29 bomber -- khaki olive, red nose turret glow
 static func _hippogriff(mech: Node3D) -> void:
 	var t := mech.get_node_or_null("Torso") as Node3D
 	var l := mech.get_node_or_null("Legs") as Node3D
-	var armor  := _mat(Color(0.15, 0.15, 0.10))
-	var detail := _mat(Color(0.09, 0.09, 0.06))
+	var armor  := _mat(Color(0.40, 0.40, 0.26))
+	var detail := _mat(Color(0.26, 0.26, 0.16))
 	var glow   := _mat_e(Color(0, 0, 0), Color(1.0, 0.15, 0.05), 3.0)
 	if t:
 		var body  := t.get_node_or_null("Body") as MeshInstance3D
@@ -348,12 +348,12 @@ static func _hippogriff(mech: Node3D) -> void:
 		_paint_all(l, armor)
 
 
-# Kestrel: energy shield tech -- dark indigo, cyan shield emitter glow
+# Kestrel: energy shield tech -- indigo, cyan shield emitter glow
 static func _kestrel(mech: Node3D) -> void:
 	var t := mech.get_node_or_null("Torso") as Node3D
 	var l := mech.get_node_or_null("Legs") as Node3D
-	var armor  := _mat(Color(0.09, 0.10, 0.22))
-	var detail := _mat(Color(0.06, 0.07, 0.15))
+	var armor  := _mat(Color(0.20, 0.22, 0.54))
+	var detail := _mat(Color(0.13, 0.14, 0.36))
 	var glow   := _mat_e(Color(0, 0, 0), Color(0.10, 0.85, 1.0), 4.0)
 	if t:
 		var body  := t.get_node_or_null("Body") as MeshInstance3D
@@ -382,12 +382,12 @@ static func _kestrel(mech: Node3D) -> void:
 		_paint_all(l, armor)
 
 
-# Pegasus: angelic mobility mech -- pale silver, gold jet/crest glow
+# Pegasus: angelic mobility mech -- bright silver, gold jet/crest glow
 static func _pegasus(mech: Node3D) -> void:
 	var t := mech.get_node_or_null("Torso") as Node3D
 	var l := mech.get_node_or_null("Legs") as Node3D
-	var armor  := _mat(Color(0.22, 0.22, 0.24))
-	var detail := _mat(Color(0.15, 0.15, 0.17))
+	var armor  := _mat(Color(0.54, 0.54, 0.58))
+	var detail := _mat(Color(0.36, 0.36, 0.40))
 	var glow   := _mat_e(Color(0, 0, 0), Color(1.0, 0.75, 0.10), 3.0)
 	if t:
 		var body  := t.get_node_or_null("Body") as MeshInstance3D
@@ -421,12 +421,12 @@ static func _pegasus(mech: Node3D) -> void:
 		_paint_all(l, armor)
 
 
-# Everest: fortress paladin -- dark iron grey, white cross emblem glow
+# Everest: fortress paladin -- steel grey, white cross emblem glow
 static func _everest(mech: Node3D) -> void:
 	var t := mech.get_node_or_null("Torso") as Node3D
 	var l := mech.get_node_or_null("Legs") as Node3D
-	var armor  := _mat(Color(0.14, 0.14, 0.14))
-	var detail := _mat(Color(0.08, 0.08, 0.08))
+	var armor  := _mat(Color(0.34, 0.34, 0.36))
+	var detail := _mat(Color(0.20, 0.20, 0.22))
 	var glow   := _mat_e(Color(0, 0, 0), Color(0.90, 0.90, 1.0), 2.5)
 	if t:
 		var body  := t.get_node_or_null("Body") as MeshInstance3D
@@ -504,12 +504,12 @@ static func _vesuvius(mech: Node3D) -> void:
 		_paint_all(l, armor)
 
 
-# Warhog: brutish boar tank -- dark olive brown, no emissive (pure grit)
+# Warhog: brutish boar tank -- mud brown, no emissive (pure grit)
 static func _warhog(mech: Node3D) -> void:
 	var t := mech.get_node_or_null("Torso") as Node3D
 	var l := mech.get_node_or_null("Legs") as Node3D
-	var armor  := _mat(Color(0.14, 0.12, 0.08))
-	var detail := _mat(Color(0.20, 0.17, 0.11))
+	var armor  := _mat(Color(0.36, 0.30, 0.20))
+	var detail := _mat(Color(0.48, 0.40, 0.26))
 	if t:
 		var body  := t.get_node_or_null("Body") as MeshInstance3D
 		var waist := t.get_node_or_null("Waist") as MeshInstance3D
