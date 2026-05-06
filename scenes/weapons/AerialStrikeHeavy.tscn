@@ -1,13 +1,32 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/AerialStrike.gd" id="1"]
 
 [sub_resource type="BoxMesh" id="2"]
-size = Vector3(0.13, 0.13, 0.80)
+size = Vector3(0.20, 0.10, 0.40)
 
 [sub_resource type="StandardMaterial3D" id="3"]
-albedo_color = Color(0.20, 0.14, 0.06, 1)
+albedo_color = Color(0.10, 0.10, 0.12, 1)
 shading_mode = 0
+
+[sub_resource type="BoxMesh" id="4"]
+size = Vector3(0.12, 0.12, 0.70)
+
+[sub_resource type="BoxMesh" id="5"]
+size = Vector3(0.03, 0.20, 0.14)
+
+[sub_resource type="BoxMesh" id="6"]
+size = Vector3(0.03, 0.20, 0.14)
+
+[sub_resource type="BoxMesh" id="7"]
+size = Vector3(0.06, 0.06, 0.08)
+
+[sub_resource type="StandardMaterial3D" id="8"]
+albedo_color = Color(0.0, 0.0, 0.0, 1)
+shading_mode = 0
+emission_enabled = true
+emission = Color(1.0, 0.15, 0.05, 1)
+emission_energy_multiplier = 4.0
 
 [node name="AerialStrikeHeavy" type="Node3D"]
 script = ExtResource("1")
@@ -29,7 +48,28 @@ splash_radius = 8.0
 splash_damage = 2.4
 jitter_radius = 3.0
 
-[node name="GunBody" type="MeshInstance3D" parent="."]
-position = Vector3(0, 0, -0.40)
+[node name="TargetingBase" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.06, -0.20)
 mesh = SubResource("2")
 surface_material_override/0 = SubResource("3")
+
+[node name="LaunchTube" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.18, -0.22)
+rotation_degrees = Vector3(50, 0, 0)
+mesh = SubResource("4")
+surface_material_override/0 = SubResource("3")
+
+[node name="FinLeft" type="MeshInstance3D" parent="."]
+position = Vector3(-0.12, 0.10, -0.20)
+mesh = SubResource("5")
+surface_material_override/0 = SubResource("3")
+
+[node name="FinRight" type="MeshInstance3D" parent="."]
+position = Vector3(0.12, 0.10, -0.20)
+mesh = SubResource("6")
+surface_material_override/0 = SubResource("3")
+
+[node name="EmissiveAccent" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.47, -0.44)
+mesh = SubResource("7")
+surface_material_override/0 = SubResource("8")

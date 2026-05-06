@@ -1,13 +1,32 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/ArcWeapon.gd" id="1"]
 
 [sub_resource type="BoxMesh" id="2"]
-size = Vector3(0.07, 0.07, 0.55)
+size = Vector3(0.08, 0.08, 0.50)
 
 [sub_resource type="StandardMaterial3D" id="3"]
-albedo_color = Color(0.08, 0.22, 0.20, 1)
+albedo_color = Color(0.10, 0.10, 0.12, 1)
 shading_mode = 0
+
+[sub_resource type="BoxMesh" id="4"]
+size = Vector3(0.18, 0.04, 0.18)
+
+[sub_resource type="BoxMesh" id="5"]
+size = Vector3(0.15, 0.04, 0.15)
+
+[sub_resource type="BoxMesh" id="6"]
+size = Vector3(0.12, 0.04, 0.12)
+
+[sub_resource type="BoxMesh" id="7"]
+size = Vector3(0.04, 0.04, 0.08)
+
+[sub_resource type="StandardMaterial3D" id="8"]
+albedo_color = Color(0.0, 0.0, 0.0, 1)
+shading_mode = 0
+emission_enabled = true
+emission = Color(0.10, 0.85, 1.0, 1)
+emission_energy_multiplier = 4.0
 
 [node name="ArcWeaponLight" type="Node3D"]
 script = ExtResource("1")
@@ -23,7 +42,27 @@ requires_lock = true
 muzzle_flash_enabled = false
 impact_sound_enabled = false
 
-[node name="GunBody" type="MeshInstance3D" parent="."]
-position = Vector3(0, 0, -0.275)
+[node name="CentralBarrel" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, -0.25)
 mesh = SubResource("2")
 surface_material_override/0 = SubResource("3")
+
+[node name="Ring1" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, -0.12)
+mesh = SubResource("4")
+surface_material_override/0 = SubResource("3")
+
+[node name="Ring2" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, -0.28)
+mesh = SubResource("5")
+surface_material_override/0 = SubResource("8")
+
+[node name="Ring3" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, -0.44)
+mesh = SubResource("6")
+surface_material_override/0 = SubResource("8")
+
+[node name="Tip" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, -0.53)
+mesh = SubResource("7")
+surface_material_override/0 = SubResource("8")

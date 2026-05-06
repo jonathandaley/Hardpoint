@@ -1,13 +1,36 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/Shotgun.gd" id="1"]
 
 [sub_resource type="BoxMesh" id="2"]
-size = Vector3(0.16, 0.13, 0.72)
+size = Vector3(0.24, 0.14, 0.50)
 
 [sub_resource type="StandardMaterial3D" id="3"]
-albedo_color = Color(0.20, 0.15, 0.06, 1)
+albedo_color = Color(0.10, 0.10, 0.12, 1)
 shading_mode = 0
+
+[sub_resource type="BoxMesh" id="4"]
+size = Vector3(0.10, 0.09, 0.24)
+
+[sub_resource type="BoxMesh" id="5"]
+size = Vector3(0.10, 0.09, 0.24)
+
+[sub_resource type="BoxMesh" id="6"]
+size = Vector3(0.14, 0.16, 0.10)
+
+[sub_resource type="StandardMaterial3D" id="7"]
+albedo_color = Color(0.20, 0.18, 0.16, 1)
+shading_mode = 0
+
+[sub_resource type="BoxMesh" id="8"]
+size = Vector3(0.025, 0.07, 0.22)
+
+[sub_resource type="StandardMaterial3D" id="9"]
+albedo_color = Color(0.0, 0.0, 0.0, 1)
+shading_mode = 0
+emission_enabled = true
+emission = Color(1.0, 0.80, 0.10, 1)
+emission_energy_multiplier = 4.0
 
 [node name="ShotgunHeavy" type="Node3D"]
 script = ExtResource("1")
@@ -25,7 +48,27 @@ damage_far = 1.25
 fire_sound_key = "shotgun_fire"
 projectile_speed = 50.0
 
-[node name="GunBody" type="MeshInstance3D" parent="."]
-position = Vector3(0, 0, -0.36)
+[node name="Body" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, -0.25)
 mesh = SubResource("2")
 surface_material_override/0 = SubResource("3")
+
+[node name="BarrelTop" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.07, -0.62)
+mesh = SubResource("4")
+surface_material_override/0 = SubResource("3")
+
+[node name="BarrelBottom" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.04, -0.62)
+mesh = SubResource("5")
+surface_material_override/0 = SubResource("3")
+
+[node name="BreechBlock" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.015, -0.52)
+mesh = SubResource("6")
+surface_material_override/0 = SubResource("7")
+
+[node name="EmissiveAccent" type="MeshInstance3D" parent="."]
+position = Vector3(0.12, 0.015, -0.62)
+mesh = SubResource("8")
+surface_material_override/0 = SubResource("9")

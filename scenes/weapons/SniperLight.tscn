@@ -1,13 +1,36 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/Sniper.gd" id="1"]
 
 [sub_resource type="BoxMesh" id="2"]
-size = Vector3(0.08, 0.08, 1.1)
+size = Vector3(0.055, 0.055, 0.90)
 
 [sub_resource type="StandardMaterial3D" id="3"]
-albedo_color = Color(0.18, 0.18, 0.22, 1)
+albedo_color = Color(0.10, 0.10, 0.12, 1)
 shading_mode = 0
+
+[sub_resource type="BoxMesh" id="4"]
+size = Vector3(0.055, 0.055, 0.26)
+
+[sub_resource type="StandardMaterial3D" id="5"]
+albedo_color = Color(0.20, 0.18, 0.16, 1)
+shading_mode = 0
+
+[sub_resource type="BoxMesh" id="6"]
+size = Vector3(0.10, 0.04, 0.05)
+
+[sub_resource type="BoxMesh" id="7"]
+size = Vector3(0.16, 0.04, 0.05)
+
+[sub_resource type="BoxMesh" id="8"]
+size = Vector3(0.04, 0.04, 0.04)
+
+[sub_resource type="StandardMaterial3D" id="9"]
+albedo_color = Color(0.0, 0.0, 0.0, 1)
+shading_mode = 0
+emission_enabled = true
+emission = Color(0.5, 0.75, 1.0, 1)
+emission_energy_multiplier = 4.0
 
 [node name="SniperLight" type="Node3D"]
 script = ExtResource("1")
@@ -21,7 +44,27 @@ projectile_speed = 168.0
 shake_magnitude = 0.02
 fire_sound_key = "sniper_fire"
 
-[node name="GunBody" type="MeshInstance3D" parent="."]
-position = Vector3(0, 0, -0.55)
+[node name="Barrel" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, -0.45)
 mesh = SubResource("2")
 surface_material_override/0 = SubResource("3")
+
+[node name="Scope" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.10, -0.30)
+mesh = SubResource("4")
+surface_material_override/0 = SubResource("5")
+
+[node name="ScopeMount" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.065, -0.30)
+mesh = SubResource("6")
+surface_material_override/0 = SubResource("5")
+
+[node name="Bipod" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.04, -0.65)
+mesh = SubResource("7")
+surface_material_override/0 = SubResource("3")
+
+[node name="EmissiveAccent" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.10, -0.41)
+mesh = SubResource("8")
+surface_material_override/0 = SubResource("9")

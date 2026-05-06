@@ -1,13 +1,29 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/LaserCannon.gd" id="1"]
 
 [sub_resource type="BoxMesh" id="2"]
-size = Vector3(0.08, 0.08, 0.6)
+size = Vector3(0.10, 0.10, 0.60)
 
 [sub_resource type="StandardMaterial3D" id="3"]
-albedo_color = Color(0.15, 0.3, 0.15, 1)
+albedo_color = Color(0.10, 0.10, 0.12, 1)
 shading_mode = 0
+
+[sub_resource type="BoxMesh" id="4"]
+size = Vector3(0.13, 0.13, 0.08)
+
+[sub_resource type="BoxMesh" id="5"]
+size = Vector3(0.22, 0.02, 0.30)
+
+[sub_resource type="BoxMesh" id="6"]
+size = Vector3(0.09, 0.09, 0.04)
+
+[sub_resource type="StandardMaterial3D" id="7"]
+albedo_color = Color(0.0, 0.0, 0.0, 1)
+shading_mode = 0
+emission_enabled = true
+emission = Color(0.20, 1.0, 0.30, 1)
+emission_energy_multiplier = 4.0
 
 [node name="LaserCannonLight" type="Node3D"]
 script = ExtResource("1")
@@ -22,7 +38,22 @@ shake_magnitude = 0.004
 muzzle_flash_enabled = false
 impact_sound_enabled = false
 
-[node name="GunBody" type="MeshInstance3D" parent="."]
-position = Vector3(0, 0, -0.3)
+[node name="Body" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, -0.30)
 mesh = SubResource("2")
 surface_material_override/0 = SubResource("3")
+
+[node name="LensHousing" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, -0.62)
+mesh = SubResource("4")
+surface_material_override/0 = SubResource("3")
+
+[node name="HeatFin" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.08, -0.28)
+mesh = SubResource("5")
+surface_material_override/0 = SubResource("3")
+
+[node name="EmissiveLens" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, -0.64)
+mesh = SubResource("6")
+surface_material_override/0 = SubResource("7")

@@ -1,13 +1,33 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/Rifle.gd" id="1"]
 
 [sub_resource type="BoxMesh" id="2"]
-size = Vector3(0.1, 0.1, 0.7)
+size = Vector3(0.14, 0.10, 0.40)
 
 [sub_resource type="StandardMaterial3D" id="3"]
-albedo_color = Color(0.25, 0.25, 0.3, 1)
+albedo_color = Color(0.10, 0.10, 0.12, 1)
 shading_mode = 0
+
+[sub_resource type="BoxMesh" id="4"]
+size = Vector3(0.055, 0.055, 0.38)
+
+[sub_resource type="BoxMesh" id="5"]
+size = Vector3(0.075, 0.18, 0.09)
+
+[sub_resource type="StandardMaterial3D" id="6"]
+albedo_color = Color(0.20, 0.18, 0.16, 1)
+shading_mode = 0
+
+[sub_resource type="BoxMesh" id="7"]
+size = Vector3(0.02, 0.02, 0.16)
+
+[sub_resource type="StandardMaterial3D" id="8"]
+albedo_color = Color(0.0, 0.0, 0.0, 1)
+shading_mode = 0
+emission_enabled = true
+emission = Color(1.0, 0.55, 0.05, 1)
+emission_energy_multiplier = 4.0
 
 [node name="RifleLight" type="Node3D"]
 script = ExtResource("1")
@@ -21,7 +41,22 @@ projectile_speed = 55.0
 shake_magnitude = 0.01
 fire_sound_key = "rifle_fire"
 
-[node name="GunBody" type="MeshInstance3D" parent="."]
-position = Vector3(0, 0, -0.35)
+[node name="Body" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0, -0.20)
 mesh = SubResource("2")
 surface_material_override/0 = SubResource("3")
+
+[node name="Barrel" type="MeshInstance3D" parent="."]
+position = Vector3(0, 0.022, -0.57)
+mesh = SubResource("4")
+surface_material_override/0 = SubResource("3")
+
+[node name="Magazine" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.14, -0.16)
+mesh = SubResource("5")
+surface_material_override/0 = SubResource("6")
+
+[node name="EmissiveAccent" type="MeshInstance3D" parent="."]
+position = Vector3(0.072, 0.01, -0.16)
+mesh = SubResource("7")
+surface_material_override/0 = SubResource("8")
