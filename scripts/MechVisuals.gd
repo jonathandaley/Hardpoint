@@ -174,25 +174,32 @@ static func _cesh(mech: Node3D) -> void:
 		var head  := t.get_node_or_null("Head") as MeshInstance3D
 		var sl    := t.get_node_or_null("ShoulderLeft") as MeshInstance3D
 		var sr    := t.get_node_or_null("ShoulderRight") as MeshInstance3D
-		_bm(body,  Vector3(1.04, 0.50, 0.76))
-		_bm(waist, Vector3(0.62, 0.12, 0.60))
-		_bm(head,  Vector3(0.38, 0.18, 0.44))
-		_bm(sl, Vector3(0.24, 0.20, 0.58))
-		_bm(sr, Vector3(0.24, 0.20, 0.58))
+		# body h=0.66: bottom=1.09=waist_top, top=1.75; radius at Y=1.72: r=0.421
+		_cyl(body, 0.42, 0.44, 0.66)
+		_bm(waist, Vector3(0.56, 0.14, 0.56))
+		_bm(head,  Vector3(0.36, 0.20, 0.42))
+		_bm(sl, Vector3(0.20, 0.18, 0.52))
+		_bm(sr, Vector3(0.20, 0.18, 0.52))
+		# shoulder_x = cylinder_r_at_1.72(0.421) + shoulder_hw(0.10) = 0.521
+		if sl: sl.position.x = -0.52
+		if sr: sr.position.x =  0.52
 		_paint(body, armor); _paint(waist, armor); _paint(head, armor)
 		_paint(sl, armor);   _paint(sr, armor)
-		# sensor pod on left shoulder top
-		_paint(_add_cyl(t, Vector3(-0.68, 1.91, 0.0), 0.08, 0.08, 0.18, 8), detail)
-		# wide hunched neck
-		_paint(_add_box(t, Vector3(0.0, 1.75, 0.0),   Vector3(0.30, 0.16, 0.42)), armor)
-		# sensor backpack plate
-		_paint(_add_box(t, Vector3(0.0, 1.62, 0.40),  Vector3(0.40, 0.28, 0.04)), detail)
-		# camo vent strips on body sides
-		_paint(_add_box(t, Vector3( 0.53, 1.42, 0.0), Vector3(0.02, 0.22, 0.32)), detail)
-		_paint(_add_box(t, Vector3(-0.53, 1.42, 0.0), Vector3(0.02, 0.22, 0.32)), detail)
+		# sensor pod: base at shoulder_top(1.81), center Y=1.90, X matches shoulder center
+		_paint(_add_cyl(t, Vector3(-0.52, 1.90, 0.0), 0.08, 0.08, 0.18, 8), detail)
+		# neck: spans body_top(1.75) to head_bottom(1.82)
+		_paint(_add_box(t, Vector3(0.0, 1.785, 0.0),  Vector3(0.30, 0.12, 0.38)), armor)
+		# backpack plate: cylinder Z-surface at Y=1.58 = 0.425, plate at 0.44
+		_paint(_add_box(t, Vector3(0.0, 1.58, 0.44),  Vector3(0.38, 0.26, 0.04)), detail)
+		# vent strips: cylinder X at Y=1.42 = 0.43, vent center at 0.44
+		_paint(_add_box(t, Vector3( 0.44, 1.42, 0.0), Vector3(0.02, 0.22, 0.32)), detail)
+		_paint(_add_box(t, Vector3(-0.44, 1.42, 0.0), Vector3(0.02, 0.22, 0.32)), detail)
+		# waist face panels
+		_paint(_add_box(t, Vector3(0.0, 1.08, -0.29), Vector3(0.36, 0.06, 0.02)), detail)
+		_paint(_add_box(t, Vector3(0.0, 1.08,  0.29), Vector3(0.36, 0.06, 0.02)), detail)
 	if l:
-		_bm(l.get_node_or_null("Hips") as MeshInstance3D, Vector3(0.96, 0.20, 0.54))
-		_leg_segs(l, Vector3(0.18, 0.56, 0.17), Vector3(0.16, 0.50, 0.15), Vector3(0.14, 0.50, 0.14))
+		_bm(l.get_node_or_null("Hips") as MeshInstance3D, Vector3(0.90, 0.20, 0.52))
+		_leg_segs(l, Vector3(0.18, 0.44, 0.17), Vector3(0.16, 0.40, 0.15), Vector3(0.14, 0.38, 0.14))
 		_paint_all(l, armor)
 
 
@@ -209,23 +216,29 @@ static func _seeker(mech: Node3D) -> void:
 		var head  := t.get_node_or_null("Head") as MeshInstance3D
 		var sl    := t.get_node_or_null("ShoulderLeft") as MeshInstance3D
 		var sr    := t.get_node_or_null("ShoulderRight") as MeshInstance3D
-		_bm(body,  Vector3(0.90, 0.60, 0.72))
-		_bm(waist, Vector3(0.68, 0.18, 0.62))
+		# body h=0.64: bottom=1.10=waist_top, top=1.74; radius at Y=1.72: r=0.263
+		_cyl(body, 0.26, 0.34, 0.64)
+		_bm(waist, Vector3(0.56, 0.16, 0.52))
 		if head: head.mesh = null  # gun replaces head
-		_bm(sl, Vector3(0.18, 0.20, 0.44))
-		_bm(sr, Vector3(0.32, 0.36, 0.62))
-		if sr: sr.position.x = 0.72
+		_bm(sl, Vector3(0.20, 0.24, 0.46))
+		_bm(sr, Vector3(0.20, 0.24, 0.46))
+		# shoulder_x = cylinder_r_at_1.72(0.263) + shoulder_hw(0.10) = 0.363
+		if sl: sl.position.x = -0.36
+		if sr: sr.position.x =  0.36
 		_paint(body, armor); _paint(waist, armor)
 		_paint(sl, armor);   _paint(sr, armor)
-		# gun mount pedestal at neck
-		_paint(_add_cyl(t, Vector3(0.0, 1.78, 0.0),      0.18, 0.22, 0.10), armor)
-		# sensor panel on heavy shoulder front
-		_paint(_add_box(t, Vector3(0.84, 1.78, -0.33),   Vector3(0.14, 0.12, 0.02)), glow)
-		# body front sensor strip
-		_paint(_add_box(t, Vector3(0.0, 1.55, -0.37),    Vector3(0.30, 0.06, 0.02)), glow)
+		# gun mount pedestal: bottom=1.73, body_top=1.74, touching
+		_paint(_add_cyl(t, Vector3(0.0, 1.78, 0.0),       0.18, 0.22, 0.10), armor)
+		# sensor rings: X matches shoulder center, Y=shoulder_top(1.84)+ring_half_h(0.01)
+		_paint(_add_cyl(t, Vector3(-0.36, 1.85, 0.0),     0.12, 0.12, 0.02, 6), glow)
+		_paint(_add_cyl(t, Vector3( 0.36, 1.85, 0.0),     0.12, 0.12, 0.02, 6), glow)
+		# sensor strip: body front at Y=1.52 = Z=-0.288, strip at -0.30
+		_paint(_add_box(t, Vector3(0.0, 1.52, -0.30),     Vector3(0.28, 0.06, 0.02)), glow)
+		# collar band: wraps body at Y=1.68 (body r=0.268), ring r=0.28 clears body
+		_paint(_add_cyl(t, Vector3(0.0, 1.68, 0.0),       0.28, 0.28, 0.04, 10), detail)
 	if l:
-		_bm(l.get_node_or_null("Hips") as MeshInstance3D, Vector3(0.84, 0.20, 0.50))
-		_leg_segs(l, Vector3(0.22, 0.50, 0.20), Vector3(0.20, 0.50, 0.18), Vector3(0.18, 0.50, 0.16))
+		_bm(l.get_node_or_null("Hips") as MeshInstance3D, Vector3(0.76, 0.18, 0.46))
+		_leg_segs(l, Vector3(0.19, 0.46, 0.18), Vector3(0.17, 0.46, 0.16), Vector3(0.15, 0.46, 0.14))
 		_paint_all(l, armor)
 
 
@@ -283,25 +296,29 @@ static func _hornet(mech: Node3D) -> void:
 		var head  := t.get_node_or_null("Head") as MeshInstance3D
 		var sl    := t.get_node_or_null("ShoulderLeft") as MeshInstance3D
 		var sr    := t.get_node_or_null("ShoulderRight") as MeshInstance3D
-		_bm(body,  Vector3(1.12, 0.48, 0.82))
-		_bm(waist, Vector3(0.58, 0.16, 0.68))
-		_bm(head,  Vector3(0.38, 0.40, 0.50))
-		_bm(sl, Vector3(0.38, 0.16, 0.72))
-		_bm(sr, Vector3(0.38, 0.16, 0.72))
+		# body h=0.64: bottom=1.10(waist_top=1.11, gap=0.01), top=1.74; r at Y=1.72: 0.382
+		_cyl(body, 0.38, 0.44, 0.64, 10)
+		_bm(waist, Vector3(0.56, 0.18, 0.66))
+		_cyl(head, 0.18, 0.24, 0.40, 8)
+		_bm(sl, Vector3(0.38, 0.14, 0.70))
+		_bm(sr, Vector3(0.38, 0.14, 0.70))
 		if sl: sl.position.x = -0.80
 		if sr: sr.position.x =  0.80
 		_paint(body, armor); _paint(waist, armor); _paint(head, armor)
 		_paint(sl, armor);   _paint(sr, armor)
-		# twin engine nacelles
+		# twin engine nacelles (front at Z=0.34, body back at Y=1.20 = 0.431, embedded ok)
 		_paint(_add_cyl(t, Vector3(-0.22, 1.20, 0.46), 0.10, 0.12, 0.40, 10), exhaust)
 		_paint(_add_cyl(t, Vector3( 0.22, 1.20, 0.46), 0.10, 0.12, 0.40, 10), exhaust)
-		# flat neck
-		_paint(_add_box(t, Vector3(0.0, 1.69, 0.0),    Vector3(0.32, 0.06, 0.44)), armor)
-		# cockpit window strip
-		_paint(_add_box(t, Vector3(0.0, 1.94, -0.26),  Vector3(0.32, 0.14, 0.02)), glow)
-		# air intake ducts
-		_paint(_add_box(t, Vector3(-0.22, 1.24, -0.42), Vector3(0.14, 0.10, 0.02)), detail)
-		_paint(_add_box(t, Vector3( 0.22, 1.24, -0.42), Vector3(0.14, 0.10, 0.02)), detail)
+		# arm struts: inner=body_r_at_1.72(0.382), outer=shoulder_inner(0.61), center=0.496, w=0.228
+		_paint(_add_box(t, Vector3(-0.496, 1.72, 0.0), Vector3(0.228, 0.10, 0.36)), detail)
+		_paint(_add_box(t, Vector3( 0.496, 1.72, 0.0), Vector3(0.228, 0.10, 0.36)), detail)
+		# fuselage-cockpit taper ring: body_top=1.74, head_bottom=1.72, bridges step
+		_paint(_add_cyl(t, Vector3(0.0, 1.74, 0.0),    0.25, 0.38, 0.04, 10), armor)
+		# cockpit visor: head front at Y=1.96 = Z=-0.204, strip at -0.20
+		_paint(_add_box(t, Vector3(0.0, 1.96, -0.20),  Vector3(0.28, 0.10, 0.02)), glow)
+		# air intake ducts: body front at Y=1.24 = Z=-0.427, ducts at -0.43
+		_paint(_add_box(t, Vector3(-0.22, 1.24, -0.43), Vector3(0.14, 0.10, 0.02)), detail)
+		_paint(_add_box(t, Vector3( 0.22, 1.24, -0.43), Vector3(0.14, 0.10, 0.02)), detail)
 		# nacelle mounting pylons
 		_paint(_add_box(t, Vector3(-0.22, 1.20, 0.34),  Vector3(0.08, 0.10, 0.12)), detail)
 		_paint(_add_box(t, Vector3( 0.22, 1.20, 0.34),  Vector3(0.08, 0.10, 0.12)), detail)
@@ -363,6 +380,9 @@ static func _kestrel(mech: Node3D) -> void:
 		_cyl(head, 0.17, 0.17, 0.28, 8)
 		_cyl(sl, 0.18, 0.20, 0.22, 6)
 		_cyl(sr, 0.18, 0.20, 0.22, 6)
+		# shoulder_x = body_r_at_1.72(0.401) + shoulder_br(0.20) = 0.601
+		if sl: sl.position.x = -0.60
+		if sr: sr.position.x =  0.60
 		_paint(body, armor); _paint(waist, armor); _paint(head, armor)
 		_paint(sl, armor);   _paint(sr, armor)
 		# shield emitter cross at waist
@@ -370,9 +390,9 @@ static func _kestrel(mech: Node3D) -> void:
 		_paint(_add_box(t, Vector3(0.0, 1.02, 0.0), Vector3(0.04, 0.06, 1.10)), glow)
 		# short neck cylinder
 		_paint(_add_cyl(t, Vector3(0.0, 1.755, 0.0), 0.15, 0.17, 0.05, 8), armor)
-		# hex emitter rings on shoulder tops
-		_paint(_add_cyl(t, Vector3(-0.68, 1.84, 0.0), 0.16, 0.16, 0.02, 6), glow)
-		_paint(_add_cyl(t, Vector3( 0.68, 1.84, 0.0), 0.16, 0.16, 0.02, 6), glow)
+		# hex emitter rings: X matches shoulder center (0.60), Y=shoulder_top(1.83)+ring_half_h(0.01)
+		_paint(_add_cyl(t, Vector3(-0.60, 1.84, 0.0), 0.16, 0.16, 0.02, 6), glow)
+		_paint(_add_cyl(t, Vector3( 0.60, 1.84, 0.0), 0.16, 0.16, 0.02, 6), glow)
 		# energy conduit strip on body front
 		_paint(_add_box(t, Vector3(0.0, 1.42, -0.42), Vector3(0.04, 0.52, 0.02)), glow)
 	if l:
@@ -397,23 +417,23 @@ static func _pegasus(mech: Node3D) -> void:
 		_bm(head,  Vector3(0.36, 0.34, 0.42))
 		_bm(sl, Vector3(0.22, 0.20, 0.58))
 		_bm(sr, Vector3(0.22, 0.20, 0.58))
-		if sl: sl.position.y = 1.82
-		if sr: sr.position.y = 1.82
+		if sl: sl.position = Vector3(-0.54, 1.82, 0.0)
+		if sr: sr.position = Vector3( 0.54, 1.82, 0.0)
 		_paint(body, armor); _paint(waist, armor); _paint(head, armor)
 		_paint(sl, armor);   _paint(sr, armor)
 		# jump jets
 		_paint(_add_cyl(t, Vector3(-0.18, 1.32, 0.44), 0.10, 0.12, 0.48, 10), glow)
 		_paint(_add_cyl(t, Vector3( 0.18, 1.32, 0.44), 0.10, 0.12, 0.48, 10), glow)
 		# head crest
-		_paint(_add_box(t, Vector3(0.0, 2.08, 0.0),   Vector3(0.06, 0.18, 0.04)), glow)
+		_paint(_add_box(t, Vector3(0.0, 2.08, 0.0),    Vector3(0.06, 0.18, 0.04)), glow)
 		# thin neck
-		_paint(_add_box(t, Vector3(0.0, 1.735, 0.0),  Vector3(0.26, 0.03, 0.34)), detail)
+		_paint(_add_box(t, Vector3(0.0, 1.735, 0.0),   Vector3(0.26, 0.03, 0.34)), detail)
 		# jet mounting brackets
 		_paint(_add_box(t, Vector3(-0.18, 1.32, 0.38), Vector3(0.14, 0.14, 0.08)), detail)
 		_paint(_add_box(t, Vector3( 0.18, 1.32, 0.38), Vector3(0.14, 0.14, 0.08)), detail)
-		# wing vane plates on raised shoulder tops
-		_paint(_add_box(t, Vector3(-0.68, 1.93, 0.0), Vector3(0.20, 0.02, 0.42)), detail)
-		_paint(_add_box(t, Vector3( 0.68, 1.93, 0.0), Vector3(0.20, 0.02, 0.42)), detail)
+		# wing vane plates on shoulder tops
+		_paint(_add_box(t, Vector3(-0.54, 1.93, 0.0),  Vector3(0.20, 0.02, 0.42)), detail)
+		_paint(_add_box(t, Vector3( 0.54, 1.93, 0.0),  Vector3(0.20, 0.02, 0.42)), detail)
 	if l:
 		_paint_all(l, armor)
 
@@ -451,6 +471,14 @@ static func _everest(mech: Node3D) -> void:
 		_paint(_add_box(t, Vector3(0.0, 2.02, -0.24),  Vector3(0.32, 0.10, 0.02)), glow)
 		# chin guard
 		_paint(_add_box(t, Vector3(0.0, 1.82, -0.44),  Vector3(0.26, 0.08, 0.02)), detail)
+		# shield: white base + red cross (PhysicalShield local space, shield = 1.6x2.2x0.06)
+		var shield := t.get_node_or_null("PhysicalShield") as Node3D
+		if shield:
+			var sm := shield.get_node_or_null("ShieldMesh") as MeshInstance3D
+			_paint(sm, _mat(Color(0.92, 0.92, 0.94)))
+			var red := _mat(Color(0.78, 0.06, 0.06))
+			_paint(_add_box(shield, Vector3(0.0, 0.0, -0.04), Vector3(1.20, 0.34, 0.02)), red)
+			_paint(_add_box(shield, Vector3(0.0, 0.0, -0.04), Vector3(0.34, 1.90, 0.02)), red)
 	if l:
 		_bm(l.get_node_or_null("Hips") as MeshInstance3D, Vector3(1.16, 0.28, 0.66))
 		_heavy_legs(l)

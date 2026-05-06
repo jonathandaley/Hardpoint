@@ -3,31 +3,31 @@
 [ext_resource type="Script" path="res://scripts/Patience.gd" id="1"]
 
 [sub_resource type="BoxMesh" id="2"]
-size = Vector3(0.26, 0.22, 1.10)
+size = Vector3(0.416, 0.352, 1.76)
 
 [sub_resource type="StandardMaterial3D" id="3"]
 albedo_color = Color(0.14, 0.08, 0.18, 1)
 shading_mode = 0
 
 [sub_resource type="BoxMesh" id="4"]
-size = Vector3(0.24, 0.24, 0.25)
+size = Vector3(0.384, 0.384, 0.4)
 
 [sub_resource type="BoxMesh" id="5"]
-size = Vector3(0.16, 0.16, 0.90)
+size = Vector3(0.256, 0.256, 1.44)
 
 [sub_resource type="StandardMaterial3D" id="6"]
 albedo_color = Color(0.16, 0.10, 0.22, 1)
 shading_mode = 0
 
 [sub_resource type="BoxMesh" id="7"]
-size = Vector3(0.04, 0.18, 0.30)
+size = Vector3(0.064, 0.288, 0.48)
 
 [sub_resource type="StandardMaterial3D" id="8"]
 albedo_color = Color(0.20, 0.18, 0.16, 1)
 shading_mode = 0
 
 [sub_resource type="BoxMesh" id="9"]
-size = Vector3(0.12, 0.12, 0.92)
+size = Vector3(0.192, 0.192, 1.472)
 
 [sub_resource type="StandardMaterial3D" id="10"]
 albedo_color = Color(0.0, 0.0, 0.0, 1)

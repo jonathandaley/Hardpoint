@@ -3,30 +3,30 @@
 [ext_resource type="Script" path="res://scripts/Sniper.gd" id="1"]
 
 [sub_resource type="BoxMesh" id="2"]
-size = Vector3(0.09, 0.09, 1.20)
+size = Vector3(0.234, 0.234, 3.12)
 
 [sub_resource type="StandardMaterial3D" id="3"]
 albedo_color = Color(0.10, 0.10, 0.12, 1)
 shading_mode = 0
 
 [sub_resource type="BoxMesh" id="4"]
-size = Vector3(0.08, 0.08, 0.32)
+size = Vector3(0.208, 0.208, 0.832)
 
 [sub_resource type="StandardMaterial3D" id="5"]
 albedo_color = Color(0.20, 0.18, 0.16, 1)
 shading_mode = 0
 
 [sub_resource type="BoxMesh" id="6"]
-size = Vector3(0.14, 0.05, 0.08)
+size = Vector3(0.364, 0.13, 0.208)
 
 [sub_resource type="BoxMesh" id="7"]
-size = Vector3(0.16, 0.16, 0.10)
+size = Vector3(0.416, 0.416, 0.26)
 
 [sub_resource type="BoxMesh" id="8"]
-size = Vector3(0.22, 0.04, 0.06)
+size = Vector3(0.572, 0.104, 0.156)
 
 [sub_resource type="BoxMesh" id="9"]
-size = Vector3(0.05, 0.05, 0.04)
+size = Vector3(0.13, 0.13, 0.104)
 
 [sub_resource type="StandardMaterial3D" id="10"]
 albedo_color = Color(0.0, 0.0, 0.0, 1)

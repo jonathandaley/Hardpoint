@@ -3,7 +3,7 @@ extends "res://scripts/WeaponBase.gd"
 # Fires pellet_count projectiles per shot with random spread.
 # Damage falls off linearly from damage_close (point-blank) to damage_far (max range).
 
-const PROJECTILE_SCENE := preload("res://scenes/weapons/Projectile.tscn")
+const PROJECTILE_SCENE := preload("res://scenes/weapons/ProjectileGrey.tscn")
 
 @export var pellet_count: int = 8
 @export var spread_angle: float = 5.0   # half-cone degrees per pellet

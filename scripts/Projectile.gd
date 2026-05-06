@@ -6,22 +6,62 @@ extends Node3D
 var speed: float = 40.0
 var damage: float = 25.0
 var lifetime: float = 3.0
-var team: int = 0          # reserved for friendly-fire checks later
-var _exclude_rids: Array = []   # RIDs excluded from hit tests (mech + own shield)
-var on_hit: Callable       # called when the projectile hits a damageable target
-var damage_override: Callable  # optional: func(distance: float) -> float
+var team: int = 0
+var _exclude_rids: Array = []
+var on_hit: Callable
+var damage_override: Callable
 var splash_radius: float = 0.0
 var splash_damage: float = 0.0
-var owner_body: Node3D = null  # excluded from splash (set by weapon on spawn)
+var owner_body: Node3D = null
+
+@export var smoke_trail: bool = false
+
+const _SMOKE_INTERVAL := 0.06
+const _SMOKE_LIFETIME := 0.18
+
+static var _smoke_mesh: SphereMesh = null
+static var _smoke_mat: StandardMaterial3D = null
 
 var _age: float = 0.0
 var _distance_traveled: float = 0.0
+var _smoke_timer: float = 0.0
+
+
+static func _init_smoke() -> void:
+	if _smoke_mesh != null:
+		return
+	_smoke_mesh = SphereMesh.new()
+	_smoke_mesh.radius = 0.08
+	_smoke_mesh.height = 0.16
+	_smoke_mat = StandardMaterial3D.new()
+	_smoke_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_smoke_mat.albedo_color = Color(0.44, 0.44, 0.44)
+
+
+func _spawn_smoke() -> void:
+	_init_smoke()
+	var mi := MeshInstance3D.new()
+	mi.mesh = _smoke_mesh
+	mi.set_surface_override_material(0, _smoke_mat)
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	get_tree().current_scene.add_child(mi)
+	mi.global_position = global_position
+	var tw := mi.create_tween()
+	tw.tween_property(mi, "scale", Vector3.ZERO, _SMOKE_LIFETIME)
+	tw.tween_callback(mi.queue_free)
+
 
 func _physics_process(delta: float) -> void:
 	_age += delta
 	if _age >= lifetime:
 		queue_free()
 		return
+
+	if smoke_trail:
+		_smoke_timer += delta
+		if _smoke_timer >= _SMOKE_INTERVAL:
+			_smoke_timer = 0.0
+			_spawn_smoke()
 
 	var step := -global_transform.basis.z * speed * delta
 	_distance_traveled += step.length()
