@@ -3,23 +3,23 @@
 [ext_resource type="Script" path="res://scripts/AerialStrike.gd" id="1"]
 
 [sub_resource type="BoxMesh" id="2"]
-size = Vector3(0.20, 0.10, 0.40)
+size = Vector3(0.52, 0.26, 1.04)
 
 [sub_resource type="StandardMaterial3D" id="3"]
 albedo_color = Color(0.10, 0.10, 0.12, 1)
 shading_mode = 0
 
 [sub_resource type="BoxMesh" id="4"]
-size = Vector3(0.12, 0.12, 0.70)
+size = Vector3(0.312, 0.312, 1.82)
 
 [sub_resource type="BoxMesh" id="5"]
-size = Vector3(0.03, 0.20, 0.14)
+size = Vector3(0.078, 0.52, 0.364)
 
 [sub_resource type="BoxMesh" id="6"]
-size = Vector3(0.03, 0.20, 0.14)
+size = Vector3(0.078, 0.52, 0.364)
 
 [sub_resource type="BoxMesh" id="7"]
-size = Vector3(0.06, 0.06, 0.08)
+size = Vector3(0.156, 0.156, 0.208)
 
 [sub_resource type="StandardMaterial3D" id="8"]
 albedo_color = Color(0.0, 0.0, 0.0, 1)

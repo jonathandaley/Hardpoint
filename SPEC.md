@@ -61,7 +61,7 @@ V15: bot AI target lock & homing → built once, shared by Rocket Launcher & Arc
 V16: ⊥ em-dashes in `.gd` comments; hyphens only
 V17: Heavy slot → Heavy weapon only; Light slot → Light weapon only; ⊥ cross-size fit
 V18: ∀ maps → exactly 5 beacons; ⊥ map ships with different count
-V19: win condition = beacon drain to 0 OR kill-domination threshold reached; ⊥ time limit as primary win condition
+V19: win condition = beacon drain to 0; ⊥ time limit as primary win condition; ⊥ game ends on last-player death while squad lives remain
 
 ## §T TASKS
 
@@ -132,9 +132,9 @@ T63|.|leg rotation smoothing: legs rotate toward move direction gradually at rat
 T64|.|multi-mech loadout: hangar lets player select squad of up to 5 mechs before match; on death, player chooses next mech from remaining squad before respawning|T34,T57
 T65|.|team color perspective: client always renders own team blue, enemy red regardless of server team assignment|T40
 T66|.|tutorial: first-run overlay on hangar screen explains controls; dismissed permanently per account; deferred until per-account system|T40
-T67|.|kill-domination win condition: track kills per team; team reaching kill threshold drains opponent to 0 instantly (threshold TBD)|V19
-T68|.|mech visual art pass: all 8 mechs get Matrix-3-style geometry (rust/neon/mechanical bulk); block-primitive placeholders replaced|−
-T69|.|weapon visual art pass: all weapon scenes get Matrix-3-style models; match muzzle flash/beam origin to new geometry|T68
+T67|.|multi-life game-end guard: `BeaconMatch` ⊥ ends match on last-player death if squad lives remain (V19); gate on T64|T64,V19
+T68|x|mech visual art pass: all 8 mechs get Matrix-3-style geometry (rust/neon/mechanical bulk); block-primitive placeholders replaced|−
+T69|x|weapon visual art pass: all weapon scenes get Matrix-3-style models; light ×2 size, heavy ×4 (Patience ×2)|T68
 T70|.|multi-map system: Perlin-noise arena generator parameterized by seed/theme; all maps 5 beacons (V18); cover and scale vary|V18
 T71|.|ELO system: track opponent ELO at match start; update player ELO on result using standard formula; persist in profile|T2
 T72|.|XP + pilot level: XP awarded per match weighted by opponent ELO; level thresholds unlock progression tree nodes|T71

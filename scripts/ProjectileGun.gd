@@ -4,7 +4,7 @@ extends "res://scripts/WeaponBase.gd"
 
 @export var projectile_speed: float = 40.0
 
-const PROJECTILE_SCENE := preload("res://scenes/weapons/Projectile.tscn")
+const PROJECTILE_SCENE := preload("res://scenes/weapons/ProjectileGrey.tscn")
 
 func _do_fire() -> void:
 	if owner_mech == null:

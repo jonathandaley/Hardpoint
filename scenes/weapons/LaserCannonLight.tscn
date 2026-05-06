@@ -3,20 +3,20 @@
 [ext_resource type="Script" path="res://scripts/LaserCannon.gd" id="1"]
 
 [sub_resource type="BoxMesh" id="2"]
-size = Vector3(0.10, 0.10, 0.60)
+size = Vector3(0.2, 0.2, 1.2)
 
 [sub_resource type="StandardMaterial3D" id="3"]
 albedo_color = Color(0.10, 0.10, 0.12, 1)
 shading_mode = 0
 
 [sub_resource type="BoxMesh" id="4"]
-size = Vector3(0.13, 0.13, 0.08)
+size = Vector3(0.26, 0.26, 0.16)
 
 [sub_resource type="BoxMesh" id="5"]
-size = Vector3(0.22, 0.02, 0.30)
+size = Vector3(0.44, 0.04, 0.6)
 
 [sub_resource type="BoxMesh" id="6"]
-size = Vector3(0.09, 0.09, 0.04)
+size = Vector3(0.18, 0.18, 0.08)
 
 [sub_resource type="StandardMaterial3D" id="7"]
 albedo_color = Color(0.0, 0.0, 0.0, 1)
