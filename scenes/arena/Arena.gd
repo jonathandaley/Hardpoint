@@ -4197,12 +4197,6 @@ func _ready() -> void:
 	match_node.match_ended.connect(_on_match_ended)
 	match_node.start()
 	SoundManager.play_music("arena")
-	_set_mech_color(player_mech, Color(0.25, 0.52, 0.95))
-	for m in _team_mechs[0]:
-		if m != player_mech:
-			_set_mech_color(m, Color(0.25, 0.52, 0.95))
-	for m in _team_mechs[1]:
-		_set_mech_color(m, Color(0.92, 0.28, 0.22))
 	hud.setup(match_node, player_mech, 0)
 	hud.setup_bot_bars(_team_mechs[1])
 	hud.setup_beacon_bars(get_tree().get_nodes_in_group("beacons"))
@@ -4285,7 +4279,6 @@ func _spawn_player_only() -> void:
 	player_mech.configure_legs(mech_def.leg_hip_sweep, mech_def.leg_bob_magnitude, mech_def.leg_cycle_rate)
 	player_mech.configure_weapons(_slots_with_overrides(mech_def.weapon_slots))
 	player_mech.configure_abilities(mech_def.abilities)
-	_set_mech_color(player_mech, Color(0.25, 0.52, 0.95))
 
 	_player = Node.new()
 	_player.set_script(load("res://scripts/Player.gd"))
@@ -4401,28 +4394,6 @@ func _create_walls() -> void:
 		body.add_child(col)
 		add_child(body)
 
-func _set_mech_color(mech: Node3D, color: Color) -> void:
-	var torso := mech.get_node_or_null("Torso")
-	if torso:
-		for mesh in torso.find_children("*", "MeshInstance3D", true, false):
-			var existing := mesh.get_surface_override_material(0) as StandardMaterial3D
-			if existing != null and existing.emission_enabled:
-				continue  # preserve per-mech emissive identity accents
-			var m := StandardMaterial3D.new()
-			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-			var base := existing.albedo_color if existing else Color(0.12, 0.12, 0.12)
-			m.albedo_color = base.lerp(color, 0.30)
-			mesh.set_surface_override_material(0, m)
-	var legs := mech.get_node_or_null("Legs")
-	if legs:
-		var leg_color := color.darkened(0.2)
-		for mesh in legs.find_children("*", "MeshInstance3D", true, false):
-			var existing := mesh.get_surface_override_material(0) as StandardMaterial3D
-			var m := StandardMaterial3D.new()
-			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-			var base := existing.albedo_color if existing else Color(0.10, 0.10, 0.10)
-			m.albedo_color = base.lerp(leg_color, 0.30)
-			mesh.set_surface_override_material(0, m)
 
 func _create_columns() -> void:
 	var mat := StandardMaterial3D.new()
