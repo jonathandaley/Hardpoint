@@ -2,7 +2,7 @@
 
 ## §G GOAL
 
-Mech arena FPS, single-player vs bots, beacon capture win condition. Fun solo first; multiplayer deferred.
+Mech arena FPS, single-player vs bots, beacon-drain + kill-domination dual win condition. Fun solo first; multiplayer next after mech/weapon art + smarter AI. Art direction: Matrix 3 post-apocalyptic steam/cyberpunk ("guns, grease, grit, gears").
 
 ## §C CONSTRAINTS
 
@@ -23,8 +23,13 @@ Mech arena FPS, single-player vs bots, beacon capture win condition. Fun solo fi
   - `.tres` fields need default values or silent load failure.
   - `depth_test_disabled` transparent materials → undefined sort order → flicker; ⊥ use.
   - If approach fails 3x with variations → stop, report symptoms, ask to pivot.
-- Lives per match: configurable 3-6; stub at 5.
+- Lives per match: 5 (fixed); each life uses next mech from pre-selected squad.
 - Visuals: opaque emissive meshes + Tween for FX. ⊥ transparent bubbles, ⊥ GPUParticles3D.
+- Art direction: Matrix 3 post-apocalyptic steam/cyberpunk. Rust, neon, grime, mechanical bulk.
+- Abilities: ⊥ every mech requires one; optional. Pool: jump, dash, area-heal, flight, energy shield (passive). Shields count as passive ability slot.
+- Maps: all maps have 5 beacons; geometry via Perlin noise; scale/cover/theme vary per map.
+- Progression: ELO + XP; pilot level unlocks bonus tree (speed/reload/ability duration/damage/health); cosmetics via XP or coins; coins earned from wins, spent on progression or cosmetics.
+- Accounts: online (email signup) when multiplayer ships; local profile only until then.
 
 ## §I INTERFACES
 
@@ -55,6 +60,8 @@ V14: `Game.loadout` dict access → untyped `var`; ⊥ typed Resource access
 V15: bot AI target lock & homing → built once, shared by Rocket Launcher & Arc weapon; ⊥ duplicate system
 V16: ⊥ em-dashes in `.gd` comments; hyphens only
 V17: Heavy slot → Heavy weapon only; Light slot → Light weapon only; ⊥ cross-size fit
+V18: ∀ maps → exactly 5 beacons; ⊥ map ships with different count
+V19: win condition = beacon drain to 0 OR kill-domination threshold reached; ⊥ time limit as primary win condition
 
 ## §T TASKS
 
@@ -116,6 +123,24 @@ T54|x|jump forward bias: horizontal impulse = facing_dir * walk_speed * 3 added 
 T55|x|pegasus nerf: cooldown 8→16s|T26
 T56|x|jump landing hurt flash removed: `damaged.emit()` no longer called from `jump_heal` activation|−
 T57|.|spawnpoints multi-life: spawnpoint logic activates only once lives > 1; no-op until T35 lives system|T35
+T58|x|spectate on death: `Arena.gd` switches camera to ally mech on player death, cycles on next ally death; `HUD.start_spectating()` hides crosshair/weapon HUD, shows "SPECTATING: <NAME>" label|T35
+T59|.|ally bot health bars: `setup_bot_bars` currently receives `_team_mechs[1]` only; pass `_team_mechs[0][1..]` with distinct color (e.g. green) so friendly bots show world-space HP bars|T35
+T60|.|beacon HUD dot X positions match beacon physical XZ layout in arena (proportional horizontal spread), not fixed center strip|T42
+T61|.|weapon range system: `range` export already set per weapon in `.tscn`; enforce hitscan cutoff + projectile self-destruct at range in `WeaponBase`|V9
+T62|.|arena column repositioning: redistribute white pillar meshes to match current bowl scale and cover outer ring (positions not updated when arena grew)|−
+T63|.|leg rotation smoothing: legs rotate toward move direction gradually at rate scaled by `walk_speed`, no snap|T10
+T64|.|multi-mech loadout: hangar lets player select squad of up to 5 mechs before match; on death, player chooses next mech from remaining squad before respawning|T34,T57
+T65|.|team color perspective: client always renders own team blue, enemy red regardless of server team assignment|T40
+T66|.|tutorial: first-run overlay on hangar screen explains controls; dismissed permanently per account; deferred until per-account system|T40
+T67|.|kill-domination win condition: track kills per team; team reaching kill threshold drains opponent to 0 instantly (threshold TBD)|V19
+T68|.|mech visual art pass: all 8 mechs get Matrix-3-style geometry (rust/neon/mechanical bulk); block-primitive placeholders replaced|−
+T69|.|weapon visual art pass: all weapon scenes get Matrix-3-style models; match muzzle flash/beam origin to new geometry|T68
+T70|.|multi-map system: Perlin-noise arena generator parameterized by seed/theme; all maps 5 beacons (V18); cover and scale vary|V18
+T71|.|ELO system: track opponent ELO at match start; update player ELO on result using standard formula; persist in profile|T2
+T72|.|XP + pilot level: XP awarded per match weighted by opponent ELO; level thresholds unlock progression tree nodes|T71
+T73|.|pilot progression tree: speed/reload/ability-duration/damage/health bonuses; submenu under Pilot tab in hangar|T72
+T74|.|in-game coins: earned from wins; spent on progression nodes or cosmetics; tracked in profile|T72
+T75|.|online accounts: email signup/login; profile server-backed; prerequisite for ELO/cosmetics cross-device|T40,T71
 
 ## §B BUGS
 
@@ -137,3 +162,4 @@ B14|2026-05-02|energy shield flash material used `TRANSPARENCY_ALPHA` → invisi
 B15|2026-05-02|`LaserCannon` beam drawn along weapon local -Z, not toward camera hit point; added `_beam_pivot.look_at(hit_pos)`|B9
 B16|2026-05-02|`material_overlay` not reliably rendered in Compatibility renderer; energy shield flash uses `material_override` instead (whole-mesh color replace for flash duration)|-
 B17|2026-05-03|`body_test_motion` crashes with null space after bot killed; root cause: `_on_match_ended` sets `process_mode=DISABLED` synchronously inside physics callback chain, removing body from physics space before `move_and_slide()` returns; fix: `set_deferred("process_mode", ...)` in `_on_match_ended` (Arena.gd)|−
+B18|2026-05-05|`HUD.show_result` sets `result_label.visible=true` then `_build_stats_panel` adds opaque fullscreen `ColorRect` backdrop, burying winner text behind it; fix: embed "YOU WIN"/"YOU LOSE" as header row in stats panel, hide standalone `result_label`|T49
