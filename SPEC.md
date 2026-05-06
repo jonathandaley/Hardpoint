@@ -141,6 +141,9 @@ T72|.|XP + pilot level: XP awarded per match weighted by opponent ELO; level thr
 T73|.|pilot progression tree: speed/reload/ability-duration/damage/health bonuses; submenu under Pilot tab in hangar|T72
 T74|.|in-game coins: earned from wins; spent on progression nodes or cosmetics; tracked in profile|T72
 T75|.|online accounts: email signup/login; profile server-backed; prerequisite for ELO/cosmetics cross-device|T40,T71
+T76|.|walk animation stride fix: small mechs animate too fast; tune `leg_cycle_rate`/`leg_hip_sweep` per mech so stride visually matches ground speed|T10
+T77|.|player eject on death: cockpit pod launches upward on player `_die()`; skip for bots (check `input_source` type or `is_player` flag in `Mech._die()`)|T68
+T78|.|normal-map arena edges: evaluate replacing Math Temple physical edge greebles with normal-mapped flat planes; reduce draw calls if viable|T70
 
 ## §B BUGS
 
@@ -163,3 +166,4 @@ B15|2026-05-02|`LaserCannon` beam drawn along weapon local -Z, not toward camera
 B16|2026-05-02|`material_overlay` not reliably rendered in Compatibility renderer; energy shield flash uses `material_override` instead (whole-mesh color replace for flash duration)|-
 B17|2026-05-03|`body_test_motion` crashes with null space after bot killed; root cause: `_on_match_ended` sets `process_mode=DISABLED` synchronously inside physics callback chain, removing body from physics space before `move_and_slide()` returns; fix: `set_deferred("process_mode", ...)` in `_on_match_ended` (Arena.gd)|−
 B18|2026-05-05|`HUD.show_result` sets `result_label.visible=true` then `_build_stats_panel` adds opaque fullscreen `ColorRect` backdrop, burying winner text behind it; fix: embed "YOU WIN"/"YOU LOSE" as header row in stats panel, hide standalone `result_label`|T49
+B19|2026-05-05|Pegasus jump arc wrong: no smooth arc, weird deceleration at peak; root cause unknown — suspect jump velocity curve or gravity-suppression timing in Pegasus ability script|T54
