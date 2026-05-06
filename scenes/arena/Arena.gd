@@ -4402,26 +4402,27 @@ func _create_walls() -> void:
 		add_child(body)
 
 func _set_mech_color(mech: Node3D, color: Color) -> void:
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
-	mat.emission_enabled = true
-	mat.emission = color
-	mat.emission_energy_multiplier = 0.3
-	var leg_mat := StandardMaterial3D.new()
-	leg_mat.albedo_color = color.darkened(0.2)
-	leg_mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
-	leg_mat.emission_enabled = true
-	leg_mat.emission = color.darkened(0.2)
-	leg_mat.emission_energy_multiplier = 0.3
 	var torso := mech.get_node_or_null("Torso")
 	if torso:
 		for mesh in torso.find_children("*", "MeshInstance3D", true, false):
-			mesh.set_surface_override_material(0, mat)
+			var existing := mesh.get_surface_override_material(0) as StandardMaterial3D
+			if existing != null and existing.emission_enabled:
+				continue  # preserve per-mech emissive identity accents
+			var m := StandardMaterial3D.new()
+			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			var base := existing.albedo_color if existing else Color(0.12, 0.12, 0.12)
+			m.albedo_color = base.lerp(color, 0.30)
+			mesh.set_surface_override_material(0, m)
 	var legs := mech.get_node_or_null("Legs")
 	if legs:
+		var leg_color := color.darkened(0.2)
 		for mesh in legs.find_children("*", "MeshInstance3D", true, false):
-			mesh.set_surface_override_material(0, leg_mat)
+			var existing := mesh.get_surface_override_material(0) as StandardMaterial3D
+			var m := StandardMaterial3D.new()
+			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			var base := existing.albedo_color if existing else Color(0.10, 0.10, 0.10)
+			m.albedo_color = base.lerp(leg_color, 0.30)
+			mesh.set_surface_override_material(0, m)
 
 func _create_columns() -> void:
 	var mat := StandardMaterial3D.new()
