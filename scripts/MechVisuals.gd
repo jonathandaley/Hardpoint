@@ -211,17 +211,14 @@ static func _seeker(mech: Node3D) -> void:
 		var sr    := t.get_node_or_null("ShoulderRight") as MeshInstance3D
 		_bm(body,  Vector3(0.90, 0.60, 0.72))
 		_bm(waist, Vector3(0.68, 0.18, 0.62))
-		_bm(head,  Vector3(0.28, 0.20, 0.44))
+		if head: head.mesh = null  # gun replaces head
 		_bm(sl, Vector3(0.18, 0.20, 0.44))
 		_bm(sr, Vector3(0.32, 0.36, 0.62))
 		if sr: sr.position.x = 0.72
-		_paint(body, armor); _paint(waist, armor); _paint(head, armor)
+		_paint(body, armor); _paint(waist, armor)
 		_paint(sl, armor);   _paint(sr, armor)
-		# smoothing collar at body-head junction
+		# gun mount pedestal at neck
 		_paint(_add_cyl(t, Vector3(0.0, 1.78, 0.0),      0.18, 0.22, 0.10), armor)
-		# targeting reticle bars on sensor head front
-		_paint(_add_box(t, Vector3(0.0, 1.92, -0.23),    Vector3(0.20, 0.02, 0.02)), glow)
-		_paint(_add_box(t, Vector3(0.0, 1.92, -0.23),    Vector3(0.02, 0.20, 0.02)), glow)
 		# sensor panel on heavy shoulder front
 		_paint(_add_box(t, Vector3(0.84, 1.78, -0.33),   Vector3(0.14, 0.12, 0.02)), glow)
 		# body front sensor strip
