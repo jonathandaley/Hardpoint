@@ -4402,7 +4402,7 @@ func _create_columns() -> void:
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 
 	for p in _PENROSE_VERTS:
-		if p.length() <= 32.0:
+		if p.length() <= 65.0:
 			_place_column(p.x, p.y, mat)
 
 func _place_column(x: float, z: float, mat: StandardMaterial3D) -> void:
