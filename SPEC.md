@@ -136,10 +136,10 @@ T67|.|multi-life game-end guard: `BeaconMatch` ⊥ ends match on last-player dea
 T68|x|mech visual art pass: all 8 mechs get Matrix-3-style geometry (rust/neon/mechanical bulk); block-primitive placeholders replaced|−
 T69|x|weapon visual art pass: all weapon scenes get Matrix-3-style models; light ×2 size, heavy ×4 (Patience ×2)|T68
 T70|x|multi-map system: Perlin-noise arena generator parameterized by seed/theme; all maps 5 beacons (V18); cover and scale vary|V18
-T71|.|ELO system: track opponent ELO at match start; update player ELO on result using standard formula; persist in profile|T2
-T72|.|XP + pilot level: XP awarded per match weighted by opponent ELO; level thresholds unlock progression tree nodes|T71
-T73|.|pilot progression tree: speed/reload/ability-duration/damage/health bonuses; submenu under Pilot tab in hangar|T72
-T74|.|in-game coins: earned from wins; spent on progression nodes or cosmetics; tracked in profile|T72
+T71|x|ELO system: track opponent ELO at match start; update player ELO on result using standard formula; persist in profile|T2
+T72|x|XP + pilot level: XP awarded per match weighted by opponent ELO; level thresholds unlock progression tree nodes|T71
+T73|x|pilot progression tree: speed/reload/ability-duration/damage/health bonuses; submenu under Pilot tab in hangar|T72
+T74|x|in-game coins: earned from wins; spent on progression nodes or cosmetics; tracked in profile|T72
 T75|.|online accounts: email signup/login; profile server-backed; prerequisite for ELO/cosmetics cross-device|T40,T71
 T76|x|walk animation stride fix: small mechs animate too fast; tune `leg_cycle_rate`/`leg_hip_sweep` per mech so stride visually matches ground speed|T10
 T77|x|player eject on death: cockpit pod launches upward on player `_die()`; skip for bots (check `input_source` type or `is_player` flag in `Mech._die()`)|T68
