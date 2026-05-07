@@ -101,7 +101,7 @@ T32|x|lighting pass: directional + 2-3 points, try baked lightmap (2 fail → fa
 T33|x|fractal wall/ceiling art: `tools/fractal_wall_gen.py` → exterior circular walls only (archived for interior); interior walls use `_PENROSE_SVG_EDGES` directly|V13
 T34|.|hangar 3D diorama: lineup 3-6 mechs, turntable platform, CanvasLayer UI, swap on loadout change|-
 T35|x|team vs team: 5v5/6v6 bots, scaled arena, `Match` configurable team counts (`Game.loadout["team_size"]`)|−
-T36|.|bot role assignment: attacker/defender/flanker, role biases beacon priority & positioning|T35
+T36|x|bot role assignment: attacker/defender/flanker, role biases beacon priority & positioning|T35
 T37|.|bot blackboard coordination: `AIDirector` autoload per team, intent signals (pushing beacon A etc.)|T35,T36
 T38|x|navmesh pathing: `NavigationAgent3D` + baked `NavigationMesh` per arena; LOS raycast gates bot firing|T35
 T39|x|bot threat assessment: retreat low HP, focus-fire weak enemies|T35
