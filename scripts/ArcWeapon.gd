@@ -52,6 +52,9 @@ func _do_fire() -> void:
 	var target := owner_mech.get("locked_target") as Node3D
 	if not is_instance_valid(target):
 		return
+	if global_position.distance_to(target.global_position) > range:
+		_hide_beam()
+		return
 
 	var target_pos := target.global_position + Vector3(0, 1.0, 0)
 
