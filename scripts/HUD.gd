@@ -90,22 +90,38 @@ func setup_beacon_bars(beacons: Array) -> void:
 
 	var n := beacons.size()
 	var vp: Vector2 = get_viewport().get_visible_rect().size
-	var strip_w: float = float(n) * _DOT_SIZE + float(max(0, n - 1)) * _DOT_GAP
-	var strip_x: float = (vp.x - strip_w) * 0.5
+
+	# Compute strip dimensions.  If beacons have valid world positions we spread
+	# them proportionally across the strip so the dot layout mirrors the physical
+	# XZ layout of the arena.  Fall back to even spacing when positions are zero.
+	const STRIP_W := 160.0   # fixed strip width in pixels
+	var strip_x: float = (vp.x - STRIP_W) * 0.5
+
+	var xs: Array = []
+	for b in beacons:
+		xs.append(b.global_position.x if is_instance_valid(b) else 0.0)
+	var x_min: float = xs.min() if n > 0 else 0.0
+	var x_max: float = xs.max() if n > 0 else 0.0
+	var x_range: float = x_max - x_min
+	var use_phys_layout: bool = x_range > 1.0   # at least 1 m spread
 
 	# Beacon dot circles
 	var dot_script := load("res://scripts/BeaconDot.gd")
 	for i in n:
 		var dot: Control = dot_script.new()
-		var dx: float = strip_x + float(i) * (_DOT_SIZE + _DOT_GAP)
-		dot.offset_left   = dx
-		dot.offset_right  = dx + _DOT_SIZE
+		var t: float = float(i) / maxf(float(n - 1), 1.0)   # fallback: evenly spread
+		if use_phys_layout:
+			t = (xs[i] - x_min) / x_range
+		var cx: float = strip_x + t * (STRIP_W - _DOT_SIZE)
+		dot.offset_left   = cx
+		dot.offset_right  = cx + _DOT_SIZE
 		dot.offset_top    = _BAR_Y + (_BAR_H - _DOT_SIZE) * 0.5
 		dot.offset_bottom = dot.offset_top + _DOT_SIZE
 		add_child(dot)
 		_beacon_dots.append(dot)
 
-	# Team score bars flanking the dot strip
+	# Team score bars flanking the fixed strip.
+	var strip_w: float = STRIP_W
 	var colors: Array = [Color(0.2, 0.5, 1.0), Color(1.0, 0.3, 0.2)]
 	for t in 2:
 		var bar_left: float

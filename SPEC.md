@@ -125,7 +125,7 @@ T56|x|jump landing hurt flash removed: `damaged.emit()` no longer called from `j
 T57|.|spawnpoints multi-life: spawnpoint logic activates only once lives > 1; no-op until T35 lives system|T35
 T58|x|spectate on death: `Arena.gd` switches camera to ally mech on player death, cycles on next ally death; `HUD.start_spectating()` hides crosshair/weapon HUD, shows "SPECTATING: <NAME>" label|T35
 T59|.|ally bot health bars: `setup_bot_bars` currently receives `_team_mechs[1]` only; pass `_team_mechs[0][1..]` with distinct color (e.g. green) so friendly bots show world-space HP bars|T35
-T60|.|beacon HUD dot X positions match beacon physical XZ layout in arena (proportional horizontal spread), not fixed center strip|T42
+T60|x|beacon HUD dot X positions match beacon physical XZ layout in arena (proportional horizontal spread), not fixed center strip|T42
 T61|.|weapon range system: `range` export already set per weapon in `.tscn`; enforce hitscan cutoff + projectile self-destruct at range in `WeaponBase`|V9
 T62|.|arena column repositioning: redistribute white pillar meshes to match current bowl scale and cover outer ring (positions not updated when arena grew)|−
 T63|.|leg rotation smoothing: legs rotate toward move direction gradually at rate scaled by `walk_speed`, no snap|T10
