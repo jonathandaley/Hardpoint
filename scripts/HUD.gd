@@ -114,9 +114,16 @@ func setup_beacon_bars(beacons: Array) -> void:
 		if is_instance_valid(entry.bg): entry.bg.queue_free()
 		if is_instance_valid(entry.fg): entry.fg.queue_free()
 	_score_bars.clear()
-	_beacons = beacons
+	# Sort beacons left-to-right by world X so dot positions match spatial layout.
+	# Ties (same X column) broken by Z descending (upper map first).
+	var sorted := beacons.duplicate()
+	sorted.sort_custom(func(a, b):
+		if absf(a.position.x - b.position.x) > 0.5:
+			return a.position.x < b.position.x
+		return a.position.z > b.position.z)
+	_beacons = sorted
 
-	var n := beacons.size()
+	var n := sorted.size()
 	var vp: Vector2 = get_viewport().get_visible_rect().size
 	var strip_w: float = float(n) * _DOT_SIZE + float(max(0, n - 1)) * _DOT_GAP
 	var strip_x: float = (vp.x - strip_w) * 0.5
