@@ -53,6 +53,11 @@ var _weapon_indices: Array = []      # WEAPON_CATALOG index per slot for the sel
 var _weapon_name_labels: Array = []  # Label refs in the picker, updated in-place on cycle
 var _team_size_label: Label = null   # shows "1v1", "2v2", etc.
 
+var _diorama_container: SubViewportContainer = null
+var _diorama_viewport: SubViewport = null
+var _diorama_spin: Node3D = null
+var _diorama_mech_node = null
+
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	weapon_slot_label.visible = false
@@ -74,6 +79,8 @@ func _ready() -> void:
 		if Game.loadout.get("bot_def") == null and _mechs.size() > 0:
 			Game.loadout["bot_def"] = _mechs[0]
 	_build_team_size_picker()
+	mech_name_label.offset_right = 415.0
+	_setup_diorama()
 	_show_tab(0)
 
 func _load_roster() -> void:
@@ -212,6 +219,7 @@ func _on_roster_selected(idx: int) -> void:
 	Game.save_loadout()
 	_highlight_selected()
 	_update_mech_panel()
+	_refresh_diorama_mech()
 
 func _update_mech_panel() -> void:
 	var md = Game.loadout.get("mech_def")
@@ -243,7 +251,7 @@ func _build_weapon_picker(md) -> void:
 	picker.name = "WeaponPicker"
 	picker.offset_left = 200.0
 	picker.offset_top = picker_top
-	picker.offset_right = 630.0
+	picker.offset_right = 415.0
 	picker.offset_bottom = picker_top + slots.size() * row_h
 	picker.add_theme_constant_override("separation", 2)
 	mech_panel.add_child(picker)
@@ -294,6 +302,7 @@ func _build_weapon_picker(md) -> void:
 	var stats_top: float = picker_top + slots.size() * row_h + 8.0
 	mech_stats_label.offset_top = stats_top
 	mech_stats_label.offset_bottom = stats_top + 28.0
+	mech_stats_label.offset_right = 415.0
 
 func _on_weapon_cycle(slot_idx: int, direction: int) -> void:
 	SoundManager.play_sfx_2d("ui_click")
@@ -387,6 +396,82 @@ func _on_team_size_change(delta: int) -> void:
 	Game.loadout["team_size"] = ts
 	Game.save_loadout()
 	_refresh_team_size_label()
+
+func _process(delta: float) -> void:
+	if is_instance_valid(_diorama_spin):
+		_diorama_spin.rotation.y += delta * 0.6
+
+func _setup_diorama() -> void:
+	_diorama_container = SubViewportContainer.new()
+	_diorama_container.offset_left   = 420.0
+	_diorama_container.offset_top    = 8.0
+	_diorama_container.offset_right  = 634.0
+	_diorama_container.offset_bottom = 244.0
+	_diorama_container.stretch = true
+	mech_panel.add_child(_diorama_container)
+
+	_diorama_viewport = SubViewport.new()
+	_diorama_viewport.size              = Vector2i(214, 236)
+	_diorama_viewport.own_world_3d      = true
+	_diorama_viewport.transparent_bg    = false
+	_diorama_viewport.handle_input_locally = false
+	_diorama_container.add_child(_diorama_viewport)
+
+	var sv_env := Environment.new()
+	sv_env.background_mode    = Environment.BG_COLOR
+	sv_env.background_color   = Color(0.05, 0.05, 0.07)
+	sv_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	sv_env.ambient_light_color  = Color(0.5, 0.5, 0.6)
+	sv_env.ambient_light_energy = 0.4
+	var sv_env_node := WorldEnvironment.new()
+	sv_env_node.environment = sv_env
+	_diorama_viewport.add_child(sv_env_node)
+
+	var platform_body := StaticBody3D.new()
+	var platform_mi   := MeshInstance3D.new()
+	var platform_mesh := CylinderMesh.new()
+	platform_mesh.top_radius    = 1.8
+	platform_mesh.bottom_radius = 1.8
+	platform_mesh.height        = 0.1
+	platform_mi.mesh = platform_mesh
+	var platform_mat := StandardMaterial3D.new()
+	platform_mat.albedo_color = Color(0.2, 0.2, 0.25)
+	platform_mat.roughness    = 0.6
+	platform_mi.set_surface_override_material(0, platform_mat)
+	platform_body.add_child(platform_mi)
+	platform_body.position = Vector3(0.0, -0.05, 0.0)
+	_diorama_viewport.add_child(platform_body)
+
+	_diorama_spin = Node3D.new()
+	_diorama_viewport.add_child(_diorama_spin)
+
+	var cam := Camera3D.new()
+	cam.position = Vector3(0.0, 2.8, 5.5)
+	cam.look_at_from_position(cam.position, Vector3(0.0, 1.2, 0.0))
+	_diorama_viewport.add_child(cam)
+
+	var light := DirectionalLight3D.new()
+	light.rotation_degrees = Vector3(-45.0, 30.0, 0.0)
+	light.light_energy     = 1.2
+	_diorama_viewport.add_child(light)
+
+	_refresh_diorama_mech()
+
+func _refresh_diorama_mech() -> void:
+	if not is_instance_valid(_diorama_spin):
+		return
+	if is_instance_valid(_diorama_mech_node):
+		_diorama_mech_node.queue_free()
+		_diorama_mech_node = null
+	var md = Game.loadout.get("mech_def")
+	if md == null or md.scene == null:
+		return
+	var m = md.scene.instantiate()
+	m.scale = Vector3.ONE * md.body_scale
+	MechVisuals.apply(m, md.display_name)
+	_diorama_spin.add_child(m)
+	m.set_physics_process(false)
+	_diorama_mech_node = m
 
 func _show_tab(idx: int) -> void:
 	mech_panel.visible = idx == 0

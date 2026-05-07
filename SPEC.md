@@ -99,7 +99,7 @@ T30|x|visual FX: muzzle flash (0.08s decay), hit sparks (3-4 emissive cubes, 0.2
 T31|x|floor art: `tools/hat_floor_tex.py` → hat_floor.png (1024px) UV-mapped to bowl mesh|V13
 T32|x|lighting pass: directional + 2-3 points, try baked lightmap (2 fail → fall back)|-
 T33|x|fractal wall/ceiling art: `tools/fractal_wall_gen.py` → exterior circular walls only (archived for interior); interior walls use `_PENROSE_SVG_EDGES` directly|V13
-T34|.|hangar 3D diorama: lineup 3-6 mechs, turntable platform, CanvasLayer UI, swap on loadout change|-
+T34|x|hangar 3D diorama: lineup 3-6 mechs, turntable platform, CanvasLayer UI, swap on loadout change|-
 T35|x|team vs team: 5v5/6v6 bots, scaled arena, `Match` configurable team counts (`Game.loadout["team_size"]`)|−
 T36|x|bot role assignment: attacker/defender/flanker, role biases beacon priority & positioning|T35
 T37|x|bot blackboard coordination: `AIDirector` autoload per team, intent signals (pushing beacon A etc.)|T35,T36
