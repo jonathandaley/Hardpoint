@@ -38,12 +38,12 @@ emission_energy_multiplier = 4.0
 [node name="SniperHeavy" type="Node3D"]
 script = ExtResource("1")
 slot_size = 1
-damage = 60.0
+damage = 72.0
 fire_rate = 0.45
 range = 200.0
 max_ammo = 5
 magazine_type = 0
-reload_time = 14.0
+reload_time = 12.0
 projectile_speed = 168.0
 shake_magnitude = 0.025
 fire_sound_key = "sniper_fire"

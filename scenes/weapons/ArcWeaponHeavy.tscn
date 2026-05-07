@@ -31,12 +31,12 @@ emission_energy_multiplier = 4.0
 [node name="ArcWeaponHeavy" type="Node3D"]
 script = ExtResource("1")
 slot_size = 1
-damage = 1.1
+damage = 1.35
 fire_rate = 8.0
 range = 90.0
 max_ammo = 56
 magazine_type = 0
-reload_time = 10.0
+reload_time = 9.0
 shake_magnitude = 0.003
 requires_lock = true
 muzzle_flash_enabled = false

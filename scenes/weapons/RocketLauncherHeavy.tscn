@@ -31,12 +31,12 @@ emission_energy_multiplier = 4.0
 [node name="RocketLauncherHeavy" type="Node3D"]
 script = ExtResource("1")
 slot_size = 1
-damage = 40.0
+damage = 50.0
 fire_rate = 0.16
 range = 200.0
 max_ammo = 1
 magazine_type = 0
-reload_time = 14.0
+reload_time = 12.0
 shake_magnitude = 0.025
 requires_lock = true
 projectile_speed = 16.0

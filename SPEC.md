@@ -118,7 +118,7 @@ T49|x|match-end screen: "YOU WIN" / "YOU LOSE" shown; stats panel + return-to-ha
 T50|x|aerial strike damage: 3x -- direct 1.6→4.8, splash 0.8→2.4|V9
 T51|x|patience tuning: projectile speed 180→360 m/s; fading tracer beam via `VFX.tracer()` on fire|T23
 T52|x|heavy sniper rebalance: clip 3→5, damage 80→60|V9
-T53|.|weapon clip balancing pass: align L/H clip sizes across all weapon pairs then re-balance damage/RoF|V9,V10
+T53|x|weapon clip balancing pass: align L/H clip sizes across all weapon pairs then re-balance damage/RoF|V9,V10
 T54|x|jump forward bias: horizontal impulse = facing_dir * walk_speed * 3 added on Pegasus jump|T26
 T55|x|pegasus nerf: cooldown 8→16s|T26
 T56|x|jump landing hurt flash removed: `damaged.emit()` no longer called from `jump_heal` activation|−
