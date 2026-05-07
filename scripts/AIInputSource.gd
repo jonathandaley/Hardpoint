@@ -24,6 +24,8 @@ const DIFFICULTY_PRESETS: Array = [
 var _target: Node3D = null
 var _enemy_mechs: Array = []   # all enemy mechs found at spawn time
 var _beacons: Array = []
+var _own_team: int = 1
+var _claimed_beacon: Node = null   # beacon we told AIDirector we're heading to
 var _look_delta: Vector2 = Vector2.ZERO
 var _move_dir: Vector2 = Vector2.ZERO
 var _firing: bool = false
@@ -44,10 +46,14 @@ var _los_timer: float = 0.0
 func _ready() -> void:
 	call_deferred("_find_targets")
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		AIDirector.clear_intent(get_parent())
+
 func _find_targets() -> void:
-	var own_team: int = get_parent().get("team") if get_parent() != null else 1
+	_own_team = get_parent().get("team") if get_parent() != null else 1
 	for mech in get_tree().get_nodes_in_group("mechs"):
-		if mech.get("team") != own_team:
+		if mech.get("team") != _own_team:
 			_enemy_mechs.append(mech)
 	_beacons = get_tree().get_nodes_in_group("beacons")
 
@@ -76,11 +82,26 @@ func _pick_target_beacon(bot_mech: Node3D) -> Node:
 			continue
 		var priority: float = 10.0 if owner == -1 else 5.0   # neutral > enemy
 		var dist: float = bot_mech.global_position.distance_to(b.global_position)
-		var score: float = priority - dist * 0.05
+		# Penalise beacons already targeted by teammates to spread the squad out.
+		# Allow one extra teammate before the penalty kicks in so two bots can
+		# contest a beacon together when needed.
+		var already: int = AIDirector.intent_count(b, _own_team)
+		var crowd_penalty: float = maxf(0.0, float(already - 1)) * 5.0
+		var score: float = priority - dist * 0.05 - crowd_penalty
 		if score > best_score:
 			best_score = score
 			best = b
 	return best
+
+# Register or update our beacon intent with the AIDirector.
+func _claim_beacon(beacon: Node) -> void:
+	if beacon == _claimed_beacon:
+		return
+	_claimed_beacon = beacon
+	if beacon != null:
+		AIDirector.set_intent(get_parent(), beacon, _own_team)
+	else:
+		AIDirector.clear_intent(get_parent())
 
 # Returns true when no collideable geometry lies between the bot's eye and the
 # target's centre.  Uses the same PhysicsRayQueryParameters3D pattern as the
@@ -174,8 +195,10 @@ func _process(delta: float) -> void:
 	# Movement - retreat takes priority; otherwise navigate to beacon/enemy.
 	if has_target and dist < RETREAT_DIST:
 		_move_dir = Vector2(0.0, 1.0)
+		_claim_beacon(null)
 	else:
 		var beacon := _pick_target_beacon(bot_mech)
+		_claim_beacon(beacon)
 		var goal_pos: Vector3 = Vector3.ZERO
 		if beacon != null:
 			goal_pos = beacon.global_position
