@@ -53,6 +53,9 @@ var _weapon_indices: Array = []      # WEAPON_CATALOG index per slot for the sel
 var _weapon_name_labels: Array = []  # Label refs in the picker, updated in-place on cycle
 var _team_size_label: Label = null   # shows "1v1", "2v2", etc.
 
+var _pilot_stats_label: Label = null
+var _prog_nodes_container: Control = null
+
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	weapon_slot_label.visible = false
@@ -74,6 +77,7 @@ func _ready() -> void:
 		if Game.loadout.get("bot_def") == null and _mechs.size() > 0:
 			Game.loadout["bot_def"] = _mechs[0]
 	_build_team_size_picker()
+	_build_pilot_extras()
 	_show_tab(0)
 
 func _load_roster() -> void:
@@ -407,3 +411,114 @@ func _on_matchmaking_pressed() -> void:
 func _on_settings_pressed() -> void:
 	SoundManager.play_sfx_2d("ui_click")
 	get_tree().change_scene_to_file("res://scenes/ui/Settings.tscn")
+
+# ---- Pilot tab progression UI (T71-T74) ----
+
+func _build_pilot_extras() -> void:
+	_pilot_stats_label = Label.new()
+	_pilot_stats_label.offset_left   = 16.0
+	_pilot_stats_label.offset_top    = 72.0
+	_pilot_stats_label.offset_right  = 630.0
+	_pilot_stats_label.offset_bottom = 90.0
+	_pilot_stats_label.add_theme_font_size_override("font_size", 13)
+	pilot_panel.add_child(_pilot_stats_label)
+	_refresh_pilot_stats()
+
+	var hdr := Label.new()
+	hdr.text = "PROGRESSION"
+	hdr.offset_left   = 16.0
+	hdr.offset_top    = 98.0
+	hdr.offset_right  = 630.0
+	hdr.offset_bottom = 114.0
+	hdr.add_theme_font_size_override("font_size", 14)
+	pilot_panel.add_child(hdr)
+
+	_prog_nodes_container = Control.new()
+	_prog_nodes_container.offset_left   = 0.0
+	_prog_nodes_container.offset_top    = 118.0
+	_prog_nodes_container.offset_right  = 640.0
+	_prog_nodes_container.offset_bottom = 244.0
+	pilot_panel.add_child(_prog_nodes_container)
+	_build_progression_nodes()
+
+func _refresh_pilot_stats() -> void:
+	if _pilot_stats_label == null:
+		return
+	var lv: int    = Game.profile.get("level", 1)
+	var xp: int    = Game.profile.get("xp", 0)
+	var elo: int   = Game.profile.get("elo", 1000)
+	var coins: int = Game.profile.get("coins", 0)
+	var xp_left: int = Game.xp_to_next_level()
+	if xp_left > 0:
+		_pilot_stats_label.text = "LVL: %d  |  XP: %d (+%d to next)  |  ELO: %d  |  COINS: %d" % [
+			lv, xp, xp_left, elo, coins]
+	else:
+		_pilot_stats_label.text = "LVL: %d (MAX)  |  XP: %d  |  ELO: %d  |  COINS: %d" % [
+			lv, xp, elo, coins]
+
+func _build_progression_nodes() -> void:
+	if _prog_nodes_container == null:
+		return
+	for child in _prog_nodes_container.get_children():
+		child.queue_free()
+
+	const NODE_KEYS: Array   = ["speed", "reload", "damage", "health", "ability"]
+	const NODE_LABELS: Array = ["SPEED", "RELOAD", "DAMAGE", "HEALTH", "ABILITY"]
+	const BLOCK_W := 118.0
+	const BLOCK_GAP := 8.0
+
+	for i in NODE_KEYS.size():
+		var node_name: String = NODE_KEYS[i]
+		var tier: int = Game.get_progression_tier(node_name)
+
+		var block := VBoxContainer.new()
+		block.offset_left   = BLOCK_GAP + float(i) * (BLOCK_W + BLOCK_GAP)
+		block.offset_top    = 0.0
+		block.offset_right  = BLOCK_GAP + float(i) * (BLOCK_W + BLOCK_GAP) + BLOCK_W
+		block.offset_bottom = 124.0
+		block.add_theme_constant_override("separation", 3)
+		_prog_nodes_container.add_child(block)
+
+		var name_lbl := Label.new()
+		name_lbl.text = NODE_LABELS[i]
+		name_lbl.add_theme_font_size_override("font_size", 14)
+		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		block.add_child(name_lbl)
+
+		var tier_lbl := Label.new()
+		tier_lbl.text = "TIER %d/4   +%d%%" % [tier, tier * 5]
+		tier_lbl.add_theme_font_size_override("font_size", 12)
+		tier_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		block.add_child(tier_lbl)
+
+		if tier < 4:
+			var cost_lbl := Label.new()
+			cost_lbl.text = "LV%d  |  %d COINS" % [
+				Game.get_prog_next_level_req(node_name),
+				Game.get_prog_next_cost(node_name)]
+			cost_lbl.add_theme_font_size_override("font_size", 11)
+			cost_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			block.add_child(cost_lbl)
+
+			var can_buy: bool = Game.can_buy_progression(node_name)
+			var buy_btn := Button.new()
+			buy_btn.text = "BUY TIER %d" % (tier + 1)
+			buy_btn.add_theme_font_size_override("font_size", 12)
+			buy_btn.disabled = not can_buy
+			if can_buy:
+				buy_btn.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
+			buy_btn.pressed.connect(_on_prog_buy.bind(node_name))
+			block.add_child(buy_btn)
+		else:
+			var max_lbl := Label.new()
+			max_lbl.text = "MAX TIER"
+			max_lbl.add_theme_font_size_override("font_size", 12)
+			max_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			max_lbl.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5))
+			block.add_child(max_lbl)
+
+func _on_prog_buy(node_name: String) -> void:
+	SoundManager.play_sfx_2d("ui_click")
+	if Game.buy_progression(node_name):
+		_refresh_pilot_stats()
+		_build_progression_nodes()
