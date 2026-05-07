@@ -65,6 +65,27 @@ func _pick_closest_enemy(from: Node3D) -> Node3D:
 			best = em
 	return best
 
+# Picks the best target by blending distance and target health.
+# Prefers enemies that are already damaged (focus-fire) without completely
+# ignoring closer threats.
+func _pick_best_target(from: Node3D) -> Node3D:
+	var best: Node3D = null
+	var best_score := -INF
+	for em in _enemy_mechs:
+		if not is_instance_valid(em) or not em.visible:
+			continue
+		if em.get("is_stealthy"):
+			continue
+		var d: float = from.global_position.distance_to(em.global_position)
+		var max_hp: float = maxf(em.get("max_health") if em.get("max_health") != null else 1.0, 1.0)
+		var hp_pct: float = clampf(em.health / max_hp, 0.0, 1.0)
+		# High score = close + low HP.  HP weight 12 vs distance weight 0.1.
+		var score := (1.0 - hp_pct) * 12.0 - d * 0.1
+		if score > best_score:
+			best_score = score
+			best = em
+	return best
+
 func _pick_target_beacon(bot_mech: Node3D) -> Node:
 	var best: Node = null
 	var best_score := -INF
@@ -125,7 +146,7 @@ func _process(delta: float) -> void:
 	_target_refresh -= delta
 	if _target_refresh <= 0.0 or not is_instance_valid(_target) or not _target.visible:
 		_target_refresh = 0.5
-		_target = _pick_closest_enemy(bot_mech)
+		_target = _pick_best_target(bot_mech)
 
 	# Periodically check line-of-sight to target.
 	_los_timer -= delta
@@ -172,7 +193,18 @@ func _process(delta: float) -> void:
 		_firing = false
 
 	# Movement - retreat takes priority; otherwise navigate to beacon/enemy.
-	if has_target and dist < RETREAT_DIST:
+	var own_max_hp: float = maxf(bot_mech.get("max_health") if bot_mech.get("max_health") != null else 1.0, 1.0)
+	var own_hp_pct: float = clampf(bot_mech.health / own_max_hp, 0.0, 1.0)
+	# When critically low on health, back away from the threat instead of advancing.
+	if own_hp_pct < 0.20 and has_target:
+		var away := (bot_mech.global_position - _target.global_position)
+		away.y = 0.0
+		if away.length_squared() > 0.01:
+			away = away.normalized()
+			var aim_basis: Basis = bot_mech.call("get_aim_basis")
+			_move_dir = Vector2(away.dot(aim_basis.x), -away.dot(-aim_basis.z)).normalized()
+		_firing = false
+	elif has_target and dist < RETREAT_DIST:
 		_move_dir = Vector2(0.0, 1.0)
 	else:
 		var beacon := _pick_target_beacon(bot_mech)
