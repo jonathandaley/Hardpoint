@@ -26,6 +26,9 @@ var _player_team: int = 0
 var _bot_mechs: Array = []
 var _bot_health_bars: Array = []   # red foreground health rects
 var _bot_bg_bars: Array = []       # black background rects (constant full width)
+var _ally_mechs: Array = []
+var _ally_health_bars: Array = []  # green foreground health rects
+var _ally_bg_bars: Array = []      # black background rects
 var _spectate_label: Label = null
 
 var _beacons: Array = []
@@ -70,6 +73,31 @@ func setup_bot_bars(mechs: Array) -> void:
 			bar.visible = false
 			add_child(bar)
 			_bot_health_bars.append(bar)
+
+func setup_ally_bars(mechs: Array) -> void:
+	for bar in _ally_health_bars:
+		if is_instance_valid(bar):
+			bar.queue_free()
+	for bar in _ally_bg_bars:
+		if is_instance_valid(bar):
+			bar.queue_free()
+	_ally_health_bars.clear()
+	_ally_bg_bars.clear()
+	_ally_mechs = mechs
+	for _i in mechs.size():
+		var bg := ColorRect.new()
+		bg.color = Color(0.0, 0.0, 0.0, 0.85)
+		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bg.z_index = -1
+		bg.visible = false
+		add_child(bg)
+		_ally_bg_bars.append(bg)
+		var bar := ColorRect.new()
+		bar.color = Color(0.2, 0.85, 0.2, 1.0)
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bar.visible = false
+		add_child(bar)
+		_ally_health_bars.append(bar)
 
 const _DOT_SIZE   := 18.0
 const _DOT_GAP    := 4.0
@@ -340,6 +368,37 @@ func _update_bot_bar() -> void:
 		bg.offset_bottom = top + BOT_BAR_HEIGHT
 		bg.visible = true
 		# Foreground shrinks with health.
+		fg.offset_left   = left
+		fg.offset_top    = top
+		fg.offset_right  = left + BOT_BAR_FULL_WIDTH * pct
+		fg.offset_bottom = top + BOT_BAR_HEIGHT
+		fg.visible = pct > 0.0
+	for i in _ally_mechs.size():
+		var m: Node = _ally_mechs[i]
+		var fg: ColorRect = _ally_health_bars[i]
+		var bg: ColorRect = _ally_bg_bars[i]
+		if m == null or not is_instance_valid(m) or not m.visible:
+			fg.visible = false
+			bg.visible = false
+			continue
+		if camera == null:
+			fg.visible = false
+			bg.visible = false
+			continue
+		var world_pos: Vector3 = m.global_position + BOT_BAR_HEAD_OFFSET
+		if not camera.is_position_in_frustum(world_pos):
+			fg.visible = false
+			bg.visible = false
+			continue
+		var screen_pos: Vector2 = camera.unproject_position(world_pos)
+		var pct: float = m.health / m.max_health
+		var left: float = screen_pos.x - BOT_BAR_FULL_WIDTH * 0.5
+		var top: float  = screen_pos.y - BOT_BAR_HEIGHT * 0.5
+		bg.offset_left   = left
+		bg.offset_top    = top
+		bg.offset_right  = left + BOT_BAR_FULL_WIDTH
+		bg.offset_bottom = top + BOT_BAR_HEIGHT
+		bg.visible = true
 		fg.offset_left   = left
 		fg.offset_top    = top
 		fg.offset_right  = left + BOT_BAR_FULL_WIDTH * pct
