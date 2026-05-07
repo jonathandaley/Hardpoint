@@ -128,7 +128,7 @@ T59|.|ally bot health bars: `setup_bot_bars` currently receives `_team_mechs[1]`
 T60|.|beacon HUD dot X positions match beacon physical XZ layout in arena (proportional horizontal spread), not fixed center strip|T42
 T61|.|weapon range system: `range` export already set per weapon in `.tscn`; enforce hitscan cutoff + projectile self-destruct at range in `WeaponBase`|V9
 T62|.|arena column repositioning: redistribute white pillar meshes to match current bowl scale and cover outer ring (positions not updated when arena grew)|−
-T63|.|leg rotation smoothing: legs rotate toward move direction gradually at rate scaled by `walk_speed`, no snap|T10
+T63|x|leg rotation smoothing: legs rotate toward move direction gradually at rate scaled by `walk_speed`, no snap|T10
 T64|.|multi-mech loadout: hangar lets player select squad of up to 5 mechs before match; on death, player chooses next mech from remaining squad before respawning|T34,T57
 T65|.|team color perspective: client always renders own team blue, enemy red regardless of server team assignment|T40
 T66|.|tutorial: first-run overlay on hangar screen explains controls; dismissed permanently per account; deferred until per-account system|T40
@@ -141,7 +141,7 @@ T72|.|XP + pilot level: XP awarded per match weighted by opponent ELO; level thr
 T73|.|pilot progression tree: speed/reload/ability-duration/damage/health bonuses; submenu under Pilot tab in hangar|T72
 T74|.|in-game coins: earned from wins; spent on progression nodes or cosmetics; tracked in profile|T72
 T75|.|online accounts: email signup/login; profile server-backed; prerequisite for ELO/cosmetics cross-device|T40,T71
-T76|.|walk animation stride fix: small mechs animate too fast; tune `leg_cycle_rate`/`leg_hip_sweep` per mech so stride visually matches ground speed|T10
+T76|x|walk animation stride fix: small mechs animate too fast; tune `leg_cycle_rate`/`leg_hip_sweep` per mech so stride visually matches ground speed|T10
 T77|.|player eject on death: cockpit pod launches upward on player `_die()`; skip for bots (check `input_source` type or `is_player` flag in `Mech._die()`)|T68
 T78|.|normal-map arena edges: evaluate replacing Math Temple physical edge greebles with normal-mapped flat planes; reduce draw calls if viable|T70
 
