@@ -135,7 +135,7 @@ T66|.|tutorial: first-run overlay on hangar screen explains controls; dismissed 
 T67|.|multi-life game-end guard: `BeaconMatch` ⊥ ends match on last-player death if squad lives remain (V19); gate on T64|T64,V19
 T68|x|mech visual art pass: all 8 mechs get Matrix-3-style geometry (rust/neon/mechanical bulk); block-primitive placeholders replaced|−
 T69|x|weapon visual art pass: all weapon scenes get Matrix-3-style models; light ×2 size, heavy ×4 (Patience ×2)|T68
-T70|.|multi-map system: Perlin-noise arena generator parameterized by seed/theme; all maps 5 beacons (V18); cover and scale vary|V18
+T70|x|multi-map system: Perlin-noise arena generator parameterized by seed/theme; all maps 5 beacons (V18); cover and scale vary|V18
 T71|.|ELO system: track opponent ELO at match start; update player ELO on result using standard formula; persist in profile|T2
 T72|.|XP + pilot level: XP awarded per match weighted by opponent ELO; level thresholds unlock progression tree nodes|T71
 T73|.|pilot progression tree: speed/reload/ability-duration/damage/health bonuses; submenu under Pilot tab in hangar|T72

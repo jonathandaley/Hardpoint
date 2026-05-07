@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MapDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/MapDef.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+map_name = "Math Temple"
+theme = "penrose"
+cover_seed = 0
+cover_density = 1.0
+column_color = Color(0.88, 0.90, 0.95, 1)
+floor_tint = Color(0.30, 0.30, 0.35, 1)
+ambient_color = Color(0.72, 0.78, 0.92, 1)
+ambient_energy = 0.85
