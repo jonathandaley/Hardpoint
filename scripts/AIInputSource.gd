@@ -29,6 +29,8 @@ var role: String = "attacker"
 var _target: Node3D = null
 var _enemy_mechs: Array = []   # all enemy mechs found at spawn time
 var _beacons: Array = []
+var _own_team: int = 1
+var _claimed_beacon: Node = null   # beacon we told AIDirector we're heading to
 var _look_delta: Vector2 = Vector2.ZERO
 var _move_dir: Vector2 = Vector2.ZERO
 var _firing: bool = false
@@ -49,10 +51,14 @@ var _los_timer: float = 0.0
 func _ready() -> void:
 	call_deferred("_find_targets")
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		AIDirector.clear_intent(get_parent())
+
 func _find_targets() -> void:
-	var own_team: int = get_parent().get("team") if get_parent() != null else 1
+	_own_team = get_parent().get("team") if get_parent() != null else 1
 	for mech in get_tree().get_nodes_in_group("mechs"):
-		if mech.get("team") != own_team:
+		if mech.get("team") != _own_team:
 			_enemy_mechs.append(mech)
 	_beacons = get_tree().get_nodes_in_group("beacons")
 	# Randomly assign a role with a 2:1:1 split among bots on the same team.
@@ -110,30 +116,40 @@ func _pick_target_beacon(bot_mech: Node3D) -> Node:
 		var priority: float
 		match role:
 			"defender":
-				# Defenders guard owned beacons; re-contest recently lost ones.
 				if owner == 1:
-					priority = 15.0       # patrol / hold
+					priority = 15.0
 				elif owner == -1:
-					priority = 3.0        # capture neutral opportunistically
+					priority = 3.0
 				else:
-					priority = 1.0        # only attack enemy beacons as last resort
+					priority = 1.0
 			"flanker":
-				# Flankers prefer neutral beacons and avoid heavily contested ones.
 				if owner == -1:
-					priority = 14.0       # rush neutral
+					priority = 14.0
 				elif owner == 0:
-					priority = 6.0        # contest enemy beacon
+					priority = 6.0
 				else:
-					continue              # skip own beacons entirely
+					continue
 			_: # "attacker"
 				if owner == 1:
-					continue              # skip already-owned beacons
+					continue
 				priority = 10.0 if owner == -1 else 5.0
-		var score: float = priority - dist * 0.05
+		var already: int = AIDirector.intent_count(b, _own_team)
+		var crowd_penalty: float = maxf(0.0, float(already - 1)) * 5.0
+		var score: float = priority - dist * 0.05 - crowd_penalty
 		if score > best_score:
 			best_score = score
 			best = b
 	return best
+
+# Register or update our beacon intent with the AIDirector.
+func _claim_beacon(beacon: Node) -> void:
+	if beacon == _claimed_beacon:
+		return
+	_claimed_beacon = beacon
+	if beacon != null:
+		AIDirector.set_intent(get_parent(), beacon, _own_team)
+	else:
+		AIDirector.clear_intent(get_parent())
 
 # Returns true when no collideable geometry lies between the bot's eye and the
 # target's centre.  Uses the same PhysicsRayQueryParameters3D pattern as the
@@ -238,8 +254,10 @@ func _process(delta: float) -> void:
 		_firing = false
 	elif has_target and dist < role_retreat_dist:
 		_move_dir = Vector2(0.0, 1.0)
+		_claim_beacon(null)
 	else:
 		var beacon := _pick_target_beacon(bot_mech)
+		_claim_beacon(beacon)
 		var goal_pos: Vector3 = Vector3.ZERO
 		if beacon != null:
 			goal_pos = beacon.global_position
