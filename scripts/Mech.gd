@@ -342,7 +342,7 @@ func _check_step_dir(dir: Vector3, space: PhysicsDirectSpaceState3D, ex: Array, 
 	return true
 
 func _update_legs(delta: float) -> void:
-	legs.call("update_gait", velocity, global_transform.basis, leg_rotation_speed, delta)
+	legs.call("update_gait", velocity, global_transform.basis, leg_rotation_speed, walk_speed, delta)
 
 func _handle_look() -> void:
 	var look: Vector2 = _input_source.get_look_delta()
