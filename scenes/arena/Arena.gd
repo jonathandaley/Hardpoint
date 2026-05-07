@@ -4437,17 +4437,13 @@ func _create_columns() -> void:
 	mat.roughness = 0.3
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 
-	var rng := RandomNumberGenerator.new()
-	rng.seed = c_seed
-
-	for p in _PENROSE_VERTS:
-		if p.length() <= 32.0:
-			if c_density >= 1.0 or rng.randf() <= c_density:
-				_place_column(p.x, p.y, mat)
+	for p in _PENROSE_COLUMN_VERTS:
+		_place_column(float(p.x), float(p.y), mat)
 
 func _place_column(x: float, z: float, mat: StandardMaterial3D) -> void:
 	var body := StaticBody3D.new()
-	body.position = Vector3(x, 0.0, z)
+	var base_y := _bowl_height(x, z)
+	body.position = Vector3(x, base_y, z)
 
 	var col := CollisionShape3D.new()
 	var shape := CylinderShape3D.new()
