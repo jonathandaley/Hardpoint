@@ -246,10 +246,10 @@ func _die() -> void:
 	visible = false
 	died.emit()
 
-# Spawns a simple cockpit pod that launches upward and auto-destructs.
+# Spawns a cockpit pod that rockets upward with a smoke trail and auto-destructs.
 func _launch_cockpit_pod() -> void:
 	var pod := RigidBody3D.new()
-	pod.gravity_scale = 0.6
+	pod.gravity_scale = 0.0
 	var mi := MeshInstance3D.new()
 	var mesh := BoxMesh.new()
 	mesh.size = Vector3(0.55, 0.35, 0.65)
@@ -264,12 +264,33 @@ func _launch_cockpit_pod() -> void:
 	shape.size = Vector3(0.55, 0.35, 0.65)
 	col.shape = shape
 	pod.add_child(col)
+
+	# Smoke trail emitted downward from pod base.
+	var smoke := CPUParticles3D.new()
+	smoke.emitting = true
+	smoke.amount = 24
+	smoke.lifetime = 1.2
+	smoke.speed_scale = 1.0
+	smoke.local_coords = false
+	smoke.direction = Vector3(0, -1, 0)
+	smoke.spread = 18.0
+	smoke.initial_velocity_min = 1.0
+	smoke.initial_velocity_max = 3.0
+	smoke.gravity = Vector3.ZERO
+	smoke.scale_amount_min = 0.3
+	smoke.scale_amount_max = 0.7
+	smoke.color = Color(0.85, 0.85, 0.85, 0.6)
+	smoke.position = Vector3(0, -0.2, 0)
+	pod.add_child(smoke)
+
 	pod.position = global_position + Vector3(0, 1.8, 0)
-	pod.linear_velocity = Vector3(randf_range(-1.5, 1.5), randf_range(8.0, 12.0), randf_range(-1.5, 1.5))
+	var spread_x: float = randf_range(-3.0, 3.0)
+	var spread_z: float = randf_range(-3.0, 3.0)
+	pod.linear_velocity = Vector3(spread_x, randf_range(22.0, 30.0), spread_z)
 	pod.angular_velocity = Vector3(randf_range(-2.0, 2.0), randf_range(-1.0, 1.0), randf_range(-2.0, 2.0))
 	get_parent().add_child(pod)
-	# Auto-destruct after 4 seconds.
-	var timer := get_tree().create_timer(4.0)
+	# Auto-destruct after 6 seconds.
+	var timer := get_tree().create_timer(6.0)
 	timer.timeout.connect(func(): if is_instance_valid(pod): pod.queue_free())
 
 func make_camera_current() -> void:
