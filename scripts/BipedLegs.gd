@@ -41,10 +41,10 @@ const STANCE_FLEX := 0.08   # rad  - slight knee bend at mid-stance
 var _torso: Node3D = null
 var _phase: float = 0.0
 
-func update_gait(velocity: Vector3, mech_basis: Basis, rot_speed: float, delta: float) -> void:
+func update_gait(velocity: Vector3, mech_basis: Basis, rot_speed: float, walk_speed: float, delta: float) -> void:
 	if _torso == null:
 		_torso = get_parent().get_node_or_null("Torso") as Node3D
-	_face_velocity(velocity, mech_basis, rot_speed, delta)
+	_face_velocity(velocity, mech_basis, rot_speed, walk_speed, delta)
 	_animate_walk(velocity, delta)
 
 func _animate_walk(velocity: Vector3, delta: float) -> void:
@@ -84,11 +84,14 @@ func _animate_walk(velocity: Vector3, delta: float) -> void:
 	left_knee2.rotation.x  = REST_KNEE2 + flex_l * 0.5
 	right_knee2.rotation.x = REST_KNEE2 + flex_r * 0.5
 
-func _face_velocity(velocity: Vector3, mech_basis: Basis, rot_speed: float, delta: float) -> void:
+func _face_velocity(velocity: Vector3, mech_basis: Basis, rot_speed: float, walk_speed: float, delta: float) -> void:
 	var horiz := Vector3(velocity.x, 0.0, velocity.z)
 	if horiz.length_squared() < 0.25:
 		return
 	var local_vel := mech_basis.inverse() * horiz
 	var target_y  := atan2(-local_vel.x, -local_vel.z)
 	var diff       := angle_difference(rotation.y, target_y)
-	rotation.y    += clamp(diff, -rot_speed * delta, rot_speed * delta)
+	# Scale rotation speed by actual speed fraction so legs ease into new directions
+	# instead of snapping.  Clamp at 1.5x walk_speed to allow for ability boosts.
+	var speed_frac: float = clampf(horiz.length() / maxf(walk_speed, 0.1), 0.0, 1.5)
+	rotation.y    += clamp(diff, -rot_speed * speed_frac * delta, rot_speed * speed_frac * delta)
