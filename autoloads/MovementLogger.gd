@@ -3,8 +3,8 @@ extends Node
 # analysis summary (distance, stuck %) when the match ends.
 #
 # Usage:
-#   MovementLogger.start_session()   # call when match starts
-#   MovementLogger.stop_and_analyze()  # call when match ends
+#   MovementLogger.start_session()     # call when match starts
+#   MovementLogger.stop_and_analyze()  # call when match ends or is quit
 
 const SAMPLE_INTERVAL := 0.25  # seconds between position samples
 const STUCK_SPEED     := 0.5   # m/s - horizontal speed below this counts as stuck
@@ -14,6 +14,11 @@ var _active:  bool  = false
 var _samples: Array = []   # Array[Dictionary]
 var _timer:   float = 0.0
 
+func _notification(what: int) -> void:
+	# Flush log if the window is closed mid-match.
+	if what == NOTIFICATION_WM_CLOSE_REQUEST and _active:
+		stop_and_analyze()
+
 func start_session() -> void:
 	_samples.clear()
 	_timer  = 0.0
@@ -21,6 +26,8 @@ func start_session() -> void:
 	print("[MovementLogger] Recording started.")
 
 func stop_and_analyze() -> void:
+	if not _active:
+		return
 	_active = false
 	if _samples.is_empty():
 		print("[MovementLogger] No samples collected.")

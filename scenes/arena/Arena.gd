@@ -4839,6 +4839,7 @@ func _on_pause_resume() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _on_pause_quit() -> void:
+	MovementLogger.stop_and_analyze()
 	get_tree().paused = false
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	get_tree().change_scene_to_file("res://scenes/ui/Hangar.tscn")
