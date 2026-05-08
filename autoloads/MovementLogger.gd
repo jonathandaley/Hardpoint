@@ -39,7 +39,7 @@ func _process(delta: float) -> void:
 	for mech in get_tree().get_nodes_in_group("mechs"):
 		if not is_instance_valid(mech) or not mech.visible:
 			continue
-		var src := mech.get("_input_source")
+		var src: Node = mech.get("_input_source") as Node
 		var is_bot: bool = src == null or not src.is_human_input()
 		var vel: Vector3 = mech.velocity
 		_samples.append({
