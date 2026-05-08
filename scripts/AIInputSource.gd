@@ -7,11 +7,12 @@ const RETREAT_DIST  := 8.0   # too close - back off
 const AIM_THRESHOLD := 0.25  # fire when within this many radians of target
 const BURST_FIRE    := 1.6   # seconds of continuous fire per burst
 const BURST_PAUSE   := 0.85  # seconds of pause between bursts
-const STUCK_CHECK    := 0.5   # seconds between stuck checks
-const STUCK_DIST     := 0.5   # minimum movement to not be considered stuck (m)
-const ESCAPE_TIME    := 1.2   # base seconds to escape when stuck
-const ESCAPE_TIME_MAX := 4.0  # maximum escape time for repeatedly stuck bots
-const AVOID_BEACON_TIME := 30.0  # seconds to avoid a beacon after repeated stucks
+const STUCK_CHECK     := 0.5   # seconds between stuck checks
+const STUCK_DIST      := 0.5   # minimum movement to not be considered stuck (m)
+const ESCAPE_TIME     := 1.2   # base seconds to escape when stuck
+const ESCAPE_TIME_MAX := 4.0   # maximum escape time for repeatedly stuck bots
+const AVOID_ZONE_TIME := 40.0  # seconds to avoid the stuck zone
+const AVOID_RADIUS    := 18.0  # radius (m) around stuck position to avoid beacons
 const LOS_INTERVAL  := 0.12  # seconds between line-of-sight raycasts
 
 # [aim_jitter_radians, turn_speed_scale]
@@ -47,8 +48,8 @@ var _stuck_timer: float = STUCK_CHECK
 var _stuck_count: int = 0
 var _escape_timer: float = 0.0
 var _escape_vec: Vector2 = Vector2.RIGHT
-var _avoid_beacon: Node = null   # beacon to skip after repeated stucks
-var _avoid_timer:  float = 0.0
+var _avoid_zone:  Vector3 = Vector3(INF, 0.0, INF)  # stuck position to route around
+var _avoid_timer: float = 0.0
 var _target_refresh: float = 0.0
 var _has_clear_shot: bool = false
 var _los_timer: float = 0.0
@@ -116,7 +117,9 @@ func _pick_target_beacon(bot_mech: Node3D) -> Node:
 	for b in _beacons:
 		if not is_instance_valid(b):
 			continue
-		if b == _avoid_beacon:
+		# Skip beacons in the stuck zone.
+		if _avoid_timer > 0.0 and \
+				Vector2(b.global_position.x - _avoid_zone.x, b.global_position.z - _avoid_zone.z).length() < AVOID_RADIUS:
 			continue
 		var owner: int = b.get("owner_team") if b.get("owner_team") != null else -1
 		var dist: float = bot_mech.global_position.distance_to(b.global_position)
@@ -302,11 +305,11 @@ func _process(delta: float) -> void:
 		else:
 			_move_dir = Vector2.ZERO
 
-	# Decay beacon avoidance cooldown.
+	# Decay stuck-zone avoidance cooldown.
 	if _avoid_timer > 0.0:
 		_avoid_timer -= delta
 		if _avoid_timer <= 0.0:
-			_avoid_beacon = null
+			_avoid_zone = Vector3(INF, 0.0, INF)
 
 	# Stuck detection - if not making progress while moving, escape.
 	# Tracks consecutive stuck events to escalate escape aggressiveness.
@@ -328,11 +331,10 @@ func _process(delta: float) -> void:
 				# Repeated stuck: fully random direction to break the oscillation
 				var angle := randf_range(0.0, TAU)
 				_escape_vec = Vector2(cos(angle), sin(angle))
-				# Blacklist the current beacon so we pick a different goal after escaping
-				if _claimed_beacon != null:
-					_avoid_beacon = _claimed_beacon
-					_avoid_timer  = AVOID_BEACON_TIME
-					_claim_beacon(null)
+				# Mark the entire area as a stuck zone so ALL nearby beacons are avoided
+				_avoid_zone  = bot_mech.global_position
+				_avoid_timer = AVOID_ZONE_TIME
+				_claim_beacon(null)
 			# Reset so we don't immediately re-trigger stuck detection
 			_last_pos = bot_mech.global_position
 		else:
