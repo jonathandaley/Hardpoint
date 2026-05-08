@@ -24,6 +24,7 @@ var loadout: Dictionary = {
 	"mech_weapon_choices": {},     # {mech_resource_path: [weapon_scene_path, ...]}
 	"team_size": 1,                # mechs per team (1 = 1v1, 5 = 5v5)
 	"squad": [],                   # Array of 5 mech resource paths (slot 0 = player mech)
+	"map_def": null,               # MapDef resource; null = Math Temple (default)
 }
 
 var settings: Dictionary = {
@@ -80,6 +81,11 @@ func _load_loadout() -> void:
 	loadout["team_size"] = cfg.get_value("loadout", "team_size", 1)
 	var squad_paths: Array = cfg.get_value("loadout", "squad", [])
 	loadout["squad"] = squad_paths
+	var map_path: String = cfg.get_value("loadout", "map_path", "")
+	if map_path != "":
+		var mpd = load(map_path)
+		if mpd != null:
+			loadout["map_def"] = mpd
 
 func save_loadout() -> void:
 	var cfg := ConfigFile.new()
@@ -91,6 +97,8 @@ func save_loadout() -> void:
 	cfg.set_value("loadout", "bot_path", bot_def.resource_path if bot_def != null else "")
 	cfg.set_value("loadout", "team_size", loadout.get("team_size", 1))
 	cfg.set_value("loadout", "squad", loadout.get("squad", []))
+	var map_def = loadout.get("map_def")
+	cfg.set_value("loadout", "map_path", map_def.resource_path if map_def != null else "")
 	cfg.save(_SAVE_PATH)
 
 func save_settings() -> void:

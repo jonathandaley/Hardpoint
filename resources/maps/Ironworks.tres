@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MapDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/MapDef.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+map_name = "Ironworks"
+theme = "industrial"
+cover_seed = 42
+cover_density = 0.75
+column_color = Color(0.60, 0.48, 0.38, 1)
+floor_tint = Color(0.28, 0.20, 0.14, 1)
+ambient_color = Color(0.85, 0.62, 0.38, 1)
+ambient_energy = 0.70

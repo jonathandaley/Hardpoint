@@ -1,13 +1,20 @@
 extends Control
 
-@onready var sens_slider: HSlider = $Content/SensRow/SensSlider
-@onready var sens_label:  Label   = $Content/SensRow/SensValue
-@onready var vol_slider:  HSlider = $Content/VolRow/VolSlider
-@onready var vol_label:   Label   = $Content/VolRow/VolValue
+@onready var sens_slider: HSlider = $Scroll/Content/SensRow/SensSlider
+@onready var sens_label:  Label   = $Scroll/Content/SensRow/SensValue
+@onready var vol_slider:  HSlider = $Scroll/Content/VolRow/VolSlider
+@onready var vol_label:   Label   = $Scroll/Content/VolRow/VolValue
 
 const DIFF_LABELS := ["EASY", "NORMAL", "MEDIUM", "HARD", "ELITE"]
+const MAPS: Array = [
+	"res://resources/maps/MathTemple.tres",
+	"res://resources/maps/Ironworks.tres",
+	"res://resources/maps/Badlands.tres",
+]
 
 var _diff_buttons: Array = []
+var _map_buttons: Array = []
+var _selected_map_idx: int = 0
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -28,7 +35,7 @@ func _ready() -> void:
 	vol_slider.set_block_signals(false)
 	_update_vol_label()
 
-	var diff_row: HBoxContainer = $Content/DiffRow/DiffButtons
+	var diff_row: HBoxContainer = $Scroll/Content/DiffRow/DiffButtons
 	var cur_diff: int = Game.settings.get("bot_difficulty", 1)
 	for i in DIFF_LABELS.size():
 		var btn := Button.new()
@@ -39,6 +46,52 @@ func _ready() -> void:
 		diff_row.add_child(btn)
 		_diff_buttons.append(btn)
 	_highlight_diff(cur_diff)
+	_build_map_section()
+
+func _build_map_section() -> void:
+	var content: VBoxContainer = $Scroll/Content
+	var section_lbl := Label.new()
+	section_lbl.text = "MAP (TESTING)"
+	section_lbl.add_theme_font_size_override("font_size", 14)
+	content.add_child(section_lbl)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	content.add_child(row)
+
+	var current_map = Game.loadout.get("map_def")
+	for i in MAPS.size():
+		var md = load(MAPS[i])
+		if md == null:
+			continue
+		if current_map != null and md.map_name == current_map.map_name:
+			_selected_map_idx = i
+		var btn := Button.new()
+		btn.text = md.map_name.to_upper()
+		btn.custom_minimum_size = Vector2(120, 28)
+		btn.add_theme_font_size_override("font_size", 14)
+		btn.pressed.connect(_on_map_pressed.bind(i))
+		row.add_child(btn)
+		_map_buttons.append(btn)
+
+	if Game.loadout.get("map_def") == null and MAPS.size() > 0:
+		Game.loadout["map_def"] = load(MAPS[0])
+	_highlight_map(_selected_map_idx)
+
+func _on_map_pressed(idx: int) -> void:
+	_selected_map_idx = idx
+	var md = load(MAPS[idx])
+	Game.loadout["map_def"] = md
+	Game.save_loadout()
+	_highlight_map(idx)
+
+func _highlight_map(idx: int) -> void:
+	for i in _map_buttons.size():
+		var btn: Button = _map_buttons[i]
+		if i == idx:
+			btn.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
+		else:
+			btn.remove_theme_color_override("font_color")
 
 func _update_sens_label() -> void:
 	sens_label.text = "%.4f" % sens_slider.value

@@ -85,6 +85,12 @@ var _diorama_viewport: SubViewport = null
 var _diorama_spin: Node3D = null
 var _diorama_mech_node = null
 
+const MAPS: Array = [
+	"res://resources/maps/MathTemple.tres",
+	"res://resources/maps/Ironworks.tres",
+	"res://resources/maps/Badlands.tres",
+]
+
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	weapon_slot_label.visible = false
@@ -109,6 +115,7 @@ func _ready() -> void:
 	_build_back_btn()
 	_setup_lineup_viewport()
 	_setup_diorama()
+	_init_map_selection()
 	_show_tab(0)
 
 func _load_squad() -> void:
@@ -764,3 +771,8 @@ func _on_matchmaking_pressed() -> void:
 func _on_settings_pressed() -> void:
 	SoundManager.play_sfx_2d("ui_click")
 	get_tree().change_scene_to_file("res://scenes/ui/Settings.tscn")
+
+func _init_map_selection() -> void:
+	if Game.loadout.get("map_def") == null:
+		Game.loadout["map_def"] = load(MAPS[0])
+

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="MapDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/MapDef.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+map_name = "Badlands"
+theme = "badlands"
+cover_seed = 137
+cover_density = 0.55
+column_color = Color(0.78, 0.68, 0.50, 1)
+floor_tint = Color(0.38, 0.28, 0.18, 1)
+ambient_color = Color(0.88, 0.60, 0.32, 1)
+ambient_energy = 0.90

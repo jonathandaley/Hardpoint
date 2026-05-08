@@ -4179,6 +4179,7 @@ func _ready() -> void:
 	pause_menu.resume_requested.connect(_on_pause_resume)
 	pause_menu.quit_requested.connect(_on_pause_quit)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	_apply_map_theme()
 	_spawn_mechs()
 	_create_walls()
 	_create_wall_art()
@@ -4208,8 +4209,12 @@ func _ready() -> void:
 	print("[Arena] Match started. Score to drain: %d" % match_node.score_limit)
 
 func _paint_penrose_floor() -> void:
+	var map_def = Game.loadout.get("map_def")
+	var floor_col := Color(0.30, 0.30, 0.35)
+	if map_def != null:
+		floor_col = map_def.floor_tint
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.30, 0.30, 0.35)
+	mat.albedo_color = floor_col
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 
 	const HX := 0.075
@@ -4238,6 +4243,16 @@ func _paint_penrose_floor() -> void:
 
 
 var _overhead_cam: Camera3D
+
+func _apply_map_theme() -> void:
+	var map_def = Game.loadout.get("map_def")
+	if map_def == null:
+		return
+	var we: WorldEnvironment = $WorldEnvironment
+	if we == null or we.environment == null:
+		return
+	we.environment.ambient_light_color  = map_def.ambient_color
+	we.environment.ambient_light_energy = map_def.ambient_energy
 
 func _toggle_overhead() -> void:
 	if _overhead_cam == null:
@@ -4397,14 +4412,27 @@ func _create_walls() -> void:
 
 
 func _create_columns() -> void:
+	var map_def = Game.loadout.get("map_def")
+	var col_color := Color(0.88, 0.90, 0.95, 1)
+	var c_seed: int = 0
+	var c_density: float = 1.0
+	if map_def != null:
+		col_color  = map_def.column_color
+		c_seed     = map_def.cover_seed
+		c_density  = map_def.cover_density
+
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.88, 0.90, 0.95, 1)
+	mat.albedo_color = col_color
 	mat.roughness = 0.3
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 
+	var rng := RandomNumberGenerator.new()
+	rng.seed = c_seed
+
 	for p in _PENROSE_VERTS:
 		if p.length() <= 32.0:
-			_place_column(p.x, p.y, mat)
+			if c_density >= 1.0 or rng.randf() <= c_density:
+				_place_column(p.x, p.y, mat)
 
 func _place_column(x: float, z: float, mat: StandardMaterial3D) -> void:
 	var body := StaticBody3D.new()
