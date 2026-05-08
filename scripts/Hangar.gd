@@ -146,7 +146,7 @@ func _setup_lineup_viewport() -> void:
 	mech_panel.add_child(_lineup_container)
 
 	_lineup_viewport = SubViewport.new()
-	_lineup_viewport.size              = Vector2i(640, 210)
+	_lineup_viewport.size              = Vector2i(1280, 420)
 	_lineup_viewport.own_world_3d      = true
 	_lineup_viewport.transparent_bg    = false
 	_lineup_viewport.handle_input_locally = false
@@ -168,7 +168,9 @@ func _setup_lineup_viewport() -> void:
 	_lineup_viewport.add_child(light)
 
 	var cam := Camera3D.new()
-	cam.position = Vector3(0.0, 2.5, 4.5)
+	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
+	cam.size       = 5.5   # world-unit vertical height visible
+	cam.position   = Vector3(0.0, 2.5, 10.0)
 	cam.look_at_from_position(cam.position, Vector3(0.0, 1.0, 0.0))
 	_lineup_viewport.add_child(cam)
 
