@@ -4343,6 +4343,9 @@ func _spawn_one_mech(mech_def, is_player_mech: bool, team: int, idx: int, count:
 	m.base_walk_speed = mech_def.walk_speed
 	m.turn_acceleration = mech_def.turn_acceleration
 	m.leg_rotation_speed = mech_def.leg_rotation_speed
+	if is_player_mech:
+		m.max_health      *= Game.get_progression_multiplier("health")
+		m.base_walk_speed *= Game.get_progression_multiplier("speed")
 	MechVisuals.apply(m, mech_def.display_name)
 	add_child(m)
 	m.configure_legs(mech_def.leg_hip_sweep, mech_def.leg_bob_magnitude, mech_def.leg_cycle_rate)
@@ -4352,6 +4355,13 @@ func _spawn_one_mech(mech_def, is_player_mech: bool, team: int, idx: int, count:
 	var slots = _slots_with_overrides(mech_def.weapon_slots) if is_player_mech else mech_def.weapon_slots
 	m.configure_weapons(slots)
 	m.configure_abilities(mech_def.abilities)
+	if is_player_mech:
+		var dmg_mult: float = Game.get_progression_multiplier("damage")
+		var rl_mult: float  = Game.get_progression_multiplier("reload")
+		for weapon in m.get_weapons():
+			weapon.damage      *= dmg_mult
+			weapon.reload_time  = maxf(0.1, weapon.reload_time / rl_mult)
+			weapon.refill_rate *= rl_mult
 	m.invincible = mech_def.invincible
 	_team_mechs[team].append(m)
 	return m
@@ -4866,6 +4876,7 @@ func _on_match_ended(winning_team: int) -> void:
 		Game.profile["wins"] = Game.profile.get("wins", 0) + 1
 	else:
 		Game.profile["losses"] = Game.profile.get("losses", 0) + 1
+	Game.update_after_match(winning_team == player_team)
 	Game.save_profile()
 	print("[Arena] Match over. Team %d wins." % winning_team)
 
