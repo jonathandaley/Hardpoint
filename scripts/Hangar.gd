@@ -77,6 +77,7 @@ var _slot_labels: Array = []
 
 # Back button (detail screen)
 var _back_btn: Button = null
+var _team_size_container: Control = null  # programmatic team-size picker root
 
 # Single-mech diorama (detail screen)
 var _diorama_container: SubViewportContainer = null
@@ -128,13 +129,13 @@ func _load_squad() -> void:
 func _build_back_btn() -> void:
 	_back_btn = Button.new()
 	_back_btn.text = "< BACK"
-	_back_btn.offset_left   = 200.0
-	_back_btn.offset_top    = 2.0
-	_back_btn.offset_right  = 280.0
-	_back_btn.offset_bottom = 20.0
-	_back_btn.add_theme_font_size_override("font_size", 13)
+	_back_btn.offset_left   = 4.0
+	_back_btn.offset_top    = 316.0
+	_back_btn.offset_right  = 190.0
+	_back_btn.offset_bottom = 348.0
+	_back_btn.add_theme_font_size_override("font_size", 20)
 	_back_btn.pressed.connect(_on_back_pressed)
-	mech_panel.add_child(_back_btn)
+	add_child(_back_btn)
 	_back_btn.visible = false
 
 func _setup_lineup_viewport() -> void:
@@ -204,9 +205,9 @@ func _setup_lineup_viewport() -> void:
 	var style_normal  := StyleBoxFlat.new()
 	style_normal.bg_color = Color(0, 0, 0, 0)
 	var style_hover   := StyleBoxFlat.new()
-	style_hover.bg_color  = Color(1, 1, 1, 0.08)
+	style_hover.bg_color  = Color(1, 1, 1, 0.22)
 	var style_pressed := StyleBoxFlat.new()
-	style_pressed.bg_color = Color(1, 1, 1, 0.16)
+	style_pressed.bg_color = Color(1, 1, 1, 0.35)
 
 	var btn_w := disp_w / SQUAD_SIZE  # equal-width zones
 
@@ -302,6 +303,13 @@ func _show_squad_screen() -> void:
 	var picker := mech_panel.get_node_or_null("WeaponPicker")
 	if picker:
 		picker.visible = false
+	# Show bottom bar.
+	$BottomDivider.visible = true
+	$MatchmakingButton.visible = true
+	$SettingsButton.visible = true
+	if _team_size_container != null:
+		_team_size_container.visible = true
+	_back_btn.visible = false
 
 func _show_detail_screen(slot: int) -> void:
 	_detail_slot = slot
@@ -322,6 +330,12 @@ func _show_detail_screen(slot: int) -> void:
 		btn.visible = false
 	for lbl in _slot_labels:
 		lbl.visible = false
+	# Hide bottom bar, show back button in its place.
+	$BottomDivider.visible = false
+	$MatchmakingButton.visible = false
+	$SettingsButton.visible = false
+	if _team_size_container != null:
+		_team_size_container.visible = false
 	_back_btn.visible = true
 	$Content/MechPanel/RosterPanel.visible = true
 	$Content/MechPanel/RosterDivider.visible = true
@@ -606,6 +620,7 @@ func _build_team_size_picker() -> void:
 	container.offset_bottom = 348.0
 	container.add_theme_constant_override("separation", 4)
 	add_child(container)
+	_team_size_container = container
 
 	var lbl := Label.new()
 	lbl.text = "TEAM SIZE"
