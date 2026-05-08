@@ -34,10 +34,14 @@ var _spectate_label: Label = null
 var _beacons: Array = []
 var _beacon_dots: Array = []       # BeaconDot per beacon, top-center ownership circles
 var _score_bars: Array = []        # [{bg, fg, max_w}] team 0 and 1 score bars
+var _team_count_labels: Array = [] # [team0_label, team1_label] alive counters
+
+var _original_player_mech: Node = null  # keeps the original ref after spectate switch
 
 func setup(match_node: Node, player_mech: Node, player_team: int) -> void:
 	_match = match_node
 	_player_mech = player_mech
+	_original_player_mech = player_mech
 	_player_team = player_team
 	weapon_hud.setup(player_mech)
 	score_label.visible = false
@@ -160,6 +164,26 @@ func setup_beacon_bars(beacons: Array) -> void:
 		add_child(fg)
 		_score_bars.append({"bg": bg, "fg": fg, "left": bar_left, "right": bar_right, "max_w": _BAR_W})
 
+	# Alive-count labels just below each score bar.
+	for entry in _team_count_labels:
+		if is_instance_valid(entry):
+			entry.queue_free()
+	_team_count_labels.clear()
+	var count_colors: Array = [Color(0.45, 0.75, 1.0), Color(1.0, 0.5, 0.4)]
+	for t in 2:
+		var bar: Dictionary = _score_bars[t]
+		var lbl := Label.new()
+		lbl.add_theme_font_size_override("font_size", 11)
+		lbl.add_theme_color_override("font_color", count_colors[t])
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lbl.offset_left   = bar["left"]
+		lbl.offset_right  = bar["right"]
+		lbl.offset_top    = _BAR_Y + _BAR_H + 2.0
+		lbl.offset_bottom = _BAR_Y + _BAR_H + 16.0
+		add_child(lbl)
+		_team_count_labels.append(lbl)
+
 func show_damage() -> void:
 	_damage_alpha = 0.45
 
@@ -179,11 +203,16 @@ func start_spectating(mech: Node) -> void:
 		_spectate_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_spectate_label.set_anchors_preset(Control.PRESET_CENTER_TOP)
 		_spectate_label.offset_top = 12.0
-		_spectate_label.offset_left  = -160.0
-		_spectate_label.offset_right =  160.0
+		_spectate_label.offset_left  = -200.0
+		_spectate_label.offset_right =  200.0
 		_spectate_label.offset_bottom = 30.0
 		add_child(_spectate_label)
-	_spectate_label.text = "SPECTATING: %s" % mech.name.to_upper()
+	var mech_team: int = mech.get("team") if "team" in mech else -1
+	var is_ally: bool = mech_team == _player_team
+	var tag: String = "ALLY" if is_ally else "ENEMY"
+	var col: Color = Color(0.45, 0.80, 1.0) if is_ally else Color(1.0, 0.45, 0.35)
+	_spectate_label.text = "SPECTATING %s: %s" % [tag, mech.name.to_upper()]
+	_spectate_label.add_theme_color_override("font_color", col)
 	_spectate_label.visible = true
 
 func show_result(winning_team: int, stats: Dictionary = {}) -> void:
@@ -280,6 +309,7 @@ func _process(delta: float) -> void:
 	_update_ability_label()
 	_update_bot_bar()
 	_update_beacon_bars()
+	_update_team_counts()
 
 const ELIGIBLE_HALF := 9.5
 
@@ -404,3 +434,23 @@ func _update_bot_bar() -> void:
 		fg.offset_right  = left + BOT_BAR_FULL_WIDTH * pct
 		fg.offset_bottom = top + BOT_BAR_HEIGHT
 		fg.visible = pct > 0.0
+
+func _update_team_counts() -> void:
+	if _team_count_labels.size() < 2:
+		return
+	# Team 0: original player mech + ally bots.
+	var t0_total := 1 + _ally_mechs.size()
+	var t0_alive := 0
+	if is_instance_valid(_original_player_mech) and _original_player_mech.visible:
+		t0_alive += 1
+	for m in _ally_mechs:
+		if is_instance_valid(m) and m.visible:
+			t0_alive += 1
+	# Team 1: enemy bots.
+	var t1_total := _bot_mechs.size()
+	var t1_alive := 0
+	for m in _bot_mechs:
+		if is_instance_valid(m) and m.visible:
+			t1_alive += 1
+	_team_count_labels[0].text = "%d / %d" % [t0_alive, t0_total]
+	_team_count_labels[1].text = "%d / %d" % [t1_alive, t1_total]
