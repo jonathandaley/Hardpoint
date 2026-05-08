@@ -73,6 +73,7 @@ var _detail_slot: int = -1           # -1 = squad screen, 0-4 = detail for that 
 var _lineup_container: SubViewportContainer = null
 var _lineup_viewport: SubViewport = null
 var _slot_btns: Array = []
+var _slot_labels: Array = []
 
 # Back button (detail screen)
 var _back_btn: Button = null
@@ -190,18 +191,58 @@ func _setup_lineup_viewport() -> void:
 
 	_refresh_lineup_mechs()
 
-	# Slot select buttons below the viewport.
+	# Transparent hit buttons overlaying each mech + name label below.
+	# Compute screen-x centres from world positions (orthographic, size=5.5, display 640px wide).
+	var spacing := 3.0
+	var start_x := -(SQUAD_SIZE - 1) * spacing * 0.5
+	var cam_size := 5.5
+	var disp_w  := 640.0
+	var disp_h  := 210.0
+	var aspect  := disp_w / disp_h
+	var world_w := cam_size * aspect  # world units visible horizontally
+
+	var style_normal  := StyleBoxFlat.new()
+	style_normal.bg_color = Color(0, 0, 0, 0)
+	var style_hover   := StyleBoxFlat.new()
+	style_hover.bg_color  = Color(1, 1, 1, 0.08)
+	var style_pressed := StyleBoxFlat.new()
+	style_pressed.bg_color = Color(1, 1, 1, 0.16)
+
+	var btn_w := disp_w / SQUAD_SIZE  # equal-width zones
+
 	for i in SQUAD_SIZE:
+		var world_cx := start_x + i * spacing
+		var screen_cx := disp_w * (world_cx / world_w + 0.5)
+
 		var btn := Button.new()
 		btn.text = ""
-		btn.offset_left   = float(i) * 128.0
-		btn.offset_top    = 213.0
-		btn.offset_right  = float(i + 1) * 128.0
+		btn.flat = true
+		btn.focus_mode = Control.FOCUS_NONE
+		btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		btn.offset_left   = screen_cx - btn_w * 0.5
+		btn.offset_top    = 0.0
+		btn.offset_right  = screen_cx + btn_w * 0.5
 		btn.offset_bottom = 244.0
-		btn.add_theme_font_size_override("font_size", 12)
+		btn.add_theme_stylebox_override("normal",  style_normal)
+		btn.add_theme_stylebox_override("hover",   style_hover)
+		btn.add_theme_stylebox_override("pressed", style_pressed)
 		btn.pressed.connect(_on_slot_btn_pressed.bind(i))
 		mech_panel.add_child(btn)
 		_slot_btns.append(btn)
+
+		var lbl := Label.new()
+		lbl.text = ""
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.vertical_alignment   = VERTICAL_ALIGNMENT_CENTER
+		lbl.offset_left   = screen_cx - btn_w * 0.5
+		lbl.offset_top    = 213.0
+		lbl.offset_right  = screen_cx + btn_w * 0.5
+		lbl.offset_bottom = 244.0
+		lbl.add_theme_font_size_override("font_size", 12)
+		lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		mech_panel.add_child(lbl)
+		_slot_labels.append(lbl)
+
 	_refresh_slot_btn_labels()
 
 func _refresh_lineup_mechs() -> void:
@@ -228,11 +269,11 @@ func _refresh_lineup_mechs() -> void:
 
 func _refresh_slot_btn_labels() -> void:
 	for i in SQUAD_SIZE:
-		if i >= _slot_btns.size():
+		if i >= _slot_labels.size():
 			break
 		var md = _squad_mechs[i] if i < _squad_mechs.size() else null
-		var label: String = md.display_name.to_upper() if md != null else "EMPTY"
-		_slot_btns[i].text = label
+		var text: String = md.display_name.to_upper() if md != null else "EMPTY"
+		_slot_labels[i].text = text
 
 func _on_slot_btn_pressed(slot: int) -> void:
 	SoundManager.play_sfx_2d("ui_click")
@@ -254,6 +295,8 @@ func _show_squad_screen() -> void:
 	$Content/MechPanel/RosterDivider.visible = false
 	mech_name_label.visible = false
 	mech_stats_label.visible = false
+	for lbl in _slot_labels:
+		lbl.visible = true
 	if _diorama_container != null:
 		_diorama_container.visible = false
 	var picker := mech_panel.get_node_or_null("WeaponPicker")
@@ -277,6 +320,8 @@ func _show_detail_screen(slot: int) -> void:
 	_lineup_container.visible = false
 	for btn in _slot_btns:
 		btn.visible = false
+	for lbl in _slot_labels:
+		lbl.visible = false
 	_back_btn.visible = true
 	$Content/MechPanel/RosterPanel.visible = true
 	$Content/MechPanel/RosterDivider.visible = true
