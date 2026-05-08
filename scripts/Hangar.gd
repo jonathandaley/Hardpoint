@@ -46,6 +46,16 @@ const WEAPON_CATALOG: Array = [
 @onready var roster_list: VBoxContainer = $Content/MechPanel/RosterPanel/RosterScroll/RosterList
 @onready var bot_roster_list: VBoxContainer = $Content/MechPanel/RosterPanel/BotRosterScroll/BotRosterList
 
+const SQUAD_SIZE := 5
+# Default squad uses first 5 non-debug mechs from ROSTER.
+const DEFAULT_SQUAD: Array = [
+	"res://resources/mechs/Slip.tres",
+	"res://resources/mechs/Cesh.tres",
+	"res://resources/mechs/Seeker.tres",
+	"res://resources/mechs/Hornet.tres",
+	"res://resources/mechs/Hippogriff.tres",
+]
+
 var _mechs: Array = []
 var _selected: int = 0
 var _bot_selected: int = 0
@@ -53,6 +63,21 @@ var _weapon_indices: Array = []      # WEAPON_CATALOG index per slot for the sel
 var _weapon_name_labels: Array = []  # Label refs in the picker, updated in-place on cycle
 var _team_size_label: Label = null   # shows "1v1", "2v2", etc.
 
+# Squad and mode state
+var _squad_paths: Array = []         # 5 mech resource paths
+var _squad_mechs: Array = []         # loaded MechDef resources
+var _squad_nodes: Array = []         # mech instances in lineup viewport
+var _detail_slot: int = -1           # -1 = squad screen, 0-4 = detail for that slot
+
+# Lineup (5-mech) viewport
+var _lineup_container: SubViewportContainer = null
+var _lineup_viewport: SubViewport = null
+var _slot_btns: Array = []
+
+# Back button (detail screen)
+var _back_btn: Button = null
+
+# Single-mech diorama (detail screen)
 var _diorama_container: SubViewportContainer = null
 var _diorama_viewport: SubViewport = null
 var _diorama_spin: Node3D = null
@@ -68,9 +93,9 @@ func _ready() -> void:
 	var losses: int = Game.profile.get("losses", 0)
 	pilot_record_label.text = "WINS: %d   LOSSES: %d" % [wins, losses]
 	_load_roster()
+	_load_squad()
 	_ensure_default_mech()
 	_build_roster_buttons()
-	_update_mech_panel()
 	if DEBUG_BOT_PICKER:
 		_ensure_default_bot()
 		_build_bot_roster_buttons()
@@ -79,9 +104,184 @@ func _ready() -> void:
 		if Game.loadout.get("bot_def") == null and _mechs.size() > 0:
 			Game.loadout["bot_def"] = _mechs[0]
 	_build_team_size_picker()
-	mech_name_label.offset_right = 415.0
+	_build_back_btn()
+	_setup_lineup_viewport()
 	_setup_diorama()
 	_show_tab(0)
+
+func _load_squad() -> void:
+	var saved: Array = Game.loadout.get("squad", [])
+	_squad_paths.clear()
+	for i in SQUAD_SIZE:
+		var path: String = saved[i] if i < saved.size() else DEFAULT_SQUAD[i % DEFAULT_SQUAD.size()]
+		_squad_paths.append(path)
+	_squad_mechs.clear()
+	for path in _squad_paths:
+		var md = load(path)
+		_squad_mechs.append(md)
+	Game.loadout["squad"] = _squad_paths
+	# Sync mech_def to slot 0
+	if _squad_mechs.size() > 0 and _squad_mechs[0] != null:
+		Game.loadout["mech_def"] = _squad_mechs[0]
+
+func _build_back_btn() -> void:
+	_back_btn = Button.new()
+	_back_btn.text = "< BACK"
+	_back_btn.offset_left   = 200.0
+	_back_btn.offset_top    = 2.0
+	_back_btn.offset_right  = 280.0
+	_back_btn.offset_bottom = 20.0
+	_back_btn.add_theme_font_size_override("font_size", 13)
+	_back_btn.pressed.connect(_on_back_pressed)
+	mech_panel.add_child(_back_btn)
+	_back_btn.visible = false
+
+func _setup_lineup_viewport() -> void:
+	_lineup_container = SubViewportContainer.new()
+	_lineup_container.offset_left   = 0.0
+	_lineup_container.offset_top    = 0.0
+	_lineup_container.offset_right  = 640.0
+	_lineup_container.offset_bottom = 210.0
+	_lineup_container.stretch = true
+	mech_panel.add_child(_lineup_container)
+
+	_lineup_viewport = SubViewport.new()
+	_lineup_viewport.size              = Vector2i(640, 210)
+	_lineup_viewport.own_world_3d      = true
+	_lineup_viewport.transparent_bg    = false
+	_lineup_viewport.handle_input_locally = false
+	_lineup_container.add_child(_lineup_viewport)
+
+	var env := Environment.new()
+	env.background_mode       = Environment.BG_COLOR
+	env.background_color      = Color(0.05, 0.05, 0.07)
+	env.ambient_light_source  = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color   = Color(0.5, 0.5, 0.6)
+	env.ambient_light_energy  = 0.5
+	var env_node := WorldEnvironment.new()
+	env_node.environment = env
+	_lineup_viewport.add_child(env_node)
+
+	var light := DirectionalLight3D.new()
+	light.rotation_degrees = Vector3(-45.0, 30.0, 0.0)
+	light.light_energy     = 1.2
+	_lineup_viewport.add_child(light)
+
+	var cam := Camera3D.new()
+	cam.position = Vector3(0.0, 4.0, 16.0)
+	cam.look_at_from_position(cam.position, Vector3(0.0, 1.2, 0.0))
+	_lineup_viewport.add_child(cam)
+
+	# Platform spanning all 5 mech positions.
+	var platform_mi   := MeshInstance3D.new()
+	var platform_mesh := CylinderMesh.new()
+	platform_mesh.top_radius    = 14.0
+	platform_mesh.bottom_radius = 14.0
+	platform_mesh.height        = 0.12
+	platform_mi.mesh = platform_mesh
+	var platform_mat := StandardMaterial3D.new()
+	platform_mat.albedo_color = Color(0.18, 0.18, 0.22)
+	platform_mat.roughness    = 0.6
+	platform_mi.set_surface_override_material(0, platform_mat)
+	platform_mi.position = Vector3(0.0, -0.06, 0.0)
+	_lineup_viewport.add_child(platform_mi)
+
+	_refresh_lineup_mechs()
+
+	# Slot select buttons below the viewport.
+	for i in SQUAD_SIZE:
+		var btn := Button.new()
+		btn.text = ""
+		btn.offset_left   = float(i) * 128.0
+		btn.offset_top    = 213.0
+		btn.offset_right  = float(i + 1) * 128.0
+		btn.offset_bottom = 244.0
+		btn.add_theme_font_size_override("font_size", 12)
+		btn.pressed.connect(_on_slot_btn_pressed.bind(i))
+		mech_panel.add_child(btn)
+		_slot_btns.append(btn)
+	_refresh_slot_btn_labels()
+
+func _refresh_lineup_mechs() -> void:
+	for n in _squad_nodes:
+		if is_instance_valid(n):
+			n.queue_free()
+	_squad_nodes.clear()
+
+	# Spacing: 4m between mechs, centered at x=0.
+	var spacing := 4.0
+	var start_x := -(SQUAD_SIZE - 1) * spacing * 0.5
+	for i in SQUAD_SIZE:
+		var md = _squad_mechs[i] if i < _squad_mechs.size() else null
+		if md == null or md.scene == null:
+			_squad_nodes.append(null)
+			continue
+		var m = md.scene.instantiate()
+		m.scale = Vector3.ONE * md.body_scale
+		MechVisuals.apply(m, md.display_name)
+		m.position = Vector3(start_x + float(i) * spacing, 0.0, 0.0)
+		_lineup_viewport.add_child(m)
+		m.set_physics_process(false)
+		_squad_nodes.append(m)
+
+func _refresh_slot_btn_labels() -> void:
+	for i in SQUAD_SIZE:
+		if i >= _slot_btns.size():
+			break
+		var md = _squad_mechs[i] if i < _squad_mechs.size() else null
+		var label: String = md.display_name.to_upper() if md != null else "EMPTY"
+		_slot_btns[i].text = "S%d\n%s" % [i + 1, label]
+
+func _on_slot_btn_pressed(slot: int) -> void:
+	SoundManager.play_sfx_2d("ui_click")
+	_show_detail_screen(slot)
+
+func _on_back_pressed() -> void:
+	SoundManager.play_sfx_2d("ui_click")
+	_show_squad_screen()
+
+func _show_squad_screen() -> void:
+	_detail_slot = -1
+	_refresh_lineup_mechs()
+	_refresh_slot_btn_labels()
+	_lineup_container.visible = true
+	for btn in _slot_btns:
+		btn.visible = true
+	_back_btn.visible = false
+	$Content/MechPanel/RosterPanel.visible = false
+	$Content/MechPanel/RosterDivider.visible = false
+	mech_name_label.visible = false
+	mech_stats_label.visible = false
+	if _diorama_container != null:
+		_diorama_container.visible = false
+	var picker := mech_panel.get_node_or_null("WeaponPicker")
+	if picker:
+		picker.visible = false
+
+func _show_detail_screen(slot: int) -> void:
+	_detail_slot = slot
+	# Sync mech_def to the selected slot's mech for weapon picker compatibility.
+	var md = _squad_mechs[slot] if slot < _squad_mechs.size() else null
+	if md != null:
+		Game.loadout["mech_def"] = md
+	_selected = _mechs.find(md)
+	if _selected < 0:
+		_selected = 0
+	_init_weapon_overrides()
+	_highlight_selected()
+	_update_mech_panel()
+	_refresh_diorama_mech()
+
+	_lineup_container.visible = false
+	for btn in _slot_btns:
+		btn.visible = false
+	_back_btn.visible = true
+	$Content/MechPanel/RosterPanel.visible = true
+	$Content/MechPanel/RosterDivider.visible = true
+	mech_name_label.visible = true
+	mech_stats_label.visible = true
+	if _diorama_container != null:
+		_diorama_container.visible = true
 
 func _load_roster() -> void:
 	_mechs.clear()
@@ -215,6 +415,12 @@ func _on_roster_selected(idx: int) -> void:
 	SoundManager.play_sfx_2d("ui_click")
 	_selected = idx
 	Game.loadout.mech_def = _mechs[idx]
+	# Update squad slot if in detail screen.
+	if _detail_slot >= 0 and _detail_slot < SQUAD_SIZE:
+		_squad_mechs[_detail_slot] = _mechs[idx]
+		_squad_paths[_detail_slot] = _mechs[idx].resource_path
+		Game.loadout["squad"] = _squad_paths
+		_refresh_slot_btn_labels()
 	_init_weapon_overrides()
 	Game.save_loadout()
 	_highlight_selected()
@@ -476,6 +682,8 @@ func _refresh_diorama_mech() -> void:
 func _show_tab(idx: int) -> void:
 	mech_panel.visible = idx == 0
 	pilot_panel.visible = idx == 1
+	if idx == 0:
+		_show_squad_screen()
 
 func _on_mech_tab_pressed() -> void:
 	SoundManager.play_sfx_2d("ui_click")
