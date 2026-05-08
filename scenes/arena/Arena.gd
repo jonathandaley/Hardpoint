@@ -4197,6 +4197,7 @@ func _ready() -> void:
 	_create_nav_region()
 	match_node.match_ended.connect(_on_match_ended)
 	match_node.start()
+	MovementLogger.start_session()
 	SoundManager.play_music("arena")
 	hud.setup(match_node, player_mech, 0)
 	hud.setup_bot_bars(_team_mechs[1])
@@ -4853,6 +4854,7 @@ func on_player_eliminated(p: Node) -> void:
 
 func _on_match_ended(winning_team: int) -> void:
 	_match_over = true
+	MovementLogger.stop_and_analyze()
 	SoundManager.stop_music()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	var player_team: int = _player.get("team") if _player != null else 0
