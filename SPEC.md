@@ -99,7 +99,7 @@ T30|x|visual FX: muzzle flash (0.08s decay), hit sparks (3-4 emissive cubes, 0.2
 T31|x|floor art: `tools/hat_floor_tex.py` → hat_floor.png (1024px) UV-mapped to bowl mesh|V13
 T32|x|lighting pass: directional + 2-3 points, try baked lightmap (2 fail → fall back)|-
 T33|x|fractal wall/ceiling art: `tools/fractal_wall_gen.py` → exterior circular walls only (archived for interior); interior walls use `_PENROSE_SVG_EDGES` directly|V13
-T34|.|hangar 3D diorama: lineup 3-6 mechs, turntable platform, CanvasLayer UI, swap on loadout change|-
+T34|x|hangar 3D diorama: lineup 3-6 mechs, turntable platform, CanvasLayer UI, swap on loadout change|-
 T35|x|team vs team: 5v5/6v6 bots, scaled arena, `Match` configurable team counts (`Game.loadout["team_size"]`)|−
 T36|x|bot role assignment: attacker/defender/flanker, role biases beacon priority & positioning|T35
 T37|x|bot blackboard coordination: `AIDirector` autoload per team, intent signals (pushing beacon A etc.)|T35,T36
@@ -143,7 +143,8 @@ T74|.|in-game coins: earned from wins; spent on progression nodes or cosmetics; 
 T75|.|online accounts: email signup/login; profile server-backed; prerequisite for ELO/cosmetics cross-device|T40,T71
 T76|x|walk animation stride fix: small mechs animate too fast; tune `leg_cycle_rate`/`leg_hip_sweep` per mech so stride visually matches ground speed|T10
 T77|x|player eject on death: cockpit pod launches upward on player `_die()`; skip for bots (check `input_source` type or `is_player` flag in `Mech._die()`)|T68
-T78|.|normal-map arena edges: evaluate replacing Math Temple physical edge greebles with normal-mapped flat planes; reduce draw calls if viable|T70
+T78|x|normal-map arena edges: evaluate replacing Math Temple physical edge greebles with normal-mapped flat planes; reduce draw calls if viable|T70
+T79|.|hangar art pass: lighting, background environment, platform materials, slot button polish for the two-screen hangar redesign|T34
 
 ## §B BUGS
 

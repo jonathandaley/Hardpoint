@@ -23,6 +23,7 @@ var loadout: Dictionary = {
 	"weapon_overrides": [],        # Array[PackedScene|null], parallel to mech_def.weapon_slots
 	"mech_weapon_choices": {},     # {mech_resource_path: [weapon_scene_path, ...]}
 	"team_size": 1,                # mechs per team (1 = 1v1, 5 = 5v5)
+	"squad": [],                   # Array of 5 mech resource paths (slot 0 = player mech)
 }
 
 var settings: Dictionary = {
@@ -77,6 +78,8 @@ func _load_loadout() -> void:
 		if bd != null:
 			loadout["bot_def"] = bd
 	loadout["team_size"] = cfg.get_value("loadout", "team_size", 1)
+	var squad_paths: Array = cfg.get_value("loadout", "squad", [])
+	loadout["squad"] = squad_paths
 
 func save_loadout() -> void:
 	var cfg := ConfigFile.new()
@@ -87,6 +90,7 @@ func save_loadout() -> void:
 	var bot_def = loadout.get("bot_def")
 	cfg.set_value("loadout", "bot_path", bot_def.resource_path if bot_def != null else "")
 	cfg.set_value("loadout", "team_size", loadout.get("team_size", 1))
+	cfg.set_value("loadout", "squad", loadout.get("squad", []))
 	cfg.save(_SAVE_PATH)
 
 func save_settings() -> void:
