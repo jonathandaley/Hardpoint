@@ -171,9 +171,9 @@ func _setup_lineup_viewport() -> void:
 
 	var cam := Camera3D.new()
 	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
-	cam.size       = 5.5   # world-unit vertical height visible
-	cam.position   = Vector3(0.0, 2.5, 10.0)
-	cam.look_at_from_position(cam.position, Vector3(0.0, 1.0, 0.0))
+	cam.size       = 5.5
+	cam.position   = Vector3(0.0, 3.5, 10.0)
+	cam.look_at_from_position(cam.position, Vector3(0.0, 1.2, 0.0))
 	_lineup_viewport.add_child(cam)
 
 	# Platform spanning all 5 mech positions.
@@ -492,7 +492,7 @@ func _update_mech_panel() -> void:
 	var md = Game.loadout.get("mech_def")
 	if md == null:
 		return
-	mech_name_label.text = "MECH: %s (%s)" % [md.display_name.to_upper(), md.class_tag.to_upper()]
+	mech_name_label.text = "MECH: %s" % md.display_name.to_upper()
 	var shield_str: String
 	if md.has_shields:
 		shield_str = "PHYSICAL (FRONT)"
