@@ -210,8 +210,8 @@ func _refresh_lineup_mechs() -> void:
 			n.queue_free()
 	_squad_nodes.clear()
 
-	# Spacing: 3.5m between mechs, centered at x=0.
-	var spacing := 3.5
+	# Spacing: 3.0m between mechs, centered at x=0.
+	var spacing := 3.0
 	var start_x := -(SQUAD_SIZE - 1) * spacing * 0.5
 	for i in SQUAD_SIZE:
 		var md = _squad_mechs[i] if i < _squad_mechs.size() else null
@@ -232,7 +232,7 @@ func _refresh_slot_btn_labels() -> void:
 			break
 		var md = _squad_mechs[i] if i < _squad_mechs.size() else null
 		var label: String = md.display_name.to_upper() if md != null else "EMPTY"
-		_slot_btns[i].text = "S%d\n%s" % [i + 1, label]
+		_slot_btns[i].text = label
 
 func _on_slot_btn_pressed(slot: int) -> void:
 	SoundManager.play_sfx_2d("ui_click")
