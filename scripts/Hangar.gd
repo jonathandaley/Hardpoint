@@ -168,15 +168,15 @@ func _setup_lineup_viewport() -> void:
 	_lineup_viewport.add_child(light)
 
 	var cam := Camera3D.new()
-	cam.position = Vector3(0.0, 4.0, 16.0)
-	cam.look_at_from_position(cam.position, Vector3(0.0, 1.2, 0.0))
+	cam.position = Vector3(0.0, 2.5, 4.5)
+	cam.look_at_from_position(cam.position, Vector3(0.0, 1.0, 0.0))
 	_lineup_viewport.add_child(cam)
 
 	# Platform spanning all 5 mech positions.
 	var platform_mi   := MeshInstance3D.new()
 	var platform_mesh := CylinderMesh.new()
-	platform_mesh.top_radius    = 14.0
-	platform_mesh.bottom_radius = 14.0
+	platform_mesh.top_radius    = 9.0
+	platform_mesh.bottom_radius = 9.0
 	platform_mesh.height        = 0.12
 	platform_mi.mesh = platform_mesh
 	var platform_mat := StandardMaterial3D.new()
@@ -208,8 +208,8 @@ func _refresh_lineup_mechs() -> void:
 			n.queue_free()
 	_squad_nodes.clear()
 
-	# Spacing: 4m between mechs, centered at x=0.
-	var spacing := 4.0
+	# Spacing: 3.5m between mechs, centered at x=0.
+	var spacing := 3.5
 	var start_x := -(SQUAD_SIZE - 1) * spacing * 0.5
 	for i in SQUAD_SIZE:
 		var md = _squad_mechs[i] if i < _squad_mechs.size() else null
