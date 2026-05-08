@@ -145,6 +145,7 @@ T76|x|walk animation stride fix: small mechs animate too fast; tune `leg_cycle_r
 T77|x|player eject on death: cockpit pod launches upward on player `_die()`; skip for bots (check `input_source` type or `is_player` flag in `Mech._die()`)|T68
 T78|x|normal-map arena edges: evaluate replacing Math Temple physical edge greebles with normal-mapped flat planes; reduce draw calls if viable|T70
 T79|.|hangar art pass: lighting, background environment, platform materials, slot button polish for the two-screen hangar redesign|T34
+T80|.|scene-based maps: add `scene_path: String` to MapDef; Arena loads the MapDef's scene instead of always using Arena.tscn; each map is a self-contained scene with its own geometry, beacon placement, and floor pattern|T70
 
 ## §B BUGS
 

@@ -1,9 +1,9 @@
 extends Control
 
-@onready var sens_slider: HSlider = $Content/SensRow/SensSlider
-@onready var sens_label:  Label   = $Content/SensRow/SensValue
-@onready var vol_slider:  HSlider = $Content/VolRow/VolSlider
-@onready var vol_label:   Label   = $Content/VolRow/VolValue
+@onready var sens_slider: HSlider = $Scroll/Content/SensRow/SensSlider
+@onready var sens_label:  Label   = $Scroll/Content/SensRow/SensValue
+@onready var vol_slider:  HSlider = $Scroll/Content/VolRow/VolSlider
+@onready var vol_label:   Label   = $Scroll/Content/VolRow/VolValue
 
 const DIFF_LABELS := ["EASY", "NORMAL", "MEDIUM", "HARD", "ELITE"]
 const MAPS: Array = [
@@ -35,7 +35,7 @@ func _ready() -> void:
 	vol_slider.set_block_signals(false)
 	_update_vol_label()
 
-	var diff_row: HBoxContainer = $Content/DiffRow/DiffButtons
+	var diff_row: HBoxContainer = $Scroll/Content/DiffRow/DiffButtons
 	var cur_diff: int = Game.settings.get("bot_difficulty", 1)
 	for i in DIFF_LABELS.size():
 		var btn := Button.new()
@@ -49,7 +49,7 @@ func _ready() -> void:
 	_build_map_section()
 
 func _build_map_section() -> void:
-	var content: VBoxContainer = $Content
+	var content: VBoxContainer = $Scroll/Content
 	var section_lbl := Label.new()
 	section_lbl.text = "MAP (TESTING)"
 	section_lbl.add_theme_font_size_override("font_size", 14)

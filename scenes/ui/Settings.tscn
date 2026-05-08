@@ -35,11 +35,18 @@ offset_bottom = 30.0
 color = Color(0.3, 0.3, 0.3, 1)
 mouse_filter = 2
 
-[node name="Content" type="VBoxContainer" parent="."]
+[node name="Scroll" type="ScrollContainer" parent="."]
+offset_left = 0.0
+offset_top = 32.0
+offset_right = 640.0
+offset_bottom = 306.0
+
+[node name="Content" type="VBoxContainer" parent="Scroll"]
 offset_left = 24.0
-offset_top = 44.0
+offset_top = 12.0
 offset_right = 616.0
-offset_bottom = 300.0
+offset_bottom = 12.0
+size_flags_horizontal = 3
 theme_override_constants/separation = 20
 
 [node name="SensSection" type="Label" parent="Content"]
@@ -49,10 +56,10 @@ text = "MOUSE SENSITIVITY"
 [node name="SensRow" type="HBoxContainer" parent="Content"]
 theme_override_constants/separation = 12
 
-[node name="SensSlider" type="HSlider" parent="Content/SensRow"]
+[node name="SensSlider" type="HSlider" parent="Scroll/Content/SensRow"]
 custom_minimum_size = Vector2(260.0, 20.0)
 
-[node name="SensValue" type="Label" parent="Content/SensRow"]
+[node name="SensValue" type="Label" parent="Scroll/Content/SensRow"]
 custom_minimum_size = Vector2(70.0, 0.0)
 theme_override_font_sizes/font_size = 14
 text = "0.0030"
@@ -64,7 +71,7 @@ text = "BOT DIFFICULTY"
 [node name="DiffRow" type="HBoxContainer" parent="Content"]
 theme_override_constants/separation = 12
 
-[node name="DiffButtons" type="HBoxContainer" parent="Content/DiffRow"]
+[node name="DiffButtons" type="HBoxContainer" parent="Scroll/Content/DiffRow"]
 theme_override_constants/separation = 8
 
 [node name="VolSection" type="Label" parent="Content"]
@@ -74,10 +81,10 @@ text = "MASTER VOLUME"
 [node name="VolRow" type="HBoxContainer" parent="Content"]
 theme_override_constants/separation = 12
 
-[node name="VolSlider" type="HSlider" parent="Content/VolRow"]
+[node name="VolSlider" type="HSlider" parent="Scroll/Content/VolRow"]
 custom_minimum_size = Vector2(260.0, 20.0)
 
-[node name="VolValue" type="Label" parent="Content/VolRow"]
+[node name="VolValue" type="Label" parent="Scroll/Content/VolRow"]
 custom_minimum_size = Vector2(70.0, 0.0)
 theme_override_font_sizes/font_size = 14
 text = "100%"
@@ -98,6 +105,6 @@ offset_bottom = 348.0
 theme_override_font_sizes/font_size = 20
 text = "BACK"
 
-[connection signal="value_changed" from="Content/SensRow/SensSlider" to="." method="_on_sens_changed"]
-[connection signal="value_changed" from="Content/VolRow/VolSlider" to="." method="_on_vol_changed"]
+[connection signal="value_changed" from="Scroll/Content/SensRow/SensSlider" to="." method="_on_sens_changed"]
+[connection signal="value_changed" from="Scroll/Content/VolRow/VolSlider" to="." method="_on_vol_changed"]
 [connection signal="pressed" from="BackButton" to="." method="_on_back_pressed"]
