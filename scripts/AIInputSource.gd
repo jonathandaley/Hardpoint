@@ -11,6 +11,7 @@ const STUCK_CHECK    := 0.5   # seconds between stuck checks
 const STUCK_DIST     := 0.5   # minimum movement to not be considered stuck (m)
 const ESCAPE_TIME    := 1.2   # base seconds to escape when stuck
 const ESCAPE_TIME_MAX := 4.0  # maximum escape time for repeatedly stuck bots
+const AVOID_BEACON_TIME := 30.0  # seconds to avoid a beacon after repeated stucks
 const LOS_INTERVAL  := 0.12  # seconds between line-of-sight raycasts
 
 # [aim_jitter_radians, turn_speed_scale]
@@ -46,6 +47,8 @@ var _stuck_timer: float = STUCK_CHECK
 var _stuck_count: int = 0
 var _escape_timer: float = 0.0
 var _escape_vec: Vector2 = Vector2.RIGHT
+var _avoid_beacon: Node = null   # beacon to skip after repeated stucks
+var _avoid_timer:  float = 0.0
 var _target_refresh: float = 0.0
 var _has_clear_shot: bool = false
 var _los_timer: float = 0.0
@@ -112,6 +115,8 @@ func _pick_target_beacon(bot_mech: Node3D) -> Node:
 	var best_score := -INF
 	for b in _beacons:
 		if not is_instance_valid(b):
+			continue
+		if b == _avoid_beacon:
 			continue
 		var owner: int = b.get("owner_team") if b.get("owner_team") != null else -1
 		var dist: float = bot_mech.global_position.distance_to(b.global_position)
@@ -297,6 +302,12 @@ func _process(delta: float) -> void:
 		else:
 			_move_dir = Vector2.ZERO
 
+	# Decay beacon avoidance cooldown.
+	if _avoid_timer > 0.0:
+		_avoid_timer -= delta
+		if _avoid_timer <= 0.0:
+			_avoid_beacon = null
+
 	# Stuck detection - if not making progress while moving, escape.
 	# Tracks consecutive stuck events to escalate escape aggressiveness.
 	_stuck_timer -= delta
@@ -317,6 +328,11 @@ func _process(delta: float) -> void:
 				# Repeated stuck: fully random direction to break the oscillation
 				var angle := randf_range(0.0, TAU)
 				_escape_vec = Vector2(cos(angle), sin(angle))
+				# Blacklist the current beacon so we pick a different goal after escaping
+				if _claimed_beacon != null:
+					_avoid_beacon = _claimed_beacon
+					_avoid_timer  = AVOID_BEACON_TIME
+					_claim_beacon(null)
 			# Reset so we don't immediately re-trigger stuck detection
 			_last_pos = bot_mech.global_position
 		else:
