@@ -679,7 +679,7 @@ func _setup_diorama() -> void:
 	mech_panel.add_child(_diorama_container)
 
 	_diorama_viewport = SubViewport.new()
-	_diorama_viewport.size              = Vector2i(214, 236)
+	_diorama_viewport.size              = Vector2i(428, 472)
 	_diorama_viewport.own_world_3d      = true
 	_diorama_viewport.transparent_bg    = false
 	_diorama_viewport.handle_input_locally = false
@@ -698,8 +698,8 @@ func _setup_diorama() -> void:
 	var platform_body := StaticBody3D.new()
 	var platform_mi   := MeshInstance3D.new()
 	var platform_mesh := CylinderMesh.new()
-	platform_mesh.top_radius    = 1.8
-	platform_mesh.bottom_radius = 1.8
+	platform_mesh.top_radius    = 2.8
+	platform_mesh.bottom_radius = 2.8
 	platform_mesh.height        = 0.1
 	platform_mi.mesh = platform_mesh
 	var platform_mat := StandardMaterial3D.new()
@@ -714,8 +714,10 @@ func _setup_diorama() -> void:
 	_diorama_viewport.add_child(_diorama_spin)
 
 	var cam := Camera3D.new()
-	cam.position = Vector3(0.0, 2.8, 5.5)
-	cam.look_at_from_position(cam.position, Vector3(0.0, 1.2, 0.0))
+	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
+	cam.size       = 4.2   # vertical world-units visible; sized for Vesuvius to fill frame
+	cam.position   = Vector3(0.0, 2.8, 10.0)
+	cam.look_at_from_position(cam.position, Vector3(0.0, 1.5, 0.0))
 	_diorama_viewport.add_child(cam)
 
 	var light := DirectionalLight3D.new()
