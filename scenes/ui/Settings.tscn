@@ -49,11 +49,11 @@ offset_bottom = 12.0
 size_flags_horizontal = 3
 theme_override_constants/separation = 20
 
-[node name="SensSection" type="Label" parent="Content"]
+[node name="SensSection" type="Label" parent="Scroll/Content"]
 theme_override_font_sizes/font_size = 14
 text = "MOUSE SENSITIVITY"
 
-[node name="SensRow" type="HBoxContainer" parent="Content"]
+[node name="SensRow" type="HBoxContainer" parent="Scroll/Content"]
 theme_override_constants/separation = 12
 
 [node name="SensSlider" type="HSlider" parent="Scroll/Content/SensRow"]
@@ -64,21 +64,21 @@ custom_minimum_size = Vector2(70.0, 0.0)
 theme_override_font_sizes/font_size = 14
 text = "0.0030"
 
-[node name="DiffSection" type="Label" parent="Content"]
+[node name="DiffSection" type="Label" parent="Scroll/Content"]
 theme_override_font_sizes/font_size = 14
 text = "BOT DIFFICULTY"
 
-[node name="DiffRow" type="HBoxContainer" parent="Content"]
+[node name="DiffRow" type="HBoxContainer" parent="Scroll/Content"]
 theme_override_constants/separation = 12
 
 [node name="DiffButtons" type="HBoxContainer" parent="Scroll/Content/DiffRow"]
 theme_override_constants/separation = 8
 
-[node name="VolSection" type="Label" parent="Content"]
+[node name="VolSection" type="Label" parent="Scroll/Content"]
 theme_override_font_sizes/font_size = 14
 text = "MASTER VOLUME"
 
-[node name="VolRow" type="HBoxContainer" parent="Content"]
+[node name="VolRow" type="HBoxContainer" parent="Scroll/Content"]
 theme_override_constants/separation = 12
 
 [node name="VolSlider" type="HSlider" parent="Scroll/Content/VolRow"]
