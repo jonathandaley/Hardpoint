@@ -241,8 +241,57 @@ func _die() -> void:
 	set_physics_process(false)
 	set_process(false)
 	$CollisionShape3D.disabled = true
+	if _input_source != null and _input_source.has_method("is_human_input") and _input_source.is_human_input():
+		_launch_cockpit_pod()
 	visible = false
 	died.emit()
+
+# Spawns a cockpit pod that rockets upward with a smoke trail and auto-destructs.
+func _launch_cockpit_pod() -> void:
+	var pod := RigidBody3D.new()
+	pod.gravity_scale = 0.0
+	var mi := MeshInstance3D.new()
+	var mesh := BoxMesh.new()
+	mesh.size = Vector3(0.55, 0.35, 0.65)
+	mi.mesh = mesh
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(0.15, 0.55, 0.9)
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mi.set_surface_override_material(0, mat)
+	pod.add_child(mi)
+	var col := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(0.55, 0.35, 0.65)
+	col.shape = shape
+	pod.add_child(col)
+
+	# Smoke trail emitted downward from pod base.
+	var smoke := CPUParticles3D.new()
+	smoke.emitting = true
+	smoke.amount = 24
+	smoke.lifetime = 1.2
+	smoke.speed_scale = 1.0
+	smoke.local_coords = false
+	smoke.direction = Vector3(0, -1, 0)
+	smoke.spread = 18.0
+	smoke.initial_velocity_min = 1.0
+	smoke.initial_velocity_max = 3.0
+	smoke.gravity = Vector3.ZERO
+	smoke.scale_amount_min = 0.3
+	smoke.scale_amount_max = 0.7
+	smoke.color = Color(0.85, 0.85, 0.85, 0.6)
+	smoke.position = Vector3(0, -0.2, 0)
+	pod.add_child(smoke)
+
+	pod.position = global_position + Vector3(0, 1.8, 0)
+	var spread_x: float = randf_range(-3.0, 3.0)
+	var spread_z: float = randf_range(-3.0, 3.0)
+	pod.linear_velocity = Vector3(spread_x, randf_range(22.0, 30.0), spread_z)
+	pod.angular_velocity = Vector3(randf_range(-2.0, 2.0), randf_range(-1.0, 1.0), randf_range(-2.0, 2.0))
+	get_parent().add_child(pod)
+	# Auto-destruct after 6 seconds.
+	var timer := get_tree().create_timer(6.0)
+	timer.timeout.connect(func(): if is_instance_valid(pod): pod.queue_free())
 
 func make_camera_current() -> void:
 	camera.make_current()
