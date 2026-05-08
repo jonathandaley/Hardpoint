@@ -90,9 +90,6 @@ const MAPS: Array = [
 	"res://resources/maps/Ironworks.tres",
 	"res://resources/maps/Badlands.tres",
 ]
-var _map_panel: Control = null
-var _selected_map_idx: int = 0
-var _map_btns: Array = []
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -118,8 +115,6 @@ func _ready() -> void:
 	_build_back_btn()
 	_setup_lineup_viewport()
 	_setup_diorama()
-	_build_map_tab_btn()
-	_build_map_panel()
 	_init_map_selection()
 	_show_tab(0)
 
@@ -758,8 +753,6 @@ func _refresh_diorama_mech() -> void:
 func _show_tab(idx: int) -> void:
 	mech_panel.visible = idx == 0
 	pilot_panel.visible = idx == 1
-	if _map_panel != null:
-		_map_panel.visible = idx == 2
 	if idx == 0:
 		_show_squad_screen()
 
@@ -779,95 +772,7 @@ func _on_settings_pressed() -> void:
 	SoundManager.play_sfx_2d("ui_click")
 	get_tree().change_scene_to_file("res://scenes/ui/Settings.tscn")
 
-func _build_map_tab_btn() -> void:
-	var tabs_node: Control = $Tabs
-	var btn := Button.new()
-	btn.text = "MAP"
-	btn.offset_left  = 212.0
-	btn.offset_top   = 2.0
-	btn.offset_right = 312.0
-	btn.offset_bottom = 24.0
-	btn.add_theme_font_size_override("font_size", 14)
-	btn.pressed.connect(func(): SoundManager.play_sfx_2d("ui_click"); _show_tab(2))
-	tabs_node.add_child(btn)
-
-func _build_map_panel() -> void:
-	_map_panel = Control.new()
-	_map_panel.offset_left   = 0.0
-	_map_panel.offset_top    = 0.0
-	_map_panel.offset_right  = 640.0
-	_map_panel.offset_bottom = 244.0
-	_map_panel.visible = false
-	var content_node: Control = $Content
-	content_node.add_child(_map_panel)
-
-	var hdr := Label.new()
-	hdr.text = "SELECT MAP"
-	hdr.offset_left   = 200.0
-	hdr.offset_top    = 8.0
-	hdr.offset_right  = 630.0
-	hdr.offset_bottom = 28.0
-	hdr.add_theme_font_size_override("font_size", 15)
-	_map_panel.add_child(hdr)
-
-	_map_btns.clear()
-	for i in MAPS.size():
-		var md = load(MAPS[i])
-		if md == null:
-			continue
-		var row := HBoxContainer.new()
-		row.offset_left   = 200.0
-		row.offset_top    = 36.0 + float(i) * 62.0
-		row.offset_right  = 630.0
-		row.offset_bottom = 36.0 + float(i) * 62.0 + 56.0
-		_map_panel.add_child(row)
-
-		var sel_btn := Button.new()
-		sel_btn.text = md.map_name.to_upper()
-		sel_btn.custom_minimum_size = Vector2(160.0, 50.0)
-		sel_btn.add_theme_font_size_override("font_size", 14)
-		sel_btn.pressed.connect(_on_map_selected.bind(i))
-		row.add_child(sel_btn)
-		_map_btns.append(sel_btn)
-
-		var desc_lbl := Label.new()
-		desc_lbl.text = "THEME: %s  |  COVER: %.0f%%  |  SEED: %d" % [
-			md.theme.to_upper(), md.cover_density * 100.0, md.cover_seed]
-		desc_lbl.add_theme_font_size_override("font_size", 12)
-		desc_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		desc_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		row.add_child(desc_lbl)
-
-	_refresh_map_highlight()
-
 func _init_map_selection() -> void:
-	var current_map = Game.loadout.get("map_def")
-	if current_map == null:
-		var default_md = load(MAPS[0])
-		Game.loadout["map_def"] = default_md
-		_selected_map_idx = 0
-		return
-	for i in MAPS.size():
-		var md = load(MAPS[i])
-		if md != null and md.map_name == current_map.map_name:
-			_selected_map_idx = i
-			return
-	_selected_map_idx = 0
+	if Game.loadout.get("map_def") == null:
+		Game.loadout["map_def"] = load(MAPS[0])
 
-func _on_map_selected(idx: int) -> void:
-	SoundManager.play_sfx_2d("ui_click")
-	_selected_map_idx = idx
-	var md = load(MAPS[idx])
-	Game.loadout["map_def"] = md
-	Game.save_loadout()
-	_refresh_map_highlight()
-
-func _refresh_map_highlight() -> void:
-	for i in _map_btns.size():
-		var btn: Button = _map_btns[i]
-		if not is_instance_valid(btn):
-			continue
-		if i == _selected_map_idx:
-			btn.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
-		else:
-			btn.remove_theme_color_override("font_color")
