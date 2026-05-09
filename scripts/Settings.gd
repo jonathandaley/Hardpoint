@@ -107,10 +107,6 @@ func _on_sens_changed(value: float) -> void:
 
 func _build_controls_section() -> void:
 	var content: VBoxContainer = $Scroll/Content
-	var section_lbl := Label.new()
-	section_lbl.text = "CONTROLS"
-	section_lbl.add_theme_font_size_override("font_size", 14)
-	content.add_child(section_lbl)
 
 	const BINDINGS: Array = [
 		["W A S D", "Move"],
@@ -123,10 +119,16 @@ func _build_controls_section() -> void:
 		["Tab", "Cycle spectate target"],
 		["Esc", "Release mouse / pause"],
 	]
+
+	var popup := PopupPanel.new()
+	popup.name = "ControlsPopup"
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 6)
+	popup.add_child(vbox)
 	for pair in BINDINGS:
 		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 12)
-		content.add_child(row)
+		row.add_theme_constant_override("separation", 16)
+		vbox.add_child(row)
 		var key_lbl := Label.new()
 		key_lbl.text = pair[0]
 		key_lbl.add_theme_font_size_override("font_size", 13)
@@ -137,6 +139,16 @@ func _build_controls_section() -> void:
 		desc_lbl.text = pair[1]
 		desc_lbl.add_theme_font_size_override("font_size", 13)
 		row.add_child(desc_lbl)
+	add_child(popup)
+
+	var btn := Button.new()
+	btn.text = "CONTROLS"
+	btn.custom_minimum_size = Vector2(120, 28)
+	btn.add_theme_font_size_override("font_size", 14)
+	btn.pressed.connect(func():
+		popup.popup_centered()
+	)
+	content.add_child(btn)
 
 func _on_vol_changed(value: float) -> void:
 	Game.settings["master_volume"] = value
