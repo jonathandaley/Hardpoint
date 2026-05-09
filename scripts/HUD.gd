@@ -223,12 +223,11 @@ func start_spectating(mech: Node) -> void:
 	_spectate_label.visible = true
 
 func show_result(winning_team: int, stats: Dictionary = {}) -> void:
-	result_label.text = "YOU WIN" if winning_team == _player_team else "YOU LOSE"
-	result_label.visible = true
+	result_label.visible = false
 	crosshair.visible = false
-	_build_stats_panel(stats)
+	_build_stats_panel(winning_team == _player_team, stats)
 
-func _build_stats_panel(stats: Dictionary) -> void:
+func _build_stats_panel(won: bool, stats: Dictionary) -> void:
 	var backdrop := ColorRect.new()
 	backdrop.process_mode = Node.PROCESS_MODE_ALWAYS
 	backdrop.color = Color(0, 0, 0, 1)
@@ -247,6 +246,14 @@ func _build_stats_panel(stats: Dictionary) -> void:
 	vbox.add_theme_constant_override("separation", 8)
 	panel.add_child(vbox)
 	center.add_child(panel)
+
+	var header := Label.new()
+	header.text = "YOU WIN" if won else "YOU LOSE"
+	header.add_theme_font_size_override("font_size", 28)
+	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	header.modulate = Color(0.2, 1.0, 0.2) if won else Color(1.0, 0.3, 0.3)
+	vbox.add_child(header)
+	vbox.add_child(HSeparator.new())
 
 	var rows := [
 		["DAMAGE DEALT",     "%.0f" % stats.get("damage_dealt",     0.0)],
