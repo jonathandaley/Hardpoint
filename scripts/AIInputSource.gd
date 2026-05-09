@@ -203,8 +203,18 @@ func _process(delta: float) -> void:
 	# Refresh target periodically or when current target is no longer valid.
 	_target_refresh -= delta
 	if _target_refresh <= 0.0 or not is_instance_valid(_target) or not _target.visible:
-		_target_refresh = 0.5
-		_target = _pick_best_target(bot_mech)
+		_target_refresh = 2.0
+		var new_target := _pick_best_target(bot_mech)
+		if new_target != _target and is_instance_valid(_target) and _target.visible:
+			var cur_d: float = bot_mech.global_position.distance_to(_target.global_position)
+			var cur_hp_pct: float = clampf(_target.health / maxf(float(_target.get("max_health") if _target.get("max_health") != null else 1.0), 1.0), 0.0, 1.0)
+			var cur_score: float = (1.0 - cur_hp_pct) * 12.0 - cur_d * 0.1
+			var new_d: float = bot_mech.global_position.distance_to(new_target.global_position)
+			var new_hp_pct: float = clampf(new_target.health / maxf(float(new_target.get("max_health") if new_target.get("max_health") != null else 1.0), 1.0), 0.0, 1.0)
+			var new_score: float = (1.0 - new_hp_pct) * 12.0 - new_d * 0.1
+			if new_score <= cur_score * 1.25:
+				new_target = _target
+		_target = new_target
 
 	# Periodically check line-of-sight to target.
 	_los_timer -= delta

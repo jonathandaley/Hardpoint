@@ -545,9 +545,9 @@ func _build_weapon_picker(md) -> void:
 		picker.add_child(row)
 
 		var slot_lbl := Label.new()
-		slot_lbl.text = "S%d [%s]" % [i + 1, size_str]
+		slot_lbl.text = "S%d" % [i + 1]
 		slot_lbl.add_theme_font_size_override("font_size", 13)
-		slot_lbl.custom_minimum_size = Vector2(90, 0)
+		slot_lbl.custom_minimum_size = Vector2(20, 0)
 		slot_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		row.add_child(slot_lbl)
 
@@ -565,7 +565,6 @@ func _build_weapon_picker(md) -> void:
 		wep_lbl.text = wep_name
 		wep_lbl.add_theme_font_size_override("font_size", 13)
 		wep_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		wep_lbl.custom_minimum_size = Vector2(80, 0)
 		wep_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		wep_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		row.add_child(wep_lbl)
