@@ -232,6 +232,7 @@ func _process(delta: float) -> void:
 		if h_dist > 0.01:
 			to_flat = to_flat / h_dist
 			angle_h = (-bot_mech.get_aim_basis().z).signed_angle_to(to_flat, Vector3.UP)
+		angle_h += _jitter.x
 		var turn_h: float = clamp(angle_h, -eff_turn * delta, eff_turn * delta)
 		_look_delta.x = -turn_h / sens
 
@@ -243,7 +244,7 @@ func _process(delta: float) -> void:
 			var cam_to_target := target_centre - cam.global_position
 			var cam_h_dist: float = Vector2(cam_to_target.x, cam_to_target.z).length()
 			var desired_pitch: float = atan2(cam_to_target.y, maxf(cam_h_dist, 0.01))
-			var pitch_diff: float    = desired_pitch - cam_arm.rotation.x
+			var pitch_diff: float    = desired_pitch - cam_arm.rotation.x + _jitter.y
 			var turn_v: float        = clamp(pitch_diff, -eff_turn * delta, eff_turn * delta)
 			_look_delta.y = -turn_v / sens
 	else:
@@ -352,8 +353,6 @@ func _process(delta: float) -> void:
 			_jitter_timer = randf_range(0.08, 0.18)
 			_jitter = Vector2(randf_range(-aim_jitter, aim_jitter),
 							  randf_range(-aim_jitter, aim_jitter))
-		_look_delta += _jitter / sens
-
 		# Burst fire - shoot for BURST_FIRE seconds, pause for BURST_PAUSE seconds
 		_burst_timer -= delta
 		if _burst_timer <= 0.0:
