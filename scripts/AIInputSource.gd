@@ -1,7 +1,7 @@
 class_name AIInputSource
 extends "res://scripts/InputSource.gd"
 
-const TURN_SPEED    := 1.8   # rad/s
+const TURN_SPEED    := 0.9   # rad/s
 const ENGAGE_DIST   := 35.0  # close enough to shoot
 const RETREAT_DIST  := 8.0   # too close - back off
 const AIM_THRESHOLD := 0.25  # fire when within this many radians of target
@@ -243,7 +243,8 @@ func _process(delta: float) -> void:
 			to_flat = to_flat / h_dist
 			angle_h = (-bot_mech.get_aim_basis().z).signed_angle_to(to_flat, Vector3.UP)
 		angle_h += _jitter.x
-		var turn_h: float = clamp(angle_h, -eff_turn * delta, eff_turn * delta)
+		var max_turn_h: float = eff_turn * delta
+		var turn_h: float = clamp(angle_h * 0.5, -max_turn_h, max_turn_h)
 		_look_delta.x = -turn_h / sens
 
 		# Vertical aim
@@ -255,7 +256,7 @@ func _process(delta: float) -> void:
 			var cam_h_dist: float = Vector2(cam_to_target.x, cam_to_target.z).length()
 			var desired_pitch: float = atan2(cam_to_target.y, maxf(cam_h_dist, 0.01))
 			var pitch_diff: float    = desired_pitch - cam_arm.rotation.x + _jitter.y
-			var turn_v: float        = clamp(pitch_diff, -eff_turn * delta, eff_turn * delta)
+			var turn_v: float        = clamp(pitch_diff * 0.5, -eff_turn * delta, eff_turn * delta)
 			_look_delta.y = -turn_v / sens
 	else:
 		_look_delta = Vector2.ZERO
