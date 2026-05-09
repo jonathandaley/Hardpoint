@@ -120,15 +120,28 @@ func _build_controls_section() -> void:
 		["Esc", "Release mouse / pause"],
 	]
 
-	var popup := PopupPanel.new()
-	popup.name = "ControlsPopup"
-	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 6)
-	popup.add_child(vbox)
+	# Controls page — hidden until button pressed.
+	var controls_page := VBoxContainer.new()
+	controls_page.name = "ControlsPage"
+	controls_page.set_anchors_preset(Control.PRESET_FULL_RECT)
+	controls_page.add_theme_constant_override("separation", 8)
+	controls_page.visible = false
+	add_child(controls_page)
+
+	var back_btn := Button.new()
+	back_btn.text = "< BACK"
+	back_btn.custom_minimum_size = Vector2(80, 24)
+	back_btn.add_theme_font_size_override("font_size", 14)
+	back_btn.pressed.connect(func():
+		controls_page.visible = false
+		$Scroll.visible = true
+	)
+	controls_page.add_child(back_btn)
+
 	for pair in BINDINGS:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 16)
-		vbox.add_child(row)
+		controls_page.add_child(row)
 		var key_lbl := Label.new()
 		key_lbl.text = pair[0]
 		key_lbl.add_theme_font_size_override("font_size", 13)
@@ -139,14 +152,14 @@ func _build_controls_section() -> void:
 		desc_lbl.text = pair[1]
 		desc_lbl.add_theme_font_size_override("font_size", 13)
 		row.add_child(desc_lbl)
-	add_child(popup)
 
 	var btn := Button.new()
 	btn.text = "CONTROLS"
-	btn.custom_minimum_size = Vector2(120, 28)
+	btn.custom_minimum_size = Vector2(80, 24)
 	btn.add_theme_font_size_override("font_size", 14)
 	btn.pressed.connect(func():
-		popup.popup_centered()
+		$Scroll.visible = false
+		controls_page.visible = true
 	)
 	content.add_child(btn)
 
