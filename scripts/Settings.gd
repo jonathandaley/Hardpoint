@@ -120,28 +120,34 @@ func _build_controls_section() -> void:
 		["Esc", "Release mouse / pause"],
 	]
 
-	# Controls page — hidden until button pressed.
-	var controls_page := VBoxContainer.new()
+	# Controls page — hidden until button pressed, covers full screen.
+	var controls_page := Control.new()
 	controls_page.name = "ControlsPage"
 	controls_page.set_anchors_preset(Control.PRESET_FULL_RECT)
-	controls_page.add_theme_constant_override("separation", 8)
 	controls_page.visible = false
 	add_child(controls_page)
 
-	var back_btn := Button.new()
-	back_btn.text = "< BACK"
-	back_btn.custom_minimum_size = Vector2(80, 24)
-	back_btn.add_theme_font_size_override("font_size", 14)
-	back_btn.pressed.connect(func():
-		controls_page.visible = false
-		$Scroll.visible = true
-	)
-	controls_page.add_child(back_btn)
+	var bg := $Background.duplicate()
+	controls_page.add_child(bg)
+
+	var scroll := ScrollContainer.new()
+	scroll.offset_left   = 0.0
+	scroll.offset_top    = 32.0
+	scroll.offset_right  = 640.0
+	scroll.offset_bottom = 306.0
+	controls_page.add_child(scroll)
+
+	var vbox := VBoxContainer.new()
+	vbox.offset_left  = 24.0
+	vbox.offset_top   = 12.0
+	vbox.offset_right = 616.0
+	vbox.add_theme_constant_override("separation", 8)
+	scroll.add_child(vbox)
 
 	for pair in BINDINGS:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 16)
-		controls_page.add_child(row)
+		vbox.add_child(row)
 		var key_lbl := Label.new()
 		key_lbl.text = pair[0]
 		key_lbl.add_theme_font_size_override("font_size", 13)
@@ -153,15 +159,32 @@ func _build_controls_section() -> void:
 		desc_lbl.add_theme_font_size_override("font_size", 13)
 		row.add_child(desc_lbl)
 
+	var back_btn := Button.new()
+	back_btn.offset_left   = 200.0
+	back_btn.offset_top    = 316.0
+	back_btn.offset_right  = 440.0
+	back_btn.offset_bottom = 348.0
+	back_btn.add_theme_font_size_override("font_size", 20)
+	back_btn.text = "BACK"
+	back_btn.pressed.connect(func():
+		controls_page.visible = false
+		$Scroll.visible = true
+		$BackButton.visible = true
+	)
+	controls_page.add_child(back_btn)
+
+	var btn_row := HBoxContainer.new()
+	content.add_child(btn_row)
 	var btn := Button.new()
 	btn.text = "CONTROLS"
 	btn.custom_minimum_size = Vector2(80, 24)
 	btn.add_theme_font_size_override("font_size", 14)
 	btn.pressed.connect(func():
 		$Scroll.visible = false
+		$BackButton.visible = false
 		controls_page.visible = true
 	)
-	content.add_child(btn)
+	btn_row.add_child(btn)
 
 func _on_vol_changed(value: float) -> void:
 	Game.settings["master_volume"] = value
