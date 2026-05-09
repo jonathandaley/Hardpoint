@@ -127,7 +127,7 @@ T58|x|spectate on death: `Arena.gd` switches camera to ally mech on player death
 T59|x|ally bot health bars: `setup_bot_bars` currently receives `_team_mechs[1]` only; pass `_team_mechs[0][1..]` with distinct color (e.g. green) so friendly bots show world-space HP bars|T35
 T60|x|beacon HUD dot X positions match beacon physical XZ layout in arena (proportional horizontal spread), not fixed center strip|T42
 T61|x|weapon range system: `range` export already set per weapon in `.tscn`; enforce hitscan cutoff + projectile self-destruct at range in `WeaponBase`|V9
-T62|.|arena column repositioning: redistribute white pillar meshes to match current bowl scale and cover outer ring (positions not updated when arena grew)|−
+T62|x|arena column repositioning: redistribute white pillar meshes to match current bowl scale and cover outer ring (positions not updated when arena grew)|−
 T63|x|leg rotation smoothing: legs rotate toward move direction gradually at rate scaled by `walk_speed`, no snap|T10
 T64|.|multi-mech loadout: hangar lets player select squad of up to 5 mechs before match; on death, player chooses next mech from remaining squad before respawning|T34,T57
 T65|.|team color perspective: client always renders own team blue, enemy red regardless of server team assignment|T40
