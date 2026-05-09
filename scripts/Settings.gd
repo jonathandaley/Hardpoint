@@ -47,6 +47,7 @@ func _ready() -> void:
 		_diff_buttons.append(btn)
 	_highlight_diff(cur_diff)
 	_build_map_section()
+	_build_controls_section()
 
 func _build_map_section() -> void:
 	var content: VBoxContainer = $Scroll/Content
@@ -103,6 +104,39 @@ func _on_sens_changed(value: float) -> void:
 	Game.settings["mouse_sensitivity"] = value
 	_update_sens_label()
 	Game.save_settings()
+
+func _build_controls_section() -> void:
+	var content: VBoxContainer = $Scroll/Content
+	var section_lbl := Label.new()
+	section_lbl.text = "CONTROLS"
+	section_lbl.add_theme_font_size_override("font_size", 14)
+	content.add_child(section_lbl)
+
+	const BINDINGS: Array = [
+		["W A S D", "Move"],
+		["Mouse", "Look"],
+		["LMB", "Fire all weapons"],
+		["RMB", "Fire selected weapon"],
+		["1 2 3 4", "Toggle weapon slot"],
+		["R", "Reload"],
+		["Q", "Ability"],
+		["Tab", "Cycle spectate target"],
+		["Esc", "Release mouse / pause"],
+	]
+	for pair in BINDINGS:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		content.add_child(row)
+		var key_lbl := Label.new()
+		key_lbl.text = pair[0]
+		key_lbl.add_theme_font_size_override("font_size", 13)
+		key_lbl.custom_minimum_size = Vector2(100, 0)
+		key_lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.4))
+		row.add_child(key_lbl)
+		var desc_lbl := Label.new()
+		desc_lbl.text = pair[1]
+		desc_lbl.add_theme_font_size_override("font_size", 13)
+		row.add_child(desc_lbl)
 
 func _on_vol_changed(value: float) -> void:
 	Game.settings["master_volume"] = value

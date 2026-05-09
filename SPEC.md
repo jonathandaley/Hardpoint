@@ -146,9 +146,9 @@ T77|x|player eject on death: cockpit pod launches upward on player `_die()`; ski
 T78|x|normal-map arena edges: evaluate replacing Math Temple physical edge greebles with normal-mapped flat planes; reduce draw calls if viable|T70
 T79|.|hangar art pass: interior industrial hangar bay, Matrix-3 aesthetic (grays/blacks/brown, rust, grime); geometry: concrete/steel walls, grated floor, overhead girders and pipes; lighting: harsh overhead flood points + sparse neon strip accents + welding-flash emissive pops; turntable platform gets worn polished-metal material; maintenance bots visible in hangar view only (hidden in detail view) -- simple opaque-emissive geometry, scripted 30-60s looping tasks (welding arcs, rolling carts, oiling arms), varied enough that loop is not obvious; bots ignore player actions entirely|T34
 T80|.|scene-based maps: add `scene_path: String` to MapDef; Arena loads the MapDef's scene instead of always using Arena.tscn; each map is a self-contained scene with its own geometry, beacon placement, and floor pattern; migrate Math Temple only -- Badlands/Ironworks .tres stubs kept (so map selector works) but have no geometry and are not migrated; new maps built from scratch (T82)|T70
-T81|.|controls reference tab: add "Controls" read-only tab to Settings.tscn listing all key bindings (WASD move, mouse look, LMB fire-all, RMB fire-active, 1-4 slot toggle, R reload, Q ability, Tab spectate-cycle, Esc uncapture); no rebinding required; implementable before multiplayer|-
+T81|x|controls reference tab: add "Controls" read-only tab to Settings.tscn listing all key bindings (WASD move, mouse look, LMB fire-all, RMB fire-active, 1-4 slot toggle, R reload, Q ability, Tab spectate-cycle, Esc uncapture); no rebinding required; implementable before multiplayer|-
 T82|.|new maps: build Badlands and Ironworks as real self-contained scenes following T80 system; each has own geometry, beacon placement, and floor pattern; 5 beacons each (V18); no geometry shared with Math Temple|T80,V18
-T83|.|spectate cycle: Tab key cycles spectate target round-robin through alive teammates while spectating; works alongside existing auto-switch on spectatee death|T58
+T83|x|spectate cycle: Tab key cycles spectate target round-robin through alive teammates while spectating; works alongside existing auto-switch on spectatee death|T58
 
 ## §B BUGS
 

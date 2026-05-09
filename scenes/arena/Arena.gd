@@ -5032,6 +5032,9 @@ func _create_spectator_camera() -> void:
 	add_child(_spec_pivot)
 
 func _switch_spectator(m: Node) -> void:
+	if _spectated_mech != null and is_instance_valid(_spectated_mech):
+		if _spectated_mech.died.is_connected(_on_spectated_mech_died):
+			_spectated_mech.died.disconnect(_on_spectated_mech_died)
 	_spectated_mech = m
 	if _spec_pivot == null:
 		_create_spectator_camera()
@@ -5041,6 +5044,16 @@ func _switch_spectator(m: Node) -> void:
 	_spec_cam.make_current()
 	m.died.connect(_on_spectated_mech_died)
 	hud.start_spectating(m)
+
+func _cycle_spectator() -> void:
+	var alive: Array = []
+	for m in _team_mechs[0]:
+		if is_instance_valid(m) and m.visible:
+			alive.append(m)
+	if alive.size() <= 1:
+		return
+	var idx: int = alive.find(_spectated_mech)
+	_switch_spectator(alive[(idx + 1) % alive.size()])
 
 func _process(_delta: float) -> void:
 	if _spec_pivot == null or _spectated_mech == null or not is_instance_valid(_spectated_mech):
@@ -5062,6 +5075,9 @@ func _process(_delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	if DEBUG_PENROSE and event is InputEventKey and event.pressed and event.keycode == KEY_F5:
 		_toggle_overhead()
+		return
+	if _spec_pivot != null and event is InputEventKey and event.pressed and event.keycode == KEY_TAB:
+		_cycle_spectator()
 		return
 	if event.is_action_pressed("ui_cancel") and not _match_over:
 		_toggle_pause()

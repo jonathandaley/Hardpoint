@@ -565,6 +565,7 @@ func _build_weapon_picker(md) -> void:
 		wep_lbl.text = wep_name
 		wep_lbl.add_theme_font_size_override("font_size", 13)
 		wep_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		wep_lbl.custom_minimum_size = Vector2(80, 0)
 		wep_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		wep_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		row.add_child(wep_lbl)
