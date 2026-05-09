@@ -94,4 +94,5 @@ func _face_velocity(velocity: Vector3, mech_basis: Basis, rot_speed: float, walk
 	# Scale rotation speed by actual speed fraction so legs ease into new directions
 	# instead of snapping.  Clamp at 1.5x walk_speed to allow for ability boosts.
 	var speed_frac: float = clampf(horiz.length() / maxf(walk_speed, 0.1), 0.0, 1.5)
-	rotation.y    += clamp(diff, -rot_speed * speed_frac * delta, rot_speed * speed_frac * delta)
+	var eff_rot: float = pow(walk_speed, 1.5) * 2.5
+	rotation.y    += clamp(diff * 0.5, -eff_rot * speed_frac * delta, eff_rot * speed_frac * delta)
