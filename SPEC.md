@@ -94,7 +94,7 @@ T25|x|mech ability system: `Ability` resource (trigger, cooldown, effect), `Mech
 T26|x|Pegasus jump+heal: active Q, impulse up + restore HP, ~8s cooldown|T25
 T27|x|Cesh stealth: passive, hide nametag/HP bar from enemies, desaturate (stub team check = always enemy)|T25,V7
 T28|x|audio scaffolding: bus layout (Master/SFX/Music), folders (`audio/weapons/footsteps/ui/ambient/impacts/abilities`), `AudioStreamPlayer3D` hooks (WeaponBase.fire, BipedLegs step, Mech.take_damage, Beacon state change, Match.on_match_ended, ability activations, UI clicks) with placeholder streams|-
-T29|.|audio content: background music pending; SFX wired|T28
+T29|.|audio content: two CC0 tracks -- ambient loop (always playing) + combat loop (crossfade in when player takes damage or fires within 5s, crossfade out after 5s quiet); two AudioStreamPlayer nodes, volume crossfade via Tween; both loops seamlessly looping|T28
 T30|x|visual FX: muzzle flash (0.08s decay), hit sparks (3-4 emissive cubes, 0.2s), death explosion (emissive sphere 0.3s + optional opaque chunks), shield hit -- opaque emissive + Tween|V7
 T31|x|floor art: `tools/hat_floor_tex.py` → hat_floor.png (1024px) UV-mapped to bowl mesh|V13
 T32|x|lighting pass: directional + 2-3 points, try baked lightmap (2 fail → fall back)|-
@@ -118,20 +118,20 @@ T49|x|match-end screen: "YOU WIN" / "YOU LOSE" shown; stats panel + return-to-ha
 T50|x|aerial strike damage: 3x -- direct 1.6→4.8, splash 0.8→2.4|V9
 T51|x|patience tuning: projectile speed 180→360 m/s; fading tracer beam via `VFX.tracer()` on fire|T23
 T52|x|heavy sniper rebalance: clip 3→5, damage 80→60|V9
-T53|.|weapon clip balancing pass: align L/H clip sizes across all weapon pairs then re-balance damage/RoF|V9,V10
+T53|.|weapon balance pass: damage/RoF/clip tuning across all weapons; requires PvP or high-quality bots to test meaningfully -- defer until after T40 (multiplayer) or significantly smarter bots|V9,V10,T40
 T54|x|jump forward bias: horizontal impulse = facing_dir * walk_speed * 3 added on Pegasus jump|T26
 T55|x|pegasus nerf: cooldown 8→16s|T26
 T56|x|jump landing hurt flash removed: `damaged.emit()` no longer called from `jump_heal` activation|−
-T57|.|spawnpoints multi-life: spawnpoint logic activates only once lives > 1; no-op until T35 lives system|T35
+T57|.|spawnpoints multi-life: spawnpoint logic activates only once lives > 1; no-op until T64 lives system|T64
 T58|x|spectate on death: `Arena.gd` switches camera to ally mech on player death, cycles on next ally death; `HUD.start_spectating()` hides crosshair/weapon HUD, shows "SPECTATING: <NAME>" label|T35
 T59|x|ally bot health bars: `setup_bot_bars` currently receives `_team_mechs[1]` only; pass `_team_mechs[0][1..]` with distinct color (e.g. green) so friendly bots show world-space HP bars|T35
 T60|x|beacon HUD dot X positions match beacon physical XZ layout in arena (proportional horizontal spread), not fixed center strip|T42
 T61|x|weapon range system: `range` export already set per weapon in `.tscn`; enforce hitscan cutoff + projectile self-destruct at range in `WeaponBase`|V9
 T62|x|arena column repositioning: redistribute white pillar meshes to match current bowl scale and cover outer ring (positions not updated when arena grew)|−
 T63|x|leg rotation smoothing: legs rotate toward move direction gradually at rate scaled by `walk_speed`, no snap|T10
-T64|.|multi-mech loadout: hangar lets player select squad of up to 5 mechs before match; on death, player chooses next mech from remaining squad before respawning|T34,T57
+T64|.|multi-mech loadout: hangar lets player select ordered squad of up to 5 mechs before match (order fixed at match start, no mid-match reorder); on death, full-screen UI overlay shows remaining squad mechs -- player taps to choose next, no timer, then spawns; on exhausting last mech player switches to spectate until match ends|T34,T57
 T65|.|team color perspective: client always renders own team blue, enemy red regardless of server team assignment|T40
-T66|.|tutorial: first-run overlay on hangar screen explains controls; dismissed permanently per account; deferred until per-account system|T40
+T66|.|tutorial: first-run overlay on hangar screen explains controls; dismissed permanently per account; deferred until per-account system|T40,T75
 T67|.|multi-life game-end guard: `BeaconMatch` ⊥ ends match on last-player death if squad lives remain (V19); gate on T64|T64,V19
 T68|x|mech visual art pass: all 8 mechs get Matrix-3-style geometry (rust/neon/mechanical bulk); block-primitive placeholders replaced|−
 T69|x|weapon visual art pass: all weapon scenes get Matrix-3-style models; light ×2 size, heavy ×4 (Patience ×2)|T68
@@ -144,8 +144,11 @@ T75|.|online accounts: email signup/login; profile server-backed; prerequisite f
 T76|x|walk animation stride fix: small mechs animate too fast; tune `leg_cycle_rate`/`leg_hip_sweep` per mech so stride visually matches ground speed|T10
 T77|x|player eject on death: cockpit pod launches upward on player `_die()`; skip for bots (check `input_source` type or `is_player` flag in `Mech._die()`)|T68
 T78|x|normal-map arena edges: evaluate replacing Math Temple physical edge greebles with normal-mapped flat planes; reduce draw calls if viable|T70
-T79|.|hangar art pass: lighting, background environment, platform materials, slot button polish for the two-screen hangar redesign|T34
-T80|.|scene-based maps: add `scene_path: String` to MapDef; Arena loads the MapDef's scene instead of always using Arena.tscn; each map is a self-contained scene with its own geometry, beacon placement, and floor pattern|T70
+T79|.|hangar art pass: interior industrial hangar bay, Matrix-3 aesthetic (grays/blacks/brown, rust, grime); geometry: concrete/steel walls, grated floor, overhead girders and pipes; lighting: harsh overhead flood points + sparse neon strip accents + welding-flash emissive pops; turntable platform gets worn polished-metal material; maintenance bots visible in hangar view only (hidden in detail view) -- simple opaque-emissive geometry, scripted 30-60s looping tasks (welding arcs, rolling carts, oiling arms), varied enough that loop is not obvious; bots ignore player actions entirely|T34
+T80|.|scene-based maps: add `scene_path: String` to MapDef; Arena loads the MapDef's scene instead of always using Arena.tscn; each map is a self-contained scene with its own geometry, beacon placement, and floor pattern; migrate Math Temple only -- Badlands/Ironworks .tres stubs kept (so map selector works) but have no geometry and are not migrated; new maps built from scratch (T82)|T70
+T81|.|controls reference tab: add "Controls" read-only tab to Settings.tscn listing all key bindings (WASD move, mouse look, LMB fire-all, RMB fire-active, 1-4 slot toggle, R reload, Q ability, Tab spectate-cycle, Esc uncapture); no rebinding required; implementable before multiplayer|-
+T82|.|new maps: build Badlands and Ironworks as real self-contained scenes following T80 system; each has own geometry, beacon placement, and floor pattern; 5 beacons each (V18); no geometry shared with Math Temple|T80,V18
+T83|.|spectate cycle: Tab key cycles spectate target round-robin through alive teammates while spectating; works alongside existing auto-switch on spectatee death|T58
 
 ## §B BUGS
 
@@ -169,3 +172,8 @@ B16|2026-05-02|`material_overlay` not reliably rendered in Compatibility rendere
 B17|2026-05-03|`body_test_motion` crashes with null space after bot killed; root cause: `_on_match_ended` sets `process_mode=DISABLED` synchronously inside physics callback chain, removing body from physics space before `move_and_slide()` returns; fix: `set_deferred("process_mode", ...)` in `_on_match_ended` (Arena.gd)|−
 B18|2026-05-05|`HUD.show_result` sets `result_label.visible=true` then `_build_stats_panel` adds opaque fullscreen `ColorRect` backdrop, burying winner text behind it; fix: embed "YOU WIN"/"YOU LOSE" as header row in stats panel, hide standalone `result_label`|T49
 B19|2026-05-05|Pegasus jump arc wrong: no smooth arc, weird deceleration at peak; root cause unknown — suspect jump velocity curve or gravity-suppression timing in Pegasus ability script|T54
+B20|2026-05-08|hangar detail screen weapon selector sizes to label content width — inconsistent layout across weapons with short vs long names|fix: set fixed `custom_minimum_size.x` on selector button/container in Hangar.gd detail panel so width is constant regardless of weapon name length
+B21|2026-05-08|dead bots not removed from lock target pool or beacon contester list — invisible body still accepts target lock and drains/contests beacons after death|fix: set `is_dead = true` on `_die()`; exclude from `_find_lock_target()` candidates; remove from AIDirector beacon assignment on death
+B22|2026-05-08|lock-break angle constant regardless of range — close targets move faster across aim arc so lock drops on minor wobble; long-range behavior is correct|fix: widen break angle at close range — `break_angle = base_angle * max(1.0, lock_range / current_dist)`; keep base_angle unchanged at max range
+B23|2026-05-08|target re-selected every frame by smallest angle-to-crosshair — minor aim wobble pivots red square to adjacent mech in a group|fix: hysteresis: once a target is acquired, require it to leave a cone 2x wider than the acquisition cone before candidate re-evaluation; do not switch mid-group on steady aim
+B24|2026-05-08|bot body oscillates ~30 deg left-right continuously -- P-only turn controller in AIInputSource applies full TURN_SPEED regardless of angle_h magnitude; overshoots, angle_h flips sign, overshoots back|fix: scale turn rate by error magnitude so gain tapers as angle approaches zero (e.g. multiply clamp limit by `minf(1.0, abs(angle_h) / AIM_THRESHOLD)`), or reduce TURN_SPEED until oscillation damps out
