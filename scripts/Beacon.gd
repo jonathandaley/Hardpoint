@@ -99,8 +99,10 @@ func _update_capture(delta: float) -> void:
 func _teams_present() -> Array:
 	var out: Array = []
 	for t in _capturers:
-		if not _capturers[t].is_empty():
-			out.append(t)
+		for body in _capturers[t]:
+			if not body.get("is_dead"):
+				out.append(t)
+				break
 	return out
 
 func _on_body_entered(body: Node3D) -> void:

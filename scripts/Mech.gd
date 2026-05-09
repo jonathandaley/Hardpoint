@@ -43,6 +43,7 @@ var _desired_move_dir: Vector3 = Vector3.ZERO
 @onready var _shield := $Torso/PhysicalShield
 @onready var _energy_shield: Node = $EnergyShield
 
+var is_dead: bool = false
 var _body_meshes: Array = []
 var _flash_mat: StandardMaterial3D = null
 var _flash_timer_es: float = 0.0
@@ -235,6 +236,8 @@ func _do_shield_flash() -> void:
 	_flash_timer_es = _ES_FLASH_DUR
 
 func _die() -> void:
+	is_dead = true
+	AIDirector.clear_intent(self)
 	print("[Mech] %s destroyed" % name)
 	SoundManager.play_sfx("mech_death", global_position)
 	VFX.death_explosion(global_position + Vector3(0, 0.8, 0))
@@ -404,6 +407,11 @@ func _handle_look() -> void:
 
 func _handle_movement(delta: float) -> void:
 	var dir2d: Vector2 = _input_source.get_move_direction()
+	if not is_on_floor() and _step_up_remaining <= 0.0:
+		if dir2d != Vector2.ZERO:
+			var aim := torso.global_transform.basis
+			_desired_move_dir = (aim.x * dir2d.x + (-aim.z) * -dir2d.y).normalized()
+		return
 	if dir2d == Vector2.ZERO:
 		_desired_move_dir = Vector3.ZERO
 		velocity.x = move_toward(velocity.x, 0.0, walk_speed * 8.0 * delta)
@@ -428,7 +436,8 @@ func _handle_reload() -> void:
 		if is_instance_valid(weapon) and weapon.has_method("try_reload"):
 			weapon.try_reload()
 
-const _LOCK_CONE_COS := 0.99619  # cos(5 degrees)
+const _LOCK_CONE_COS := 0.99619  # cos(5 degrees) — acquisition angle
+const _LOCK_RANGE    := 200.0
 
 func _update_lock(delta: float) -> void:
 	var cam_pos := camera.global_position
@@ -436,23 +445,37 @@ func _update_lock(delta: float) -> void:
 	var space := get_world_3d().direct_space_state
 	var ex := get_exclude_rids()
 
-	var q := PhysicsRayQueryParameters3D.create(cam_pos, cam_pos + cam_fwd * 200.0)
+	var q := PhysicsRayQueryParameters3D.create(cam_pos, cam_pos + cam_fwd * _LOCK_RANGE)
 	q.exclude = ex
 	var result := space.intersect_ray(q)
 	var candidate: Node3D = null
 	if result:
 		var col := result.collider as Node3D
-		if col != null and col.is_in_group("mechs") and not col.get("is_stealthy"):
+		if col != null and col.is_in_group("mechs") and not col.get("is_stealthy") and not col.get("is_dead"):
 			var col_team: int = int(col.get("team")) if "team" in col else -1
 			if col_team != team:
 				candidate = col
+
+	if candidate == null:
+		# B22/B23: retain current candidate if still within hold cone.
+		# Hold angle = 5° * clamp(range/dist, 1, 6) — widens at close range so
+		# minor wobble doesn't break lock on nearby targets, and equals the
+		# acquisition angle at max range.
+		if _lock_candidate != null and is_instance_valid(_lock_candidate) \
+				and not _lock_candidate.get("is_dead") and not _lock_candidate.get("is_stealthy"):
+			var to_cur := (_lock_candidate as Node3D).global_position - cam_pos
+			var cur_dist := to_cur.length()
+			if cur_dist > 0.001:
+				var hold_cos := cos(deg_to_rad(5.0) * clampf(_LOCK_RANGE / cur_dist, 1.0, 6.0))
+				if cam_fwd.dot(to_cur / cur_dist) >= hold_cos:
+					candidate = _lock_candidate
 
 	if candidate == null:
 		var best_cos := _LOCK_CONE_COS
 		for mech: Node in get_tree().get_nodes_in_group("mechs"):
 			if mech == self:
 				continue
-			if mech.get("is_stealthy"):
+			if mech.get("is_stealthy") or mech.get("is_dead"):
 				continue
 			var mech_team: int = int(mech.get("team")) if "team" in mech else -1
 			if mech_team == team:
@@ -460,7 +483,7 @@ func _update_lock(delta: float) -> void:
 			var mech3d := mech as Node3D
 			var to_mech := mech3d.global_position - cam_pos
 			var dist := to_mech.length()
-			if dist > 200.0 or dist < 0.001:
+			if dist > _LOCK_RANGE or dist < 0.001:
 				continue
 			var dot := cam_fwd.dot(to_mech / dist)
 			if dot < best_cos:
@@ -559,11 +582,11 @@ func _apply_stealth_visual(active: bool) -> void:
 func _activate_ability(ability: Resource) -> void:
 	match ability.effect_key:
 		"jump_heal":
-			velocity.y = 15.6
+			velocity.y = 15.0
 			var launch_dir: Vector3 = _desired_move_dir if _desired_move_dir != Vector3.ZERO \
 				else -torso.global_transform.basis.z
-			velocity.x = launch_dir.x * walk_speed * 4.5
-			velocity.z = launch_dir.z * walk_speed * 4.5
+			velocity.x = launch_dir.x * walk_speed * 3.75
+			velocity.z = launch_dir.z * walk_speed * 3.75
 			health = minf(health + 80.0, max_health)
 		"stealth":
 			is_stealthy = true
