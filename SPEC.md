@@ -64,6 +64,19 @@ V18: ∀ maps → exactly 5 beacons; ⊥ map ships with different count
 V19: win condition = beacon drain to 0; ⊥ time limit as primary win condition; ⊥ game ends on last-player death while squad lives remain
 V20: dedicated server model; server = peer_id 1; ∀ game-state mutation (damage, beacon capture, score, match-end) → runs only on server; clients receive replicated state via `@rpc("authority")` stubs; `multiplayer.has_multiplayer_peer() and not multiplayer.is_server()` guard pattern used at each authority seam
 V21: pilot skill multipliers baked into mech+weapon stats once in `Mech.apply_pilot_skills()` at spawn; never re-polled per frame or per shot; bot mechs never receive this call
+V22: gameplay input reads (`Input.is_action_*`, `get_axis`, `get_vector`, action events) only in `PlayerInputSource.gd`; ⊥ raw gameplay input in `Mech`, weapons, HUD, AI; mouse_mode/cursor toggles are window-state and exempt (UI scenes + `Mech.set_input_source`)
+V23: ∀ cached `Node3D` ref → `is_instance_valid()` guard before deref; applies to lock targets, AI targets, projectile target/owner, beacon capturers
+V24: `randf*`/`randi*` ⊥ in replicated logic; cosmetic-only RNG marked `# cosmetic`; AI behavior RNG → seeded `RandomNumberGenerator` instance
+V25: damage flows through `Mech._take_damage_rpc` only; ⊥ direct `health` writes; ⊥ bypass RPC seam even SP
+V26: VFX/audio → `VFX.*` / `SoundManager.*` autoload methods only; ⊥ inline `AudioStreamPlayer3D.new()` or effect `MeshInstance3D.new()` outside those autoloads
+V27: `Beacon._capturers` entries validated each capture tick (`is_instance_valid` + `is_alive`); dead/freed mechs purged before capture math
+V28: damage requests routed through `Mech.request_damage(amount, source)` chokepoint; SP = direct call, MP = RPC seam at this fn
+V29: AI behavior RNG = per-bot seeded `RandomNumberGenerator`; MP seed = `bot_id ^ match_seed`; ⊥ global `randf` in AI tick
+V30: projectile collision + damage authoritative on server; client projectiles = visual-only ghosts; ⊥ client-side hit confirmation
+V31: replicated cross-mech state uses peer/node ID, not direct `Node` ref; lock target, AI target, projectile target → ID-resolved
+V32: server clamps `request_damage` to weapon-defined max + range gate before applying; ⊥ trust client damage value
+V33: beacon capture progress visible to all peers within 200ms (periodic `unreliable_ordered` sync, not just end-state)
+V34: VFX/audio pools (if introduced) bounded; ⊥ unbounded growth; per-pool capacity declared
 
 ## §T TASKS
 
@@ -159,6 +172,23 @@ T88|.|Mech.apply_pilot_skills(): new method on `Mech.gd`, called by Arena only f
 T89|.|per-tick skill effects: (1) Repair Rate -- add `_no_damage_timer: float` to Mech.gd; reset on take_damage(); in _process() if is_player_controlled increment; if >= 3.0s and repair_rate level > 0 regen Game.get_skill_effect("repair_rate") HP/s clamped to max_health; (2) Ability Recharge -- when setting active ability cooldown in Mech, multiply by (1.0 - Game.get_skill_effect("ability_recharge")) if is_player_controlled; (3) Beacon capture speed -- in Beacon._update_capture() when player team sole capturer, multiply delta by (1.0 + Game.get_skill_effect("beacon_capture")); player team detected by checking _capturers for body whose input_source is PlayerInputSource; (4) Contested hold time -- in Beacon._update_capture() when both teams present and player team has mech in zone, delay CONTESTED transition by Game.get_skill_effect("contested_hold") seconds via _contested_hold_timer float; timer starts on enemy entry, resets if enemy leaves before expiry|T86,T88,V21
 T90|.|meta skill effects + stubs: (1) XP bonus -- in Game.update_after_match() multiply xp_gain by (1.0 + get_skill_effect("xp_bonus")); (2) coin bonus -- multiply coin award by (1.0 + get_skill_effect("coin_pickup")); add Game.apply_coin_pickup_bonus(base:int)->int helper = roundi(base*(1+get_skill_effect("coin_pickup"))) for future in-match use; (3) power-up duration -- get_skill_effect("powerup_duration") data present, no call site yet|T86,V21
 T91|.|hangar skill tree UI: replace _build_progression_nodes() + _on_prog_buy() in Hangar.gd with skill tree list; pilot stats line gains "SP: N" counter; ScrollContainer below stats shows all 15 skills as rows (locked/unlocked/maxed state, level N/12, cost or LOCKED label, BUY/UPGRADE button); rows indented by tree depth; locked rows show which parent(s) needed; BUY calls Game.unlock_skill() (costs SP), UPGRADE calls Game.upgrade_skill() (costs coins); buttons disabled when requirements unmet; refresh on purchase; visual tree layout deferred to later task|T86,T88,T89,T90
+T92|x|P0: codify current behavior -- add V22-V26 invariants (done in §V), run /check, catalog drift baseline; ⊥ code change in this task; baseline 2026-05-10: 20 hold / 5 violate / 7 unverifiable (after V22 narrowed to gameplay-input only, mouse_mode toggles reclassified non-violation); violations map to tracked tasks (V21→T88, V23→T93/T94, V24→T98/T99, V26→T97+); V28-V34 unverifiable until P2-P4 wiring lands|V22,V23,V24,V25,V26
+T93|.|P1: Beacon `_capturers` stale ref guard -- `is_instance_valid` + `is_alive` filter each capture tick (`Beacon.gd:104-120`); fixes B28|V27
+T94|.|P1: defensive `is_instance_valid` pass on cached refs -- `Mech.locked_target`, `Mech.lock_eligible_target`, `AIInputSource._target`, `Projectile.target`, `Projectile.owner_body`, `HomingProjectile.target`; null-skip on stale, no behavior change when valid|V23
+T95|.|P2: weapon fire chokepoint -- `Mech.fire_weapon(slot, aim)` wraps current scattered fire paths in `WeaponBase.gd`/`ProjectileGun.gd`; SP behavior identical, MP later wraps in @rpc at this seam|V3
+T96|.|P2: damage routing through `Mech.request_damage(amount, source)` chokepoint; wraps current `_apply_damage` (`Mech.gd:213-224`); no clamp yet (deferred to T103)|V25,V28
+T97|.|P2: VFX/SFX broadcast hooks -- add optional `broadcast: bool = false` param to `VFX.spawn_*` and `SoundManager.play_*`; SP path unchanged (param unused); MP flips to true at fire callsites|V26
+T98|.|P3: AIInputSource uses seeded `RandomNumberGenerator` instance (replace global `randf` calls in aim jitter, strafe, escape); SP seed = time-based for variance, MP seed deferred to T104|V29
+T99|.|P3: tag cosmetic RNG callsites with `# cosmetic` -- pod ejection (`Mech.gd:315-316`), VFX particle spread (`VFX.gd:42-86`); cosmetic RNG keeps global `randf`|V24
+T100|.|P4: projectile spawn RPC -- server authoritative for `Projectile.gd` + `HomingProjectile.gd`; client projectile = visual-only ghost; hit detection server-only|V30,T40
+T101|.|P4: weapon fire RPC broadcast -- flip `broadcast=true` from T97 at fire callsites in `WeaponBase.gd`; remote players hear/see fire SFX/VFX|V26,T97
+T102|.|P4: lock state sync -- `Mech.locked_target` becomes `locked_target_id` (peer/node id) resolved via lookup at use site; replicated as id|V31
+T103|.|P4: server-side damage validation in `request_damage` -- clamp amount to weapon-defined max, gate by range, reject malformed; server-only enforcement|V32,T96
+T104|.|P4: bot RNG → deterministic seed broadcast by server at match start; bots replicate as MultiplayerSpawner children w/ matching seeds|V29,T98
+T105|.|P4: beacon capture progress periodic RPC (`unreliable_ordered`); clients see progress bar real-time, not just end-state|V33,T40
+T106|.|P5 (gated): bench arena under sustained fire (4 bots vs player, 30s); profile w/ Godot profiler; if frame-time stable <16ms → skip T107/T108|-
+T107|.|P5 (conditional T106): VFX object pool for top hitch source identified by T106 only|V34,T106
+T108|.|P5 (conditional T106): SoundManager `AudioStreamPlayer3D` pool|V34,T106
 
 ## §B BUGS
 
@@ -190,3 +220,4 @@ B24|2026-05-08|bot body oscillates ~30 deg left-right continuously -- P-only tur
 B25|2026-05-09|audio too loud - master volume default too high; rifle SFX additionally loud relative to other weapons; user found 30% master volume a comfortable midpoint; fix: lowered `Game.settings["master_volume"]` default 1.0->0.5 (part 2, rifle db tuning, deferred until audio content lands T29)|−
 B26|2026-05-10|bot target persistence ignores threats and LoS - fix: `_on_pawn_damaged` forces `_target_refresh=0` on damage; `_check_los` accumulates `_los_blocked_time` and clears `_target` if blocked >1s (AIInputSource.gd)|−
 B27|2026-05-10|friendly fire enabled - fix: team check added at each damage call site before `take_damage`: Projectile.gd, HomingProjectile.gd, RaycastGun.gd, LaserCannon.gd, ArcWeapon.gd; Shotgun covered via Projectile (already sets `proj.team`)|−
+B28|2026-05-10|Beacon `_capturers` dict holds direct mech refs populated by `body_entered` signals on each peer; on death/free, mech may stay in dict until next `_sync_state` RPC → ghost capture progress (dead mech still counts toward capture/contest); fix in T93 (`is_instance_valid` + `is_alive` filter each tick)|V27
