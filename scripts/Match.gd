@@ -22,6 +22,9 @@ func stop() -> void:
 func _process(delta: float) -> void:
 	if not running:
 		return
+	# T40: match simulation runs server-only; clients receive result via _rpc_match_ended.
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		return
 	elapsed += delta
 	_tick(delta)
 	_check_win()
@@ -41,6 +44,14 @@ func force_end(winning_team: int) -> void:
 	_end_match(winning_team)
 
 func _end_match(winning_team: int) -> void:
+	running = false
+	match_ended.emit(winning_team)
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_rpc_match_ended.rpc(winning_team)
+
+# T40: server tells all clients the match result so they can show the end screen.
+@rpc("authority", "reliable")
+func _rpc_match_ended(winning_team: int) -> void:
 	running = false
 	match_ended.emit(winning_team)
 

@@ -58,7 +58,7 @@ func setup_bot_bars(mechs: Array) -> void:
 	_bot_bg_bars.clear()
 	_bot_mechs = mechs
 	for i in mechs.size():
-		# Black background — z_index -1 ensures it always renders behind the fg.
+		# Black background - z_index -1 ensures it always renders behind the fg.
 		var bg := ColorRect.new()
 		bg.color = Color(0.0, 0.0, 0.0, 0.85)
 		bg.mouse_filter = Control.MOUSE_FILTER_IGNORE

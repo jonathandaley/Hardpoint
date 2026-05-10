@@ -47,7 +47,7 @@ V1: ∀ control input → routes through `InputSource`; `Mech` ⊥ reads raw inp
 V2: `Player/Pawn` split ! exist from day 1; retrofitting is ⊥ acceptable
 V3: `Mech` ignorant of weapon type; calls `fire()` on child nodes only
 V4: new weapon = new `.tscn`; ⊥ mech code changes required
-V5: only `Game.gd`, `SoundManager.gd`, `VFX.gd` as autoloads; ⊥ more added
+V5: only `Game.gd`, `SoundManager.gd`, `VFX.gd` as autoloads; ⊥ more added; bot-coordination (fmr AIDirector) lives in `Game.ai_director_*`; MovementLogger instantiated by Arena
 V6: ⊥ `Shader.new()` at runtime; load from file only
 V7: ⊥ `depth_test_disabled` on transparent mats; screen-space overlay → CanvasLayer + `Camera3D.unproject_position()`
 V8: ∀ `.tres` field → has default value; ⊥ silent load failure
@@ -62,6 +62,7 @@ V16: ⊥ em-dashes in `.gd` comments; hyphens only
 V17: Heavy slot → Heavy weapon only; Light slot → Light weapon only; ⊥ cross-size fit
 V18: ∀ maps → exactly 5 beacons; ⊥ map ships with different count
 V19: win condition = beacon drain to 0; ⊥ time limit as primary win condition; ⊥ game ends on last-player death while squad lives remain
+V20: dedicated server model; server = peer_id 1; ∀ game-state mutation (damage, beacon capture, score, match-end) → runs only on server; clients receive replicated state via `@rpc("authority")` stubs; `multiplayer.has_multiplayer_peer() and not multiplayer.is_server()` guard pattern used at each authority seam
 
 ## §T TASKS
 
@@ -105,7 +106,7 @@ T36|x|bot role assignment: attacker/defender/flanker, role biases beacon priorit
 T37|x|bot blackboard coordination: `AIDirector` autoload per team, intent signals (pushing beacon A etc.)|T35,T36
 T38|x|navmesh pathing: `NavigationAgent3D` + baked `NavigationMesh` per arena; LOS raycast gates bot firing|T35
 T39|x|bot threat assessment: retreat low HP, focus-fire weak enemies|T35
-T40|.|multiplayer: `MultiplayerAPI`, server-authoritative, client prediction [DEFERRED until 1-8.5 fun]|V1,V2
+T40|.|multiplayer: `MultiplayerAPI`, server-authoritative, client prediction [DEFERRED until 1-8.5 fun]; authority seams pre-built (V20): damage RPC, match/score guard, bot-process guard; INCOMPLETE STUB: `Beacon._sync_state` only fires on full ownership change -- contested transition + progress decay not yet broadcast; fill out before enabling MP|V1,V2,V20
 T41|x|beacon capture: world-space capture-progress bar above each beacon (unproject_position, shows during capture/contested)|-
 T42|x|beacon HUD widget: colored dot row (top-center) per beacon showing neutral/A/B/contested state|-
 T43|x|beacon visual: 30m tall team-colored emissive beam + ground capture-radius circle (emissive CylinderMesh, r=3m)|-
@@ -177,8 +178,8 @@ B19|2026-05-05|Pegasus jump arc wrong: no smooth arc, weird deceleration at peak
 B20|2026-05-08|hangar detail screen weapon selector sizes to label content width — inconsistent layout across weapons with short vs long names|-
 B21|2026-05-08|dead bots not removed from lock target pool or beacon contester list — invisible body still accepts target lock and drains/contests beacons after death|-
 B22|2026-05-08|lock-break angle constant regardless of range — close targets move faster across aim arc so lock drops on minor wobble; long-range behavior is correct|-
-B23|2026-05-08|target re-selected every frame by smallest angle-to-crosshair — minor aim wobble pivots red square to adjacent mech in a group|-
+B23|2026-05-08|target re-selected every frame by smallest angle-to-crosshair — prior fix applied hold cone only when raycast missed; raycast hitting adjacent mech still reset candidate; complete fix: hold cone applied before raycast result is accepted, not only on miss|-
 B24|2026-05-08|bot body oscillates ~30 deg left-right continuously -- P-only turn controller in AIInputSource applies full TURN_SPEED regardless of angle_h magnitude; overshoots, angle_h flips sign, overshoots back|-
-B25|2026-05-09|audio too loud — master volume default too high; rifle SFX additionally loud relative to other weapons; user found 30% master volume a comfortable midpoint; fix: (1) lower default master bus volume so 50% feels like current 30%; (2) reduce rifle SFX db relative to other weapon SFX|−
-B26|2026-05-09|bot target persistence ignores threats and LoS — once a bot picks a target it never switches: ignores closer enemies that start shooting it, and maintains target even with no line of sight; fix: in AIInputSource target selection, re-evaluate target each N seconds or on taking damage; prefer attacker if closer; require LoS (raycast) to hold target — clear target if blocked for >1s|−
-B27|2026-05-09|friendly fire enabled — player and bot weapons damage teammates; fix: in `WeaponBase` (or projectile `_on_body_entered`), check `body.get("team") == owner_mech.team` and skip `take_damage` if same team|−
+B25|2026-05-09|audio too loud - master volume default too high; rifle SFX additionally loud relative to other weapons; user found 30% master volume a comfortable midpoint; fix: lowered `Game.settings["master_volume"]` default 1.0->0.5 (part 2, rifle db tuning, deferred until audio content lands T29)|−
+B26|2026-05-10|bot target persistence ignores threats and LoS - fix: `_on_pawn_damaged` forces `_target_refresh=0` on damage; `_check_los` accumulates `_los_blocked_time` and clears `_target` if blocked >1s (AIInputSource.gd)|−
+B27|2026-05-10|friendly fire enabled - fix: team check added at each damage call site before `take_damage`: Projectile.gd, HomingProjectile.gd, RaycastGun.gd, LaserCannon.gd, ArcWeapon.gd; Shotgun covered via Projectile (already sets `proj.team`)|−

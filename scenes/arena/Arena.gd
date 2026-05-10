@@ -1610,7 +1610,7 @@ const _PENROSE_EDGES: Array = [
   [-50.920, -91.266, 0.314159, "thin"],
 ]
 
-# 226 baked walls — add/remove entries here for manual adjustment
+# 226 baked walls - add/remove entries here for manual adjustment
 const _WALL_EDGES: Array = [
 	[-86.2994, -49.2739, -1.256637],
 	[-84.7543, -38.6408, 0.0],
@@ -4411,6 +4411,7 @@ var _spectated_mech: Node = null    # mech whose camera is currently active
 var _match_over: bool = false
 var _beacons_captured: Array[int] = [0, 0]
 var _nav_region: NavigationRegion3D = null
+var _movement_logger: Node = null   # MovementLogger instance (not an autoload, owned here)
 
 # Free-floating spectator camera (activated when player mech dies).
 var _spec_pivot: Node3D = null
@@ -4442,7 +4443,9 @@ func _ready() -> void:
 	_create_nav_region()
 	match_node.match_ended.connect(_on_match_ended)
 	match_node.start()
-	MovementLogger.start_session()
+	_movement_logger = load("res://autoloads/MovementLogger.gd").new()
+	add_child(_movement_logger)
+	_movement_logger.start_session()
 	SoundManager.play_music("arena")
 	hud.setup(match_node, player_mech, 0)
 	hud.setup_bot_bars(_team_mechs[1])
@@ -4722,8 +4725,8 @@ func _create_temple_walls() -> void:
 
 	# Penrose art materials: thin=wall colour, fat=pale blue
 	var art_colors := [
-		Color(0.62, 0.68, 0.80),  # thin — matches wall
-		Color(0.25, 0.50, 0.85),  # fat  — medium blue
+		Color(0.62, 0.68, 0.80),  # thin - matches wall
+		Color(0.25, 0.50, 0.85),  # fat  - medium blue
 	]
 	var art_mats: Array = []
 	for c in art_colors:
@@ -4776,7 +4779,7 @@ func _create_temple_walls() -> void:
 		mi.add_to_group("wall_visual")
 		body.add_child(mi)
 
-		# Penrose art on both wall faces — u→local z, v→local y
+		# Penrose art on both wall faces - u->local z, v->local y
 		# buckets 0,1 = +x face (norm +x); buckets 2,3 = -x face (norm -x)
 		var art_buckets: Array = [[], [], [], []]
 		for f: Array in _INT_PENROSE_FACES:
@@ -5096,7 +5099,8 @@ func _on_pause_resume() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _on_pause_quit() -> void:
-	MovementLogger.stop_and_analyze()
+	if _movement_logger != null:
+		_movement_logger.stop_and_analyze()
 	get_tree().paused = false
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	get_tree().change_scene_to_file("res://scenes/ui/Hangar.tscn")
@@ -5112,7 +5116,8 @@ func on_player_eliminated(p: Node) -> void:
 
 func _on_match_ended(winning_team: int) -> void:
 	_match_over = true
-	MovementLogger.stop_and_analyze()
+	if _movement_logger != null:
+		_movement_logger.stop_and_analyze()
 	SoundManager.stop_music()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	var player_team: int = _player.get("team") if _player != null else 0

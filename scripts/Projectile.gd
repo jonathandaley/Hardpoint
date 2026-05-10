@@ -74,13 +74,17 @@ func _physics_process(delta: float) -> void:
 
 	if result:
 		if result.collider.has_method("take_damage"):
-			var actual: float = damage_override.call(_distance_traveled) if damage_override.is_valid() else damage
-			result.collider.take_damage(actual)
-			if on_hit.is_valid():
-				on_hit.call(result.collider, result.position)
+			var target_team: int = result.collider.get("team") if "team" in result.collider else -1
+			if target_team != team:
+				var actual: float = damage_override.call(_distance_traveled) if damage_override.is_valid() else damage
+				result.collider.take_damage(actual)
+				if on_hit.is_valid():
+					on_hit.call(result.collider, result.position)
 		if splash_radius > 0.0:
 			for mech in get_tree().get_nodes_in_group("mechs"):
 				if mech == result.collider or mech == owner_body:
+					continue
+				if int(mech.get("team")) == team:
 					continue
 				var dist: float = (mech as Node3D).global_position.distance_to(global_position)
 				if dist < splash_radius:

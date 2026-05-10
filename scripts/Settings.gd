@@ -120,7 +120,7 @@ func _build_controls_section() -> void:
 		["Esc", "Release mouse / pause"],
 	]
 
-	# Controls page — hidden until button pressed, covers full screen.
+	# Controls page - hidden until button pressed, covers full screen.
 	var controls_page := Control.new()
 	controls_page.name = "ControlsPage"
 	controls_page.set_anchors_preset(Control.PRESET_FULL_RECT)

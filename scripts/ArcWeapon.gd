@@ -64,8 +64,11 @@ func _do_fire() -> void:
 	var result := space.intersect_ray(query)
 	if result:
 		if result.collider.has_method("take_damage"):
-			result.collider.take_damage(damage)
-			_emit_hit_if_visible(result.collider, result.position)
+			var target_team: int = result.collider.get("team") if "team" in result.collider else -1
+			var own_team: int = owner_mech.get("team") if "team" in owner_mech else -2
+			if target_team != own_team:
+				result.collider.take_damage(damage)
+				_emit_hit_if_visible(result.collider, result.position)
 
 	var dist := maxf(0.01, global_position.distance_to(target_pos))
 	_beam_pivot.look_at(target_pos, Vector3.UP)
