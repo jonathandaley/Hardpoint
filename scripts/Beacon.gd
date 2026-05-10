@@ -64,6 +64,9 @@ func _ready() -> void:
 	_update_visuals()
 
 func _process(delta: float) -> void:
+	# T40: capture logic runs server-only; clients receive state via _sync_state RPC.
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		return
 	_update_capture(delta)
 
 func _update_capture(delta: float) -> void:
@@ -95,6 +98,8 @@ func _update_capture(delta: float) -> void:
 		state = State.TEAM_A if team == 0 else State.TEAM_B
 		_update_visuals()
 		captured.emit(team)
+		if multiplayer.has_multiplayer_peer():
+			_sync_state.rpc(owner_team, state, _capture_progress)
 
 func _teams_present() -> Array:
 	var out: Array = []
@@ -141,3 +146,12 @@ func _update_visuals() -> void:
 		_circle_mat.albedo_color = col
 		_circle_mat.emission = col
 		_circle_mat.emission_energy_multiplier = 1.2
+
+# T40: server broadcasts capture state to all clients after each ownership change.
+# Clients apply visuals only; _update_capture never runs on clients.
+@rpc("authority", "reliable")
+func _sync_state(new_owner: int, new_state: int, new_progress: float) -> void:
+	owner_team = new_owner
+	state = new_state as State
+	_capture_progress = new_progress
+	_update_visuals()

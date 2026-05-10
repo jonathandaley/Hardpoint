@@ -1,10 +1,13 @@
 extends Node
-# Singleton -- cross-match persistent state. The only autoload.
+# Singleton -- cross-match persistent state.
 #
 # Data ownership:
 #   profile  -- server-owned fields (wins/losses/pilot_name). Keep clean for future sync.
 #   loadout  -- server-owned fields (chosen mech, weapon config). Same rule.
 #   settings -- local-only fields (mouse sensitivity). Never sent to server.
+#
+# Also hosts bot-coordination (formerly AIDirector autoload) to stay within the
+# three-autoload V5 limit.
 
 const _SAVE_PATH     := "user://profile.cfg"
 const _SETTINGS_PATH := "user://settings.cfg"
@@ -52,7 +55,7 @@ var loadout: Dictionary = {
 var settings: Dictionary = {
 	"mouse_sensitivity": 0.003,
 	"bot_difficulty": 1,  # 0=Easy  1=Normal  2=Medium  3=Hard  4=Elite
-	"master_volume": 1.0,
+	"master_volume": 0.5,
 }
 
 func _ready() -> void:
@@ -234,3 +237,27 @@ func save_settings() -> void:
 
 func apply_volume(linear: float) -> void:
 	AudioServer.set_bus_volume_db(AudioServer.get_bus_index("Master"), linear_to_db(linear))
+
+# ---- Bot coordination (V5: absorbed from former AIDirector autoload) ----
+
+var _bot_intents: Dictionary = {}  # bot Node -> {beacon: Node, team: int}
+
+func ai_director_set_intent(bot: Node, beacon: Node, team: int) -> void:
+	_bot_intents[bot] = {"beacon": beacon, "team": team}
+
+func ai_director_clear_intent(bot: Node) -> void:
+	_bot_intents.erase(bot)
+
+func ai_director_intent_count(beacon: Node, team: int) -> int:
+	var count := 0
+	var stale: Array = []
+	for bot in _bot_intents:
+		if not is_instance_valid(bot):
+			stale.append(bot)
+			continue
+		var entry: Dictionary = _bot_intents[bot]
+		if entry.get("beacon") == beacon and entry.get("team") == team:
+			count += 1
+	for bot in stale:
+		_bot_intents.erase(bot)
+	return count

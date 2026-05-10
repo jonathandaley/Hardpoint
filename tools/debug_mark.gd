@@ -1,4 +1,4 @@
-# Debug mark tool — NOT wired up in production.
+# Debug mark tool - NOT wired up in production.
 #
 # To re-enable:
 #   1. Mech.gd: add `signal mark_requested(pos: Vector3)`

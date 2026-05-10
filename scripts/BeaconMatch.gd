@@ -35,6 +35,14 @@ func _drain_tick() -> void:
 		scores[1] = max(0, scores[1] - per_beacon * a)
 	if b > 0:
 		scores[0] = max(0, scores[0] - per_beacon * b)
+	if multiplayer.has_multiplayer_peer():
+		_sync_scores.rpc(scores[0], scores[1])
+
+# T40: clients receive score updates here for HUD display; win evaluation stays server-only.
+@rpc("authority", "unreliable_ordered")
+func _sync_scores(s0: int, s1: int) -> void:
+	scores[0] = s0
+	scores[1] = s1
 
 func _check_win() -> void:
 	for i in scores.size():

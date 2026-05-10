@@ -208,7 +208,22 @@ func _setup_weapon_owners() -> void:
 func get_aim_basis() -> Basis:
 	return torso.global_transform.basis
 
+# Public entry point. Weapons always call this; never call _apply_damage directly.
+# SP: runs directly. MP client: routes to server via RPC (peer_id 1).
 func take_damage(amount: float) -> void:
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		rpc_id(1, &"_take_damage_rpc", amount)
+		return
+	_apply_damage(amount)
+
+# Server-side RPC receiver for damage (T40: validate amount server-side before applying).
+@rpc("any_peer", "reliable")
+func _take_damage_rpc(amount: float) -> void:
+	if not multiplayer.is_server():
+		return
+	_apply_damage(amount)
+
+func _apply_damage(amount: float) -> void:
 	if health <= 0.0 or invincible:
 		return
 	var actual := amount
@@ -227,6 +242,14 @@ func take_damage(amount: float) -> void:
 	if health <= 0.0:
 		health = 0.0
 		_die()
+	# T40: broadcast health to clients after mutation.
+	if multiplayer.has_multiplayer_peer():
+		_sync_health.rpc(health)
+
+# T40: clients receive health updates here; h=0 implies death (handle _die visuals client-side).
+@rpc("authority", "unreliable_ordered")
+func _sync_health(h: float) -> void:
+	health = h
 
 func _do_shield_flash() -> void:
 	if _flash_mat == null:
@@ -237,7 +260,7 @@ func _do_shield_flash() -> void:
 
 func _die() -> void:
 	is_dead = true
-	AIDirector.clear_intent(self)
+	Game.ai_director_clear_intent(self)
 	print("[Mech] %s destroyed" % name)
 	SoundManager.play_sfx("mech_death", global_position)
 	VFX.death_explosion(global_position + Vector3(0, 0.8, 0))
@@ -436,7 +459,7 @@ func _handle_reload() -> void:
 		if is_instance_valid(weapon) and weapon.has_method("try_reload"):
 			weapon.try_reload()
 
-const _LOCK_CONE_COS := 0.99619  # cos(5 degrees) — acquisition angle
+const _LOCK_CONE_COS := 0.99619  # cos(5 degrees) - acquisition angle
 const _LOCK_RANGE    := 200.0
 
 func _update_lock(delta: float) -> void:
@@ -456,19 +479,18 @@ func _update_lock(delta: float) -> void:
 			if col_team != team:
 				candidate = col
 
-	if candidate == null:
-		# B22/B23: retain current candidate if still within hold cone.
-		# Hold angle = 5° * clamp(range/dist, 1, 6) — widens at close range so
-		# minor wobble doesn't break lock on nearby targets, and equals the
-		# acquisition angle at max range.
-		if _lock_candidate != null and is_instance_valid(_lock_candidate) \
-				and not _lock_candidate.get("is_dead") and not _lock_candidate.get("is_stealthy"):
-			var to_cur := (_lock_candidate as Node3D).global_position - cam_pos
-			var cur_dist := to_cur.length()
-			if cur_dist > 0.001:
-				var hold_cos := cos(deg_to_rad(5.0) * clampf(_LOCK_RANGE / cur_dist, 1.0, 6.0))
-				if cam_fwd.dot(to_cur / cur_dist) >= hold_cos:
-					candidate = _lock_candidate
+	# B22/B23 (complete fix): hold cone applies whether the raycast hit a different mech
+	# or missed entirely. If current _lock_candidate is still within the hold cone, prefer
+	# it over a raycast-found mech - prevents switching when two mechs are side by side.
+	if _lock_candidate != null and candidate != _lock_candidate \
+			and is_instance_valid(_lock_candidate) \
+			and not _lock_candidate.get("is_dead") and not _lock_candidate.get("is_stealthy"):
+		var to_cur := (_lock_candidate as Node3D).global_position - cam_pos
+		var cur_dist := to_cur.length()
+		if cur_dist > 0.001:
+			var hold_cos := cos(deg_to_rad(7.0) * clampf(_LOCK_RANGE / cur_dist, 1.0, 6.0))
+			if cam_fwd.dot(to_cur / cur_dist) >= hold_cos:
+				candidate = _lock_candidate
 
 	if candidate == null:
 		var best_cos := _LOCK_CONE_COS
@@ -497,7 +519,7 @@ func _update_lock(delta: float) -> void:
 		locked_target = null
 		lock_progress = 0.0
 		_lock_timer = 0.0
-		_lock_candidate = null
+		# _lock_candidate intentionally kept - hold cone needs it for indicator stability
 		return
 	if candidate == null:
 		_lock_timer = 0.0

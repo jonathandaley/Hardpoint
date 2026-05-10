@@ -53,13 +53,14 @@ var _avoid_timer: float = 0.0
 var _target_refresh: float = 0.0
 var _has_clear_shot: bool = false
 var _los_timer: float = 0.0
+var _los_blocked_time: float = 0.0  # seconds target has been LoS-blocked; drops target at 1s
 
 func _ready() -> void:
 	call_deferred("_find_targets")
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE:
-		AIDirector.clear_intent(get_parent())
+		Game.ai_director_clear_intent(get_parent())
 
 func _find_targets() -> void:
 	_own_team = get_parent().get("team") if get_parent() != null else 1
@@ -75,6 +76,13 @@ func _find_targets() -> void:
 		role = "defender"
 	else:
 		role = "flanker"
+	# Re-evaluate target immediately when this bot takes damage (B26).
+	var pawn := get_parent().get("pawn") as Node
+	if pawn != null and pawn.has_signal("damaged"):
+		pawn.damaged.connect(_on_pawn_damaged)
+
+func _on_pawn_damaged() -> void:
+	_target_refresh = 0.0
 
 func _pick_closest_enemy(from: Node3D) -> Node3D:
 	var best: Node3D = null
@@ -143,7 +151,7 @@ func _pick_target_beacon(bot_mech: Node3D) -> Node:
 				if owner == 1:
 					continue
 				priority = 10.0 if owner == -1 else 5.0
-		var already: int = AIDirector.intent_count(b, _own_team)
+		var already: int = Game.ai_director_intent_count(b, _own_team)
 		var crowd_penalty: float = maxf(0.0, float(already - 1)) * 5.0
 		var score: float = priority - dist * 0.05 - crowd_penalty
 		if score > best_score:
@@ -157,9 +165,9 @@ func _claim_beacon(beacon: Node) -> void:
 		return
 	_claimed_beacon = beacon
 	if beacon != null:
-		AIDirector.set_intent(get_parent(), beacon, _own_team)
+		Game.ai_director_set_intent(get_parent(), beacon, _own_team)
 	else:
-		AIDirector.clear_intent(get_parent())
+		Game.ai_director_clear_intent(get_parent())
 
 # Returns true when no collideable geometry lies between the bot's eye and the
 # target's centre.  Uses the same PhysicsRayQueryParameters3D pattern as the
@@ -167,6 +175,7 @@ func _claim_beacon(beacon: Node) -> void:
 func _check_los(bot_mech: Node3D) -> void:
 	if _target == null or not is_instance_valid(_target) or not _target.visible:
 		_has_clear_shot = false
+		_los_blocked_time = 0.0
 		return
 	var eye: Vector3 = bot_mech.global_position + Vector3(0, 2.0, 0)
 	var tgt: Vector3 = _target.global_position + Vector3(0, 1.5, 0)
@@ -174,8 +183,15 @@ func _check_los(bot_mech: Node3D) -> void:
 	var query := PhysicsRayQueryParameters3D.create(eye, tgt)
 	query.exclude = bot_mech.get_exclude_rids()
 	var result := space.intersect_ray(query)
-	# Clear shot if nothing blocked, or if what we hit IS the target body.
 	_has_clear_shot = result.is_empty() or result.get("collider") == _target
+	if _has_clear_shot:
+		_los_blocked_time = 0.0
+	else:
+		_los_blocked_time += LOS_INTERVAL
+		if _los_blocked_time >= 1.0:
+			_target = null
+			_target_refresh = 0.0
+			_los_blocked_time = 0.0
 
 # Returns the immediate nav-path waypoint toward goal_pos, or Vector3.ZERO if
 # the navmesh is not ready yet (caller falls back to direct steering).
@@ -193,6 +209,9 @@ func _nav_next(bot_mech: Node3D, goal_pos: Vector3) -> Vector3:
 	return next
 
 func _process(delta: float) -> void:
+	# T40: bots run server-only; clients receive mech state via replication, not AI.
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		return
 	var bot_mech: Node3D = get_parent().get("pawn")
 	if bot_mech == null:
 		_look_delta = Vector2.ZERO
