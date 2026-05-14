@@ -308,7 +308,7 @@ func _refresh_weapon_opts(slot_idx: int, mech_path: String, saved_weapons: Array
 	var slots: Array = md.weapon_slots
 	for s_i in slots.size():
 		var slot = slots[s_i]
-		var s_size: int = int(slot.get("slot_size", 0)) if "slot_size" in slot else 0
+		var s_size: int = slot.slot_size if "slot_size" in slot else 0
 
 		var opt := OptionButton.new()
 		opt.custom_minimum_size.x = 100
@@ -342,7 +342,7 @@ func _collect_squad() -> Array:
 					weapons.append("")
 					continue
 				var slot = slots[s_i]
-				var s_size: int = int(slot.get("slot_size", 0)) if "slot_size" in slot else 0
+				var s_size: int = slot.slot_size if "slot_size" in slot else 0
 				var opt: OptionButton = wpn_opts[s_i]
 				var chosen_idx := 0
 				var item_i := 0

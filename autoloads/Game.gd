@@ -407,7 +407,7 @@ func _validate_squad_entry(entry: Dictionary) -> bool:
 			push_error("_validate_squad_entry: invalid weapon '%s'" % wpn_path)
 			return false
 		var slot = slots[i]
-		var required: int = int(slot.get("slot_size", 0)) if "slot_size" in slot else 0
+		var required: int = slot.slot_size if "slot_size" in slot else 0
 		if _weapon_size_from_path(wpn_path) != required:
 			push_error("V17: weapon '%s' wrong size for slot %d (need %d)" % [wpn_path, i, required])
 			return false
