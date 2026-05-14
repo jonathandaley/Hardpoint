@@ -54,9 +54,18 @@ var _target_refresh: float = 0.0
 var _has_clear_shot: bool = false
 var _los_timer: float = 0.0
 var _los_blocked_time: float = 0.0  # seconds target has been LoS-blocked; drops target at 1s
+var _rng: RandomNumberGenerator  # T98: seeded per-bot RNG; MP seed set by T104
+var bot_id: int = 0  # T104: unique bot id set by Arena at spawn; used for seed derivation
 
 func _ready() -> void:
+	_rng = RandomNumberGenerator.new()
+	_rng.randomize()
+	add_to_group("ai_input_sources")
 	call_deferred("_find_targets")
+
+# T104: called by Match._apply_bot_seeds() on all peers to sync bot RNG.
+func set_mp_seed(seed: int) -> void:
+	_rng.seed = seed
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE:
@@ -69,7 +78,7 @@ func _find_targets() -> void:
 			_enemy_mechs.append(mech)
 	_beacons = get_tree().get_nodes_in_group("beacons")
 	# Randomly assign a role with a 2:1:1 split among bots on the same team.
-	var r := randf()
+	var r := _rng.randf()
 	if r < 0.50:
 		role = "attacker"
 	elif r < 0.75:
@@ -327,8 +336,8 @@ func _process(delta: float) -> void:
 			# All beacons owned - circle-strafe and fight.
 			_strafe_timer -= delta
 			if _strafe_timer <= 0.0:
-				_strafe_timer = randf_range(1.5, 3.0)
-				_strafe_sign  = 1.0 if randf() > 0.5 else -1.0
+				_strafe_timer = _rng.randf_range(1.5, 3.0)
+				_strafe_sign  = 1.0 if _rng.randf() > 0.5 else -1.0
 			if dist > ENGAGE_DIST:
 				_move_dir = Vector2(0.0, -1.0)
 			else:
@@ -351,7 +360,7 @@ func _process(delta: float) -> void:
 				bot_mech.global_position.distance_to(_last_pos) < STUCK_DIST:
 			_stuck_count += 1
 			_escape_timer = minf(ESCAPE_TIME * _stuck_count, ESCAPE_TIME_MAX)
-			var side := 1.0 if randf() > 0.5 else -1.0
+			var side := 1.0 if _rng.randf() > 0.5 else -1.0
 			if _stuck_count <= 1:
 				# First escape: sideways strafe
 				_escape_vec = Vector2(side, -0.3).normalized()
@@ -360,7 +369,7 @@ func _process(delta: float) -> void:
 				_escape_vec = Vector2(side * 0.4, 0.9).normalized()
 			else:
 				# Repeated stuck: fully random direction to break the oscillation
-				var angle := randf_range(0.0, TAU)
+				var angle := _rng.randf_range(0.0, TAU)
 				_escape_vec = Vector2(cos(angle), sin(angle))
 				# Mark the entire area as a stuck zone so ALL nearby beacons are avoided
 				_avoid_zone  = bot_mech.global_position
@@ -380,9 +389,9 @@ func _process(delta: float) -> void:
 		# Aim jitter - slow random drift that makes the bot miss occasionally
 		_jitter_timer -= delta
 		if _jitter_timer <= 0.0:
-			_jitter_timer = randf_range(0.08, 0.18)
-			_jitter = Vector2(randf_range(-aim_jitter, aim_jitter),
-							  randf_range(-aim_jitter, aim_jitter))
+			_jitter_timer = _rng.randf_range(0.08, 0.18)
+			_jitter = Vector2(_rng.randf_range(-aim_jitter, aim_jitter),
+							  _rng.randf_range(-aim_jitter, aim_jitter))
 		# Burst fire - shoot for BURST_FIRE seconds, pause for BURST_PAUSE seconds
 		_burst_timer -= delta
 		if _burst_timer <= 0.0:

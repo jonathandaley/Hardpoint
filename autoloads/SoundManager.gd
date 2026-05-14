@@ -42,7 +42,9 @@ func _setup_buses() -> void:
 		AudioServer.set_bus_send(idx, "Master")
 
 # 3D positional SFX - attenuates with distance from pos
-func play_sfx(key: String, pos: Vector3 = Vector3.ZERO) -> void:
+func play_sfx(key: String, pos: Vector3 = Vector3.ZERO, broadcast: bool = false) -> void:
+	if broadcast and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_rpc_play_sfx.rpc(key, pos)
 	var stream := _load_sfx(key)
 	if stream == null:
 		return
@@ -57,8 +59,16 @@ func play_sfx(key: String, pos: Vector3 = Vector3.ZERO) -> void:
 	player.play()
 	player.finished.connect(player.queue_free)
 
+@rpc("authority", "unreliable")
+func _rpc_play_sfx(key: String, pos: Vector3) -> void:
+	if multiplayer.is_server():
+		return
+	play_sfx(key, pos)
+
 # 2D non-positional SFX - UI hits, crosshair flashes, etc.
-func play_sfx_2d(key: String, volume_db: float = 0.0) -> void:
+func play_sfx_2d(key: String, volume_db: float = 0.0, broadcast: bool = false) -> void:
+	if broadcast and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_rpc_play_sfx_2d.rpc(key, volume_db)
 	var stream := _load_sfx(key)
 	if stream == null:
 		return
@@ -69,6 +79,12 @@ func play_sfx_2d(key: String, volume_db: float = 0.0) -> void:
 	get_tree().root.add_child(player)
 	player.play()
 	player.finished.connect(player.queue_free)
+
+@rpc("authority", "unreliable")
+func _rpc_play_sfx_2d(key: String, volume_db: float) -> void:
+	if multiplayer.is_server():
+		return
+	play_sfx_2d(key, volume_db)
 
 func play_music(key: String, loop: bool = true) -> void:
 	if not _MUSIC_PATHS.has(key):

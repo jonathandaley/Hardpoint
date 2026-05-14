@@ -36,3 +36,20 @@ func _do_fire() -> void:
 	get_tree().current_scene.add_child(proj)
 	# looking_at() orients -Z toward aim_point, matching Projectile's movement axis
 	proj.global_transform = Transform3D(Basis(), global_position).looking_at(aim_point)
+
+	# T100: broadcast ghost to clients when server in MP.
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_rpc_spawn_ghost.rpc(global_position, proj.global_transform.basis,
+			proj.speed, proj.lifetime, proj.team)
+
+@rpc("authority", "reliable")
+func _rpc_spawn_ghost(pos: Vector3, basis: Basis, speed: float, lifetime: float, team: int) -> void:
+	if multiplayer.is_server():
+		return
+	var ghost := PROJECTILE_SCENE.instantiate() as Projectile
+	ghost.is_ghost = true
+	ghost.speed = speed
+	ghost.lifetime = lifetime
+	ghost.team = team
+	get_tree().current_scene.add_child(ghost)
+	ghost.global_transform = Transform3D(basis, pos)

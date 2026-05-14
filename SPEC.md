@@ -173,22 +173,22 @@ T89|.|per-tick skill effects: (1) Repair Rate -- add `_no_damage_timer: float` t
 T90|.|meta skill effects + stubs: (1) XP bonus -- in Game.update_after_match() multiply xp_gain by (1.0 + get_skill_effect("xp_bonus")); (2) coin bonus -- multiply coin award by (1.0 + get_skill_effect("coin_pickup")); add Game.apply_coin_pickup_bonus(base:int)->int helper = roundi(base*(1+get_skill_effect("coin_pickup"))) for future in-match use; (3) power-up duration -- get_skill_effect("powerup_duration") data present, no call site yet|T86,V21
 T91|.|hangar skill tree UI: replace _build_progression_nodes() + _on_prog_buy() in Hangar.gd with skill tree list; pilot stats line gains "SP: N" counter; ScrollContainer below stats shows all 15 skills as rows (locked/unlocked/maxed state, level N/12, cost or LOCKED label, BUY/UPGRADE button); rows indented by tree depth; locked rows show which parent(s) needed; BUY calls Game.unlock_skill() (costs SP), UPGRADE calls Game.upgrade_skill() (costs coins); buttons disabled when requirements unmet; refresh on purchase; visual tree layout deferred to later task|T86,T88,T89,T90
 T92|x|P0: codify current behavior -- add V22-V26 invariants (done in §V), run /check, catalog drift baseline; ⊥ code change in this task; baseline 2026-05-10: 20 hold / 5 violate / 7 unverifiable (after V22 narrowed to gameplay-input only, mouse_mode toggles reclassified non-violation); violations map to tracked tasks (V21→T88, V23→T93/T94, V24→T98/T99, V26→T97+); V28-V34 unverifiable until P2-P4 wiring lands|V22,V23,V24,V25,V26
-T93|.|P1: Beacon `_capturers` stale ref guard -- `is_instance_valid` + `is_alive` filter each capture tick (`Beacon.gd:104-120`); fixes B28|V27
-T94|.|P1: defensive `is_instance_valid` pass on cached refs -- `Mech.locked_target`, `Mech.lock_eligible_target`, `AIInputSource._target`, `Projectile.target`, `Projectile.owner_body`, `HomingProjectile.target`; null-skip on stale, no behavior change when valid|V23
-T95|.|P2: weapon fire chokepoint -- `Mech.fire_weapon(slot, aim)` wraps current scattered fire paths in `WeaponBase.gd`/`ProjectileGun.gd`; SP behavior identical, MP later wraps in @rpc at this seam|V3
-T96|.|P2: damage routing through `Mech.request_damage(amount, source)` chokepoint; wraps current `_apply_damage` (`Mech.gd:213-224`); no clamp yet (deferred to T103)|V25,V28
-T97|.|P2: VFX/SFX broadcast hooks -- add optional `broadcast: bool = false` param to `VFX.spawn_*` and `SoundManager.play_*`; SP path unchanged (param unused); MP flips to true at fire callsites|V26
-T98|.|P3: AIInputSource uses seeded `RandomNumberGenerator` instance (replace global `randf` calls in aim jitter, strafe, escape); SP seed = time-based for variance, MP seed deferred to T104|V29
-T99|.|P3: tag cosmetic RNG callsites with `# cosmetic` -- pod ejection (`Mech.gd:315-316`), VFX particle spread (`VFX.gd:42-86`); cosmetic RNG keeps global `randf`|V24
-T100|.|P4: projectile spawn RPC -- server authoritative for `Projectile.gd` + `HomingProjectile.gd`; client projectile = visual-only ghost; hit detection server-only|V30,T40
-T101|.|P4: weapon fire RPC broadcast -- flip `broadcast=true` from T97 at fire callsites in `WeaponBase.gd`; remote players hear/see fire SFX/VFX|V26,T97
-T102|.|P4: lock state sync -- `Mech.locked_target` becomes `locked_target_id` (peer/node id) resolved via lookup at use site; replicated as id|V31
-T103|.|P4: server-side damage validation in `request_damage` -- clamp amount to weapon-defined max, gate by range, reject malformed; server-only enforcement|V32,T96
-T104|.|P4: bot RNG → deterministic seed broadcast by server at match start; bots replicate as MultiplayerSpawner children w/ matching seeds|V29,T98
-T105|.|P4: beacon capture progress periodic RPC (`unreliable_ordered`); clients see progress bar real-time, not just end-state|V33,T40
-T106|.|P5 (gated): bench arena under sustained fire (4 bots vs player, 30s); profile w/ Godot profiler; if frame-time stable <16ms → skip T107/T108|-
-T107|.|P5 (conditional T106): VFX object pool for top hitch source identified by T106 only|V34,T106
-T108|.|P5 (conditional T106): SoundManager `AudioStreamPlayer3D` pool|V34,T106
+T93|x|P1: Beacon `_capturers` stale ref guard -- `is_instance_valid` + `is_alive` filter each capture tick (`Beacon.gd:104-120`); fixes B28|V27
+T94|x|P1: defensive `is_instance_valid` pass on cached refs -- `Mech.locked_target`, `Mech.lock_eligible_target`, `AIInputSource._target`, `Projectile.target`, `Projectile.owner_body`, `HomingProjectile.target`; null-skip on stale, no behavior change when valid|V23
+T95|x|P2: weapon fire chokepoint -- `Mech.fire_weapon(slot, aim)` wraps current scattered fire paths in `WeaponBase.gd`/`ProjectileGun.gd`; SP behavior identical, MP later wraps in @rpc at this seam|V3
+T96|x|P2: damage routing through `Mech.request_damage(amount, source)` chokepoint; wraps current `_apply_damage` (`Mech.gd:213-224`); no clamp yet (deferred to T103)|V25,V28
+T97|x|P2: VFX/SFX broadcast hooks -- add optional `broadcast: bool = false` param to `VFX.spawn_*` and `SoundManager.play_*`; SP path unchanged (param unused); MP flips to true at fire callsites|V26
+T98|x|P3: AIInputSource uses seeded `RandomNumberGenerator` instance (replace global `randf` calls in aim jitter, strafe, escape); SP seed = time-based for variance, MP seed deferred to T104|V29
+T99|x|P3: tag cosmetic RNG callsites with `# cosmetic` -- pod ejection (`Mech.gd:315-316`), VFX particle spread (`VFX.gd:42-86`); cosmetic RNG keeps global `randf`|V24
+T100|x|P4: projectile spawn RPC -- server authoritative for `Projectile.gd` + `HomingProjectile.gd`; client projectile = visual-only ghost; hit detection server-only|V30,T40
+T101|x|P4: weapon fire RPC broadcast -- flip `broadcast=true` from T97 at fire callsites in `WeaponBase.gd`; remote players hear/see fire SFX/VFX|V26,T97
+T102|x|P4: lock state sync -- `Mech.locked_target` becomes `locked_target_id` (peer/node id) resolved via lookup at use site; replicated as id|V31
+T103|x|P4: server-side damage validation in `request_damage` -- clamp amount to weapon-defined max, gate by range, reject malformed; server-only enforcement|V32,T96
+T104|x|P4: bot RNG → deterministic seed broadcast by server at match start; bots replicate as MultiplayerSpawner children w/ matching seeds|V29,T98
+T105|x|P4: beacon capture progress periodic RPC (`unreliable_ordered`); clients see progress bar real-time, not just end-state|V33,T40
+T106|x|P5 (gated): bench arena under sustained fire (4 bots vs player, 30s); profile w/ Godot profiler; if frame-time stable <16ms → skip T107/T108; result 2026-05-13: Physics Time ~2ms, Physics Frame Time 16.66ms (tick interval, not cost) → stable, T107/T108 skipped|-
+T107|~|P5 (conditional T106): VFX object pool for top hitch source identified by T106 only -- SKIPPED: T106 showed no hitch|V34,T106
+T108|~|P5 (conditional T106): SoundManager `AudioStreamPlayer3D` pool -- SKIPPED: T106 showed no hitch|V34,T106
 
 ## §B BUGS
 
@@ -220,4 +220,4 @@ B24|2026-05-08|bot body oscillates ~30 deg left-right continuously -- P-only tur
 B25|2026-05-09|audio too loud - master volume default too high; rifle SFX additionally loud relative to other weapons; user found 30% master volume a comfortable midpoint; fix: lowered `Game.settings["master_volume"]` default 1.0->0.5 (part 2, rifle db tuning, deferred until audio content lands T29)|−
 B26|2026-05-10|bot target persistence ignores threats and LoS - fix: `_on_pawn_damaged` forces `_target_refresh=0` on damage; `_check_los` accumulates `_los_blocked_time` and clears `_target` if blocked >1s (AIInputSource.gd)|−
 B27|2026-05-10|friendly fire enabled - fix: team check added at each damage call site before `take_damage`: Projectile.gd, HomingProjectile.gd, RaycastGun.gd, LaserCannon.gd, ArcWeapon.gd; Shotgun covered via Projectile (already sets `proj.team`)|−
-B28|2026-05-10|Beacon `_capturers` dict holds direct mech refs populated by `body_entered` signals on each peer; on death/free, mech may stay in dict until next `_sync_state` RPC → ghost capture progress (dead mech still counts toward capture/contest); fix in T93 (`is_instance_valid` + `is_alive` filter each tick)|V27
+B28|2026-05-10|Beacon `_capturers` dict holds direct mech refs populated by `body_entered` signals on each peer; on death/free, mech may stay in dict until next `_sync_state` RPC → ghost capture progress (dead mech still counts toward capture/contest); fixed by T93 (`is_instance_valid` purge pass in `_update_capture()` + guard in `_teams_present()`)|V27

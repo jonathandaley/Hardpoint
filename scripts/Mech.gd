@@ -55,6 +55,7 @@ var _active_set: Array = []  # parallel bool array; true = included in right-cli
 var _was_firing_primary: bool = false
 
 var locked_target: Node3D = null
+var locked_target_id: int = 0  # T102: ID-form of locked_target for MP replication
 var lock_progress: float = 0.0
 var lock_eligible: bool = false
 var lock_eligible_target: Node3D = null
@@ -208,19 +209,38 @@ func _setup_weapon_owners() -> void:
 func get_aim_basis() -> Basis:
 	return torso.global_transform.basis
 
+# T95: weapon fire chokepoint; MP @rpc will wrap here in T100.
+func fire_weapon(slot: int, aim: Vector3 = Vector3.ZERO) -> void:
+	if slot < 0 or slot >= _weapons.size() or not is_instance_valid(_weapons[slot]):
+		return
+	_weapons[slot].fire()
+
 # Public entry point. Weapons always call this; never call _apply_damage directly.
 # SP: runs directly. MP client: routes to server via RPC (peer_id 1).
 func take_damage(amount: float) -> void:
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
 		rpc_id(1, &"_take_damage_rpc", amount)
 		return
-	_apply_damage(amount)
+	request_damage(amount)
 
 # Server-side RPC receiver for damage (T40: validate amount server-side before applying).
 @rpc("any_peer", "reliable")
 func _take_damage_rpc(amount: float) -> void:
 	if not multiplayer.is_server():
 		return
+	request_damage(amount)
+
+# T96: damage chokepoint; T103 will add server-side validation here.
+func request_damage(amount: float, source: Node3D = null) -> void:
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server() and source != null:
+		var max_dmg: float = source.get("damage") if "damage" in source else amount
+		var src_range: float = source.get("range") if "range" in source else INF
+		if amount > max_dmg * 1.5:
+			return
+		if is_instance_valid(source) and source is Node3D:
+			var dist: float = (source as Node3D).global_position.distance_to(global_position)
+			if dist > src_range * 1.2:
+				return
 	_apply_damage(amount)
 
 func _apply_damage(amount: float) -> void:
@@ -310,9 +330,9 @@ func _launch_cockpit_pod() -> void:
 	pod.add_child(smoke)
 
 	pod.position = global_position + Vector3(0, 1.8, 0)
-	var spread_x: float = randf_range(-3.0, 3.0)
-	var spread_z: float = randf_range(-3.0, 3.0)
-	pod.linear_velocity = Vector3(spread_x, randf_range(22.0, 30.0), spread_z)
+	var spread_x: float = randf_range(-3.0, 3.0)  # cosmetic
+	var spread_z: float = randf_range(-3.0, 3.0)  # cosmetic
+	pod.linear_velocity = Vector3(spread_x, randf_range(22.0, 30.0), spread_z)  # cosmetic
 	pod.angular_velocity = Vector3(randf_range(-2.0, 2.0), randf_range(-1.0, 1.0), randf_range(-2.0, 2.0))
 	get_parent().add_child(pod)
 	# Auto-destruct after 6 seconds.
@@ -516,7 +536,7 @@ func _update_lock(delta: float) -> void:
 	lock_eligible = candidate != null
 	lock_eligible_target = candidate
 	if not has_lock_weapon():
-		locked_target = null
+		_set_locked_target(null)
 		lock_progress = 0.0
 		_lock_timer = 0.0
 		# _lock_candidate intentionally kept - hold cone needs it for indicator stability
@@ -524,18 +544,22 @@ func _update_lock(delta: float) -> void:
 	if candidate == null:
 		_lock_timer = 0.0
 		_lock_candidate = null
-		locked_target = null
+		_set_locked_target(null)
 		lock_progress = 0.0
 	elif candidate != _lock_candidate:
 		_lock_candidate = candidate
 		_lock_timer = 0.0
-		locked_target = null
+		_set_locked_target(null)
 		lock_progress = 0.0
 	else:
 		_lock_timer = minf(_lock_timer + delta, _LOCK_TIME)
 		lock_progress = _lock_timer / _LOCK_TIME
 		if _lock_timer >= _LOCK_TIME:
-			locked_target = _lock_candidate
+			_set_locked_target(_lock_candidate if is_instance_valid(_lock_candidate) else null)
+
+func _set_locked_target(node: Node3D) -> void:
+	locked_target = node
+	locked_target_id = node.get_instance_id() if node != null else 0
 
 func _handle_fire() -> void:
 	var primary: bool   = _input_source.is_firing_primary()
@@ -551,7 +575,7 @@ func _handle_fire() -> void:
 		if not is_instance_valid(_weapons[i]):
 			continue
 		if primary or (secondary and _active_set[i]):
-			_weapons[i].fire()
+			fire_weapon(i)
 
 func _handle_ability() -> void:
 	var delta: float = get_physics_process_delta_time()

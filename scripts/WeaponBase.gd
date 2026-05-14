@@ -70,10 +70,11 @@ func fire() -> void:
 		return
 	_cooldown = 1.0 / fire_rate
 	_do_fire()
+	var _bc: bool = multiplayer.has_multiplayer_peer() and multiplayer.is_server()
 	if fire_sound_key != "":
-		SoundManager.play_sfx(fire_sound_key, global_position)
+		SoundManager.play_sfx(fire_sound_key, global_position, _bc)
 	if muzzle_flash_enabled:
-		VFX.muzzle_flash(global_position - global_transform.basis.z * 0.4, muzzle_color)
+		VFX.muzzle_flash(global_position - global_transform.basis.z * 0.4, muzzle_color, _bc)
 	if shake_magnitude > 0.0 and owner_mech != null and owner_mech.has_method("apply_camera_shake"):
 		owner_mech.apply_camera_shake(shake_magnitude)
 	if max_ammo >= 0:
@@ -111,12 +112,13 @@ func _emit_hit_if_visible(target: Node, hit_pos: Vector3 = Vector3.ZERO) -> void
 	if target != null and target.get("is_stealthy"):
 		return
 	hit_confirmed.emit()
+	var _bc: bool = multiplayer.has_multiplayer_peer() and multiplayer.is_server()
 	if impact_sound_enabled:
 		var sfx_pos := hit_pos if hit_pos != Vector3.ZERO else (target as Node3D).global_position
-		SoundManager.play_sfx("hit_impact", sfx_pos)
+		SoundManager.play_sfx("hit_impact", sfx_pos, _bc)
 	var spark_pos := hit_pos if hit_pos != Vector3.ZERO \
 		else (target as Node3D).global_position + Vector3(0, 1.0, 0)
-	VFX.hit_sparks(spark_pos)
+	VFX.hit_sparks(spark_pos, Color(1.0, 0.55, 0.15), _bc)
 
 func on_fire_release() -> void:
 	pass
