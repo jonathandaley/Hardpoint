@@ -45,6 +45,7 @@ func _spawn_rocket(lock_target: Node3D) -> void:
 	proj.target = lock_target
 	proj.target_offset = jitter
 	proj.owner_body = owner_mech
+	proj.source_weapon = self
 	proj.arc_time = arc_time
 	proj.arc_up_blend = arc_up_blend
 	proj.turn_rate = turn_rate

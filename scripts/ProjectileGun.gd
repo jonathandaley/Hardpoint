@@ -37,6 +37,7 @@ func _do_fire() -> void:
 	proj.lifetime = range / projectile_speed
 	proj.team = owner_mech.get("team") if owner_mech.get("team") != null else 0
 	proj._exclude_rids = owner_mech.get_exclude_rids()
+	proj.source_weapon = self
 
 	proj.on_hit = func(body, pos): _emit_hit_if_visible(body, pos)
 	get_tree().current_scene.add_child(proj)

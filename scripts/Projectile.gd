@@ -13,6 +13,7 @@ var damage_override: Callable
 var splash_radius: float = 0.0
 var splash_damage: float = 0.0
 var owner_body: Node3D = null
+var source_weapon: Node3D = null  # T103/V28: weapon node for server-side damage clamp
 var is_ghost: bool = false  # T100: client-side visual ghost; skips hit detection
 
 @export var smoke_trail: bool = false
@@ -82,7 +83,7 @@ func _physics_process(delta: float) -> void:
 			var target_team: int = result.collider.get("team") if "team" in result.collider else -1
 			if target_team != team:
 				var actual: float = damage_override.call(_distance_traveled) if damage_override.is_valid() else damage
-				result.collider.take_damage(actual)
+				result.collider.take_damage(actual, source_weapon)
 				if on_hit.is_valid():
 					on_hit.call(result.collider, result.position)
 		if splash_radius > 0.0:
@@ -93,7 +94,7 @@ func _physics_process(delta: float) -> void:
 					continue
 				var dist: float = (mech as Node3D).global_position.distance_to(global_position)
 				if dist < splash_radius:
-					mech.take_damage(splash_damage * (1.0 - dist / splash_radius))
+					mech.take_damage(splash_damage * (1.0 - dist / splash_radius), source_weapon)
 		queue_free()
 		return
 

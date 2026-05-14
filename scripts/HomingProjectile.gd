@@ -9,6 +9,7 @@ var lifetime: float = 10.0
 var team: int = 0
 var target: Node3D = null
 var owner_body: Node3D = null
+var source_weapon: Node3D = null  # T103/V28: weapon node for server-side damage clamp
 var is_ghost: bool = false  # T100: client-side visual ghost; skips hit detection
 var _exclude_rids: Array = []
 var on_hit: Callable
@@ -66,7 +67,7 @@ func _physics_process(delta: float) -> void:
 		if result.collider.has_method("take_damage"):
 			var target_team: int = result.collider.get("team") if "team" in result.collider else -1
 			if target_team != team:
-				result.collider.take_damage(damage)
+				result.collider.take_damage(damage, source_weapon)
 				if on_hit.is_valid():
 					on_hit.call(result.collider, result.position)
 		if splash_radius > 0.0:
@@ -77,7 +78,7 @@ func _physics_process(delta: float) -> void:
 					continue
 				var dist: float = (mech as Node3D).global_position.distance_to(result.position)
 				if dist < splash_radius:
-					mech.take_damage(splash_damage * (1.0 - dist / splash_radius))
+					mech.take_damage(splash_damage * (1.0 - dist / splash_radius), source_weapon)
 		queue_free()
 		return
 

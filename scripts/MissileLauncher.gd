@@ -29,6 +29,7 @@ func _do_fire() -> void:
 	proj.splash_radius = splash_radius
 	proj.splash_damage = splash_damage
 	proj.owner_body = owner_mech
+	proj.source_weapon = self
 	proj.on_hit = func(body, pos): _emit_hit_if_visible(body, pos)
 	get_tree().current_scene.add_child(proj)
 	proj.global_transform = Transform3D(Basis(), global_position).looking_at(aim_point)
