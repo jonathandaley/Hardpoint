@@ -381,6 +381,59 @@ func broadcast_lobby() -> void:
 		return
 	_rpc_sync_lobby.rpc(mp_lobby)
 
+# ---- Squad RPC (T113) ----
+
+# Infer slot_size from path naming convention: *Heavy* = 1, else 0 (V17).
+func _weapon_size_from_path(path: String) -> int:
+	return 1 if "Heavy" in path else 0
+
+# V17: validate one squad entry dict {mech, weapons}.
+func _validate_squad_entry(entry: Dictionary) -> bool:
+	var mech_path: String = str(entry.get("mech", ""))
+	if mech_path.is_empty() or not ResourceLoader.exists(mech_path):
+		push_error("_validate_squad_entry: invalid mech path '%s'" % mech_path)
+		return false
+	var md = ResourceLoader.load(mech_path)
+	if md == null:
+		push_error("_validate_squad_entry: failed to load mech '%s'" % mech_path)
+		return false
+	var weapons: Array = entry.get("weapons", [])
+	var slots: Array = md.weapon_slots if "weapon_slots" in md else []
+	for i in mini(slots.size(), weapons.size()):
+		var wpn_path: String = str(weapons[i])
+		if wpn_path.is_empty():
+			continue
+		if not ResourceLoader.exists(wpn_path):
+			push_error("_validate_squad_entry: invalid weapon '%s'" % wpn_path)
+			return false
+		var slot = slots[i]
+		var required: int = int(slot.get("slot_size", 0)) if "slot_size" in slot else 0
+		if _weapon_size_from_path(wpn_path) != required:
+			push_error("V17: weapon '%s' wrong size for slot %d (need %d)" % [wpn_path, i, required])
+			return false
+	return true
+
+# Validate + store squad for a peer, then broadcast. Called directly on server,
+# or via _rpc_set_squad on clients.
+func _apply_squad(peer_id: int, squad: Array) -> void:
+	if not mp_lobby["peers"].has(peer_id):
+		push_error("_apply_squad: unknown peer %d" % peer_id)
+		return
+	if squad.size() != 5:
+		push_error("_apply_squad: expected 5 entries, got %d" % squad.size())
+		return
+	for entry in squad:
+		if not _validate_squad_entry(entry):
+			return
+	mp_lobby["peers"][peer_id]["squad"] = squad
+	broadcast_lobby()
+
+# Client -> server: send squad selection (V39, V41).
+@rpc("any_peer", "call_remote", "reliable")
+func _rpc_set_squad(squad: Array) -> void:
+	var sender := multiplayer.get_remote_sender_id()
+	_apply_squad(sender, squad)
+
 # ---- Bot coordination (V5: absorbed from former AIDirector autoload) ----
 
 var _bot_intents: Dictionary = {}  # bot Node -> {beacon: Node, team: int}
