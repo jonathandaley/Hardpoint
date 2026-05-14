@@ -27,7 +27,15 @@ text = "LOBBY"
 offset_left = 110.0
 offset_top = 48.0
 offset_right = 530.0
-offset_bottom = 208.0
+offset_bottom = 178.0
+
+[node name="SquadBtn" type="Button" parent="."]
+offset_left = 290.0
+offset_top = 183.0
+offset_right = 450.0
+offset_bottom = 210.0
+theme_override_font_sizes/font_size = 13
+text = "MY SQUAD"
 
 [node name="HostControls" type="VBoxContainer" parent="."]
 offset_left = 110.0
@@ -95,8 +103,48 @@ offset_bottom = 345.0
 horizontal_alignment = 1
 theme_override_font_sizes/font_size = 13
 
+[node name="SquadPicker" type="Control" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+visible = false
+
+[node name="PickerBG" type="ColorRect" parent="SquadPicker"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.03, 0.03, 0.06, 1)
+mouse_filter = 0
+
+[node name="PickerPanel" type="VBoxContainer" parent="SquadPicker"]
+offset_left = 30.0
+offset_top = 15.0
+offset_right = 610.0
+offset_bottom = 345.0
+
+[node name="PickerTitle" type="Label" parent="SquadPicker/PickerPanel"]
+theme_override_font_sizes/font_size = 18
+horizontal_alignment = 1
+text = "MY SQUAD"
+
+[node name="SlotRows" type="VBoxContainer" parent="SquadPicker/PickerPanel"]
+size_flags_vertical = 3
+
+[node name="PickerButtonRow" type="HBoxContainer" parent="SquadPicker/PickerPanel"]
+
+[node name="ConfirmBtn" type="Button" parent="SquadPicker/PickerPanel/PickerButtonRow"]
+size_flags_horizontal = 3
+text = "CONFIRM"
+theme_override_font_sizes/font_size = 15
+
+[node name="CancelBtn" type="Button" parent="SquadPicker/PickerPanel/PickerButtonRow"]
+size_flags_horizontal = 3
+text = "CANCEL"
+theme_override_font_sizes/font_size = 15
+
 [connection signal="toggled" from="HostControls/BotFillRow/BotFillCheck" to="." method="_on_bot_fill_toggled"]
 [connection signal="value_changed" from="HostControls/TeamSizeRow/TeamSizeSpin" to="." method="_on_team_size_changed"]
 [connection signal="item_selected" from="HostControls/MapRow/MapOption" to="." method="_on_map_selected"]
 [connection signal="pressed" from="StartButton" to="." method="_on_start_pressed"]
 [connection signal="pressed" from="BackButton" to="." method="_on_back_pressed"]
+[connection signal="pressed" from="SquadBtn" to="." method="_on_squad_btn_pressed"]
+[connection signal="pressed" from="SquadPicker/PickerPanel/PickerButtonRow/ConfirmBtn" to="." method="_on_squad_confirm"]
+[connection signal="pressed" from="SquadPicker/PickerPanel/PickerButtonRow/CancelBtn" to="." method="_on_squad_cancel"]
