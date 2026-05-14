@@ -132,6 +132,8 @@ func apply_pilot_skills() -> void:
 			weapon.projectile_speed *= 1.0 + spd_eff
 			weapon.reload_time       = maxf(0.1, weapon.reload_time * (1.0 - rl_eff))
 			weapon.inaccuracy_angle *= maxf(0.0, 1.0 - spread_eff)
+			if weapon is MachineGun:
+				weapon.spread_angle *= maxf(0.0, 1.0 - spread_eff)
 	if is_instance_valid(_energy_shield) and _energy_shield.get("_active") == true:
 		_energy_shield.max_shield_hp *= 1.0 + Game.get_skill_effect("shield_capacity")
 		_energy_shield.shield_hp      = _energy_shield.max_shield_hp
