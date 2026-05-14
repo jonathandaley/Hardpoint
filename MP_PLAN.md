@@ -26,6 +26,16 @@ Each phase = behavior-preserving refactor first, switch flip second. Invariants 
 | P4 | T100-T105 | Replication wiring; MP flips on incrementally | medium | per-task revert; SP fallback when single-peer |
 | P5 | T106-T108 | Perf pooling; gated on T106 measurement | low | revert pool |
 | P6 | -- | Late-join/spectate; out of scope this batch | -- | -- |
+| P7 | T109, T110 | Transport core + MP entry UI | low | revert; SP path untouched |
+| P8 | T111-T114 | Lobby state + per-peer squad/ready | medium | revert lobby scene; SP path untouched |
+| P9 | T115, T116, T121 | Match lifecycle RPCs (start/end/scene change) | medium | per-task revert; SP path untouched |
+| P10 | T117-T120 | Per-peer simulation (input, snapshot, client gating) | high | per-task revert; SP path untouched |
+| P11 | T122 | HUD multi-peer perspective; unblocks T65 | low | revert |
+| P12 | T123-T125 | Disconnect + sender validation + rate-limit | low | per-task revert |
+| P13 | T126 | MP ELO/XP/coins integration | low | revert |
+| P14 | T127, T128 | Squad-of-5 lives in MP | medium | per-task revert |
+| P15 | T129 | LAN smoke + bench gate | none | n/a (gate) |
+| P16 | T130-T132 | Dedicated build, prediction, late-join (deferred) | -- | -- |
 
 ## Phase 0 -- lock current behavior
 
@@ -90,21 +100,142 @@ Goal: ⊥ premature opt. Only fix what bench shows.
 
 Verification: before/after frame-time histogram. ⊥ improvement → revert pool.
 
-## Phase 6 -- deferred
+## Phase 6 -- deferred (mid-batch)
 
-- Late-join / spectate: `Match.gd:46-50` in-progress state sync. Out of scope until 1v1 / co-op stable.
+- Late-join / spectate of in-progress matches: superseded by T132 below; same intent, now scheduled in P16.
 
-## Order rationale
+## Phase 7 -- transport + entry
 
-P0 invariants → P1 bugs → P2 architecture → P3 determinism → P4 wiring → P5 measure-then-opt.
-Each prior phase makes next safer:
-- P0 invariants → `/check` drift detection live before code change
-- P1 bugs → no spurious failures masked by stale-ref crashes
-- P2 chokepoints → P4 has single seam to attach @rpc
-- P3 determinism → P4 RNG sync trivial
-- P4 wiring → P5 bench measures real MP load, not SP
+Goal: wire ENet through Godot's MultiplayerAPI; surface host/join in the menu. ⊥ touch SP path.
 
-Skipping P0 = future drift unchecked. Skipping P2 = P4 touches every fire callsite individually.
+- T109: `Game.gd` networking core. `host()`, `join()`, `disconnect()`, signals. Folded into `Game.gd` per V5 (⊥ new autoload).
+- T110: TitleScreen "Multiplayer" button → `scenes/ui/MPEntry.tscn` (host/join IP form) → Lobby on success.
+
+Verification: host on one machine, join on another, both reach an empty Lobby scene; SP path identical when no peer attached.
+
+## Phase 8 -- lobby
+
+Goal: server-authoritative lobby (V39) with replicated state to clients; per-peer squad picker. ⊥ behavior change to Hangar single-player flow.
+
+- T111: Lobby scene + `Game.mp_lobby` server-authoritative dict.
+- T112: Peer profile metadata RPC (pilot_name, ELO, level) -- foundation for V36.
+- T113: Per-peer squad RPC -- shrunken Hangar widget embedded; server validates squad shape + slot fit (V17).
+- T114: Ready toggle RPC; host start-button gated.
+
+Verification: host + 1 join, both see each other's metadata + squad summaries; host alone cannot start without bot-fill enabled.
+
+## Phase 9 -- match lifecycle
+
+Goal: server drives Hangar→Lobby→Arena→Lobby scene flow (V40). Each transition = one RPC.
+
+- T115: Match-start RPC -- builds final roster including bot-fill (T104 seed reuse), broadcasts, all peers `change_scene_to_file`.
+- T116: Arena reads broadcast roster + spawns per-peer mechs with `owner_peer_id` (V35); assigns input sources by ownership.
+- T121: Match-end RPC + return-to-lobby; `_rpc_change_scene(Lobby)` after all confirm.
+
+Verification: host + 1 join, host starts a match, both peers load Arena with correct mech roster and team colors, match ends, both peers return to Lobby with state preserved.
+
+## Phase 10 -- per-peer simulation
+
+Goal: actual gameplay across the wire. This is the highest-risk phase; each task individually revertible. ⊥ delete SP path; client gating switches on only when peer attached.
+
+- T117: `NetworkInputSource` -- new InputSource subclass, server-only.
+- T118: Client input forwarding RPC (30Hz) + server applies to peer's NetworkInputSource.
+- T119: Mech transform snapshot RPC (20Hz) + interpolation buffer; shield/ability event RPCs round out state sync.
+- T120: Client-side gating in `Mech._physics_process` (V38); ⊥ direct simulation on non-server peer.
+
+Verification: host + 1 join, remote peer's mech walks/turns/fires/takes damage visibly identical to host's view (modulo interpolation lag); host's local mech feels unchanged from SP.
+
+## Phase 11 -- HUD / perspective
+
+Goal: HUD reads correctly from any peer's POV. Closes long-standing T65.
+
+- T122: Local team always blue, enemy always red; scoreboard with pilot_name + ELO + per-peer stats.
+
+Verification: host sees self blue + remote red; remote peer sees self blue + host red. Beacon dots match.
+
+## Phase 12 -- robustness
+
+Goal: don't crash on disconnect; reject malformed clients; rate-limit input.
+
+- T123: Peer-disconnect mid-match → swap to bot AIInputSource; match continues.
+- T124: Audit + add sender validation to every `@rpc("any_peer")` (V41).
+- T125: Server input rate-limit (60Hz cap per peer).
+
+Verification: kill a client process mid-match; host's match continues, that peer's mech goes bot-controlled. Hand-crafted bad RPC from a peer (manual `rpc_id`) drops at the handler with `push_error`.
+
+## Phase 13 -- persistence
+
+Goal: ELO/XP/coins update from MP results, locally per peer (V36).
+
+- T126: Each peer applies own ELO + XP + coins on `_rpc_match_end` using broadcast pre_elo array.
+
+Verification: run two matches end-to-end; ELO on each peer moves the expected direction; profile.cfg persists across restart.
+
+## Phase 14 -- squad lives in MP
+
+Goal: T64 squad-of-5 works for every peer.
+
+- T127: Per-peer next-mech picker on death; `_rpc_pick_next_mech` server-validated.
+- T128: Spectate fallback when own squad exhausted (T58 reused).
+
+Verification: 1v1 match with bot-fill; both players cycle through full 5-mech squads; final-elimination triggers match-end correctly.
+
+## Phase 15 -- LAN smoke + bench gate
+
+Goal: prove the system works end-to-end before opening up to dedicated/prediction work.
+
+- T129: 2-peer LAN run, 10min beacon drain, verify capture-progress, kills, damage, ELO update, disconnect resilience, no errors, frame-time stable.
+
+Gate: P16 work begins only after T129 passes. If T129 shows interpolation feel is unacceptable on LAN → T131 unblocked.
+
+## Phase 16 -- deferred future work
+
+Out of scope this batch. Tracked here so they don't surprise.
+
+- T130: Dedicated server build (`--server` flag). Same code path, no local PlayerInputSource at match start (V35). Wait for T129.
+- T131: Client-side prediction for own mech. Only if T129 LAN test shows interpolation lag is unacceptable. Most expensive task in the batch.
+- T132: Reconnect / late-join. Slot reservation + spectate-only reconnect. Wait until first-round MP feedback shows demand.
+
+## Order rationale (extended)
+
+P0→P5 = behavior preserved while authority seams take shape (already complete).
+P6 = explicit out-of-scope mid-batch.
+P7 = transport/UI is the cheapest place to break things; do first.
+P8 = lobby in isolation, no Arena entanglement yet.
+P9 = scene-flow + roster spawn before any wire-level gameplay; lets P10 land into a known shape.
+P10 = the actual gameplay-across-wire; gated by P9 having a working scene transition.
+P11 = HUD perspective once mechs exist on both peers.
+P12 = robustness once happy-path works.
+P13 = persistence layer on top of working match.
+P14 = squad-of-5 (also touches SP via T64; do not let MP needs degrade SP feel).
+P15 = gate. The point at which T40 closes.
+P16 = deferred enhancements.
+
+## What this MP batch deliberately does NOT do
+
+Carries forward from earlier batch + adds:
+- ⊥ central account backend (V36; T75 stays deferred)
+- ⊥ NAT punch / matchmaking service / relay (direct-IP LAN/friend only)
+- ⊥ client-side prediction for own mech first cut (V37; T131 if needed)
+- ⊥ reconnect during match (T132 future)
+- ⊥ chat / voice (out of scope, no task created)
+- ⊥ cosmetic asset sync mid-match (cosmetics local; sync at lobby join only)
+- ⊥ anti-cheat beyond rate-limit + sender validation (V41 + T125 are the floor)
+
+## Cross-ref (extended)
+
+SPEC.md owns:
+- Invariants V22-V34 (prior batch) + V35-V41 (this batch)
+- Tasks T92-T108 (prior) + T109-T132 (this)
+- §C MP-architecture bullets (hosting, accounts, transport, movement, bot-fill)
+
+This file owns:
+- Phase ordering + dependencies (P0-P16)
+- Risk + rollback table
+- T106 gating logic
+- T129 LAN smoke gate logic for P16
+- Rejected-from-audit list (still applies)
+- This batch's explicit non-goals
 
 ## Rejected from audit (kept for record)
 
@@ -119,16 +250,3 @@ These flagged in initial audit, rejected as bogus or not worth fixing:
 - Tick-rate not pinned -- SP works w/ variable delta; MP problem if measured
 
 If bench (T106) shows any of these as real hitches, revisit.
-
-## Cross-ref
-
-SPEC.md owns:
-- Invariants V22-V34
-- Tasks T92-T108
-- Bug B28
-
-This file owns:
-- Phase ordering + dependencies
-- Risk table + rollback
-- T106 gating logic
-- Rejected-from-audit list
