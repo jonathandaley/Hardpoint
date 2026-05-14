@@ -25,6 +25,7 @@ func _do_fire() -> void:
 	proj._exclude_rids = owner_mech.get_exclude_rids()
 	proj.target = lock_target
 	proj.owner_body = owner_mech
+	proj.source_weapon = self
 	proj.arc_time = arc_time
 	proj.arc_up_blend = arc_up_blend
 	proj.turn_rate = turn_rate

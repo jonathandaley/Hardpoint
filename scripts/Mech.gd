@@ -56,7 +56,6 @@ var _active_set: Array = []  # parallel bool array; true = included in right-cli
 var _was_firing_primary: bool = false
 
 var locked_target: Node3D = null
-var locked_target_id: int = 0  # T102: ID-form of locked_target for MP replication
 var lock_progress: float = 0.0
 var lock_eligible: bool = false
 var lock_eligible_target: Node3D = null
@@ -244,18 +243,25 @@ func fire_weapon(slot: int, aim: Vector3 = Vector3.ZERO) -> void:
 
 # Public entry point. Weapons always call this; never call _apply_damage directly.
 # SP: runs directly. MP client: routes to server via RPC (peer_id 1).
-func take_damage(amount: float) -> void:
+# `source` is the weapon node that produced the damage; needed for server clamp (V32).
+func take_damage(amount: float, source: Node3D = null) -> void:
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
-		rpc_id(1, &"_take_damage_rpc", amount)
+		var src_path: NodePath = source.get_path() if is_instance_valid(source) else NodePath()
+		rpc_id(1, &"_take_damage_rpc", amount, src_path)
 		return
-	request_damage(amount)
+	request_damage(amount, source)
 
 # Server-side RPC receiver for damage (T40: validate amount server-side before applying).
 @rpc("any_peer", "reliable")
-func _take_damage_rpc(amount: float) -> void:
+func _take_damage_rpc(amount: float, src_path: NodePath) -> void:
 	if not multiplayer.is_server():
 		return
-	request_damage(amount)
+	var source: Node3D = null
+	if not src_path.is_empty():
+		var n := get_node_or_null(src_path)
+		if n is Node3D:
+			source = n
+	request_damage(amount, source)
 
 # T96: damage chokepoint; T103 will add server-side validation here.
 func request_damage(amount: float, source: Node3D = null) -> void:
@@ -587,7 +593,6 @@ func _update_lock(delta: float) -> void:
 
 func _set_locked_target(node: Node3D) -> void:
 	locked_target = node
-	locked_target_id = node.get_instance_id() if node != null else 0
 
 func _handle_fire() -> void:
 	var primary: bool   = _input_source.is_firing_primary()

@@ -12,7 +12,8 @@ func activate(max_hp: float) -> void:
 	visible = true
 	$CollisionShape3D.disabled = false
 
-func take_damage(amount: float) -> void:
+func take_damage(amount: float, _source: Node3D = null) -> void:
+	# _source unused; signature matches Mech.take_damage for uniform caller surface.
 	if shield_hp <= 0.0:
 		return
 	shield_hp -= amount

@@ -49,6 +49,7 @@ func _do_fire() -> void:
 		proj.damage = dc
 		proj.team = t_val
 		proj._exclude_rids = ex
+		proj.source_weapon = self
 		proj.damage_override = func(dist: float) -> float:
 			return lerpf(dc, df, clampf(dist / r, 0.0, 1.0))
 		proj.on_hit = func(body, pos): _emit_hit_if_visible(body, pos)

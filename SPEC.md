@@ -63,17 +63,17 @@ V17: Heavy slot → Heavy weapon only; Light slot → Light weapon only; ⊥ cro
 V18: ∀ maps → exactly 5 beacons; ⊥ map ships with different count
 V19: win condition = beacon drain to 0; ⊥ time limit as primary win condition; ⊥ game ends on last-player death while squad lives remain
 V20: dedicated server model; server = peer_id 1; ∀ game-state mutation (damage, beacon capture, score, match-end) → runs only on server; clients receive replicated state via `@rpc("authority")` stubs; `multiplayer.has_multiplayer_peer() and not multiplayer.is_server()` guard pattern used at each authority seam
-V21: pilot skill multipliers baked into mech+weapon stats once in `Mech.apply_pilot_skills()` at spawn; never re-polled per frame or per shot; bot mechs never receive this call
+V21: pilot skills split into two classes. (a) baked stat multipliers -- health, walk_speed, lock_time, damage, projectile_speed, reload_time, inaccuracy, shield_capacity -- applied once in `Mech.apply_pilot_skills()` at spawn; ⊥ re-polled. (b) per-event modifiers -- repair_rate (Mech._process), ability_recharge (Mech._activate_ability/_deactivate_ability), beacon_capture + contested_hold (Beacon._update_capture) -- polled live but gated on `is_human_input()` or `_player_team_in_zone()` so bots never see them. xp_bonus + coin_pickup awarded once in `Game.update_after_match`. bot mechs ⊥ receive `apply_pilot_skills` regardless of class.
 V22: gameplay input reads (`Input.is_action_*`, `get_axis`, `get_vector`, action events) only in `PlayerInputSource.gd`; ⊥ raw gameplay input in `Mech`, weapons, HUD, AI; mouse_mode/cursor toggles are window-state and exempt (UI scenes + `Mech.set_input_source`)
 V23: ∀ cached `Node3D` ref → `is_instance_valid()` guard before deref; applies to lock targets, AI targets, projectile target/owner, beacon capturers
-V24: `randf*`/`randi*` ⊥ in replicated logic; cosmetic-only RNG marked `# cosmetic`; AI behavior RNG → seeded `RandomNumberGenerator` instance
+V24: in MP-replicated paths `randf*`/`randi*` ⊥; SP-only spread RNG in `ProjectileGun`/`MachineGun`/`Shotgun`/`Patience`/`AerialStrike` exempt today (local-authoritative) but must move to server-only `_do_fire` when T40 lands; cosmetic RNG marked `# cosmetic`; AI behavior RNG → seeded `RandomNumberGenerator` instance
 V25: damage flows through `Mech._take_damage_rpc` only; ⊥ direct `health` writes; ⊥ bypass RPC seam even SP
-V26: VFX/audio → `VFX.*` / `SoundManager.*` autoload methods only; ⊥ inline `AudioStreamPlayer3D.new()` or effect `MeshInstance3D.new()` outside those autoloads
+V26: one-shot VFX/audio (muzzle flash, hit sparks, death explosion, damage hit, weapon fire, reload, mech death, ui clicks) → `VFX.*` / `SoundManager.*` autoload methods only; ⊥ inline one-shot `AudioStreamPlayer3D.new()` or effect `MeshInstance3D.new()` outside autoloads. weapon-owned persistent helpers (continuous-beam loop audio in `ArcWeapon`/`MachineGun`/`LaserCannon`; beam/tracer mesh in `ArcWeapon`/`LaserCannon`/`RaycastGun`/`Patience`) may be created inline by the weapon node that owns their lifetime.
 V27: `Beacon._capturers` entries validated each capture tick (`is_instance_valid` + `is_alive`); dead/freed mechs purged before capture math
 V28: damage requests routed through `Mech.request_damage(amount, source)` chokepoint; SP = direct call, MP = RPC seam at this fn
 V29: AI behavior RNG = per-bot seeded `RandomNumberGenerator`; MP seed = `bot_id ^ match_seed`; ⊥ global `randf` in AI tick
 V30: projectile collision + damage authoritative on server; client projectiles = visual-only ghosts; ⊥ client-side hit confirmation
-V31: replicated cross-mech state uses peer/node ID, not direct `Node` ref; lock target, AI target, projectile target → ID-resolved
+V31: when MP replication crosses peer boundaries, cross-mech refs use peer/node ID, not direct `Node` ref; AI target + projectile target ID-resolved at spawn-ghost RPC seam. lock target ID-resolution deferred until T40 multi-peer wiring exercises it (see T102).
 V32: server clamps `request_damage` to weapon-defined max + range gate before applying; ⊥ trust client damage value
 V33: beacon capture progress visible to all peers within 200ms (periodic `unreliable_ordered` sync, not just end-state)
 V34: VFX/audio pools (if introduced) bounded; ⊥ unbounded growth; per-pool capacity declared
@@ -182,7 +182,7 @@ T98|x|P3: AIInputSource uses seeded `RandomNumberGenerator` instance (replace gl
 T99|x|P3: tag cosmetic RNG callsites with `# cosmetic` -- pod ejection (`Mech.gd:315-316`), VFX particle spread (`VFX.gd:42-86`); cosmetic RNG keeps global `randf`|V24
 T100|x|P4: projectile spawn RPC -- server authoritative for `Projectile.gd` + `HomingProjectile.gd`; client projectile = visual-only ghost; hit detection server-only|V30,T40
 T101|x|P4: weapon fire RPC broadcast -- flip `broadcast=true` from T97 at fire callsites in `WeaponBase.gd`; remote players hear/see fire SFX/VFX|V26,T97
-T102|x|P4: lock state sync -- `Mech.locked_target` becomes `locked_target_id` (peer/node id) resolved via lookup at use site; replicated as id|V31
+T102|.|P4: lock state sync -- replicate `Mech.locked_target` as instance id, resolve via lookup at ArcWeapon/AerialStrike/RocketLauncher use sites; deferred until T40 because SP has no cross-peer ref problem; earlier stub field removed 2026-05-13|V31,T40
 T103|x|P4: server-side damage validation in `request_damage` -- clamp amount to weapon-defined max, gate by range, reject malformed; server-only enforcement|V32,T96
 T104|x|P4: bot RNG → deterministic seed broadcast by server at match start; bots replicate as MultiplayerSpawner children w/ matching seeds|V29,T98
 T105|x|P4: beacon capture progress periodic RPC (`unreliable_ordered`); clients see progress bar real-time, not just end-state|V33,T40
