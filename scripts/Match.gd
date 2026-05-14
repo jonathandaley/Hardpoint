@@ -11,10 +11,16 @@ var scores: Array[int] = [0, 0]  # team 0, team 1
 var elapsed: float = 0.0
 var running: bool = false
 
+var match_seed: int = 0  # T104: deterministic bot RNG seed broadcast at start
+
 func start() -> void:
 	scores = [0, 0]
 	elapsed = 0.0
 	running = true
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		match_seed = randi()
+		_rpc_set_match_seed.rpc(match_seed)
+		_apply_bot_seeds()
 
 func stop() -> void:
 	running = false
@@ -57,3 +63,14 @@ func _rpc_match_ended(winning_team: int) -> void:
 
 func on_player_eliminated(_player: Node) -> void:
 	pass
+
+# T104: server broadcasts match_seed so client bot RNG matches server.
+@rpc("authority", "reliable")
+func _rpc_set_match_seed(seed: int) -> void:
+	match_seed = seed
+	_apply_bot_seeds()
+
+func _apply_bot_seeds() -> void:
+	for ai in get_tree().get_nodes_in_group("ai_input_sources"):
+		if ai.has_method("set_mp_seed") and "bot_id" in ai:
+			ai.set_mp_seed(ai.bot_id ^ match_seed)

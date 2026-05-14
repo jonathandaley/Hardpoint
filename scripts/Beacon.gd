@@ -15,6 +15,8 @@ var owner_team: int = -1   # -1 neutral, 0 team A, 1 team B
 var _capturers: Dictionary = {}   # team_id -> Array of bodies in zone
 var _capturing_team: int = -1
 var _capture_progress: float = 0.0
+var _progress_broadcast_timer: float = 0.0
+const _PROGRESS_BROADCAST_INTERVAL := 0.15
 
 const BEAM_HEIGHT := 30.0
 const CIRCLE_RADIUS := 3.0
@@ -70,6 +72,8 @@ func _process(delta: float) -> void:
 	_update_capture(delta)
 
 func _update_capture(delta: float) -> void:
+	for t in _capturers:
+		_capturers[t] = _capturers[t].filter(func(b): return is_instance_valid(b))
 	var teams := _teams_present()
 
 	if teams.size() > 1:
@@ -92,6 +96,11 @@ func _update_capture(delta: float) -> void:
 		_capture_progress = 0.0
 
 	_capture_progress += delta / capture_time
+	if multiplayer.has_multiplayer_peer():
+		_progress_broadcast_timer -= delta
+		if _progress_broadcast_timer <= 0.0:
+			_progress_broadcast_timer = _PROGRESS_BROADCAST_INTERVAL
+			_sync_progress.rpc(_capture_progress, _capturing_team)
 	if _capture_progress >= 1.0:
 		_capture_progress = 0.0
 		owner_team = team
@@ -105,7 +114,7 @@ func _teams_present() -> Array:
 	var out: Array = []
 	for t in _capturers:
 		for body in _capturers[t]:
-			if not body.get("is_dead"):
+			if is_instance_valid(body) and not body.get("is_dead"):
 				out.append(t)
 				break
 	return out
@@ -146,6 +155,14 @@ func _update_visuals() -> void:
 		_circle_mat.albedo_color = col
 		_circle_mat.emission = col
 		_circle_mat.emission_energy_multiplier = 1.2
+
+# T105: periodic progress sync so clients see capture bar move in real-time (V33).
+@rpc("authority", "unreliable_ordered")
+func _sync_progress(progress: float, capturing_team: int) -> void:
+	if multiplayer.is_server():
+		return
+	_capture_progress = progress
+	_capturing_team = capturing_team
 
 # T40: server broadcasts capture state to all clients after each ownership change.
 # Clients apply visuals only; _update_capture never runs on clients.

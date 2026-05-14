@@ -2,7 +2,9 @@ extends Node
 
 # --- public API ---
 
-func muzzle_flash(pos: Vector3, color: Color = Color(1.0, 0.80, 0.30)) -> void:
+func muzzle_flash(pos: Vector3, color: Color = Color(1.0, 0.80, 0.30), broadcast: bool = false) -> void:
+	if broadcast and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_rpc_muzzle_flash.rpc(pos, color)
 	var mi := _sphere(0.14, color, 6.0)
 	mi.scale = Vector3(1.875, 1.875, 1.875)
 	get_tree().current_scene.add_child(mi)
@@ -11,7 +13,15 @@ func muzzle_flash(pos: Vector3, color: Color = Color(1.0, 0.80, 0.30)) -> void:
 	tw.tween_property(mi, "scale", Vector3.ZERO, 0.12).set_ease(Tween.EASE_OUT)
 	tw.tween_callback(mi.queue_free)
 
-func tracer(from: Vector3, to: Vector3, color: Color = Color(0.75, 0.5, 1.0), duration: float = 0.35) -> void:
+@rpc("authority", "unreliable")
+func _rpc_muzzle_flash(pos: Vector3, color: Color) -> void:
+	if multiplayer.is_server():
+		return
+	muzzle_flash(pos, color)
+
+func tracer(from: Vector3, to: Vector3, color: Color = Color(0.75, 0.5, 1.0), duration: float = 0.35, broadcast: bool = false) -> void:
+	if broadcast and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_rpc_tracer.rpc(from, to, color, duration)
 	var dist := from.distance_to(to)
 	if dist < 0.01:
 		return
@@ -34,12 +44,20 @@ func tracer(from: Vector3, to: Vector3, color: Color = Color(0.75, 0.5, 1.0), du
 	tw.tween_method(func(v: float) -> void: mat.emission_energy_multiplier = v, 4.0, 0.0, duration)
 	tw.tween_callback(mi.queue_free)
 
-func hit_sparks(pos: Vector3, color: Color = Color(1.0, 0.55, 0.15)) -> void:
+@rpc("authority", "unreliable")
+func _rpc_tracer(from: Vector3, to: Vector3, color: Color, duration: float) -> void:
+	if multiplayer.is_server():
+		return
+	tracer(from, to, color, duration)
+
+func hit_sparks(pos: Vector3, color: Color = Color(1.0, 0.55, 0.15), broadcast: bool = false) -> void:
+	if broadcast and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_rpc_hit_sparks.rpc(pos, color)
 	for i in 6:
 		var mi := _sphere(0.055, color, 3.5)
 		get_tree().current_scene.add_child(mi)
 		mi.global_position = pos
-		var dir := Vector3(randf_range(-1.0, 1.0), randf_range(0.2, 1.0), randf_range(-1.0, 1.0)).normalized()
+		var dir := Vector3(randf_range(-1.0, 1.0), randf_range(0.2, 1.0), randf_range(-1.0, 1.0)).normalized()  # cosmetic
 		var end_pos := pos + dir * randf_range(0.3, 0.8)
 		var dur := randf_range(0.14, 0.24)
 		var tw := mi.create_tween().set_parallel(true)
@@ -47,7 +65,15 @@ func hit_sparks(pos: Vector3, color: Color = Color(1.0, 0.55, 0.15)) -> void:
 		tw.tween_property(mi, "scale", Vector3.ZERO, dur).set_ease(Tween.EASE_IN)
 		tw.finished.connect(mi.queue_free)
 
-func death_explosion(pos: Vector3) -> void:
+@rpc("authority", "unreliable")
+func _rpc_hit_sparks(pos: Vector3, color: Color) -> void:
+	if multiplayer.is_server():
+		return
+	hit_sparks(pos, color)
+
+func death_explosion(pos: Vector3, broadcast: bool = false) -> void:
+	if broadcast and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_rpc_death_explosion.rpc(pos)
 	# Instant white-orange core flash - brief, not dominant
 	_explode_sphere(pos, 0.35, Color(1.0, 0.95, 0.82), 14.0, 2.8, 0.05, 0.09, 1.0)
 	# 12 medium chunks replace the solid sphere - fragmented from frame 1
@@ -57,8 +83,14 @@ func death_explosion(pos: Vector3) -> void:
 	for _i in 26:
 		_death_particle(pos)
 
+@rpc("authority", "unreliable")
+func _rpc_death_explosion(pos: Vector3) -> void:
+	if multiplayer.is_server():
+		return
+	death_explosion(pos)
+
 func _explosion_chunk(pos: Vector3) -> void:
-	var hot := randf()
+	var hot := randf()  # cosmetic
 	var col := Color(1.0, lerpf(0.30, 0.72, hot), lerpf(0.0, 0.12, hot))
 	var emit := randf_range(4.5, 7.5)
 	var mi := _sphere(randf_range(0.18, 0.42), col, emit)
@@ -76,7 +108,7 @@ func _explosion_chunk(pos: Vector3) -> void:
 	tw.finished.connect(mi.queue_free)
 
 func _death_particle(pos: Vector3) -> void:
-	var hot := randf()
+	var hot := randf()  # cosmetic
 	var col := Color(1.0, lerpf(0.25, 0.80, hot), lerpf(0.0, 0.18, hot))
 	var mi := _sphere(randf_range(0.05, 0.11), col, randf_range(3.0, 5.5))
 	get_tree().current_scene.add_child(mi)

@@ -9,6 +9,7 @@ var lifetime: float = 10.0
 var team: int = 0
 var target: Node3D = null
 var owner_body: Node3D = null
+var is_ghost: bool = false  # T100: client-side visual ghost; skips hit detection
 var _exclude_rids: Array = []
 var on_hit: Callable
 var splash_radius: float = 0.0
@@ -49,6 +50,12 @@ func _physics_process(delta: float) -> void:
 
 	var step := _velocity_dir * speed * delta
 
+	if is_ghost:
+		global_position += step
+		if _velocity_dir != Vector3.ZERO:
+			look_at(global_position + _velocity_dir, Vector3.UP)
+		return
+
 	var space := get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(global_position, global_position + step)
 	if not _exclude_rids.is_empty():
@@ -64,7 +71,7 @@ func _physics_process(delta: float) -> void:
 					on_hit.call(result.collider, result.position)
 		if splash_radius > 0.0:
 			for mech in get_tree().get_nodes_in_group("mechs"):
-				if mech == result.collider or mech == owner_body:
+				if mech == result.collider or (is_instance_valid(owner_body) and mech == owner_body):
 					continue
 				if int(mech.get("team")) == team:
 					continue

@@ -33,3 +33,27 @@ func _do_fire() -> void:
 	get_tree().current_scene.add_child(proj)
 	var fwd_point := global_position - global_transform.basis.z
 	proj.global_transform = Transform3D(Basis(), global_position).looking_at(fwd_point)
+
+	# T100: broadcast ghost to clients when server in MP.
+	var target_id: int = lock_target.get_instance_id() if is_instance_valid(lock_target) else 0
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_rpc_spawn_ghost.rpc(global_position, proj.global_transform.basis,
+			proj.speed, proj.lifetime, proj.team, arc_time, arc_up_blend, turn_rate, target_id)
+
+@rpc("authority", "reliable")
+func _rpc_spawn_ghost(pos: Vector3, basis: Basis, speed: float, lifetime: float, team: int,
+		p_arc_time: float, p_arc_up: float, p_turn: float, target_id: int) -> void:
+	if multiplayer.is_server():
+		return
+	var ghost := HOMING_SCENE.instantiate() as HomingProjectile
+	ghost.is_ghost = true
+	ghost.speed = speed
+	ghost.lifetime = lifetime
+	ghost.team = team
+	ghost.arc_time = p_arc_time
+	ghost.arc_up_blend = p_arc_up
+	ghost.turn_rate = p_turn
+	if target_id != 0:
+		ghost.target = instance_from_id(target_id) as Node3D
+	get_tree().current_scene.add_child(ghost)
+	ghost.global_transform = Transform3D(basis, pos)
