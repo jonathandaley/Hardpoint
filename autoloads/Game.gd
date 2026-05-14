@@ -434,6 +434,21 @@ func _rpc_set_squad(squad: Array) -> void:
 	var sender := multiplayer.get_remote_sender_id()
 	_apply_squad(sender, squad)
 
+# ---- Ready toggle (T114) ----
+
+func _apply_ready(peer_id: int, ready: bool) -> void:
+	if not mp_lobby["peers"].has(peer_id):
+		push_error("_apply_ready: unknown peer %d" % peer_id)
+		return
+	mp_lobby["peers"][peer_id]["ready"] = ready
+	broadcast_lobby()
+
+# Client -> server: toggle ready state (V39, V41).
+@rpc("any_peer", "call_remote", "reliable")
+func _rpc_set_ready(ready: bool) -> void:
+	var sender := multiplayer.get_remote_sender_id()
+	_apply_ready(sender, ready)
+
 # ---- Bot coordination (V5: absorbed from former AIDirector autoload) ----
 
 var _bot_intents: Dictionary = {}  # bot Node -> {beacon: Node, team: int}

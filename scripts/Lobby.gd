@@ -45,6 +45,7 @@ const WEAPON_CATALOG: Array = [
 @onready var _map_option: OptionButton = $HostControls/MapRow/MapOption
 @onready var _start_button: Button = $StartButton
 @onready var _status_label: Label = $StatusLabel
+@onready var _ready_btn: Button = $ReadyBtn
 @onready var _squad_picker: Control = $SquadPicker
 @onready var _slot_rows: VBoxContainer = $SquadPicker/PickerPanel/SlotRows
 
@@ -81,6 +82,7 @@ func _ready() -> void:
 	_rebuild_peer_list()
 	_sync_host_controls_to_lobby()
 	_update_start_button()
+	_update_ready_btn()
 
 # ---- Peer meta helpers ----
 
@@ -131,6 +133,7 @@ func _on_lobby_updated() -> void:
 	_rebuild_peer_list()
 	_sync_host_controls_to_lobby()
 	_update_start_button()
+	_update_ready_btn()
 
 func _rebuild_peer_list() -> void:
 	for child in _peer_list.get_children():
@@ -228,6 +231,20 @@ func _on_map_selected(index: int) -> void:
 		Game.broadcast_lobby()
 
 # ---- Squad picker ----
+
+func _update_ready_btn() -> void:
+	var my_id := multiplayer.get_unique_id()
+	var my_entry: Dictionary = Game.mp_lobby.get("peers", {}).get(my_id, {})
+	_ready_btn.text = "UNREADY" if my_entry.get("ready", false) else "READY UP"
+
+func _on_ready_btn_pressed() -> void:
+	var my_id := multiplayer.get_unique_id()
+	var my_entry: Dictionary = Game.mp_lobby.get("peers", {}).get(my_id, {})
+	var new_ready: bool = not my_entry.get("ready", false)
+	if multiplayer.is_server():
+		Game._apply_ready(my_id, new_ready)
+	else:
+		Game._rpc_set_ready.rpc_id(1, new_ready)
 
 func _on_squad_btn_pressed() -> void:
 	_open_squad_picker()
