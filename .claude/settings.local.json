@@ -1,9 +1,13 @@
 {
   "permissions": {
+    "defaultMode": "default",
     "allow": [
-      "Skill(update-config)"
-    ],
-    "defaultMode": "bypassPermissions"
+      "Skill(update-config)",
+      "Read(**)",
+      "Bash(**)",
+      "Edit(/home/jonathan/mechbattle/**)",
+      "Write(/home/jonathan/mechbattle/**)"
+    ]
   },
   "spinnerTipsEnabled": false,
   "prefersReducedMotion": true
