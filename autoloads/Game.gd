@@ -16,11 +16,28 @@ const _SETTINGS_PATH := "user://settings.cfg"
 const _ELO_K := 32
 const _BOT_ELO_BY_DIFFICULTY: Array = [800, 1000, 1200, 1400, 1600]
 
-# Progression tree constants
-# Each tier costs _PROG_COIN_COST[current_tier] coins and requires _PROG_LEVEL_REQ[current_tier] level.
-const _PROG_LEVEL_REQ: Array = [1, 4, 8, 12]   # level req per tier unlock
-const _PROG_COIN_COST: Array = [100, 250, 500, 1000]
-const _PROG_NODES: Array = ["speed", "reload", "damage", "health", "ability"]
+# Skill tree: Fibonacci coin costs for upgrade levels 2-12
+const _SKILL_FIB_COSTS: Array[int] = [100, 200, 300, 500, 800, 1300, 2100, 3400, 5500, 8900, 14400]
+
+# key -> {parents: Array[String], any_parent: bool, label: String, per_level: float}
+# parents empty = root skill; any_parent=true means ONE parent unlocked suffices
+const SKILL_TREE: Dictionary = {
+	"damage":           {"parents": [],                             "any_parent": false, "label": "Damage",           "per_level": 0.015},
+	"health":           {"parents": [],                             "any_parent": false, "label": "Health",            "per_level": 0.02},
+	"projectile_speed": {"parents": ["damage"],                     "any_parent": false, "label": "Projectile Speed",  "per_level": 0.01},
+	"spread_reduction": {"parents": ["projectile_speed"],           "any_parent": false, "label": "Spread Reduction",  "per_level": 0.06},
+	"repair_rate":      {"parents": ["health"],                     "any_parent": false, "label": "Repair Rate",       "per_level": 0.5},
+	"shield_capacity":  {"parents": ["health"],                     "any_parent": false, "label": "Shield Capacity",   "per_level": 0.05},
+	"move_speed":       {"parents": ["damage", "health"],           "any_parent": true,  "label": "Move Speed",        "per_level": 0.01},
+	"beacon_capture":   {"parents": ["move_speed"],                 "any_parent": false, "label": "Beacon Capture",    "per_level": 0.05},
+	"contested_hold":   {"parents": ["beacon_capture"],             "any_parent": false, "label": "Contested Hold",    "per_level": 0.5},
+	"ability_recharge": {"parents": ["damage", "health"],           "any_parent": true,  "label": "Ability Recharge",  "per_level": 0.05},
+	"powerup_duration": {"parents": ["ability_recharge"],           "any_parent": false, "label": "Powerup Duration",  "per_level": 0.05},
+	"coin_pickup":      {"parents": ["ability_recharge"],           "any_parent": false, "label": "Coin Pickup",       "per_level": 0.03},
+	"xp_bonus":         {"parents": ["ability_recharge"],           "any_parent": false, "label": "XP Bonus",          "per_level": 0.03},
+	"reload_speed":     {"parents": ["damage", "ability_recharge"], "any_parent": true,  "label": "Reload Speed",      "per_level": 0.04},
+	"lock_speed":       {"parents": ["damage", "ability_recharge"], "any_parent": true,  "label": "Lock Speed",        "per_level": 0.05},
+}
 
 # Cumulative XP required to reach each level (index 0 = XP to reach level 2, etc.)
 # Formula: _LEVEL_THRESHOLDS[n-1] = sum of (i*100) for i in 1..n
@@ -37,7 +54,7 @@ var profile: Dictionary = {
 	"xp": 0,
 	"level": 1,
 	"coins": 0,
-	"progression": {"speed": 0, "reload": 0, "damage": 0, "health": 0, "ability": 0},
+	"skills": {},  # skill_key -> level (1-12); absent = locked
 }
 
 # Loadout is set in Hangar and consumed by Arena.
@@ -74,8 +91,7 @@ func _load_profile() -> void:
 	profile["xp"]          = cfg.get_value("profile", "xp",         0)
 	profile["level"]       = cfg.get_value("profile", "level",       1)
 	profile["coins"]       = cfg.get_value("profile", "coins",       0)
-	profile["progression"] = cfg.get_value("profile", "progression",
-		{"speed": 0, "reload": 0, "damage": 0, "health": 0, "ability": 0})
+	profile["skills"] = cfg.get_value("profile", "skills", {})
 
 func save_profile() -> void:
 	var cfg := ConfigFile.new()
@@ -87,7 +103,7 @@ func save_profile() -> void:
 	cfg.set_value("profile", "xp",          profile.get("xp",         0))
 	cfg.set_value("profile", "level",       profile.get("level",       1))
 	cfg.set_value("profile", "coins",       profile.get("coins",       0))
-	cfg.set_value("profile", "progression", profile.get("progression", {}))
+	cfg.set_value("profile", "skills",      profile.get("skills", {}))
 	cfg.save(_SAVE_PATH)
 
 # ---- ELO / XP / match helpers ----
@@ -106,19 +122,24 @@ func update_after_match(won: bool) -> void:
 	var result_val: float = 1.0 if won else 0.0
 	profile["elo"] = maxi(100, my_elo + roundi(float(_ELO_K) * (result_val - expected)))
 
-	# XP (more XP for beating tougher opponents)
+	# XP (more XP for beating tougher opponents; xp_bonus skill scales gain)
 	var xp_gain: int
 	if won:
 		xp_gain = clampi(roundi(50.0 * float(opp_elo) / float(maxi(1, my_elo))), 25, 200)
 	else:
 		xp_gain = clampi(roundi(15.0 * float(opp_elo) / float(maxi(1, my_elo))), 5, 50)
+	xp_gain = roundi(float(xp_gain) * (1.0 + get_skill_effect("xp_bonus")))
 	profile["xp"] = profile.get("xp", 0) + xp_gain
 
 	# Level-up check
 	_check_level_up()
 
-	# Coins
-	profile["coins"] = profile.get("coins", 0) + (75 if won else 20)
+	# Coins (coin_pickup skill scales award)
+	var base_coins: int = 75 if won else 20
+	profile["coins"] = profile.get("coins", 0) + apply_coin_pickup_bonus(base_coins)
+
+func apply_coin_pickup_bonus(base: int) -> int:
+	return roundi(float(base) * (1.0 + get_skill_effect("coin_pickup")))
 
 func _check_level_up() -> void:
 	var cur_level: int = profile.get("level", 1)
@@ -135,50 +156,66 @@ func xp_to_next_level() -> int:
 		return 0
 	return _LEVEL_THRESHOLDS[lv - 1] - profile.get("xp", 0)
 
-# ---- Progression tree helpers ----
+# ---- Skill tree helpers ----
 
-func get_progression_tier(node_name: String) -> int:
-	var prog: Dictionary = profile.get("progression", {})
-	return int(prog.get(node_name, 0))
+func skill_level(key: String) -> int:
+	return int(profile.get("skills", {}).get(key, 0))
 
-## Returns the stat multiplier for a progression node (1.0 = no bonus, 1.20 = tier 4).
-func get_progression_multiplier(node_name: String) -> float:
-	return 1.0 + float(get_progression_tier(node_name)) * 0.05
+func skill_points_available() -> int:
+	return maxi(0, profile.get("level", 1) - profile.get("skills", {}).size())
 
-## True if the player can afford and meets the level requirement for the next tier.
-func can_buy_progression(node_name: String) -> bool:
-	var tier: int = get_progression_tier(node_name)
-	if tier >= _PROG_COIN_COST.size():
+func _parents_unlocked(key: String) -> bool:
+	var def: Dictionary = SKILL_TREE.get(key, {})
+	var parents: Array = def.get("parents", [])
+	if parents.is_empty():
+		return true
+	var skills: Dictionary = profile.get("skills", {})
+	if def.get("any_parent", false):
+		for p: String in parents:
+			if skills.has(p):
+				return true
 		return false
-	if profile.get("level", 1) < _PROG_LEVEL_REQ[tier]:
+	for p: String in parents:
+		if not skills.has(p):
+			return false
+	return true
+
+func can_unlock(key: String) -> bool:
+	if not SKILL_TREE.has(key):
 		return false
-	return profile.get("coins", 0) >= _PROG_COIN_COST[tier]
-
-## Returns the coin cost for the next tier of the given node (0 if at max).
-func get_prog_next_cost(node_name: String) -> int:
-	var tier: int = get_progression_tier(node_name)
-	if tier >= _PROG_COIN_COST.size():
-		return 0
-	return _PROG_COIN_COST[tier]
-
-## Returns the level required for the next tier (0 if at max).
-func get_prog_next_level_req(node_name: String) -> int:
-	var tier: int = get_progression_tier(node_name)
-	if tier >= _PROG_LEVEL_REQ.size():
-		return 0
-	return _PROG_LEVEL_REQ[tier]
-
-## Purchases the next tier if affordable. Returns true on success.
-func buy_progression(node_name: String) -> bool:
-	if not can_buy_progression(node_name):
+	if profile.get("skills", {}).has(key):
 		return false
-	var prog: Dictionary = profile.get("progression", {})
-	var tier: int = int(prog.get(node_name, 0))
-	profile["coins"] = profile.get("coins", 0) - _PROG_COIN_COST[tier]
-	prog[node_name] = tier + 1
-	profile["progression"] = prog
+	return skill_points_available() > 0 and _parents_unlocked(key)
+
+func can_upgrade(key: String) -> bool:
+	var lv: int = skill_level(key)
+	if lv <= 0 or lv >= 12:
+		return false
+	return profile.get("coins", 0) >= _SKILL_FIB_COSTS[lv - 1]
+
+func unlock_skill(key: String) -> bool:
+	if not can_unlock(key):
+		return false
+	var skills: Dictionary = profile.get("skills", {})
+	skills[key] = 1
+	profile["skills"] = skills
 	save_profile()
 	return true
+
+func upgrade_skill(key: String) -> bool:
+	if not can_upgrade(key):
+		return false
+	var lv: int = skill_level(key)
+	profile["coins"] = profile.get("coins", 0) - _SKILL_FIB_COSTS[lv - 1]
+	var skills: Dictionary = profile.get("skills", {})
+	skills[key] = lv + 1
+	profile["skills"] = skills
+	save_profile()
+	return true
+
+func get_skill_effect(key: String) -> float:
+	var def: Dictionary = SKILL_TREE.get(key, {})
+	return float(skill_level(key)) * float(def.get("per_level", 0.0))
 
 func _load_settings() -> void:
 	var cfg := ConfigFile.new()

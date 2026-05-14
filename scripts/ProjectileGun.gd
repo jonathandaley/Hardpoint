@@ -3,6 +3,7 @@ extends "res://scripts/WeaponBase.gd"
 # Spawns a Projectile each shot aimed along the camera's forward axis.
 
 @export var projectile_speed: float = 40.0
+@export var inaccuracy_angle: float = 0.0  # half-cone degrees; 0 = perfectly accurate
 
 const PROJECTILE_SCENE := preload("res://scenes/weapons/ProjectileGrey.tscn")
 
@@ -17,6 +18,11 @@ func _do_fire() -> void:
 	# The projectile spawns at the barrel but aims at that point so it
 	# converges with the crosshair regardless of the barrel's vertical offset.
 	var cam_fwd := -cam.global_transform.basis.z
+	if inaccuracy_angle > 0.0:
+		var perp := Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-1.0, 1.0))
+		perp = perp - cam_fwd * perp.dot(cam_fwd)
+		if perp.length_squared() > 0.0001:
+			cam_fwd = (cam_fwd + perp.normalized() * tan(deg_to_rad(inaccuracy_angle))).normalized()
 	var space := get_world_3d().direct_space_state
 	var aim_query := PhysicsRayQueryParameters3D.create(
 		cam.global_position, cam.global_position + cam_fwd * range)

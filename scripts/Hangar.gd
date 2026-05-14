@@ -793,7 +793,7 @@ func _build_pilot_extras() -> void:
 	_refresh_pilot_stats()
 
 	var hdr := Label.new()
-	hdr.text = "PROGRESSION"
+	hdr.text = "SKILLS"
 	hdr.offset_left   = 16.0
 	hdr.offset_top    = 98.0
 	hdr.offset_right  = 630.0
@@ -801,12 +801,18 @@ func _build_pilot_extras() -> void:
 	hdr.add_theme_font_size_override("font_size", 14)
 	pilot_panel.add_child(hdr)
 
-	_prog_nodes_container = Control.new()
-	_prog_nodes_container.offset_left   = 0.0
-	_prog_nodes_container.offset_top    = 118.0
-	_prog_nodes_container.offset_right  = 640.0
-	_prog_nodes_container.offset_bottom = 244.0
-	pilot_panel.add_child(_prog_nodes_container)
+	var scroll := ScrollContainer.new()
+	scroll.offset_left   = 0.0
+	scroll.offset_top    = 118.0
+	scroll.offset_right  = 640.0
+	scroll.offset_bottom = 244.0
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	pilot_panel.add_child(scroll)
+
+	var vbox := VBoxContainer.new()
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(vbox)
+	_prog_nodes_container = vbox
 	_build_progression_nodes()
 
 func _refresh_pilot_stats() -> void:
@@ -816,13 +822,24 @@ func _refresh_pilot_stats() -> void:
 	var xp: int    = Game.profile.get("xp", 0)
 	var elo: int   = Game.profile.get("elo", 1000)
 	var coins: int = Game.profile.get("coins", 0)
+	var sp: int    = Game.skill_points_available()
 	var xp_left: int = Game.xp_to_next_level()
 	if xp_left > 0:
-		_pilot_stats_label.text = "LVL: %d  |  XP: %d (+%d to next)  |  ELO: %d  |  COINS: %d" % [
-			lv, xp, xp_left, elo, coins]
+		_pilot_stats_label.text = "LVL: %d  |  XP: %d (+%d to next)  |  ELO: %d  |  COINS: %d  |  SP: %d" % [
+			lv, xp, xp_left, elo, coins, sp]
 	else:
-		_pilot_stats_label.text = "LVL: %d (MAX)  |  XP: %d  |  ELO: %d  |  COINS: %d" % [
-			lv, xp, elo, coins]
+		_pilot_stats_label.text = "LVL: %d (MAX)  |  XP: %d  |  ELO: %d  |  COINS: %d  |  SP: %d" % [
+			lv, xp, elo, coins, sp]
+
+func _skill_depth(key: String) -> int:
+	var def: Dictionary = Game.SKILL_TREE.get(key, {})
+	var parents: Array = def.get("parents", [])
+	if parents.is_empty():
+		return 0
+	var max_parent_depth: int = 0
+	for p: String in parents:
+		max_parent_depth = maxi(max_parent_depth, _skill_depth(p))
+	return max_parent_depth + 1
 
 func _build_progression_nodes() -> void:
 	if _prog_nodes_container == null:
@@ -830,63 +847,77 @@ func _build_progression_nodes() -> void:
 	for child in _prog_nodes_container.get_children():
 		child.queue_free()
 
-	const NODE_KEYS: Array   = ["speed", "reload", "damage", "health", "ability"]
-	const NODE_LABELS: Array = ["SPEED", "RELOAD", "DAMAGE", "HEALTH", "ABILITY"]
-	const BLOCK_W := 118.0
-	const BLOCK_GAP := 8.0
+	const INDENT_PX := 14.0
 
-	for i in NODE_KEYS.size():
-		var node_name: String = NODE_KEYS[i]
-		var tier: int = Game.get_progression_tier(node_name)
+	for key: String in Game.SKILL_TREE.keys():
+		var def: Dictionary = Game.SKILL_TREE[key]
+		var lv: int   = Game.skill_level(key)
+		var depth: int = _skill_depth(key)
+		var label_str: String = def.get("label", key)
 
-		var block := VBoxContainer.new()
-		block.offset_left   = BLOCK_GAP + float(i) * (BLOCK_W + BLOCK_GAP)
-		block.offset_top    = 0.0
-		block.offset_right  = BLOCK_GAP + float(i) * (BLOCK_W + BLOCK_GAP) + BLOCK_W
-		block.offset_bottom = 124.0
-		block.add_theme_constant_override("separation", 3)
-		_prog_nodes_container.add_child(block)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		_prog_nodes_container.add_child(row)
 
-		var name_lbl := Label.new()
-		name_lbl.text = NODE_LABELS[i]
-		name_lbl.add_theme_font_size_override("font_size", 14)
-		name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		block.add_child(name_lbl)
+		if depth > 0:
+			var indent := Control.new()
+			indent.custom_minimum_size = Vector2(INDENT_PX * float(depth), 0.0)
+			row.add_child(indent)
 
-		var tier_lbl := Label.new()
-		tier_lbl.text = "TIER %d/4   +%d%%" % [tier, tier * 5]
-		tier_lbl.add_theme_font_size_override("font_size", 12)
-		tier_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		block.add_child(tier_lbl)
+		var info_lbl := Label.new()
+		info_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		info_lbl.add_theme_font_size_override("font_size", 11)
 
-		if tier < 4:
-			var cost_lbl := Label.new()
-			cost_lbl.text = "LV%d  |  %d COINS" % [
-				Game.get_prog_next_level_req(node_name),
-				Game.get_prog_next_cost(node_name)]
-			cost_lbl.add_theme_font_size_override("font_size", 11)
-			cost_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			block.add_child(cost_lbl)
-
-			var can_buy: bool = Game.can_buy_progression(node_name)
-			var buy_btn := Button.new()
-			buy_btn.text = "BUY TIER %d" % (tier + 1)
-			buy_btn.add_theme_font_size_override("font_size", 12)
-			buy_btn.disabled = not can_buy
-			if can_buy:
-				buy_btn.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
-			buy_btn.pressed.connect(_on_prog_buy.bind(node_name))
-			block.add_child(buy_btn)
+		if lv == 0:
+			var parents: Array = def.get("parents", [])
+			var needs: String = ""
+			if not parents.is_empty():
+				var unlocked_parents: Array = parents.filter(func(p): return Game.skill_level(p) > 0)
+				if unlocked_parents.size() < (1 if def.get("any_parent", false) else parents.size()):
+					var needed_parents: Array = parents.filter(func(p): return Game.skill_level(p) == 0)
+					needs = "  (needs: %s)" % ", ".join(needed_parents.map(
+						func(p): return Game.SKILL_TREE[p].get("label", p)))
+			info_lbl.text = "%s — LOCKED%s" % [label_str, needs]
+			info_lbl.add_theme_color_override("font_color", Color(0.55, 0.55, 0.55))
+		elif lv >= 12:
+			info_lbl.text = "%s — LV %d/12  MAX" % [label_str, lv]
+			info_lbl.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5))
 		else:
-			var max_lbl := Label.new()
-			max_lbl.text = "MAX TIER"
-			max_lbl.add_theme_font_size_override("font_size", 12)
-			max_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			max_lbl.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5))
-			block.add_child(max_lbl)
+			info_lbl.text = "%s — LV %d/12  (%d coins to upgrade)" % [
+				label_str, lv, Game._SKILL_FIB_COSTS[lv - 1]]
+			info_lbl.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
+		row.add_child(info_lbl)
 
-func _on_prog_buy(node_name: String) -> void:
+		if lv == 0:
+			var btn := Button.new()
+			btn.text = "BUY (1 SP)"
+			btn.add_theme_font_size_override("font_size", 11)
+			btn.disabled = not Game.can_unlock(key)
+			if not btn.disabled:
+				btn.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
+			btn.pressed.connect(_on_skill_unlock.bind(key))
+			row.add_child(btn)
+		elif lv < 12:
+			var btn := Button.new()
+			btn.text = "UPGRADE"
+			btn.add_theme_font_size_override("font_size", 11)
+			btn.disabled = not Game.can_upgrade(key)
+			if not btn.disabled:
+				btn.add_theme_color_override("font_color", Color(0.4, 0.9, 1.0))
+			btn.pressed.connect(_on_skill_upgrade.bind(key))
+			row.add_child(btn)
+
+func _on_skill_unlock(key: String) -> void:
 	SoundManager.play_sfx_2d("ui_click")
-	if Game.buy_progression(node_name):
+	if Game.unlock_skill(key):
 		_refresh_pilot_stats()
 		_build_progression_nodes()
+
+func _on_skill_upgrade(key: String) -> void:
+	SoundManager.play_sfx_2d("ui_click")
+	if Game.upgrade_skill(key):
+		_refresh_pilot_stats()
+		_build_progression_nodes()
+
+func _on_prog_buy(_node_name: String) -> void:
+	pass  # T91

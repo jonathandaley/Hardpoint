@@ -40,6 +40,7 @@ refill_rate = 1.0
 projectile_speed = 55.0
 shake_magnitude = 0.01
 fire_sound_key = "rifle_fire"
+inaccuracy_angle = 0.4
 
 [node name="Body" type="MeshInstance3D" parent="."]
 position = Vector3(0, 0, -0.20)
