@@ -8,24 +8,24 @@ uniform float line_darkness : hint_range(0.0, 1.0) = 0.35;
 uniform float noise_scale : hint_range(0.1, 20.0) = 6.0;
 uniform float noise_strength : hint_range(0.0, 0.2) = 0.04;
 
-varying vec3 world_pos;
-varying vec3 world_normal;
+varying vec3 model_pos;
+varying vec3 model_normal;
 
 void vertex() {
-	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	world_normal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	model_pos = VERTEX;
+	model_normal = NORMAL;
 }
 
 void fragment() {
-	vec3 blend = abs(world_normal);
+	vec3 blend = abs(model_normal);
 	blend = normalize(max(blend, vec3(0.001)));
 	blend /= blend.x + blend.y + blend.z;
 
-	vec2 uv_x = world_pos.yz * panel_scale;
-	vec2 uv_y = world_pos.xz * panel_scale;
-	vec2 uv_z = world_pos.xy * panel_scale;
+	vec2 uv_x = model_pos.yz * panel_scale;
+	vec2 uv_y = model_pos.xz * panel_scale;
+	vec2 uv_z = model_pos.xy * panel_scale;
 
-	// sin*sin noise approximation - no texture needed
+	// sin*sin noise - offsets seam lines slightly so they look organic
 	float nx = sin(uv_x.x * noise_scale) * sin(uv_x.y * noise_scale) * noise_strength;
 	float ny = sin(uv_y.x * noise_scale) * sin(uv_y.y * noise_scale) * noise_strength;
 	float nz = sin(uv_z.x * noise_scale) * sin(uv_z.y * noise_scale) * noise_strength;
