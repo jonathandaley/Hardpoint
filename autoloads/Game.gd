@@ -434,6 +434,30 @@ func _rpc_set_squad(squad: Array) -> void:
 	var sender := multiplayer.get_remote_sender_id()
 	_apply_squad(sender, squad)
 
+# ---- Match lifecycle (T115) ----
+
+# Set by _rpc_match_start; read by Arena._ready in T116.
+var mp_active_match: Dictionary = {
+	"map_path":   "",
+	"roster":     [],   # Array[{slot_idx, peer_id, team, squad, bot_id}]
+	"match_seed": 0,
+}
+
+# Server broadcasts this; all peers store match data and change scene (V40).
+@rpc("authority", "call_local", "reliable")
+func _rpc_match_start(map_path: String, roster: Array, match_seed: int) -> void:
+	mp_active_match = {
+		"map_path":   map_path,
+		"roster":     roster,
+		"match_seed": match_seed,
+	}
+	# Keep SP loadout map_def in sync so Arena SP path still works.
+	if map_path != "":
+		var md = ResourceLoader.load(map_path)
+		if md != null:
+			loadout["map_def"] = md
+	get_tree().change_scene_to_file("res://scenes/arena/Arena.tscn")
+
 # ---- Ready toggle (T114) ----
 
 func _apply_ready(peer_id: int, ready: bool) -> void:
