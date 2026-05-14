@@ -24,6 +24,7 @@ signal mark_requested(pos: Vector3)
 @export var turn_acceleration: float = 60.0   # m/s² per axis - velocity direction change rate
 @export var leg_rotation_speed: float = 15.0  # rad/s - leg visual tracking speed
 
+var owner_peer_id: int = 0
 var health: float = 0.0
 var damage_taken_total: float = 0.0
 var is_stealthy: bool = false
