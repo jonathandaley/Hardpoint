@@ -17,6 +17,7 @@ var _capturing_team: int = -1
 var _capture_progress: float = 0.0
 var _progress_broadcast_timer: float = 0.0
 const _PROGRESS_BROADCAST_INTERVAL := 0.15
+var _contested_hold_timer: float = 0.0
 
 const BEAM_HEIGHT := 30.0
 const CIRCLE_RADIUS := 3.0
@@ -71,16 +72,37 @@ func _process(delta: float) -> void:
 		return
 	_update_capture(delta)
 
+func _player_team_in_zone() -> int:
+	for t in _capturers:
+		for body in _capturers[t]:
+			if not is_instance_valid(body):
+				continue
+			var src: Node = body.get("_input_source")
+			if src != null and src.has_method("is_human_input") and src.is_human_input():
+				return int(t)
+	return -1
+
 func _update_capture(delta: float) -> void:
 	for t in _capturers:
 		_capturers[t] = _capturers[t].filter(func(b): return is_instance_valid(b))
 	var teams := _teams_present()
 
 	if teams.size() > 1:
+		var player_t: int = _player_team_in_zone()
+		var hold: float = Game.get_skill_effect("contested_hold") if player_t >= 0 else 0.0
+		if hold > 0.0:
+			if _contested_hold_timer == 0.0:
+				_contested_hold_timer = hold
+			_contested_hold_timer -= delta
+			if _contested_hold_timer > 0.0:
+				return
+			_contested_hold_timer = 0.0
 		if state != State.CONTESTED:
 			state = State.CONTESTED
 			_update_visuals()
 		return
+
+	_contested_hold_timer = 0.0
 
 	if teams.is_empty():
 		if _capture_progress > 0.0 and _capturing_team != owner_team:
@@ -95,7 +117,10 @@ func _update_capture(delta: float) -> void:
 		_capturing_team = team
 		_capture_progress = 0.0
 
-	_capture_progress += delta / capture_time
+	var cap_delta: float = delta
+	if _player_team_in_zone() == team:
+		cap_delta *= 1.0 + Game.get_skill_effect("beacon_capture")
+	_capture_progress += cap_delta / capture_time
 	if multiplayer.has_multiplayer_peer():
 		_progress_broadcast_timer -= delta
 		if _progress_broadcast_timer <= 0.0:

@@ -5,6 +5,7 @@ extends "res://scripts/WeaponBase.gd"
 
 const PROJECTILE_SCENE := preload("res://scenes/weapons/Projectile.tscn")
 
+@export var inaccuracy_angle: float = 0.0  # half-cone degrees; 0 = perfectly accurate
 @export var min_damage: float = 30.0
 @export var max_damage: float = 250.0
 @export var max_charge_time: float = 3.0
@@ -60,6 +61,11 @@ func _do_fire() -> void:
 	if cam == null:
 		return
 	var cam_fwd := -cam.global_transform.basis.z
+	if inaccuracy_angle > 0.0:
+		var perp := Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-1.0, 1.0))
+		perp = perp - cam_fwd * perp.dot(cam_fwd)
+		if perp.length_squared() > 0.0001:
+			cam_fwd = (cam_fwd + perp.normalized() * tan(deg_to_rad(inaccuracy_angle))).normalized()
 	var space := get_world_3d().direct_space_state
 	var aim_query := PhysicsRayQueryParameters3D.create(
 		cam.global_position, cam.global_position + cam_fwd * range)
