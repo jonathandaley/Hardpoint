@@ -390,8 +390,60 @@ func _on_squad_cancel() -> void:
 # ---- Match start / back ----
 
 func _on_start_pressed() -> void:
-	# T115: match-start RPC + scene transition to Arena
-	_status_label.text = "Match start not yet implemented (T115)"
+	var roster := _build_roster()
+	var match_seed := randi()
+	Game.mp_lobby["match_seed"] = match_seed
+	var map_path: String = Game.mp_lobby.get("map_path", "res://resources/maps/MathTemple.tres")
+	Game._rpc_match_start.rpc(map_path, roster, match_seed)
+
+func _build_roster() -> Array:
+	var roster: Array = []
+	var slot_idx := 0
+	var bot_id := 0
+	var team_size: int = clampi(Game.mp_lobby.get("team_size", 1), 1, 6)
+
+	# Deterministic peer ordering by peer_id.
+	var peer_ids: Array = Game.mp_lobby.get("peers", {}).keys()
+	peer_ids.sort()
+
+	var team_counts := [0, 0]
+	for i in peer_ids.size():
+		var pid: int = peer_ids[i]
+		var team: int = i % 2
+		var entry: Dictionary = Game.mp_lobby["peers"][pid]
+		roster.append({
+			"slot_idx": slot_idx,
+			"peer_id":  pid,
+			"team":     team,
+			"squad":    entry.get("squad", _default_bot_squad(0)),
+			"bot_id":   -1,
+		})
+		slot_idx += 1
+		team_counts[team] += 1
+
+	# Bot fill: pad each team to team_size (V29: bot_id used for RNG seed).
+	if Game.mp_lobby.get("bot_fill", true):
+		for team in range(2):
+			while team_counts[team] < team_size:
+				roster.append({
+					"slot_idx": slot_idx,
+					"peer_id":  0,
+					"team":     team,
+					"squad":    _default_bot_squad(bot_id),
+					"bot_id":   bot_id,
+				})
+				slot_idx += 1
+				team_counts[team] += 1
+				bot_id += 1
+
+	return roster
+
+func _default_bot_squad(bot_id: int) -> Array:
+	var mech_path: String = ROSTER[bot_id % ROSTER.size()]
+	var result: Array = []
+	for _i in 5:
+		result.append({"mech": mech_path, "weapons": []})
+	return result
 
 func _on_back_pressed() -> void:
 	Game.disconnect_mp()
