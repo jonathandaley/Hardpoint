@@ -23,22 +23,21 @@ horizontal_alignment = 1
 vertical_alignment = 1
 text = "MECH BATTLE"
 
-[node name="PressEnter" type="Label" parent="."]
-offset_left = 160.0
-offset_top = 270.0
-offset_right = 480.0
-offset_bottom = 300.0
-theme_override_font_sizes/font_size = 18
-horizontal_alignment = 1
-vertical_alignment = 1
-text = "PRESS ENTER"
+[node name="SinglePlayerButton" type="Button" parent="."]
+offset_left = 220.0
+offset_top = 265.0
+offset_right = 420.0
+offset_bottom = 295.0
+theme_override_font_sizes/font_size = 16
+text = "SINGLEPLAYER"
 
 [node name="MultiplayerButton" type="Button" parent="."]
 offset_left = 220.0
-offset_top = 312.0
+offset_top = 305.0
 offset_right = 420.0
-offset_bottom = 342.0
+offset_bottom = 335.0
 theme_override_font_sizes/font_size = 16
 text = "MULTIPLAYER"
 
+[connection signal="pressed" from="SinglePlayerButton" to="." method="_on_singleplayer_pressed"]
 [connection signal="pressed" from="MultiplayerButton" to="." method="_on_multiplayer_pressed"]
