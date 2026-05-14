@@ -323,6 +323,36 @@ func save_settings() -> void:
 func apply_volume(linear: float) -> void:
 	AudioServer.set_bus_volume_db(AudioServer.get_bus_index("Master"), linear_to_db(linear))
 
+# ---- Multiplayer lobby state (V39) ----
+
+signal lobby_updated
+
+# Server-authoritative lobby state.  Clients receive a replicated copy via
+# _rpc_sync_lobby.  All mutation from clients must go through an @rpc to server
+# which then calls broadcast_lobby().
+var mp_lobby: Dictionary = {
+	"peers":      {},    # peer_id (int) -> {pilot_name, elo, level, squad, ready}
+	"bot_fill":   true,
+	"team_size":  1,
+	"map_path":   "res://resources/maps/MathTemple.tres",
+	"match_seed": 0,
+}
+
+@rpc("authority", "call_local", "reliable")
+func _rpc_sync_lobby(data: Dictionary) -> void:
+	mp_lobby = data
+	lobby_updated.emit()
+
+# V40: all coordinated scene transitions go through here (server-origin only).
+@rpc("authority", "call_local", "reliable")
+func _rpc_change_scene(path: String) -> void:
+	get_tree().change_scene_to_file(path)
+
+func broadcast_lobby() -> void:
+	if not multiplayer.is_server():
+		return
+	_rpc_sync_lobby.rpc(mp_lobby)
+
 # ---- Bot coordination (V5: absorbed from former AIDirector autoload) ----
 
 var _bot_intents: Dictionary = {}  # bot Node -> {beacon: Node, team: int}
