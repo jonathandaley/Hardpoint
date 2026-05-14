@@ -1,7 +1,5 @@
 class_name MechVisuals
 
-const _PANEL_SHADER := preload("res://shaders/mech_panels.gdshader")
-
 # Apply per-mech body geometry. Call after instantiate() but before add_child()
 # so accessories are present when Mech._ready() builds _body_meshes.
 static func apply(mech: Node3D, display_name: String) -> void:
@@ -49,10 +47,10 @@ static func _sph(mi: MeshInstance3D, r: float) -> void:
 
 # ---- material helpers ----
 
-static func _mat(col: Color) -> ShaderMaterial:
-	var m := ShaderMaterial.new()
-	m.shader = _PANEL_SHADER
-	m.set_shader_parameter("albedo_color", col)
+static func _mat(col: Color) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.albedo_color = col
 	return m
 
 static func _mat_e(col: Color, emit: Color, energy: float) -> StandardMaterial3D:
@@ -64,11 +62,11 @@ static func _mat_e(col: Color, emit: Color, energy: float) -> StandardMaterial3D
 	m.emission_energy_multiplier = energy
 	return m
 
-static func _paint(mi: MeshInstance3D, mat: Material) -> void:
+static func _paint(mi: MeshInstance3D, mat: StandardMaterial3D) -> void:
 	if mi:
 		mi.set_surface_override_material(0, mat)
 
-static func _paint_all(parent: Node3D, mat: Material) -> void:
+static func _paint_all(parent: Node3D, mat: StandardMaterial3D) -> void:
 	if parent == null:
 		return
 	for child in parent.find_children("*", "MeshInstance3D", true, false):

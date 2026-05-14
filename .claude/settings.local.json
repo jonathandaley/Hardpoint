@@ -1,13 +1,16 @@
 {
   "permissions": {
-    "defaultMode": "default",
     "allow": [
       "Skill(update-config)",
       "Read(**)",
       "Bash(**)",
       "Edit(/home/jonathan/mechbattle/**)",
-      "Write(/home/jonathan/mechbattle/**)"
-    ]
+      "Write(/home/jonathan/mechbattle/**)",
+      "Skill(build)",
+      "Read(//home/jonathan/.local/share/godot/**)",
+      "Read(//usr/local/**)"
+    ],
+    "defaultMode": "default"
   },
   "spinnerTipsEnabled": false,
   "prefersReducedMotion": true
