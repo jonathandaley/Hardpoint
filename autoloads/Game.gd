@@ -116,6 +116,34 @@ func disconnect_mp() -> void:
 
 func _on_mp_peer_connected(id: int) -> void:
 	mp_peer_connected.emit(id)
+	# Lobby._on_peer_connected runs synchronously above, populating mp_lobby["peers"][id].
+	# Now request real profile meta so the placeholder is replaced promptly.
+	if multiplayer.is_server():
+		_rpc_request_meta.rpc_id(id)
+
+# Server -> client: asks client to send its profile metadata (V36).
+@rpc("authority", "call_remote", "reliable")
+func _rpc_request_meta() -> void:
+	var meta := {
+		"pilot_name": profile.get("pilot_name", "Pilot"),
+		"elo":        profile.get("elo", 1000),
+		"level":      profile.get("level", 1),
+	}
+	_rpc_send_meta.rpc_id(1, meta)
+
+# Client -> server: delivers profile metadata (V36, V41).
+@rpc("any_peer", "call_remote", "reliable")
+func _rpc_send_meta(meta: Dictionary) -> void:
+	var sender := multiplayer.get_remote_sender_id()
+	# V41: sender must be a known lobby peer
+	if not mp_lobby["peers"].has(sender):
+		push_error("_rpc_send_meta: unknown sender %d" % sender)
+		return
+	var entry: Dictionary = mp_lobby["peers"][sender]
+	entry["pilot_name"] = str(meta.get("pilot_name", "Pilot"))
+	entry["elo"]        = int(meta.get("elo", 1000))
+	entry["level"]      = int(meta.get("level", 1))
+	broadcast_lobby()
 
 func _on_mp_peer_disconnected(id: int) -> void:
 	mp_peer_disconnected.emit(id)
