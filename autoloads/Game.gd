@@ -75,10 +75,58 @@ var settings: Dictionary = {
 	"master_volume": 0.5,
 }
 
+# ---- Multiplayer transport (V5: no new autoload; stays in Game.gd) ----
+
+signal mp_peer_connected(id: int)
+signal mp_peer_disconnected(id: int)
+signal mp_join_failed
+signal mp_server_lost
+
 func _ready() -> void:
 	_load_profile()
 	_load_settings()
 	_load_loadout()
+	multiplayer.peer_connected.connect(_on_mp_peer_connected)
+	multiplayer.peer_disconnected.connect(_on_mp_peer_disconnected)
+	multiplayer.connection_failed.connect(_on_mp_connection_failed)
+	multiplayer.server_disconnected.connect(_on_mp_server_disconnected)
+
+func host(port: int = 8910) -> void:
+	var peer := ENetMultiplayerPeer.new()
+	var err := peer.create_server(port)
+	if err != OK:
+		push_error("Game.host: create_server failed (port %d): %d" % [port, err])
+		mp_join_failed.emit()
+		return
+	multiplayer.multiplayer_peer = peer
+
+func join(ip: String, port: int = 8910) -> void:
+	var peer := ENetMultiplayerPeer.new()
+	var err := peer.create_client(ip, port)
+	if err != OK:
+		push_error("Game.join: create_client failed (%s:%d): %d" % [ip, port, err])
+		mp_join_failed.emit()
+		return
+	multiplayer.multiplayer_peer = peer
+
+func disconnect_mp() -> void:
+	if multiplayer.multiplayer_peer != null:
+		multiplayer.multiplayer_peer.close()
+	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
+
+func _on_mp_peer_connected(id: int) -> void:
+	mp_peer_connected.emit(id)
+
+func _on_mp_peer_disconnected(id: int) -> void:
+	mp_peer_disconnected.emit(id)
+
+func _on_mp_connection_failed() -> void:
+	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
+	mp_join_failed.emit()
+
+func _on_mp_server_disconnected() -> void:
+	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
+	mp_server_lost.emit()
 
 func _load_profile() -> void:
 	var cfg := ConfigFile.new()
