@@ -4426,7 +4426,10 @@ func _ready() -> void:
 	pause_menu.quit_requested.connect(_on_pause_quit)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_apply_map_theme()
-	_spawn_mechs()
+	if Game.mp_active_match["roster"].size() > 0:
+		_spawn_mechs_mp()
+	else:
+		_spawn_mechs()
 	_create_walls()
 	_create_wall_art()
 	_paint_wall_penrose()
@@ -4439,7 +4442,10 @@ func _ready() -> void:
 	if BAKE_WALLS:
 		_bake_wall_visuals()
 	_wire_beacons()
-	_setup_players()
+	if Game.mp_active_match["roster"].size() > 0:
+		_setup_players_mp()
+	else:
+		_setup_players()
 	_create_nav_region()
 	match_node.match_ended.connect(_on_match_ended)
 	match_node.start()
@@ -4629,6 +4635,81 @@ func _spawn_mechs() -> void:
 	# Team 1: team_size enemy bot mechs
 	for i in range(team_size):
 		_spawn_one_mech(bot_def, false, 1, i, team_size)
+
+func _spawn_mechs_mp() -> void:
+	var roster: Array = Game.mp_active_match["roster"]
+	var team_counts := [0, 0]
+	for entry in roster:
+		var t: int = entry["team"]
+		if t == 0 or t == 1:
+			team_counts[t] += 1
+	var team_idx := [0, 0]
+	for entry in roster:
+		var t: int = entry["team"]
+		if t < 0 or t >= 2:
+			continue
+		var squad: Array = entry["squad"]
+		if squad.is_empty():
+			push_error("[Arena] MP: empty squad for peer %d" % entry["peer_id"])
+			continue
+		var mech_path: String = squad[0].get("mech", "")
+		var mech_def = ResourceLoader.load(mech_path) if mech_path != "" else null
+		if mech_def == null:
+			push_error("[Arena] MP: cannot load mech_def '%s'" % mech_path)
+			continue
+		var m: CharacterBody3D = _spawn_one_mech(mech_def, false, t, team_idx[t], team_counts[t])
+		m.owner_peer_id = entry["peer_id"]
+		if entry["peer_id"] != 0 and entry["peer_id"] == multiplayer.get_unique_id() and player_mech == null:
+			player_mech = m
+		team_idx[t] += 1
+
+func _setup_players_mp() -> void:
+	var roster: Array = Game.mp_active_match["roster"]
+	var my_id: int = multiplayer.get_unique_id()
+	var team_idx := [0, 0]
+	for entry in roster:
+		var t: int = entry["team"]
+		if t < 0 or t >= 2:
+			continue
+		var mech: CharacterBody3D = _team_mechs[t][team_idx[t]]
+		var tidx: int = team_idx[t]
+		team_idx[t] += 1
+		if entry["peer_id"] == 0:
+			_spawn_bot_player(mech, t, tidx)
+		elif entry["peer_id"] == my_id:
+			_player = Node.new()
+			_player.set_script(load("res://scripts/Player.gd"))
+			_player.name = "Player"
+			_player.set("team", t)
+			add_child(_player)
+			var input := Node.new()
+			input.set_script(load("res://scripts/PlayerInputSource.gd"))
+			_player.add_child(input)
+			_player.set("input_source", input)
+			var pilot := Node.new()
+			pilot.set_script(load("res://scripts/Pilot.gd"))
+			pilot.set("pilot_name", Game.profile.get("pilot_name", "Pilot"))
+			_player.add_child(pilot)
+			_player.set("pilot", pilot)
+			_player.call("possess", mech)
+			mech.died.connect(Callable(_player, "on_pawn_destroyed"))
+			mech.mark_requested.connect(_on_mark_requested)
+			_players.append(_player)
+			_spectated_mech = mech
+			mech.died.connect(_on_spectated_mech_died)
+		else:
+			var p := Node.new()
+			p.set_script(load("res://scripts/Player.gd"))
+			p.name = "RemotePlayer_%d" % entry["peer_id"]
+			p.set("team", t)
+			add_child(p)
+			var net_input := Node.new()
+			net_input.set_script(load("res://scripts/NetworkInputSource.gd"))
+			p.add_child(net_input)
+			p.set("input_source", net_input)
+			p.call("possess", mech)
+			mech.died.connect(Callable(p, "on_pawn_destroyed"))
+			_players.append(p)
 
 func _add_sun_marker() -> void:
 	var mat := StandardMaterial3D.new()
