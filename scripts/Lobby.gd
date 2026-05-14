@@ -143,12 +143,12 @@ func _rebuild_peer_list() -> void:
 		var name_lbl := Label.new()
 		name_lbl.text = entry.get("pilot_name", "?")
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_lbl.theme_override_font_sizes["font_size"] = 13
+		name_lbl.add_theme_font_size_override("font_size", 13)
 
 		var elo_lbl := Label.new()
 		elo_lbl.text = "ELO %d" % entry.get("elo", 0)
 		elo_lbl.custom_minimum_size.x = 75
-		elo_lbl.theme_override_font_sizes["font_size"] = 13
+		elo_lbl.add_theme_font_size_override("font_size", 13)
 
 		var squad_lbl := Label.new()
 		var sq: Array = entry.get("squad", [])
@@ -160,13 +160,13 @@ func _rebuild_peer_list() -> void:
 				names.append(_mech_short_name(str(e.get("mech", ""))))
 			squad_lbl.text = ", ".join(names)
 		squad_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		squad_lbl.theme_override_font_sizes["font_size"] = 11
+		squad_lbl.add_theme_font_size_override("font_size", 11)
 		squad_lbl.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6))
 
 		var ready_lbl := Label.new()
 		ready_lbl.text = "[RDY]" if entry.get("ready", false) else "[   ]"
 		ready_lbl.custom_minimum_size.x = 45
-		ready_lbl.theme_override_font_sizes["font_size"] = 13
+		ready_lbl.add_theme_font_size_override("font_size", 13)
 
 		row.add_child(name_lbl)
 		row.add_child(elo_lbl)
@@ -258,11 +258,11 @@ func _build_slot_row(slot_idx: int, saved: Dictionary) -> void:
 	var slot_lbl := Label.new()
 	slot_lbl.text = "%d:" % (slot_idx + 1)
 	slot_lbl.custom_minimum_size.x = 22
-	slot_lbl.theme_override_font_sizes["font_size"] = 13
+	slot_lbl.add_theme_font_size_override("font_size", 13)
 
 	var mech_opt := OptionButton.new()
 	mech_opt.custom_minimum_size.x = 130
-	mech_opt.theme_override_font_sizes["font_size"] = 12
+	mech_opt.add_theme_font_size_override("font_size", 12)
 	for path in ROSTER:
 		mech_opt.add_item(_mech_short_name(path))
 	var saved_mech: String = str(saved.get("mech", ""))
@@ -312,7 +312,7 @@ func _refresh_weapon_opts(slot_idx: int, mech_path: String, saved_weapons: Array
 
 		var opt := OptionButton.new()
 		opt.custom_minimum_size.x = 100
-		opt.theme_override_font_sizes["font_size"] = 11
+		opt.add_theme_font_size_override("font_size", 11)
 
 		var saved_path: String = str(saved_weapons[s_i]) if s_i < saved_weapons.size() else ""
 		var select_idx := 0
