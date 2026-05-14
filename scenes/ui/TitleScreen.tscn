@@ -32,3 +32,13 @@ theme_override_font_sizes/font_size = 18
 horizontal_alignment = 1
 vertical_alignment = 1
 text = "PRESS ENTER"
+
+[node name="MultiplayerButton" type="Button" parent="."]
+offset_left = 220.0
+offset_top = 312.0
+offset_right = 420.0
+offset_bottom = 342.0
+theme_override_font_sizes/font_size = 16
+text = "MULTIPLAYER"
+
+[connection signal="pressed" from="MultiplayerButton" to="." method="_on_multiplayer_pressed"]
