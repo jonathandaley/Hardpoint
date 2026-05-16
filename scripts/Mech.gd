@@ -40,6 +40,7 @@ var _no_damage_timer: float = 0.0  # seconds since last damage hit; drives repai
 var _net_input_tick: int = 0       # increments every physics tick; used for 30Hz throttle
 var _net_input_seq: int = 0        # monotonic send counter; T125 uses for rate-limit
 var _net_look_accum: Vector2 = Vector2.ZERO  # accumulated between RPC sends (get_look_delta drains on read)
+var _snap_buf: Array = []          # V37: last 2 server snapshots [{time,pos,quat,vel}]; T120 reads for interp
 
 @onready var torso: Node3D = $Torso
 @onready var legs: Node3D = $Legs
@@ -290,6 +291,8 @@ func _apply_damage(amount: float) -> void:
 		var overflow: float = _energy_shield.call("absorb", amount)
 		if overflow < amount:
 			_do_shield_flash()
+			if multiplayer.has_multiplayer_peer():
+				_sync_shield.rpc(_energy_shield.shield_hp)
 		actual = overflow
 	if actual <= 0.0:
 		return
@@ -310,6 +313,22 @@ func _apply_damage(amount: float) -> void:
 @rpc("authority", "unreliable_ordered")
 func _sync_health(h: float) -> void:
 	health = h
+
+@rpc("authority", "unreliable_ordered")
+func _sync_shield(pool: float) -> void:
+	if _energy_shield != null:
+		_energy_shield.set("shield_hp", pool)
+
+# T119: called by Arena._rpc_snapshot on clients to push a server transform sample.
+func receive_snapshot(entry: Dictionary) -> void:
+	_snap_buf.append({
+		"time": Time.get_ticks_msec() * 0.001,
+		"pos": entry.get("pos", global_position),
+		"quat": entry.get("quat", Quaternion(global_transform.basis)),
+		"vel": entry.get("vel", Vector3.ZERO),
+	})
+	if _snap_buf.size() > 2:
+		_snap_buf.pop_front()
 
 func _do_shield_flash() -> void:
 	if _flash_mat == null:
