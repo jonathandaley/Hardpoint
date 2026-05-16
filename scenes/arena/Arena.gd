@@ -4452,6 +4452,14 @@ func _ready() -> void:
 		Game.mp_peer_disconnected.connect(_on_peer_disconnected_in_match)
 	else:
 		_setup_players()
+		hud.setup(match_node, player_mech, 0)
+		hud.setup_bot_bars(_team_mechs[1])
+		hud.setup_ally_bars(_team_mechs[0].slice(1))
+		hud.setup_beacon_bars(get_tree().get_nodes_in_group("beacons"))
+		for weapon in player_mech.get_weapons():
+			if weapon.has_signal("hit_confirmed"):
+				weapon.hit_confirmed.connect(hud.register_hit)
+		player_mech.damaged.connect(hud.show_damage)
 	_create_nav_region()
 	match_node.match_ended.connect(_on_match_ended)
 	match_node.start()
@@ -4459,14 +4467,6 @@ func _ready() -> void:
 	add_child(_movement_logger)
 	_movement_logger.start_session()
 	SoundManager.play_music("arena")
-	hud.setup(match_node, player_mech, 0)
-	hud.setup_bot_bars(_team_mechs[1])
-	hud.setup_ally_bars(_team_mechs[0].slice(1))
-	hud.setup_beacon_bars(get_tree().get_nodes_in_group("beacons"))
-	for weapon in player_mech.get_weapons():
-		if weapon.has_signal("hit_confirmed"):
-			weapon.hit_confirmed.connect(hud.register_hit)
-	player_mech.damaged.connect(hud.show_damage)
 	print("[Arena] Match started. Score to drain: %d" % match_node.score_limit)
 
 func _paint_penrose_floor() -> void:
