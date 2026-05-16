@@ -417,6 +417,15 @@ const _STEP_RATE := 2.5    # m/s vertical lift speed while stepping up
 var _step_up_remaining: float = 0.0
 
 func _physics_process(delta: float) -> void:
+	# V38: non-server peers skip all local simulation; transforms driven by snapshot interp.
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		_apply_snapshot_interp()
+		if _input_source != null and owner_peer_id == multiplayer.get_unique_id():
+			_handle_look()   # camera still tracks local mouse
+			_maybe_forward_input()
+		_update_legs(delta)
+		return
+
 	if not is_on_floor() and _step_up_remaining <= 0.0:
 		velocity += get_gravity() * delta
 
@@ -431,7 +440,6 @@ func _physics_process(delta: float) -> void:
 			_update_lock(delta)
 			if _input_source.is_mark_pressed():
 				mark_requested.emit(global_position)
-		_maybe_forward_input()
 
 	_try_step_up()
 	if _step_up_remaining > 0.0:
@@ -498,6 +506,26 @@ func _check_step_dir(dir: Vector3, space: PhysicsDirectSpaceState3D, ex: Array, 
 
 func _update_legs(delta: float) -> void:
 	legs.call("update_gait", velocity, global_transform.basis, leg_rotation_speed, walk_speed, delta)
+
+func _apply_snapshot_interp() -> void:
+	if _snap_buf.is_empty():
+		return
+	var now := Time.get_ticks_msec() * 0.001
+	var render_t := now - 0.1
+	if _snap_buf.size() == 1:
+		global_transform = Transform3D(Basis(_snap_buf[0]["quat"] as Quaternion), _snap_buf[0]["pos"] as Vector3)
+		velocity = _snap_buf[0]["vel"] as Vector3
+		return
+	var s0: Dictionary = _snap_buf[0]
+	var s1: Dictionary = _snap_buf[1]
+	var span: float = (s1["time"] as float) - (s0["time"] as float)
+	var t: float = 0.0
+	if span > 0.0001:
+		t = clampf((render_t - (s0["time"] as float)) / span, 0.0, 1.0)
+	global_transform = Transform3D(
+		Basis((s0["quat"] as Quaternion).slerp(s1["quat"] as Quaternion, t)),
+		(s0["pos"] as Vector3).lerp(s1["pos"] as Vector3, t))
+	velocity = (s0["vel"] as Vector3).lerp(s1["vel"] as Vector3, t)
 
 func _maybe_forward_input() -> void:
 	if not multiplayer.has_multiplayer_peer():
@@ -740,6 +768,10 @@ func _activate_ability(ability: Resource) -> void:
 		if _input_source.has_method("is_human_input") and _input_source.is_human_input():
 			cd *= maxf(0.0, 1.0 - Game.get_skill_effect("ability_recharge"))
 		_ability_cooldowns[ability.effect_key] = cd
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		var slot := _abilities.find(ability)
+		if slot >= 0:
+			_rpc_ability_activated.rpc(slot)
 
 func _deactivate_ability(key: String) -> void:
 	match key:
@@ -752,4 +784,26 @@ func _deactivate_ability(key: String) -> void:
 			if _input_source != null and _input_source.has_method("is_human_input") and _input_source.is_human_input():
 				cd *= maxf(0.0, 1.0 - Game.get_skill_effect("ability_recharge"))
 			_ability_cooldowns[key] = cd
+			if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+				_rpc_ability_deactivated.rpc(_abilities.find(ability))
 			break
+
+@rpc("authority", "unreliable_ordered")
+func _rpc_ability_activated(slot: int) -> void:
+	if slot < 0 or slot >= _abilities.size():
+		return
+	var ability: Resource = _abilities[slot]
+	match ability.effect_key:
+		"stealth":
+			is_stealthy = true
+			_apply_stealth_visual(true)
+
+@rpc("authority", "unreliable_ordered")
+func _rpc_ability_deactivated(slot: int) -> void:
+	if slot < 0 or slot >= _abilities.size():
+		return
+	var ability: Resource = _abilities[slot]
+	match ability.effect_key:
+		"stealth":
+			is_stealthy = false
+			_apply_stealth_visual(false)
