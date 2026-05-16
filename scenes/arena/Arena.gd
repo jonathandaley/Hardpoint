@@ -4580,7 +4580,24 @@ func _spawn_player_only() -> void:
 const _SPAWN_PERP    := Vector3(0.70711, 0.0, 0.70711)
 const _SPAWN_SPACING := 8.0   # metres between mechs in a team line
 
-func _spawn_one_mech(mech_def, is_player_mech: bool, team: int, idx: int, count: int) -> CharacterBody3D:
+func _slots_with_weapon_paths(slots: Array, weapon_paths: Array) -> Array:
+	if weapon_paths.is_empty():
+		return slots
+	var result: Array = []
+	for i in slots.size():
+		if i < weapon_paths.size() and weapon_paths[i] != "":
+			var scene: PackedScene = ResourceLoader.load(weapon_paths[i])
+			if scene != null:
+				var s = slots[i].duplicate()
+				s.weapon_scene = scene
+				result.append(s)
+			else:
+				result.append(slots[i])
+		else:
+			result.append(slots[i])
+	return result
+
+func _spawn_one_mech(mech_def, is_player_mech: bool, team: int, idx: int, count: int, weapon_paths: Array = []) -> CharacterBody3D:
 	var perp_offset: float = (float(idx) - float(count - 1) * 0.5) * _SPAWN_SPACING
 	var bx: float
 	var bz: float
@@ -4611,7 +4628,13 @@ func _spawn_one_mech(mech_def, is_player_mech: bool, team: int, idx: int, count:
 	m.configure_shield(mech_def.has_shields, mech_def.shield_max_hp)
 	m.configure_energy_shield(mech_def.has_energy_shield, mech_def.energy_shield_max_hp,
 		mech_def.energy_shield_regen_rate, mech_def.energy_shield_regen_delay)
-	var slots = _slots_with_overrides(mech_def.weapon_slots) if is_player_mech else mech_def.weapon_slots
+	var slots: Array
+	if is_player_mech:
+		slots = _slots_with_overrides(mech_def.weapon_slots)
+	elif not weapon_paths.is_empty():
+		slots = _slots_with_weapon_paths(mech_def.weapon_slots, weapon_paths)
+	else:
+		slots = mech_def.weapon_slots
 	m.configure_weapons(slots)
 	m.configure_abilities(mech_def.abilities)
 	if is_player_mech:
@@ -4664,7 +4687,8 @@ func _spawn_mechs_mp() -> void:
 		if mech_def == null:
 			push_error("[Arena] MP: cannot load mech_def '%s'" % mech_path)
 			continue
-		var m: CharacterBody3D = _spawn_one_mech(mech_def, false, t, team_idx[t], team_counts[t])
+		var wpn_paths: Array = squad[0].get("weapons", [])
+		var m: CharacterBody3D = _spawn_one_mech(mech_def, false, t, team_idx[t], team_counts[t], wpn_paths)
 		m.owner_peer_id = entry["peer_id"]
 		if entry["peer_id"] != 0 and entry["peer_id"] == multiplayer.get_unique_id() and player_mech == null:
 			player_mech = m
@@ -5404,7 +5428,8 @@ func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int) -> void:
 	if mech_def == null:
 		push_error("[Arena] _rpc_spawn_next_mech: cannot load '%s'" % mech_path)
 		return
-	var new_mech: CharacterBody3D = _spawn_one_mech(mech_def, false, team, slot_idx, team_size)
+	var wpn_paths: Array = squad[slot_idx].get("weapons", [])
+	var new_mech: CharacterBody3D = _spawn_one_mech(mech_def, false, team, slot_idx, team_size, wpn_paths)
 	new_mech.owner_peer_id = peer_id
 	var my_id := multiplayer.get_unique_id()
 	if peer_id == my_id:
