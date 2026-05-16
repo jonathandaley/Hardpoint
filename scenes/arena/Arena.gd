@@ -4444,6 +4444,8 @@ func _ready() -> void:
 	_wire_beacons()
 	if Game.mp_active_match["roster"].size() > 0:
 		_setup_players_mp()
+		if multiplayer.is_server():
+			_start_snapshot_timer()
 	else:
 		_setup_players()
 	_create_nav_region()
@@ -5310,4 +5312,41 @@ func _create_nav_region() -> void:
 	_nav_region.bake_finished.connect(func():
 		print("[Arena] NavMesh baked OK"))
 	_nav_region.bake_navigation_mesh(true)
+
+func _start_snapshot_timer() -> void:
+	var t := Timer.new()
+	t.name = "SnapshotTimer"
+	t.wait_time = 1.0 / 20.0
+	t.autostart = true
+	t.timeout.connect(_snapshot_tick)
+	add_child(t)
+
+func _snapshot_tick() -> void:
+	var snapshots: Array = []
+	for team in range(2):
+		for idx in range(_team_mechs[team].size()):
+			var m = _team_mechs[team][idx]
+			if not is_instance_valid(m) or m.get("is_dead"):
+				continue
+			snapshots.append({
+				"team": team,
+				"idx": idx,
+				"pos": m.global_position,
+				"quat": Quaternion(m.global_transform.basis),
+				"vel": m.velocity,
+			})
+	if snapshots.is_empty():
+		return
+	_rpc_snapshot.rpc(snapshots)
+
+@rpc("authority", "unreliable_ordered")
+func _rpc_snapshot(snapshots: Array) -> void:
+	for entry in snapshots:
+		var t: int = entry.get("team", -1)
+		var i: int = entry.get("idx", -1)
+		if t < 0 or t >= 2 or i < 0 or i >= _team_mechs[t].size():
+			continue
+		var m = _team_mechs[t][i]
+		if is_instance_valid(m):
+			m.receive_snapshot(entry)
 
