@@ -37,6 +37,9 @@ var _ability_active_timers: Dictionary = {}
 var _camera_pitch: float = -0.3  # matches CameraArm initial rotation.x
 var _desired_move_dir: Vector3 = Vector3.ZERO
 var _no_damage_timer: float = 0.0  # seconds since last damage hit; drives repair_rate skill
+var _net_input_tick: int = 0       # increments every physics tick; used for 30Hz throttle
+var _net_input_seq: int = 0        # monotonic send counter; T125 uses for rate-limit
+var _net_look_accum: Vector2 = Vector2.ZERO  # accumulated between RPC sends (get_look_delta drains on read)
 
 @onready var torso: Node3D = $Torso
 @onready var legs: Node3D = $Legs
@@ -409,6 +412,7 @@ func _physics_process(delta: float) -> void:
 			_update_lock(delta)
 			if _input_source.is_mark_pressed():
 				mark_requested.emit(global_position)
+		_maybe_forward_input()
 
 	_try_step_up()
 	if _step_up_remaining > 0.0:
@@ -476,8 +480,45 @@ func _check_step_dir(dir: Vector3, space: PhysicsDirectSpaceState3D, ex: Array, 
 func _update_legs(delta: float) -> void:
 	legs.call("update_gait", velocity, global_transform.basis, leg_rotation_speed, walk_speed, delta)
 
+func _maybe_forward_input() -> void:
+	if not multiplayer.has_multiplayer_peer():
+		return
+	if multiplayer.is_server():
+		return
+	if owner_peer_id != multiplayer.get_unique_id():
+		_net_look_accum = Vector2.ZERO  # discard accumulation for mechs we don't own
+		return
+	_net_input_tick += 1
+	if _net_input_tick % 2 != 0:
+		return
+	var payload := {
+		"move": _input_source.get_move_direction(),
+		"look": _net_look_accum,
+		"fire_prim": _input_source.is_firing_primary(),
+		"fire_sec": _input_source.is_firing_secondary(),
+		"slot_toggle": _input_source.get_slot_toggle(),
+		"reload": _input_source.is_reload_pressed(),
+		"ability": _input_source.is_ability_pressed(),
+	}
+	_net_look_accum = Vector2.ZERO
+	_net_input_seq += 1
+	rpc_id(1, &"_rpc_input", _net_input_seq, payload)
+
+@rpc("any_peer", "unreliable_ordered")
+func _rpc_input(seq: int, payload: Dictionary) -> void:
+	if not multiplayer.is_server():
+		return
+	var sender := multiplayer.get_remote_sender_id()
+	if sender != owner_peer_id:
+		push_error("[Mech] _rpc_input: sender %d doesn't own this mech (owner=%d)" % [sender, owner_peer_id])
+		return
+	if _input_source == null or not _input_source.has_method("push_input"):
+		return
+	_input_source.push_input(payload)
+
 func _handle_look() -> void:
 	var look: Vector2 = _input_source.get_look_delta()
+	_net_look_accum += look
 	if look == Vector2.ZERO:
 		return
 	var sens: float = Game.settings.get("mouse_sensitivity", 0.003)
