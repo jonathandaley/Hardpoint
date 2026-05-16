@@ -5413,6 +5413,8 @@ func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int) -> void:
 				_spectated_mech.died.disconnect(_on_spectated_mech_died)
 		_spectated_mech = new_mech
 		new_mech.died.connect(_on_spectated_mech_died)
+		if _spec_cam != null and is_instance_valid(_spec_cam):
+			_spec_cam.current = false
 		new_mech.make_camera_current()
 		hud.hide_squad_picker_mp()
 		hud.stop_spectating()
