@@ -5494,7 +5494,6 @@ func _add_tri(st: SurfaceTool, col: PackedVector3Array,
 	col.append(p0); col.append(p1); col.append(p2)
 
 func _on_mark_requested(pos: Vector3) -> void:
-	print("[MARK] x=%.3f y=%.3f z=%.3f" % [pos.x, pos.y, pos.z])
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(1.0, 0.8, 0.0)
 	mat.emission_enabled = true
