@@ -263,6 +263,10 @@ func take_damage(amount: float, source: Node3D = null) -> void:
 func _take_damage_rpc(amount: float, src_path: NodePath) -> void:
 	if not multiplayer.is_server():
 		return
+	var sender := multiplayer.get_remote_sender_id()
+	if not Game.mp_lobby["peers"].has(sender):
+		push_error("[Mech] _take_damage_rpc: unknown sender %d" % sender)
+		return
 	var source: Node3D = null
 	if not src_path.is_empty():
 		var n := get_node_or_null(src_path)
