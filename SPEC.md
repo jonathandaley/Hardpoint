@@ -162,10 +162,10 @@ T67|.|multi-life game-end guard: `BeaconMatch` ⊥ ends match on last-player dea
 T68|x|mech visual art pass: all 8 mechs get Matrix-3-style geometry (rust/neon/mechanical bulk); block-primitive placeholders replaced|−
 T69|x|weapon visual art pass: all weapon scenes get Matrix-3-style models; light ×2 size, heavy ×4 (Patience ×2)|T68
 T70|x|multi-map system: Perlin-noise arena generator parameterized by seed/theme; all maps 5 beacons (V18); cover and scale vary|V18
-T71|~|ELO system: track opponent ELO at match start; update player ELO on result using standard formula; persist in profile|T2
-T72|~|XP + pilot level: XP awarded per match weighted by opponent ELO; level thresholds unlock progression tree nodes|T71
-T73|~|pilot progression tree: speed/reload/ability-duration/damage/health bonuses; submenu under Pilot tab in hangar|T72
-T74|~|in-game coins: earned from wins; spent on progression nodes or cosmetics; tracked in profile|T72
+T71|x|ELO system: track opponent ELO at match start; update player ELO on result using standard formula; persist in profile|T2
+T72|x|XP + pilot level: XP awarded per match weighted by opponent ELO; level thresholds unlock progression tree nodes|T71
+T73|x|pilot progression tree: speed/reload/ability-duration/damage/health bonuses; submenu under Pilot tab in hangar|T72
+T74|x|in-game coins: earned from wins; spent on progression nodes or cosmetics; tracked in profile|T72
 T75|.|online accounts: email signup/login; profile server-backed; prerequisite for ELO/cosmetics cross-device|T40,T71
 T76|x|walk animation stride fix: small mechs animate too fast; tune `leg_cycle_rate`/`leg_hip_sweep` per mech so stride visually matches ground speed|T10
 T77|x|player eject on death: cockpit pod launches upward on player `_die()`; skip for bots (check `input_source` type or `is_player` flag in `Mech._die()`)|T68
@@ -196,8 +196,8 @@ T103|x|P4: server-side damage validation in `request_damage` -- clamp amount to 
 T104|x|P4: bot RNG → deterministic seed broadcast by server at match start; bots replicate as MultiplayerSpawner children w/ matching seeds|V29,T98
 T105|x|P4: beacon capture progress periodic RPC (`unreliable_ordered`); clients see progress bar real-time, not just end-state|V33,T40
 T106|x|P5 (gated): bench arena under sustained fire (4 bots vs player, 30s); profile w/ Godot profiler; if frame-time stable <16ms → skip T107/T108; result 2026-05-13: Physics Time ~2ms, Physics Frame Time 16.66ms (tick interval, not cost) → stable, T107/T108 skipped|-
-T107|~|P5 (conditional T106): VFX object pool for top hitch source identified by T106 only -- SKIPPED: T106 showed no hitch|V34,T106
-T108|~|P5 (conditional T106): SoundManager `AudioStreamPlayer3D` pool -- SKIPPED: T106 showed no hitch|V34,T106
+T107|x|P5 (conditional T106): VFX object pool for top hitch source identified by T106 only -- SKIPPED: T106 showed no hitch|V34,T106
+T108|x|P5 (conditional T106): SoundManager `AudioStreamPlayer3D` pool -- SKIPPED: T106 showed no hitch|V34,T106
 T109|x|P7: MP transport core in `Game.gd` -- `host(port:int=8910)`, `join(ip:String, port:int=8910)`, `disconnect()` via `ENetMultiplayerPeer.create_server/create_client`; expose signals `mp_peer_connected(id)/mp_peer_disconnected(id)/mp_join_failed/mp_server_lost`; wire `multiplayer.peer_connected/disconnected/connection_failed/server_disconnected` once at autoload _ready; ⊥ new autoload (V5)|V5,V20
 T110|x|P7: TitleScreen MP entry -- add "Multiplayer" button alongside single-player flow; new `scenes/ui/MPEntry.tscn` with Host (port field) / Join (IP+port fields) tabs; Host calls `Game.host()` then `change_scene_to_file(Lobby)`; Join calls `Game.join()` and waits on `mp_peer_connected` (success) or `mp_join_failed` (back to MPEntry with error label)|T109
 T111|x|P8: Lobby scene `scenes/ui/Lobby.tscn` -- server-authoritative `Game.mp_lobby` dict (V39); rows show pilot_name, ELO, ready dot, team color, squad summary; bot-fill checkbox (host-only); team-size picker (host-only, mirrors `Game.loadout["team_size"]`); map picker (host-only); start button (host-only, gated on all-ready unless bot-fill enabled); clients render replicated state read-only|V39
