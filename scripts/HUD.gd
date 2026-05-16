@@ -37,6 +37,9 @@ var _score_bars: Array = []        # [{bg, fg, max_w}] team 0 and 1 score bars
 var _team_count_labels: Array = [] # [team0_label, team1_label] alive counters
 
 var _original_player_mech: Node = null  # keeps the original ref after spectate switch
+var _squad_picker: Control = null
+
+signal squad_slot_selected(slot_idx: int)
 
 func setup(match_node: Node, player_mech: Node, player_team: int) -> void:
 	_match = match_node
@@ -369,6 +372,50 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 		btn.pressed.connect(func(): Game._rpc_ready_for_next.rpc_id(1))
 	vbox.add_child(btn)
 	btn.grab_focus.call_deferred()
+
+func show_squad_picker_mp(squad: Array, slot_used: Array) -> void:
+	hide_squad_picker_mp()
+	var backdrop := ColorRect.new()
+	backdrop.color = Color(0.0, 0.0, 0.0, 0.85)
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(backdrop)
+	_squad_picker = backdrop
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.add_child(center)
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 12)
+	center.add_child(vbox)
+	var title := Label.new()
+	title.text = "SELECT NEXT MECH"
+	title.add_theme_font_size_override("font_size", 24)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(title)
+	for i in range(squad.size()):
+		var sq: Dictionary = squad[i]
+		var mech_path: String = sq.get("mech", "")
+		if mech_path == "":
+			continue
+		if i < slot_used.size() and slot_used[i]:
+			continue
+		var md = ResourceLoader.load(mech_path)
+		var label_text: String = md.display_name if md != null and "display_name" in md else mech_path.get_file()
+		var btn := Button.new()
+		btn.text = label_text
+		btn.add_theme_font_size_override("font_size", 18)
+		var idx := i
+		btn.pressed.connect(func(): squad_slot_selected.emit(idx))
+		vbox.add_child(btn)
+
+func hide_squad_picker_mp() -> void:
+	if _squad_picker != null and is_instance_valid(_squad_picker):
+		_squad_picker.queue_free()
+	_squad_picker = null
+
+func switch_player_mech(new_mech: Node) -> void:
+	_player_mech = new_mech
+	_original_player_mech = new_mech
+	weapon_hud.setup(new_mech)
 
 func _process(delta: float) -> void:
 	if _damage_alpha > 0.0:
