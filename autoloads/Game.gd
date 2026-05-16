@@ -437,6 +437,8 @@ func _apply_squad(peer_id: int, squad: Array) -> void:
 # Client -> server: send squad selection (V39, V41).
 @rpc("any_peer", "call_remote", "reliable")
 func _rpc_set_squad(squad: Array) -> void:
+	if not multiplayer.is_server():
+		return
 	var sender := multiplayer.get_remote_sender_id()
 	_apply_squad(sender, squad)
 
@@ -476,6 +478,8 @@ func _apply_ready(peer_id: int, ready: bool) -> void:
 # Client -> server: toggle ready state (V39, V41).
 @rpc("any_peer", "call_remote", "reliable")
 func _rpc_set_ready(ready: bool) -> void:
+	if not multiplayer.is_server():
+		return
 	var sender := multiplayer.get_remote_sender_id()
 	_apply_ready(sender, ready)
 
@@ -507,6 +511,9 @@ func _rpc_ready_for_next() -> void:
 	if not multiplayer.is_server():
 		return
 	var sender := multiplayer.get_remote_sender_id()
+	if not mp_lobby["peers"].has(sender):
+		push_error("_rpc_ready_for_next: unknown sender %d" % sender)
+		return
 	_mp_return_confirmations[sender] = true
 	_check_all_ready_for_next()
 
