@@ -5339,6 +5339,7 @@ func _on_local_mech_died_mp() -> void:
 		if entry.get("peer_id", 0) == my_id:
 			squad = entry["squad"]
 			break
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	hud.show_squad_picker_mp(squad, _peer_slot_used[my_id])
 
 # Server-side validation and dispatch for squad slot selection (V35, V41).
@@ -5406,8 +5407,15 @@ func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int) -> void:
 		new_mech.mark_requested.connect(_on_mark_requested)
 		new_mech.damaged.connect(hud.show_damage)
 		new_mech.died.connect(_on_local_mech_died_mp)
-		_switch_spectator(new_mech)
+		# Reconnect spectated-mech died tracking without switching to spec cam.
+		if _spectated_mech != null and is_instance_valid(_spectated_mech):
+			if _spectated_mech.died.is_connected(_on_spectated_mech_died):
+				_spectated_mech.died.disconnect(_on_spectated_mech_died)
+		_spectated_mech = new_mech
+		new_mech.died.connect(_on_spectated_mech_died)
+		new_mech.make_camera_current()
 		hud.hide_squad_picker_mp()
+		hud.stop_spectating()
 		hud.switch_player_mech(new_mech)
 	elif multiplayer.is_server():
 		var net_input := Node.new()
