@@ -4713,6 +4713,22 @@ func _setup_players_mp() -> void:
 			p.call("possess", mech)
 			mech.died.connect(Callable(p, "on_pawn_destroyed"))
 			_players.append(p)
+	# T122: HUD perspective — team-relative (own=green/blue, opp=red) regardless of server team id.
+	if player_mech != null and _player != null:
+		var my_team: int = _player.get("team")
+		var opp_team: int = 1 - my_team
+		hud.setup(match_node, player_mech, my_team)
+		var ally_mechs: Array = []
+		for m in _team_mechs[my_team]:
+			if m != player_mech:
+				ally_mechs.append(m)
+		hud.setup_bot_bars(_team_mechs[opp_team])
+		hud.setup_ally_bars(ally_mechs)
+		hud.setup_beacon_bars(get_tree().get_nodes_in_group("beacons"))
+		for weapon in player_mech.get_weapons():
+			if weapon.has_signal("hit_confirmed"):
+				weapon.hit_confirmed.connect(hud.register_hit)
+		player_mech.damaged.connect(hud.show_damage)
 
 func _add_sun_marker() -> void:
 	var mat := StandardMaterial3D.new()
