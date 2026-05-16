@@ -147,6 +147,12 @@ func _rpc_send_meta(meta: Dictionary) -> void:
 
 func _on_mp_peer_disconnected(id: int) -> void:
 	mp_peer_disconnected.emit(id)
+	if not multiplayer.is_server():
+		return
+	# Case (a): if in lobby (no active match roster), remove peer and rebroadcast.
+	if mp_active_match["roster"].is_empty() and mp_lobby["peers"].has(id):
+		mp_lobby["peers"].erase(id)
+		broadcast_lobby()
 
 func _on_mp_connection_failed() -> void:
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
