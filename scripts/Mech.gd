@@ -324,7 +324,7 @@ func receive_snapshot(entry: Dictionary) -> void:
 	_snap_buf.append({
 		"time": Time.get_ticks_msec() * 0.001,
 		"pos": entry.get("pos", global_position),
-		"quat": entry.get("quat", Quaternion(global_transform.basis)),
+		"quat": entry.get("quat", global_transform.basis.get_rotation_quaternion()),
 		"vel": entry.get("vel", Vector3.ZERO),
 	})
 	if _snap_buf.size() > 2:
