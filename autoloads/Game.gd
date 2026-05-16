@@ -483,6 +483,50 @@ func ai_director_set_intent(bot: Node, beacon: Node, team: int) -> void:
 func ai_director_clear_intent(bot: Node) -> void:
 	_bot_intents.erase(bot)
 
+# ---- Match-end lifecycle (T121) ----
+
+signal match_ended_mp(winner_team: int, stats: Array)
+
+var _mp_return_confirmations: Dictionary = {}
+var _mp_return_deadline: float = 0.0
+
+@rpc("authority", "call_local", "reliable")
+func _rpc_match_end(winner_team: int, stats: Array) -> void:
+	SoundManager.stop_music()
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	match_ended_mp.emit(winner_team, stats)
+
+@rpc("any_peer", "call_remote", "reliable")
+func _rpc_ready_for_next() -> void:
+	if not multiplayer.is_server():
+		return
+	var sender := multiplayer.get_remote_sender_id()
+	_mp_return_confirmations[sender] = true
+	_check_all_ready_for_next()
+
+func _confirm_ready_for_next_local() -> void:
+	_mp_return_confirmations[1] = true
+	_check_all_ready_for_next()
+
+func _check_all_ready_for_next() -> void:
+	for peer_id in mp_lobby["peers"].keys():
+		if not _mp_return_confirmations.has(peer_id):
+			return
+	_do_return_to_lobby()
+
+func _do_return_to_lobby() -> void:
+	_mp_return_confirmations.clear()
+	_mp_return_deadline = 0.0
+	for peer_id in mp_lobby["peers"].keys():
+		mp_lobby["peers"][peer_id]["ready"] = false
+	broadcast_lobby()
+	_rpc_change_scene.rpc("res://scenes/ui/Lobby.tscn")
+
+func _process(_delta: float) -> void:
+	if _mp_return_deadline > 0.0 and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		if Time.get_ticks_msec() * 0.001 >= _mp_return_deadline:
+			_do_return_to_lobby()
+
 func ai_director_intent_count(beacon: Node, team: int) -> int:
 	var count := 0
 	var stale: Array = []

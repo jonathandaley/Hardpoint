@@ -286,6 +286,82 @@ func _build_stats_panel(won: bool, stats: Dictionary) -> void:
 	# focus so Enter activates it
 	btn.grab_focus.call_deferred()
 
+func show_result_mp(winner_team: int, stats: Array) -> void:
+	result_label.visible = false
+	crosshair.visible = false
+	_build_stats_panel_mp(winner_team, stats)
+
+func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
+	var backdrop := ColorRect.new()
+	backdrop.process_mode = Node.PROCESS_MODE_ALWAYS
+	backdrop.color = Color(0, 0, 0, 1)
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(backdrop)
+
+	var center := CenterContainer.new()
+	center.process_mode = Node.PROCESS_MODE_ALWAYS
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(center)
+
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(480, 0)
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	panel.add_child(vbox)
+	center.add_child(panel)
+
+	var header := Label.new()
+	header.text = "YOU WIN" if winner_team == _player_team else "YOU LOSE"
+	header.add_theme_font_size_override("font_size", 28)
+	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	header.modulate = Color(0.2, 1.0, 0.2) if winner_team == _player_team else Color(1.0, 0.3, 0.3)
+	vbox.add_child(header)
+	vbox.add_child(HSeparator.new())
+
+	var col_hdr := HBoxContainer.new()
+	for col_text: String in ["PLAYER", "DAMAGE", "CAPS"]:
+		var lbl := Label.new()
+		lbl.text = col_text
+		lbl.add_theme_font_size_override("font_size", 13)
+		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		col_hdr.add_child(lbl)
+	vbox.add_child(col_hdr)
+	vbox.add_child(HSeparator.new())
+
+	for entry: Dictionary in stats:
+		var peer_id: int = entry.get("peer_id", 0)
+		var pilot_name: String
+		if peer_id == 0:
+			pilot_name = "BOT"
+		elif Game.mp_lobby["peers"].has(peer_id):
+			pilot_name = Game.mp_lobby["peers"][peer_id].get("pilot_name", "Peer %d" % peer_id)
+		else:
+			pilot_name = "Peer %d" % peer_id
+		var row := HBoxContainer.new()
+		for cell_text: String in [
+			pilot_name,
+			"%.0f" % entry.get("damage", 0.0),
+			"%d" % entry.get("captures", 0),
+		]:
+			var lbl := Label.new()
+			lbl.text = cell_text
+			lbl.add_theme_font_size_override("font_size", 14)
+			lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			row.add_child(lbl)
+		vbox.add_child(row)
+
+	vbox.add_child(HSeparator.new())
+
+	var btn := Button.new()
+	btn.text = "BACK TO LOBBY"
+	btn.add_theme_font_size_override("font_size", 15)
+	if Game.multiplayer.is_server():
+		btn.pressed.connect(func(): Game._confirm_ready_for_next_local())
+	else:
+		btn.pressed.connect(func(): Game._rpc_ready_for_next.rpc_id(1))
+	vbox.add_child(btn)
+	btn.grab_focus.call_deferred()
+
 func _process(delta: float) -> void:
 	if _damage_alpha > 0.0:
 		_damage_alpha = move_toward(_damage_alpha, 0.0, delta * 2.0)
