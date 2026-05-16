@@ -225,6 +225,12 @@ func start_spectating(mech: Node) -> void:
 	_spectate_label.add_theme_color_override("font_color", col)
 	_spectate_label.visible = true
 
+func stop_spectating() -> void:
+	if _spectate_label != null:
+		_spectate_label.visible = false
+	crosshair.visible = true
+	weapon_hud.visible = true
+
 func show_result(winning_team: int, stats: Dictionary = {}) -> void:
 	result_label.visible = false
 	crosshair.visible = false
