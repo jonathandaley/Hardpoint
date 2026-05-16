@@ -4411,6 +4411,7 @@ var _spectated_mech: Node = null    # mech whose camera is currently active
 var _match_over: bool = false
 var _beacons_captured: Array[int] = [0, 0]
 var _disconnected_peers: Dictionary = {}  # peer_id -> true; set on mid-match disconnect
+var _peer_slot_used: Dictionary = {}      # peer_id -> Array[bool] of 5 squad slot used flags
 var _nav_region: NavigationRegion3D = null
 var _movement_logger: Node = null   # MovementLogger instance (not an autoload, owned here)
 
@@ -4666,6 +4667,8 @@ func _spawn_mechs_mp() -> void:
 		m.owner_peer_id = entry["peer_id"]
 		if entry["peer_id"] != 0 and entry["peer_id"] == multiplayer.get_unique_id() and player_mech == null:
 			player_mech = m
+		if entry["peer_id"] != 0:
+			_peer_slot_used[entry["peer_id"]] = [true, false, false, false, false]
 		team_idx[t] += 1
 
 func _setup_players_mp() -> void:
@@ -4702,6 +4705,17 @@ func _setup_players_mp() -> void:
 			_players.append(_player)
 			_spectated_mech = mech
 			mech.died.connect(_on_spectated_mech_died)
+			# T127: squad lives -- count valid slots and set lives; wire squad picker.
+			var sq_lives := 0
+			for sq in entry["squad"]:
+				if sq.get("mech", "") != "":
+					sq_lives += 1
+			_player.set("lives", maxi(1, sq_lives))
+			mech.died.connect(_on_local_mech_died_mp)
+			if multiplayer.is_server():
+				hud.squad_slot_selected.connect(func(si): _process_pick_next_mech(my_id, si))
+			else:
+				hud.squad_slot_selected.connect(func(si): _rpc_pick_next_mech.rpc_id(1, si))
 		else:
 			var p := Node.new()
 			p.set_script(load("res://scripts/Player.gd"))
@@ -4715,6 +4729,12 @@ func _setup_players_mp() -> void:
 			p.call("possess", mech)
 			mech.died.connect(Callable(p, "on_pawn_destroyed"))
 			_players.append(p)
+			# T127: set remote player lives from squad valid slot count.
+			var rp_lives := 0
+			for sq in entry["squad"]:
+				if sq.get("mech", "") != "":
+					rp_lives += 1
+			p.set("lives", maxi(1, rp_lives))
 	# T122: HUD perspective — team-relative (own=green/blue, opp=red) regardless of server team id.
 	if player_mech != null and _player != null:
 		var my_team: int = _player.get("team")
@@ -5301,8 +5321,105 @@ func _bot_ify_disconnected_mech(mech: CharacterBody3D, peer_id: int) -> void:
 	ai_input.set_mp_seed(match_node.match_seed ^ peer_id)
 
 func _on_mp_match_ended(winner_team: int, stats: Array) -> void:
+	hud.hide_squad_picker_mp()
 	hud.show_result_mp(winner_team, stats)
 	print("[Arena] MP match over. Team %d wins." % winner_team)
+
+# T127: show squad picker when local mech dies and lives remain.
+func _on_local_mech_died_mp() -> void:
+	if _match_over or _player == null:
+		return
+	if _player.get("lives") <= 0:
+		return
+	var my_id := multiplayer.get_unique_id()
+	if not _peer_slot_used.has(my_id):
+		return
+	var squad: Array = []
+	for entry in Game.mp_active_match["roster"]:
+		if entry.get("peer_id", 0) == my_id:
+			squad = entry["squad"]
+			break
+	hud.show_squad_picker_mp(squad, _peer_slot_used[my_id])
+
+# Server-side validation and dispatch for squad slot selection (V35, V41).
+func _process_pick_next_mech(sender: int, slot_idx: int) -> void:
+	if not _peer_slot_used.has(sender):
+		push_error("[Arena] _process_pick_next_mech: unknown sender %d" % sender)
+		return
+	var slot_used: Array = _peer_slot_used[sender]
+	if slot_idx < 0 or slot_idx >= slot_used.size():
+		push_error("[Arena] _process_pick_next_mech: invalid slot %d for %d" % [slot_idx, sender])
+		return
+	if slot_used[slot_idx]:
+		push_error("[Arena] _process_pick_next_mech: slot %d already used by %d" % [slot_idx, sender])
+		return
+	var roster: Array = Game.mp_active_match["roster"]
+	var squad: Array = []
+	var peer_team := -1
+	for entry in roster:
+		if entry.get("peer_id", 0) == sender:
+			squad = entry["squad"]
+			peer_team = entry.get("team", -1)
+			break
+	if squad.is_empty() or slot_idx >= squad.size():
+		return
+	if squad[slot_idx].get("mech", "") == "":
+		push_error("[Arena] _process_pick_next_mech: empty mech at slot %d for %d" % [slot_idx, sender])
+		return
+	_peer_slot_used[sender][slot_idx] = true
+	_rpc_spawn_next_mech.rpc(sender, slot_idx, peer_team)
+
+# Client -> server: request next squad mech (V41).
+@rpc("any_peer", "reliable")
+func _rpc_pick_next_mech(slot_idx: int) -> void:
+	if not multiplayer.is_server():
+		return
+	var sender := multiplayer.get_remote_sender_id()
+	_process_pick_next_mech(sender, slot_idx)
+
+# Server -> all: spawn a peer's next squad mech (V35).
+@rpc("authority", "call_local", "reliable")
+func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int) -> void:
+	var roster: Array = Game.mp_active_match["roster"]
+	var squad: Array = []
+	var team_size: int = 0
+	for entry in roster:
+		if entry.get("team", -1) == team:
+			team_size += 1
+		if entry.get("peer_id", 0) == peer_id:
+			squad = entry["squad"]
+	if squad.is_empty() or slot_idx >= squad.size():
+		return
+	var mech_path: String = squad[slot_idx].get("mech", "")
+	if mech_path == "":
+		return
+	var mech_def = ResourceLoader.load(mech_path)
+	if mech_def == null:
+		push_error("[Arena] _rpc_spawn_next_mech: cannot load '%s'" % mech_path)
+		return
+	var new_mech: CharacterBody3D = _spawn_one_mech(mech_def, false, team, slot_idx, team_size)
+	new_mech.owner_peer_id = peer_id
+	var my_id := multiplayer.get_unique_id()
+	if peer_id == my_id:
+		player_mech = new_mech
+		_player.call("possess", new_mech)
+		new_mech.mark_requested.connect(_on_mark_requested)
+		new_mech.damaged.connect(hud.show_damage)
+		new_mech.died.connect(_on_local_mech_died_mp)
+		_switch_spectator(new_mech)
+		hud.hide_squad_picker_mp()
+		hud.switch_player_mech(new_mech)
+	elif multiplayer.is_server():
+		var net_input := Node.new()
+		net_input.set_script(load("res://scripts/NetworkInputSource.gd"))
+		net_input.name = "NetInput_%d_%d" % [peer_id, slot_idx]
+		for p in _players:
+			if p.name == "RemotePlayer_%d" % peer_id:
+				p.add_child(net_input)
+				p.set("input_source", net_input)
+				p.call("possess", new_mech)
+				new_mech.died.connect(Callable(p, "on_pawn_destroyed"))
+				break
 
 func _bowl_height(x: float, z: float) -> float:
 	var dx := x - BOWL_SUN_X
