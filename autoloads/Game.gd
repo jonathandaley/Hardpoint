@@ -505,6 +505,64 @@ func _rpc_match_end(winner_team: int, stats: Array) -> void:
 	SoundManager.stop_music()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	match_ended_mp.emit(winner_team, stats)
+	_update_mp_profile(winner_team, stats)
+
+# V36: each peer locally recomputes own ELO/XP/coins from broadcast match result.
+func _update_mp_profile(winner_team: int, stats: Array) -> void:
+	var my_peer_id := multiplayer.get_unique_id()
+	var roster: Array = mp_active_match["roster"]
+	# Find own team from roster.
+	var my_team := -1
+	for entry in roster:
+		if entry.get("peer_id", 0) == my_peer_id:
+			my_team = entry.get("team", -1)
+			break
+	if my_team == -1:
+		return
+	var won: bool = winner_team == my_team
+	var my_elo: int = profile.get("elo", 1000)
+	# Gather human opponent pre-ELOs; fall back to bot ELO if none present.
+	var opp_elos: Array = []
+	for stat in stats:
+		var sid: int = stat.get("peer_id", 0)
+		if sid == 0:
+			continue
+		var their_team := -1
+		for entry in roster:
+			if entry.get("peer_id", 0) == sid:
+				their_team = entry.get("team", -1)
+				break
+		if their_team != my_team and their_team != -1:
+			var pe: int = stat.get("pre_elo", 0)
+			if pe > 0:
+				opp_elos.append(pe)
+	if opp_elos.is_empty():
+		opp_elos.append(get_bot_elo())
+	# ELO: average delta across each opponent (standard K=32 formula).
+	var result_val: float = 1.0 if won else 0.0
+	var elo_delta: float = 0.0
+	for opp_elo in opp_elos:
+		var expected: float = 1.0 / (1.0 + pow(10.0, float(opp_elo - my_elo) / 400.0))
+		elo_delta += float(_ELO_K) * (result_val - expected)
+	elo_delta /= float(opp_elos.size())
+	profile["elo"] = maxi(100, my_elo + roundi(elo_delta))
+	# XP with avg opponent ELO.
+	var avg_opp_elo: int = 0
+	for e in opp_elos:
+		avg_opp_elo += e
+	avg_opp_elo /= opp_elos.size()
+	var xp_gain: int
+	if won:
+		xp_gain = clampi(roundi(50.0 * float(avg_opp_elo) / float(maxi(1, my_elo))), 25, 200)
+	else:
+		xp_gain = clampi(roundi(15.0 * float(avg_opp_elo) / float(maxi(1, my_elo))), 5, 50)
+	xp_gain = roundi(float(xp_gain) * (1.0 + get_skill_effect("xp_bonus")))
+	profile["xp"] = profile.get("xp", 0) + xp_gain
+	_check_level_up()
+	# Coins.
+	var base_coins: int = 75 if won else 20
+	profile["coins"] = profile.get("coins", 0) + apply_coin_pickup_bonus(base_coins)
+	save_profile()
 
 @rpc("any_peer", "call_remote", "reliable")
 func _rpc_ready_for_next() -> void:
