@@ -4446,6 +4446,7 @@ func _ready() -> void:
 		_setup_players_mp()
 		if multiplayer.is_server():
 			_start_snapshot_timer()
+		Game.match_ended_mp.connect(_on_mp_match_ended)
 	else:
 		_setup_players()
 	_create_nav_region()
@@ -5193,6 +5194,20 @@ func _on_match_ended(winning_team: int) -> void:
 	_match_over = true
 	if _movement_logger != null:
 		_movement_logger.stop_and_analyze()
+	# Disable all mechs (deferred so in-flight _physics_process finishes first - B17).
+	for team_mechs in _team_mechs:
+		for m in team_mechs:
+			if is_instance_valid(m):
+				m.set_deferred("process_mode", Node.PROCESS_MODE_DISABLED)
+	if multiplayer.has_multiplayer_peer():
+		if multiplayer.is_server():
+			var stats := _build_mp_stats()
+			Game._mp_return_confirmations.clear()
+			Game._mp_return_deadline = Time.get_ticks_msec() * 0.001 + 30.0
+			Game._rpc_match_end.rpc(winning_team, stats)
+		# Clients: _on_mp_match_ended fires via Game.match_ended_mp signal.
+		return
+	# SP path.
 	SoundManager.stop_music()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	var player_team: int = _player.get("team") if _player != null else 0
@@ -5206,11 +5221,6 @@ func _on_match_ended(winning_team: int) -> void:
 		"beacons_captured":   _beacons_captured[player_team],
 		"bot_beacons":        _beacons_captured[1 - player_team],
 	}
-	# Disable all mechs (deferred so in-flight _physics_process finishes first - B17).
-	for team_mechs in _team_mechs:
-		for m in team_mechs:
-			if is_instance_valid(m):
-				m.set_deferred("process_mode", Node.PROCESS_MODE_DISABLED)
 	hud.show_result(winning_team, stats)
 	if winning_team == 0:
 		Game.profile["wins"] = Game.profile.get("wins", 0) + 1
@@ -5219,6 +5229,33 @@ func _on_match_ended(winning_team: int) -> void:
 	Game.update_after_match(winning_team == player_team)
 	Game.save_profile()
 	print("[Arena] Match over. Team %d wins." % winning_team)
+
+func _build_mp_stats() -> Array:
+	var stats: Array = []
+	var roster: Array = Game.mp_active_match["roster"]
+	var team_idx := [0, 0]
+	for entry in roster:
+		var peer_id: int = entry.get("peer_id", 0)
+		var t: int = entry.get("team", 0)
+		var i: int = team_idx[t]
+		team_idx[t] += 1
+		var mech = _team_mechs[t][i] if i < _team_mechs[t].size() else null
+		var damage: float = mech.damage_taken_total if is_instance_valid(mech) else 0.0
+		var pre_elo: int = 0
+		if peer_id != 0 and Game.mp_lobby["peers"].has(peer_id):
+			pre_elo = Game.mp_lobby["peers"][peer_id].get("elo", 0)
+		stats.append({
+			"peer_id":  peer_id,
+			"kills":    0,
+			"damage":   damage,
+			"captures": _beacons_captured[t] if t >= 0 and t < _beacons_captured.size() else 0,
+			"pre_elo":  pre_elo,
+		})
+	return stats
+
+func _on_mp_match_ended(winner_team: int, stats: Array) -> void:
+	hud.show_result_mp(winner_team, stats)
+	print("[Arena] MP match over. Team %d wins." % winner_team)
 
 func _bowl_height(x: float, z: float) -> float:
 	var dx := x - BOWL_SUN_X
