@@ -124,4 +124,4 @@ func on_fire_release() -> void:
 	pass
 
 func _do_fire() -> void:
-	print("[WeaponBase] _do_fire() -- override in subclass")
+	push_warning("[WeaponBase] _do_fire() not overridden in %s" % get_script().resource_path)

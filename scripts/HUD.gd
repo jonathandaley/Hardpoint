@@ -381,6 +381,7 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 
 func show_squad_picker_mp(squad: Array, slot_used: Array) -> void:
 	hide_squad_picker_mp()
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	var backdrop := ColorRect.new()
 	backdrop.color = Color(0.0, 0.0, 0.0, 0.85)
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
