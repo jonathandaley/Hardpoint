@@ -4410,6 +4410,7 @@ var _players: Array = []            # all Player nodes across both teams
 var _spectated_mech: Node = null    # mech whose camera is currently active
 var _match_over: bool = false
 var _beacons_captured: Array[int] = [0, 0]
+var _disconnected_peers: Dictionary = {}  # peer_id -> true; set on mid-match disconnect
 var _nav_region: NavigationRegion3D = null
 var _movement_logger: Node = null   # MovementLogger instance (not an autoload, owned here)
 
@@ -4447,6 +4448,7 @@ func _ready() -> void:
 		if multiplayer.is_server():
 			_start_snapshot_timer()
 		Game.match_ended_mp.connect(_on_mp_match_ended)
+		Game.mp_peer_disconnected.connect(_on_peer_disconnected_in_match)
 	else:
 		_setup_players()
 	_create_nav_region()
@@ -5261,13 +5263,42 @@ func _build_mp_stats() -> Array:
 		if peer_id != 0 and Game.mp_lobby["peers"].has(peer_id):
 			pre_elo = Game.mp_lobby["peers"][peer_id].get("elo", 0)
 		stats.append({
-			"peer_id":  peer_id,
-			"kills":    0,
-			"damage":   damage,
-			"captures": _beacons_captured[t] if t >= 0 and t < _beacons_captured.size() else 0,
-			"pre_elo":  pre_elo,
+			"peer_id":      peer_id,
+			"kills":        0,
+			"damage":       damage,
+			"captures":     _beacons_captured[t] if t >= 0 and t < _beacons_captured.size() else 0,
+			"pre_elo":      pre_elo,
+			"disconnected": _disconnected_peers.has(peer_id),
 		})
 	return stats
+
+func _on_peer_disconnected_in_match(id: int) -> void:
+	if not multiplayer.is_server():
+		return
+	if _match_over:
+		return
+	for team in range(2):
+		for mech in _team_mechs[team]:
+			if not is_instance_valid(mech) or mech.get("is_dead"):
+				continue
+			if mech.owner_peer_id != id:
+				continue
+			_bot_ify_disconnected_mech(mech, id)
+	_disconnected_peers[id] = true
+
+func _bot_ify_disconnected_mech(mech: CharacterBody3D, peer_id: int) -> void:
+	if mech.get_node_or_null("NavAgent") == null:
+		var nav := NavigationAgent3D.new()
+		nav.name = "NavAgent"
+		nav.path_desired_distance = 1.5
+		nav.target_desired_distance = 2.5
+		mech.add_child(nav)
+	var ai_input := Node.new()
+	ai_input.set_script(load("res://scripts/AIInputSource.gd"))
+	ai_input.bot_id = peer_id
+	mech.add_child(ai_input)
+	mech.set_input_source(ai_input)
+	ai_input.set_mp_seed(match_node.match_seed ^ peer_id)
 
 func _on_mp_match_ended(winner_team: int, stats: Array) -> void:
 	hud.show_result_mp(winner_team, stats)

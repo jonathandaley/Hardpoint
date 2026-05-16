@@ -342,6 +342,8 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 		else:
 			pilot_name = "Peer %d" % peer_id
 			elo_str = "%d" % entry.get("pre_elo", 0)
+		if entry.get("disconnected", false):
+			pilot_name = "[DC] " + pilot_name
 		var row := HBoxContainer.new()
 		for cell_text: String in [
 			pilot_name,
