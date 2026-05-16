@@ -5332,7 +5332,7 @@ func _snapshot_tick() -> void:
 				"team": team,
 				"idx": idx,
 				"pos": m.global_position,
-				"quat": Quaternion(m.global_transform.basis),
+				"quat": m.global_transform.basis.get_rotation_quaternion(),
 				"vel": m.velocity,
 			})
 	if snapshots.is_empty():
