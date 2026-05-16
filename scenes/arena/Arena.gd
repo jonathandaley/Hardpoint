@@ -4408,6 +4408,7 @@ var _team_mechs: Array = [[], []]   # mechs per team; player_mech is _team_mechs
 var _player: Node                   # human player (team 0)
 var _players: Array = []            # all Player nodes across both teams
 var _spectated_mech: Node = null    # mech whose camera is currently active
+var _local_team: int = 0            # local player's team index (set in setup)
 var _match_over: bool = false
 var _beacons_captured: Array[int] = [0, 0]
 var _disconnected_peers: Dictionary = {}  # peer_id -> true; set on mid-match disconnect
@@ -4738,6 +4739,7 @@ func _setup_players_mp() -> void:
 	# T122: HUD perspective — team-relative (own=green/blue, opp=red) regardless of server team id.
 	if player_mech != null and _player != null:
 		var my_team: int = _player.get("team")
+		_local_team = my_team
 		var opp_team: int = 1 - my_team
 		hud.setup(match_node, player_mech, my_team)
 		var ally_mechs: Array = []
@@ -5130,8 +5132,7 @@ func _setup_players() -> void:
 func _on_spectated_mech_died() -> void:
 	if _match_over:
 		return
-	# Find the next living ally on team 0.
-	for m in _team_mechs[0]:
+	for m in _team_mechs[_local_team]:
 		if is_instance_valid(m) and m.visible and m != _spectated_mech:
 			_switch_spectator(m)
 			return
@@ -5164,7 +5165,7 @@ func _switch_spectator(m: Node) -> void:
 
 func _cycle_spectator() -> void:
 	var alive: Array = []
-	for m in _team_mechs[0]:
+	for m in _team_mechs[_local_team]:
 		if is_instance_valid(m) and m.visible:
 			alive.append(m)
 	if alive.size() <= 1:
@@ -5330,6 +5331,11 @@ func _on_local_mech_died_mp() -> void:
 	if _match_over or _player == null:
 		return
 	if _player.get("lives") <= 0:
+		# T128: squad exhausted — spectate an alive teammate until match ends.
+		for m in _team_mechs[_local_team]:
+			if is_instance_valid(m) and m.visible and m != player_mech:
+				_switch_spectator(m)
+				return
 		return
 	var my_id := multiplayer.get_unique_id()
 	if not _peer_slot_used.has(my_id):
