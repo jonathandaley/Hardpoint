@@ -319,7 +319,7 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 	vbox.add_child(HSeparator.new())
 
 	var col_hdr := HBoxContainer.new()
-	for col_text: String in ["PLAYER", "DAMAGE", "CAPS"]:
+	for col_text: String in ["PLAYER", "ELO", "DAMAGE", "CAPS"]:
 		var lbl := Label.new()
 		lbl.text = col_text
 		lbl.add_theme_font_size_override("font_size", 13)
@@ -331,15 +331,21 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 	for entry: Dictionary in stats:
 		var peer_id: int = entry.get("peer_id", 0)
 		var pilot_name: String
+		var elo_str: String
 		if peer_id == 0:
-			pilot_name = "BOT"
+			pilot_name = "[BOT]"
+			elo_str = "-"
 		elif Game.mp_lobby["peers"].has(peer_id):
-			pilot_name = Game.mp_lobby["peers"][peer_id].get("pilot_name", "Peer %d" % peer_id)
+			var pdata: Dictionary = Game.mp_lobby["peers"][peer_id]
+			pilot_name = pdata.get("pilot_name", "Peer %d" % peer_id)
+			elo_str = "%d" % entry.get("pre_elo", pdata.get("elo", 0))
 		else:
 			pilot_name = "Peer %d" % peer_id
+			elo_str = "%d" % entry.get("pre_elo", 0)
 		var row := HBoxContainer.new()
 		for cell_text: String in [
 			pilot_name,
+			elo_str,
 			"%.0f" % entry.get("damage", 0.0),
 			"%d" % entry.get("captures", 0),
 		]:
