@@ -38,8 +38,10 @@ var _camera_pitch: float = -0.3  # matches CameraArm initial rotation.x
 var _desired_move_dir: Vector3 = Vector3.ZERO
 var _no_damage_timer: float = 0.0  # seconds since last damage hit; drives repair_rate skill
 var _net_input_tick: int = 0       # increments every physics tick; used for 30Hz throttle
-var _net_input_seq: int = 0        # monotonic send counter; T125 uses for rate-limit
+var _net_input_seq: int = 0        # monotonic send counter
 var _net_look_accum: Vector2 = Vector2.ZERO  # accumulated between RPC sends (get_look_delta drains on read)
+var _rpc_rate_times: Array = []    # server-side sliding window of _rpc_input arrival times (1s)
+var _rpc_rate_warned: bool = false # true while peer is over 60Hz limit (suppress repeat warnings)
 var _snap_buf: Array = []          # V37: last 2 server snapshots [{time,pos,quat,vel}]; T120 reads for interp
 
 @onready var torso: Node3D = $Torso
@@ -563,6 +565,16 @@ func _rpc_input(seq: int, payload: Dictionary) -> void:
 	if sender != owner_peer_id:
 		push_error("[Mech] _rpc_input: sender %d doesn't own this mech (owner=%d)" % [sender, owner_peer_id])
 		return
+	var now := Time.get_ticks_msec() / 1000.0
+	while not _rpc_rate_times.is_empty() and now - float(_rpc_rate_times[0]) > 1.0:
+		_rpc_rate_times.pop_front()
+	_rpc_rate_times.append(now)
+	if _rpc_rate_times.size() > 60:
+		if not _rpc_rate_warned:
+			push_warning("[Mech] _rpc_input: rate limit exceeded for peer %d (>60Hz)" % sender)
+			_rpc_rate_warned = true
+		return
+	_rpc_rate_warned = false
 	if _input_source == null or not _input_source.has_method("push_input"):
 		return
 	_input_source.push_input(payload)
