@@ -1,5 +1,7 @@
 extends Control
 
+const MechVisuals = preload("res://scripts/MechVisuals.gd")
+
 const DEBUG_BOT_PICKER := false
 
 const ROSTER: Array = [
