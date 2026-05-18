@@ -5462,6 +5462,14 @@ func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int) -> void:
 				p.call("possess", new_mech)
 				new_mech.died.connect(Callable(p, "on_pawn_destroyed"))
 				break
+	if team == _local_team:
+		var ally_mechs: Array = []
+		for m in _team_mechs[team]:
+			if m != player_mech:
+				ally_mechs.append(m)
+		hud.setup_ally_bars(ally_mechs)
+	else:
+		hud.setup_bot_bars(_team_mechs[team])
 
 func _bowl_height(x: float, z: float) -> float:
 	var dx := x - BOWL_SUN_X
@@ -5576,6 +5584,7 @@ func _snapshot_tick() -> void:
 				"pos": m.global_position,
 				"quat": m.global_transform.basis.get_rotation_quaternion(),
 				"vel": m.velocity,
+				"torso_y": m.torso.rotation.y,
 			})
 	if snapshots.is_empty():
 		return
