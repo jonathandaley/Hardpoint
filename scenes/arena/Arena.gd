@@ -4725,6 +4725,7 @@ func _setup_players_mp() -> void:
 			_player.add_child(pilot)
 			_player.set("pilot", pilot)
 			_player.call("possess", mech)
+			mech.make_camera_current()
 			mech.died.connect(Callable(_player, "on_pawn_destroyed"))
 			mech.mark_requested.connect(_on_mark_requested)
 			_players.append(_player)
