@@ -335,6 +335,7 @@ func receive_snapshot(entry: Dictionary) -> void:
 		"pos": entry.get("pos", global_position),
 		"quat": entry.get("quat", global_transform.basis.get_rotation_quaternion()),
 		"vel": entry.get("vel", Vector3.ZERO),
+		"torso_y": entry.get("torso_y", torso.rotation.y),
 	})
 	if _snap_buf.size() > 2:
 		_snap_buf.pop_front()
@@ -521,20 +522,27 @@ func _apply_snapshot_interp() -> void:
 		return
 	var now := Time.get_ticks_msec() * 0.001
 	var render_t := now - 0.1
+	var interp_torso_y: float = torso.rotation.y
 	if _snap_buf.size() == 1:
 		global_transform = Transform3D(Basis(_snap_buf[0]["quat"] as Quaternion), _snap_buf[0]["pos"] as Vector3)
 		velocity = _snap_buf[0]["vel"] as Vector3
-		return
-	var s0: Dictionary = _snap_buf[0]
-	var s1: Dictionary = _snap_buf[1]
-	var span: float = (s1["time"] as float) - (s0["time"] as float)
-	var t: float = 0.0
-	if span > 0.0001:
-		t = clampf((render_t - (s0["time"] as float)) / span, 0.0, 1.0)
-	global_transform = Transform3D(
-		Basis((s0["quat"] as Quaternion).slerp(s1["quat"] as Quaternion, t)),
-		(s0["pos"] as Vector3).lerp(s1["pos"] as Vector3, t))
-	velocity = (s0["vel"] as Vector3).lerp(s1["vel"] as Vector3, t)
+		interp_torso_y = _snap_buf[0].get("torso_y", torso.rotation.y)
+	else:
+		var s0: Dictionary = _snap_buf[0]
+		var s1: Dictionary = _snap_buf[1]
+		var span: float = (s1["time"] as float) - (s0["time"] as float)
+		var t: float = 0.0
+		if span > 0.0001:
+			t = clampf((render_t - (s0["time"] as float)) / span, 0.0, 1.0)
+		global_transform = Transform3D(
+			Basis((s0["quat"] as Quaternion).slerp(s1["quat"] as Quaternion, t)),
+			(s0["pos"] as Vector3).lerp(s1["pos"] as Vector3, t))
+		velocity = (s0["vel"] as Vector3).lerp(s1["vel"] as Vector3, t)
+		interp_torso_y = lerp_angle(
+			s0.get("torso_y", torso.rotation.y) as float,
+			s1.get("torso_y", torso.rotation.y) as float, t)
+	if owner_peer_id != multiplayer.get_unique_id():
+		torso.rotation.y = interp_torso_y
 
 func _maybe_forward_input() -> void:
 	if not multiplayer.has_multiplayer_peer():

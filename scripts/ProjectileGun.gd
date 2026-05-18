@@ -59,4 +59,10 @@ func _rpc_spawn_ghost(pos: Vector3, basis: Basis, speed: float, lifetime: float,
 	ghost.lifetime = lifetime
 	ghost.team = team
 	get_tree().current_scene.add_child(ghost)
-	ghost.global_transform = Transform3D(basis, pos)
+	var actual_basis := basis
+	if owner_mech != null and owner_mech.get("owner_peer_id") == multiplayer.get_unique_id():
+		var cam := owner_mech.get("camera") as Camera3D
+		if cam != null:
+			var aim_far := pos - cam.global_transform.basis.z * 1000.0
+			actual_basis = Transform3D(Basis(), pos).looking_at(aim_far).basis
+	ghost.global_transform = Transform3D(actual_basis, pos)
