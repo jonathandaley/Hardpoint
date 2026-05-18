@@ -1,5 +1,8 @@
 class_name Mech
 extends CharacterBody3D
+
+const ProjectileGun = preload("res://scripts/ProjectileGun.gd")
+const MachineGun    = preload("res://scripts/MachineGun.gd")
 # The Pawn. Handles movement and weapon firing.
 # Ignorant of who pilots it - all control comes through InputSource.
 #
