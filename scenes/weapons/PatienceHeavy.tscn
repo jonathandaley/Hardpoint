@@ -39,7 +39,7 @@ emission_energy_multiplier = 6.0
 [node name="PatienceHeavy" type="Node3D"]
 script = ExtResource("1")
 slot_size = 1
-damage = 0.0
+damage = 62.5
 fire_rate = 100.0
 range = 300.0
 max_ammo = 1

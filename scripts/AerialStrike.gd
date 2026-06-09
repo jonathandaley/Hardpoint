@@ -25,6 +25,8 @@ func _do_fire() -> void:
 func _fire_burst() -> void:
 	var lock_target := owner_mech.get("locked_target") as Node3D
 	for i in burst_count:
+		if not is_instance_valid(self) or not is_inside_tree():
+			return
 		if not is_instance_valid(lock_target):
 			break
 		_spawn_rocket(lock_target)

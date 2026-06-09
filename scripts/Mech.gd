@@ -186,6 +186,7 @@ func configure_weapons(slots: Array) -> void:
 			weapon.owner_mech = self
 		hp.add_child(weapon)
 	_build_weapon_list()
+	_body_meshes = torso.find_children("*", "MeshInstance3D", true, false)
 
 func configure_legs(hip_sweep: float, bob_magnitude: float, cycle_rate: float) -> void:
 	legs.set("hip_sweep_amount", hip_sweep)
@@ -593,6 +594,8 @@ func _rpc_input(seq: int, payload: Dictionary) -> void:
 func _handle_look() -> void:
 	var look: Vector2 = _input_source.get_look_delta()
 	_net_look_accum += look
+	if not multiplayer.has_multiplayer_peer() or multiplayer.is_server():
+		_net_look_accum = Vector2.ZERO
 	if look == Vector2.ZERO:
 		return
 	var sens: float = Game.settings.get("mouse_sensitivity", 0.003)

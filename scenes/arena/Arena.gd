@@ -5268,6 +5268,7 @@ func _on_match_ended(winning_team: int) -> void:
 			var stats := _build_mp_stats()
 			Game._mp_return_confirmations.clear()
 			Game._mp_return_deadline = Time.get_ticks_msec() * 0.001 + 30.0
+			Game.set_process(true)
 			Game._rpc_match_end.rpc(winning_team, stats)
 		# Clients: _on_mp_match_ended fires via Game.match_ended_mp signal.
 		return
@@ -5286,7 +5287,7 @@ func _on_match_ended(winning_team: int) -> void:
 		"bot_beacons":        _beacons_captured[1 - player_team],
 	}
 	hud.show_result(winning_team, stats)
-	if winning_team == 0:
+	if winning_team == player_team:
 		Game.profile["wins"] = Game.profile.get("wins", 0) + 1
 	else:
 		Game.profile["losses"] = Game.profile.get("losses", 0) + 1
@@ -5342,8 +5343,19 @@ func _bot_ify_disconnected_mech(mech: CharacterBody3D, peer_id: int) -> void:
 	var ai_input := Node.new()
 	ai_input.set_script(load("res://scripts/AIInputSource.gd"))
 	ai_input.bot_id = peer_id
-	mech.add_child(ai_input)
-	mech.set_input_source(ai_input)
+	# AIInputSource reads get_parent().get("pawn") — must be parented to the Player node.
+	var remote_player: Node = null
+	for p in _players:
+		if p.name == "RemotePlayer_%d" % peer_id:
+			remote_player = p
+			break
+	if remote_player != null:
+		remote_player.add_child(ai_input)
+		remote_player.set("input_source", ai_input)
+		remote_player.call("possess", mech)
+	else:
+		mech.add_child(ai_input)
+		mech.set_input_source(ai_input)
 	ai_input.set_mp_seed(match_node.match_seed ^ peer_id)
 
 func _on_mp_match_ended(winner_team: int, stats: Array) -> void:

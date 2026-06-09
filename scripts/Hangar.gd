@@ -30,6 +30,7 @@ const WEAPON_CATALOG: Array = [
 	{"name": "MACHINE GUN HEAVY", "path": "res://scenes/weapons/MachineGunHeavy.tscn", "slot_size": 1},
 	{"name": "SHOTGUN HEAVY",        "path": "res://scenes/weapons/ShotgunHeavy.tscn",        "slot_size": 1},
 	{"name": "MISSILE LAUNCHER HV", "path": "res://scenes/weapons/MissileLauncherHeavy.tscn", "slot_size": 1},
+	{"name": "ROCKET LAUNCHER HV",  "path": "res://scenes/weapons/RocketLauncherHeavy.tscn",  "slot_size": 1},
 	{"name": "LASER CANNON HV",     "path": "res://scenes/weapons/LaserCannonHeavy.tscn",     "slot_size": 1},
 	{"name": "ARC WEAPON LT",       "path": "res://scenes/weapons/ArcWeaponLight.tscn",        "slot_size": 0},
 	{"name": "ARC WEAPON HV",       "path": "res://scenes/weapons/ArcWeaponHeavy.tscn",        "slot_size": 1},
@@ -519,7 +520,7 @@ func _update_mech_panel() -> void:
 func _build_weapon_picker(md) -> void:
 	var existing := mech_panel.get_node_or_null("WeaponPicker")
 	if existing:
-		existing.free()
+		existing.queue_free()
 
 	var slots: Array = md.weapon_slots
 	var row_h := 24.0
@@ -921,5 +922,3 @@ func _on_skill_upgrade(key: String) -> void:
 		_refresh_pilot_stats()
 		_build_progression_nodes()
 
-func _on_prog_buy(_node_name: String) -> void:
-	pass  # T91

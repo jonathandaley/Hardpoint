@@ -90,6 +90,7 @@ func _ready() -> void:
 	multiplayer.peer_disconnected.connect(_on_mp_peer_disconnected)
 	multiplayer.connection_failed.connect(_on_mp_connection_failed)
 	multiplayer.server_disconnected.connect(_on_mp_server_disconnected)
+	set_process(false)
 
 func host(port: int = 8910) -> void:
 	var peer := ENetMultiplayerPeer.new()
@@ -348,10 +349,10 @@ func save_loadout() -> void:
 
 func save_settings() -> void:
 	var cfg := ConfigFile.new()
-	cfg.load(_SAVE_PATH)
+	cfg.load(_SETTINGS_PATH)
 	cfg.set_value("settings", "mouse_sensitivity", settings.get("mouse_sensitivity", 0.003))
 	cfg.set_value("settings", "bot_difficulty",    settings.get("bot_difficulty",    1))
-	cfg.set_value("settings", "master_volume",     settings.get("master_volume",     1.0))
+	cfg.set_value("settings", "master_volume",     settings.get("master_volume",     0.5))
 	cfg.save(_SETTINGS_PATH)
 
 func apply_volume(linear: float) -> void:
@@ -588,6 +589,7 @@ func _check_all_ready_for_next() -> void:
 func _do_return_to_lobby() -> void:
 	_mp_return_confirmations.clear()
 	_mp_return_deadline = 0.0
+	set_process(false)
 	for peer_id in mp_lobby["peers"].keys():
 		mp_lobby["peers"][peer_id]["ready"] = false
 	broadcast_lobby()

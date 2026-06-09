@@ -27,9 +27,6 @@ func _ready() -> void:
 	_beam_mesh = mi
 	_beam_mesh.visible = false
 
-func _process(delta: float) -> void:
-	super._process(delta)
-
 func fire() -> void:
 	if owner_mech == null or owner_mech.get("locked_target") == null:
 		_hide_beam()

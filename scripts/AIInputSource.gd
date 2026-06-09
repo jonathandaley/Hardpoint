@@ -93,20 +93,6 @@ func _find_targets() -> void:
 func _on_pawn_damaged() -> void:
 	_target_refresh = 0.0
 
-func _pick_closest_enemy(from: Node3D) -> Node3D:
-	var best: Node3D = null
-	var best_dist := INF
-	for em in _enemy_mechs:
-		if not is_instance_valid(em) or not em.visible:
-			continue
-		if em.get("is_stealthy"):
-			continue
-		var d: float = from.global_position.distance_to(em.global_position)
-		if d < best_dist:
-			best_dist = d
-			best = em
-	return best
-
 # Picks the best target by blending distance and target health.
 # Prefers enemies that are already damaged (focus-fire) without completely
 # ignoring closer threats.
@@ -143,7 +129,7 @@ func _pick_target_beacon(bot_mech: Node3D) -> Node:
 		var priority: float
 		match role:
 			"defender":
-				if owner == 1:
+				if owner == _own_team:
 					priority = 15.0
 				elif owner == -1:
 					priority = 3.0
@@ -152,12 +138,12 @@ func _pick_target_beacon(bot_mech: Node3D) -> Node:
 			"flanker":
 				if owner == -1:
 					priority = 14.0
-				elif owner == 0:
+				elif owner == 1 - _own_team:
 					priority = 6.0
 				else:
 					continue
 			_: # "attacker"
-				if owner == 1:
+				if owner == _own_team:
 					continue
 				priority = 10.0 if owner == -1 else 5.0
 		var already: int = Game.ai_director_intent_count(b, _own_team)

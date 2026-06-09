@@ -30,6 +30,8 @@ func _do_fire() -> void:
 	var aim_result := space.intersect_ray(aim_query)
 	var aim_point: Vector3 = aim_result.position if aim_result \
 		else cam.global_position + cam_fwd * range
+	if (aim_point - global_position).dot(cam_fwd) <= 0.0:
+		aim_point = global_position + cam_fwd * range
 
 	var proj := PROJECTILE_SCENE.instantiate() as Projectile
 	proj.damage = damage

@@ -428,7 +428,7 @@ func _process(delta: float) -> void:
 	if _damage_alpha > 0.0:
 		_damage_alpha = move_toward(_damage_alpha, 0.0, delta * 2.0)
 		damage_flash.modulate.a = _damage_alpha
-	if _player_mech != null:
+	if is_instance_valid(_player_mech):
 		var lp: float = _player_mech.get("lock_progress") if "lock_progress" in _player_mech else 0.0
 		crosshair.set_lock_progress(lp)
 		_update_eligible_indicator()
