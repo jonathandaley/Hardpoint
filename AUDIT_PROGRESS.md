@@ -23,7 +23,7 @@ This file is the resumable state. If session dies, restart from "Next up".
 
 ### Bugs (Mech / weapons)
 8. ~~**RocketLauncher.gd sends raw instance_id over RPC**~~ FIXED: changed to NodePath + `get_node_or_null`. [needs MP test]
-9. **MachineGun.gd:51-59 ramp logic breaks at high frame rates.** `fire()` (called from `_physics_process`, 60 Hz) sets `_trigger_held = true`; `_process` (render rate) consumes and clears it. At >60 fps, extra `_process` frames see `_trigger_held == false` and decay `_current_rate` at 25 rps/s between physics ticks, so the spin-up stalls/oscillates for high-refresh players. Track held state from the physics side (e.g. clear in `_physics_process`, or timestamp the last fire call).
+9. ~~**MachineGun.gd:51-59 ramp logic breaks at high frame rates.**~~ FIXED: ramp update + `_trigger_held` clear moved to `_physics_process` so both ends of the flag live at physics rate; `_process` keeps only cooldown (super) and reload loop-stop.
 10. **MachineGun.fire() duplicates WeaponBase.fire() but drops MP broadcast**: `VFX.muzzle_flash(...)` is called without the broadcast flag and there's no positional fire-sound broadcast (loop player is local to the server). Remote peers see/hear nothing from machine guns. (Related to known open MP bug group.)
 11. **Mech.gd:322 `_sync_health` is `unreliable_ordered`, and death (h=0) rides on it.** The final health packet can be dropped, leaving a client showing a live mech (or wrong HP until the next hit). Death should be a reliable RPC (or Arena should broadcast death/respawn reliably — verify in Arena pass).
 12. ~~**ProjectileGun/MachineGun/MissileLauncher aim-point can be behind the barrel.**~~ FIXED: added `(aim_point - global_position).dot(cam_fwd) <= 0` guard in all three weapons.
@@ -41,7 +41,7 @@ This file is the resumable state. If session dies, restart from "Next up".
 
 ### Bugs (AI)
 21. ~~**AIInputSource._pick_target_beacon hardcodes team identity**~~ FIXED: replaced `owner == 1` / `owner == 0` with `owner == _own_team` / `owner == 1 - _own_team`. [needs test in 5v5]
-22. **AIInputSource turn speed is frame-rate dependent.** AI runs in `_process` (render rate) and computes `_look_delta` scaled by render delta, but `Mech._handle_look` consumes it once per physics tick (60 Hz) without the AI draining it. At 144 fps bots turn ~0.4x as fast as intended; at 30 fps render, 2x. Move AI to `_physics_process`, or drain `_look_delta` on read like PlayerInputSource/NetworkInputSource do.
+22. ~~**AIInputSource turn speed is frame-rate dependent.**~~ FIXED: AI loop moved from `_process` to `_physics_process` (1:1 with Mech's consumption; also makes per-tick RNG draws frame-rate independent), plus drain-on-read in `get_look_delta` matching PlayerInputSource/NetworkInputSource.
 23. ~~**AIInputSource._pick_closest_enemy is dead code**~~ FIXED: deleted.
 24. **AIInputSource._enemy_mechs is a spawn-time snapshot** — mechs added later (late joins, anything respawned as a new node) are never targeted. Fine today if Arena spawns everything up front; fragile otherwise.
 
@@ -84,14 +84,14 @@ Sonnet to follow the finding's suggested approach literally and not improvise.
 - ~~#21 AI beacon logic~~ DONE (needs test)
 - ~~#8 RocketLauncher ghost target~~ DONE (needs test)
 - ~~#25 disconnected peers' mechs idle~~ DONE (needs test)
-- #9 MachineGun ramp broken at >60 fps [OPUS/FABLE]
+- ~~#9 MachineGun ramp broken at >60 fps~~ DONE
 
 **Fix when touching MP:** #10, #11, #15, #16, #27 [SONNET+TEST]; #28 seed RPC race [OPUS/FABLE]
 (mostly overlap with known open MP bug groups)
 
 **Robustness / latent:**
 - ~~#12, #13, #14, #18, #26, #30, #34~~ DONE
-- #22 AI turn-speed frame dependence [OPUS/FABLE — same class of timing bug as #9; fix both together]
+- ~~#22 AI turn-speed frame dependence~~ DONE (fixed together with #9)
 
 **Cleanup / polish:**
 - ~~#2, #3(33), #4/4b/4c, #5, #7, #19, #23, #29, #31, #32, #33, #34, #35~~ DONE
@@ -99,6 +99,6 @@ Sonnet to follow the finding's suggested approach literally and not improvise.
 - #6 VFX mesh/material allocation per particle [SONNET — only if GC spikes appear]
 
 ## Next up
-- #9, #22 MachineGun ramp + AI turn-speed [OPUS/FABLE together]
-- #10, #11, #15, #16, #27 MP visual/audio gaps [SONNET+TEST — batch when touching MP]
+- ~~#9, #22 MachineGun ramp + AI turn-speed~~ DONE 2026-06-09
+- #10, #11, #15, #16, #27 MP visual/audio gaps + #28 seed RPC race [batch when touching MP]
 - #24 _enemy_mechs snapshot, #6 VFX alloc [low priority]
