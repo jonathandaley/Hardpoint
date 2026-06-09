@@ -31,7 +31,7 @@ func _ready() -> void:
 	vol_slider.min_value = 0.0
 	vol_slider.max_value = 1.0
 	vol_slider.step      = 0.05
-	vol_slider.value     = Game.settings.get("master_volume", 1.0)
+	vol_slider.value     = Game.settings.get("master_volume", 0.5)
 	vol_slider.set_block_signals(false)
 	_update_vol_label()
 

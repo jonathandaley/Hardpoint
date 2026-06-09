@@ -41,7 +41,7 @@ func _tick(_delta: float) -> void:
 func _check_win() -> void:
 	for i in scores.size():
 		if score_limit > 0 and scores[i] >= score_limit:
-			_end_match(1 - i)
+			_end_match(i)
 			return
 	if time_limit > 0.0 and elapsed >= time_limit:
 		_end_match(0 if scores[0] >= scores[1] else 1)

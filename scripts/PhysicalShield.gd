@@ -17,7 +17,6 @@ func take_damage(amount: float, _source: Node3D = null) -> void:
 	if shield_hp <= 0.0:
 		return
 	shield_hp -= amount
-	pass
 	if shield_hp <= 0.0:
 		shield_hp = 0.0
 		_break()
@@ -26,4 +25,3 @@ func _break() -> void:
 	$CollisionShape3D.disabled = true
 	visible = false
 	shield_broken.emit()
-	pass

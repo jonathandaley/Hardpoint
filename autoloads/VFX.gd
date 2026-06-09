@@ -20,11 +20,11 @@ func _rpc_muzzle_flash(pos: Vector3, color: Color) -> void:
 	muzzle_flash(pos, color)
 
 func tracer(from: Vector3, to: Vector3, color: Color = Color(0.75, 0.5, 1.0), duration: float = 0.35, broadcast: bool = false) -> void:
-	if broadcast and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
-		_rpc_tracer.rpc(from, to, color, duration)
 	var dist := from.distance_to(to)
 	if dist < 0.01:
 		return
+	if broadcast and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_rpc_tracer.rpc(from, to, color, duration)
 	var mi := MeshInstance3D.new()
 	var box := BoxMesh.new()
 	box.size = Vector3(0.04, 0.04, dist)

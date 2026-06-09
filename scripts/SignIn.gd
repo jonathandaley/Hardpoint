@@ -21,4 +21,5 @@ func _confirm() -> void:
 	if n.is_empty():
 		n = "Pilot"
 	Game.profile["pilot_name"] = n
+	Game.save_profile()
 	get_tree().change_scene_to_file("res://scenes/ui/Hangar.tscn")
