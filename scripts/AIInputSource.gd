@@ -203,7 +203,10 @@ func _nav_next(bot_mech: Node3D, goal_pos: Vector3) -> Vector3:
 		return Vector3.ZERO
 	return next
 
-func _process(delta: float) -> void:
+# Runs at physics rate: Mech._handle_look consumes _look_delta once per physics
+# tick, so computing it here (with the fixed physics delta) keeps bot turn speed
+# independent of render frame rate. Also keeps per-tick RNG draws deterministic.
+func _physics_process(delta: float) -> void:
 	# T40: bots run server-only; clients receive mech state via replication, not AI.
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
 		return
@@ -391,7 +394,11 @@ func get_move_direction() -> Vector2:
 	return _move_dir
 
 func get_look_delta() -> Vector2:
-	return _look_delta
+	# Drain on read (same pattern as PlayerInputSource/NetworkInputSource) so a
+	# turn impulse is never applied twice if a tick ever reads without a fresh write.
+	var d := _look_delta
+	_look_delta = Vector2.ZERO
+	return d
 
 func is_firing_primary() -> bool:
 	return _firing

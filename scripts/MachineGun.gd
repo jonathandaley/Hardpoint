@@ -50,15 +50,21 @@ func _ready() -> void:
 	super._ready()
 	_current_rate = base_fire_rate
 
-func _process(delta: float) -> void:
-	super._process(delta)
+# Ramp state lives on the physics side: fire() (called from Mech._physics_process
+# every tick while the trigger is held) sets _trigger_held, and this consumes and
+# clears it once per physics tick. Keeping both ends at physics rate makes the
+# ramp independent of render frame rate.
+func _physics_process(delta: float) -> void:
 	if _trigger_held:
 		_current_rate = minf(_current_rate + rate_accel * delta, max_fire_rate)
 	else:
 		_current_rate = maxf(_current_rate - rate_decay * delta, base_fire_rate)
+	_trigger_held = false
+
+func _process(delta: float) -> void:
+	super._process(delta)
 	if _reloading and _loop_player != null and _loop_player.playing:
 		_loop_player.stop()
-	_trigger_held = false
 
 func _start_mg_loop() -> void:
 	var stream := SoundManager.get_sfx_stream("machinegun_fire")
