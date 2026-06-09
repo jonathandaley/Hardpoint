@@ -101,4 +101,6 @@ Sonnet to follow the finding's suggested approach literally and not improvise.
 ## Next up
 - ~~#9, #22 MachineGun ramp + AI turn-speed~~ DONE 2026-06-09
 - #10, #11, #15, #16, #27 MP visual/audio gaps + #28 seed RPC race [batch when touching MP]
+  (do these in the T129 LAN-smoke session -- see MP_PLAN.md Phase 15 -- along with verifying the
+  [needs MP test] fixes #8, #21, #25)
 - #24 _enemy_mechs snapshot, #6 VFX alloc [low priority]

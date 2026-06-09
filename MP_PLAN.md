@@ -185,6 +185,7 @@ Verification: 1v1 match with bot-fill; both players cycle through full 5-mech sq
 Goal: prove the system works end-to-end before opening up to dedicated/prediction work.
 
 - T129: 2-peer LAN run, 10min beacon drain, verify capture-progress, kills, damage, ELO update, disconnect resilience, no errors, frame-time stable.
+- The T129 session should also pick up the open MP batch in AUDIT_PROGRESS.md (#10, #11, #15, #16, #27, #28) and verify the batch-1 fixes tagged [needs MP test] there (#8, #21, #25) -- same running match covers all of it.
 
 Gate: P16 work begins only after T129 passes. If T129 shows interpolation feel is unacceptable on LAN → T131 unblocked.
 
