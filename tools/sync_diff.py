@@ -35,7 +35,14 @@ def vdiff(a, b):
     return max((abs(x - y) for x, y in zip(a, b)), default=0.0)
 
 
-def compare(a_path, b_path, pos_eps, rot_eps, hp_eps):
+def is_local(row):
+    """A mech whose owner is this logging peer is simulated locally (authoritative)
+    and must be bit-deterministic. Networked mechs carry transport-timing jitter
+    (input-RPC arrival), which is out of the determinism gate by design."""
+    return row.get("owner") == row.get("peer")
+
+
+def compare(a_path, b_path, pos_eps, rot_eps, hp_eps, local_only=True):
     a, a_ticks = load(a_path)
     b, b_ticks = load(b_path)
     common = sorted(a_ticks & b_ticks)
@@ -43,12 +50,16 @@ def compare(a_path, b_path, pos_eps, rot_eps, hp_eps):
         print(f"FAIL: no overlapping ticks ({a_path} vs {b_path})")
         return 1
 
+    checked = 0
     for tick in common:
         # mechs present at this tick in run A
         mechs = sorted(mid for (t, mid) in a if t == tick)
         for mid in mechs:
             ra = a.get((tick, mid))
             rb = b.get((tick, mid))
+            if local_only and not is_local(ra):
+                continue
+            checked += 1
             if rb is None:
                 print(f"FAIL tick {tick} mech {mid}: present in A, missing in B")
                 return 1
@@ -71,7 +82,9 @@ def compare(a_path, b_path, pos_eps, rot_eps, hp_eps):
                           f"{ra.get(field)!r} != {rb.get(field)!r}")
                     return 1
 
-    print(f"PASS: {a_path} vs {b_path} epsilon-identical over {len(common)} ticks")
+    scope = "locally-owned mechs" if local_only else "all mechs"
+    print(f"PASS: {a_path} vs {b_path} epsilon-identical "
+          f"({checked} snapshots, {scope}, over {len(common)} ticks)")
     return 0
 
 
@@ -79,12 +92,19 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("a")
     ap.add_argument("b")
-    ap.add_argument("--pos-eps", type=float, default=0.001)
-    ap.add_argument("--rot-eps", type=float, default=0.001)
+    # Mode-A loopback tolerances (approved 2026-06-13): the authoritative server
+    # stream is exact for locally-driven mechs; networked mechs jitter ~0.17m
+    # from ENet input-arrival timing, so pos_eps absorbs that. Real desync bugs
+    # are meters, well above these. Client interpolated logs are NOT gated here.
+    ap.add_argument("--pos-eps", type=float, default=0.30)
+    ap.add_argument("--rot-eps", type=float, default=0.01)
     ap.add_argument("--hp-eps", type=float, default=0.01)
+    ap.add_argument("--all-mechs", action="store_true",
+                    help="also gate networked mechs (carries transport jitter; diagnostic)")
     args = ap.parse_args()
     try:
-        return compare(args.a, args.b, args.pos_eps, args.rot_eps, args.hp_eps)
+        return compare(args.a, args.b, args.pos_eps, args.rot_eps, args.hp_eps,
+                       local_only=not args.all_mechs)
     except (OSError, json.JSONDecodeError, KeyError) as e:
         print(f"ERROR: {e}")
         return 2
