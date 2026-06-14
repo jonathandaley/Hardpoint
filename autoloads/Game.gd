@@ -85,6 +85,135 @@ var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 func seed_rng(s: int) -> void:
 	rng.seed = s
 
+# ---- M0.2: sync snapshot logging (flag-gated, zero-cost when off) ----
+# Writes one JSONL line per physics tick per tracked mech plus an event stream,
+# for the MP autodebug determinism self-test and oracle tools. This is the one
+# justified runtime-logging exception to V13 (a Python tool cannot read live
+# game state). All comparison/oracle logic lives in tools/*.py, not here.
+# Enable with the cmdline flag "--sync-log" (engine arg or after a "--"
+# separator). Optional "--sync-role=server|client" and "--sync-dir=<path>"
+# override the auto-detected role and output directory.
+var sync_logging_enabled: bool = false
+var _sync_role_override: String = ""
+var _sync_dir: String = "user://"
+var _sync_snap_file: FileAccess = null
+var _sync_event_file: FileAccess = null
+var _sync_files_open: bool = false
+var _sync_start_ms: int = 0
+var _sync_start_frame: int = 0
+var _sync_rpc_seq: int = 0
+
+func _parse_sync_log_args() -> void:
+	var args: PackedStringArray = OS.get_cmdline_args()
+	args.append_array(OS.get_cmdline_user_args())
+	for a in args:
+		if a == "--sync-log":
+			sync_logging_enabled = true
+		elif a.begins_with("--sync-role="):
+			_sync_role_override = a.get_slice("=", 1)
+		elif a.begins_with("--sync-dir="):
+			_sync_dir = a.get_slice("=", 1)
+
+func _sync_role() -> String:
+	if _sync_role_override != "":
+		return _sync_role_override
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		return "client"
+	return "server"
+
+func _open_sync_files() -> void:
+	var role := _sync_role()
+	var peer := 1
+	if multiplayer.has_multiplayer_peer():
+		peer = multiplayer.get_unique_id()
+	var base := "%s_%d" % [role, peer] if role == "client" else role
+	var dir := _sync_dir.trim_suffix("/")
+	_sync_snap_file = FileAccess.open("%s/%s.jsonl" % [dir, base], FileAccess.WRITE)
+	_sync_event_file = FileAccess.open("%s/%s.events.jsonl" % [dir, base], FileAccess.WRITE)
+	if _sync_snap_file == null or _sync_event_file == null:
+		push_error("Game: sync-log could not open output files in %s" % dir)
+		sync_logging_enabled = false
+		return
+	_sync_start_ms = Time.get_ticks_msec()
+	# Tick is match-relative (frames since the first logged tick), not absolute
+	# engine frames: two independently launched processes boot in a variable
+	# number of frames, so only a relative tick lines up in the self-test.
+	_sync_start_frame = Engine.get_physics_frames()
+	_sync_files_open = true
+
+func _physics_process(_delta: float) -> void:
+	if not sync_logging_enabled:
+		return
+	var mechs := get_tree().get_nodes_in_group("mechs")
+	if mechs.is_empty():
+		return  # no match yet; defer file open until there is state to log
+	if not _sync_files_open:
+		_open_sync_files()
+		if not _sync_files_open:
+			return
+	# Deterministic iteration order so two runs of the same seed line up.
+	mechs.sort_custom(func(a: Node, b: Node) -> bool: return a.name < b.name)
+	var tick := Engine.get_physics_frames() - _sync_start_frame
+	var wall := Time.get_ticks_msec() - _sync_start_ms
+	var role := _sync_role()
+	var peer := multiplayer.get_unique_id() if multiplayer.has_multiplayer_peer() else 1
+	for m in mechs:
+		_sync_snap_file.store_line(JSON.stringify(_mech_snapshot(m, tick, wall, role, peer)))
+
+func _mech_snapshot(m: Node, tick: int, wall: int, role: String, peer: int) -> Dictionary:
+	var torso: Node3D = m.get("torso")
+	var rot_local := Quaternion.IDENTITY
+	var rot_global := Quaternion.IDENTITY
+	if torso != null:
+		rot_local = torso.transform.basis.get_rotation_quaternion()
+		rot_global = torso.global_transform.basis.get_rotation_quaternion()
+	var pos: Vector3 = m.global_position
+	var ammo: Dictionary = {}
+	var weapons = m.get("_weapons")
+	if weapons is Array:
+		for i in weapons.size():
+			var w = weapons[i]
+			if w != null:
+				ammo[str(i)] = w.get("ammo")
+	var lock = m.get("locked_target")
+	var lock_id = (lock.name as String) if lock != null and is_instance_valid(lock) else null
+	var cds: Dictionary = {}
+	var raw_cds = m.get("_ability_cooldowns")
+	if raw_cds is Dictionary:
+		for k in raw_cds:
+			cds[str(k)] = snappedf(raw_cds[k], 0.001)
+	return {
+		"tick": tick,
+		"wall_ms": wall,
+		"peer": peer,
+		"role": role,
+		"mech_id": m.name,
+		"pos": [snappedf(pos.x, 0.0001), snappedf(pos.y, 0.0001), snappedf(pos.z, 0.0001)],
+		"rot_local": [snappedf(rot_local.x, 0.0001), snappedf(rot_local.y, 0.0001), snappedf(rot_local.z, 0.0001), snappedf(rot_local.w, 0.0001)],
+		"rot_global": [snappedf(rot_global.x, 0.0001), snappedf(rot_global.y, 0.0001), snappedf(rot_global.z, 0.0001), snappedf(rot_global.w, 0.0001)],
+		"health": snappedf(m.get("health"), 0.01),
+		"ammo": ammo,
+		"lock_target": lock_id,
+		"team": m.get("team"),
+		"abilities": cds,
+	}
+
+# Public event-stream API. type = fired|hit|captured|died|spawned|ability.
+# rpc_seq is a monotonic counter so dropped/reordered events are detectable.
+func sync_log_event(type: String, mech_id: String, payload: Dictionary = {}) -> void:
+	if not sync_logging_enabled or not _sync_files_open:
+		return
+	var peer := multiplayer.get_unique_id() if multiplayer.has_multiplayer_peer() else 1
+	_sync_rpc_seq += 1
+	_sync_event_file.store_line(JSON.stringify({
+		"tick": Engine.get_physics_frames() - _sync_start_frame,
+		"peer": peer,
+		"type": type,
+		"mech_id": mech_id,
+		"payload": payload,
+		"rpc_seq": _sync_rpc_seq,
+	}))
+
 # ---- Multiplayer transport (V5: no new autoload; stays in Game.gd) ----
 
 signal mp_peer_connected(id: int)
@@ -101,6 +230,8 @@ func _ready() -> void:
 	multiplayer.connection_failed.connect(_on_mp_connection_failed)
 	multiplayer.server_disconnected.connect(_on_mp_server_disconnected)
 	set_process(false)
+	_parse_sync_log_args()
+	set_physics_process(sync_logging_enabled)  # M0.2: zero-cost when flag off
 
 func host(port: int = 8910) -> void:
 	var peer := ENetMultiplayerPeer.new()
