@@ -36,8 +36,10 @@ func _ready() -> void:
 	_charge_mat = mat
 	_charge_visual.visible = false
 
-func _process(delta: float) -> void:
-	super._process(delta)
+# _charge_time scales fire damage (_do_fire), so it must advance at the fixed
+# physics rate to stay deterministic -- not render rate.
+func _physics_process(delta: float) -> void:
+	super._physics_process(delta)  # base cooldown/reload/refill timers
 	if _reloading or (max_ammo >= 0 and ammo <= 0):
 		_charge_time = 0.0
 		_charge_visual.visible = false

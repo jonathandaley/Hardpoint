@@ -55,14 +55,14 @@ func _ready() -> void:
 # clears it once per physics tick. Keeping both ends at physics rate makes the
 # ramp independent of render frame rate.
 func _physics_process(delta: float) -> void:
+	super._physics_process(delta)  # base cooldown/reload/refill timers
 	if _trigger_held:
 		_current_rate = minf(_current_rate + rate_accel * delta, max_fire_rate)
 	else:
 		_current_rate = maxf(_current_rate - rate_decay * delta, base_fire_rate)
 	_trigger_held = false
 
-func _process(delta: float) -> void:
-	super._process(delta)
+func _process(_delta: float) -> void:
 	if _reloading and _loop_player != null and _loop_player.playing:
 		_loop_player.stop()
 
