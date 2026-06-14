@@ -35,7 +35,13 @@ var _refill_accum: float = 0.0
 func _ready() -> void:
 	ammo = max_ammo
 
-func _process(delta: float) -> void:
+# Cooldown / reload / refill run at the fixed physics rate (not render rate):
+# fire() is triggered from Mech._physics_process, so timing these on _process
+# made fire cadence, reload, and refill frame-rate dependent (caught by the MP
+# autodebug determinism self-test; same fix family as the MachineGun ramp #9 and
+# AI turn-speed #22). Subclasses that override _physics_process must call
+# super._physics_process(delta); purely visual/audio timers stay in their _process.
+func _physics_process(delta: float) -> void:
 	if _cooldown > 0.0:
 		_cooldown -= delta
 

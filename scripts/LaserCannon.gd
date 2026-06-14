@@ -29,7 +29,8 @@ func _ready() -> void:
 	_beam.visible = false
 
 func _process(delta: float) -> void:
-	super._process(delta)
+	# Base cooldown/reload timers run via the inherited _physics_process; this
+	# _process handles only the cosmetic beam/audio fade timers.
 	if _beam_timer > 0.0:
 		_beam_timer -= delta
 		if _beam_timer <= 0.0:

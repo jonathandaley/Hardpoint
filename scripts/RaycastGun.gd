@@ -7,7 +7,8 @@ extends "res://scripts/WeaponBase.gd"
 var _flash_timer: float = 0.0
 
 func _process(delta: float) -> void:
-	super._process(delta)
+	# Base cooldown/reload timers run via the inherited _physics_process; this
+	# _process handles only the cosmetic muzzle-flash fade timer.
 	if _flash_timer > 0.0:
 		_flash_timer -= delta
 		if _flash_timer <= 0.0:
