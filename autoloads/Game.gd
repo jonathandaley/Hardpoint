@@ -126,7 +126,9 @@ func _open_sync_files() -> void:
 	var peer := 1
 	if multiplayer.has_multiplayer_peer():
 		peer = multiplayer.get_unique_id()
-	var base := "%s_%d" % [role, peer] if role == "client" else role
+	# A given --sync-role is used verbatim as the filename base so two runs line
+	# up (ENet assigns a fresh unique_id each run, so peer id is not stable).
+	var base := _sync_role_override if _sync_role_override != "" else ("%s_%d" % [role, peer] if role == "client" else role)
 	var dir := _sync_dir.trim_suffix("/")
 	_sync_snap_file = FileAccess.open("%s/%s.jsonl" % [dir, base], FileAccess.WRITE)
 	_sync_event_file = FileAccess.open("%s/%s.events.jsonl" % [dir, base], FileAccess.WRITE)
@@ -232,6 +234,18 @@ func _ready() -> void:
 	set_process(false)
 	_parse_sync_log_args()
 	set_physics_process(sync_logging_enabled)  # M0.2: zero-cost when flag off
+	_maybe_start_harness()  # M0.4: only when --mp-scenario= is present
+
+# M0.4: spin up the autodebug harness driver, isolated from the normal UI path.
+func _maybe_start_harness() -> void:
+	var args: PackedStringArray = OS.get_cmdline_args()
+	args.append_array(OS.get_cmdline_user_args())
+	for a in args:
+		if a.begins_with("--mp-scenario="):
+			var h: Node = load("res://tools/mp_harness/Harness.gd").new()
+			h.name = "MPHarness"
+			add_child.call_deferred(h)
+			return
 
 func host(port: int = 8910) -> void:
 	var peer := ENetMultiplayerPeer.new()
