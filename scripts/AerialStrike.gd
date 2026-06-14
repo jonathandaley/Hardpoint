@@ -34,9 +34,9 @@ func _fire_burst() -> void:
 
 func _spawn_rocket(lock_target: Node3D) -> void:
 	var jitter := Vector3(
-		randf_range(-jitter_radius, jitter_radius),
+		Game.rng.randf_range(-jitter_radius, jitter_radius),
 		0.0,
-		randf_range(-jitter_radius, jitter_radius))
+		Game.rng.randf_range(-jitter_radius, jitter_radius))
 
 	var proj := HOMING_SCENE.instantiate() as Node3D
 	proj.damage = damage

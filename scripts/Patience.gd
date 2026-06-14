@@ -62,7 +62,7 @@ func _do_fire() -> void:
 		return
 	var cam_fwd := -cam.global_transform.basis.z
 	if inaccuracy_angle > 0.0:
-		var perp := Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-1.0, 1.0))
+		var perp := Vector3(Game.rng.randf_range(-1.0, 1.0), Game.rng.randf_range(-1.0, 1.0), Game.rng.randf_range(-1.0, 1.0))
 		perp = perp - cam_fwd * perp.dot(cam_fwd)
 		if perp.length_squared() > 0.0001:
 			cam_fwd = (cam_fwd + perp.normalized() * tan(deg_to_rad(inaccuracy_angle))).normalized()
