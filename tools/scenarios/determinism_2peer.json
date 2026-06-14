@@ -1,0 +1,30 @@
+{
+  "name": "determinism_2peer",
+  "seed": 1337,
+  "port": 8910,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Hippogriff.tres",
+  "duration_ticks": 400,
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {"tick": 0,   "move": [0, -1], "look": [0.15, 0.0]},
+          {"tick": 100, "move": [1, 0],  "look": [-0.15, 0.0], "fire_primary": true},
+          {"tick": 200, "move": [0, -1], "look": [0.0, 0.0],   "fire_primary": false},
+          {"tick": 320, "move": [0, 0]}
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {"tick": 0,   "move": [0, -1], "look": [-0.12, 0.0]},
+          {"tick": 120, "move": [-1, 0], "look": [0.12, 0.0], "fire_primary": true},
+          {"tick": 240, "move": [0, -1], "look": [0.0, 0.0],  "fire_primary": false},
+          {"tick": 340, "move": [0, 0]}
+        ]
+      }
+    }
+  }
+}
