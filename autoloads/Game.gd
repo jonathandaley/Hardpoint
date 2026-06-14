@@ -190,6 +190,7 @@ func _mech_snapshot(m: Node, tick: int, wall: int, role: String, peer: int) -> D
 		"peer": peer,
 		"role": role,
 		"mech_id": m.name,
+		"owner": m.get("owner_peer_id"),
 		"pos": [snappedf(pos.x, 0.0001), snappedf(pos.y, 0.0001), snappedf(pos.z, 0.0001)],
 		"rot_local": [snappedf(rot_local.x, 0.0001), snappedf(rot_local.y, 0.0001), snappedf(rot_local.z, 0.0001), snappedf(rot_local.w, 0.0001)],
 		"rot_global": [snappedf(rot_global.x, 0.0001), snappedf(rot_global.y, 0.0001), snappedf(rot_global.z, 0.0001), snappedf(rot_global.w, 0.0001)],
