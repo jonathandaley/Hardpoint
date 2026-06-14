@@ -75,6 +75,16 @@ var settings: Dictionary = {
 	"master_volume": 0.5,
 }
 
+# M0.1: central seeded RNG for all gameplay randomness (weapon spread, etc.).
+# Seeded from the match_seed in Match.start()/_rpc_set_match_seed so the server
+# (and any deterministic replay) produces a reproducible physics tick stream.
+# Cosmetic randomness (VFX, camera shake, drop-pod debris) stays on the global
+# randf_range and is intentionally NOT routed here.
+var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+
+func seed_rng(s: int) -> void:
+	rng.seed = s
+
 # ---- Multiplayer transport (V5: no new autoload; stays in Game.gd) ----
 
 signal mp_peer_connected(id: int)

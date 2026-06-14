@@ -19,6 +19,7 @@ func start() -> void:
 	running = true
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		match_seed = randi()
+		Game.seed_rng(match_seed)  # M0.1: central gameplay RNG
 		_rpc_set_match_seed.rpc(match_seed)
 		_apply_bot_seeds()
 
@@ -68,6 +69,7 @@ func on_player_eliminated(_player: Node) -> void:
 @rpc("authority", "reliable")
 func _rpc_set_match_seed(seed: int) -> void:
 	match_seed = seed
+	Game.seed_rng(match_seed)  # M0.1: central gameplay RNG (mirror server)
 	_apply_bot_seeds()
 
 func _apply_bot_seeds() -> void:

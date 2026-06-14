@@ -36,10 +36,10 @@ func _do_fire() -> void:
 	for _i in pellet_count:
 		var pellet_fwd := cam_fwd
 		if spread_angle > 0.0:
-			var perp := Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-1.0, 1.0))
+			var perp := Vector3(Game.rng.randf_range(-1.0, 1.0), Game.rng.randf_range(-1.0, 1.0), Game.rng.randf_range(-1.0, 1.0))
 			perp = perp - cam_fwd * perp.dot(cam_fwd)
 			if perp.length_squared() > 0.0001:
-				var radius := tan(deg_to_rad(spread_angle)) * sqrt(randf())
+				var radius := tan(deg_to_rad(spread_angle)) * sqrt(Game.rng.randf())
 				pellet_fwd = (cam_fwd + perp.normalized() * radius).normalized()
 
 		var aim_point := cam.global_position + pellet_fwd * aim_dist

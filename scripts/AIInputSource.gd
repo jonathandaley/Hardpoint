@@ -59,7 +59,10 @@ var bot_id: int = 0  # T104: unique bot id set by Arena at spawn; used for seed 
 
 func _ready() -> void:
 	_rng = RandomNumberGenerator.new()
-	_rng.randomize()
+	# M0.1: no randomize() -- that reseeds from system entropy and kills
+	# determinism. The real per-bot seed arrives via set_mp_seed() in
+	# Match._apply_bot_seeds(); bot_id makes each bot's stream distinct.
+	_rng.seed = bot_id
 	add_to_group("ai_input_sources")
 	call_deferred("_find_targets")
 
