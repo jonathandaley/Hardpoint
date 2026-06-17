@@ -132,6 +132,7 @@ func _update_capture(delta: float) -> void:
 		state = State.TEAM_A if team == 0 else State.TEAM_B
 		_update_visuals()
 		captured.emit(team)
+		Game.sync_log_event("captured", name, {"team": team})  # M1.3 autodebug event stream
 		if multiplayer.has_multiplayer_peer():
 			_sync_state.rpc(owner_team, state, _capture_progress)
 

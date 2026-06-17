@@ -38,6 +38,11 @@ def launch(godot, role, sync_role, scenario_abs, out_dir):
     return proc, log
 
 
+def _write_meta(out_dir, meta):
+    with open(os.path.join(out_dir, "meta.json"), "w") as f:
+        json.dump(meta, f, indent=2)
+
+
 def wait(proc, timeout, label):
     try:
         proc.wait(timeout=timeout)
@@ -66,18 +71,26 @@ def main():
     print(f"[run_scenario] scenario={scenario.get('name')} seed={scenario.get('seed')} "
           f"out={out_dir}")
 
+    meta = {"scenario": scenario.get("name"), "peers": {}}
     server, slog = launch(args.godot, "server", "server", scenario_abs, out_dir)
     time.sleep(2.0)  # let the server bind loopback before the client connects
     if server.poll() is not None:
         print("[run_scenario] server exited early; see server.log")
         slog.close()
+        meta["peers"]["server"] = {"exit_code": server.returncode, "timed_out": False, "early_exit": True}
+        _write_meta(out_dir, meta)
         return 1
     client, clog = launch(args.godot, "client", "client_1", scenario_abs, out_dir)
 
-    ok = wait(client, args.timeout, "client")
-    ok = wait(server, args.timeout, "server") and ok
+    client_ok = wait(client, args.timeout, "client")
+    server_ok = wait(server, args.timeout, "server")
+    ok = client_ok and server_ok
     slog.close()
     clog.close()
+    # crash_scan oracle (M1.3) reads these: nonzero exit / timeout = process death.
+    meta["peers"]["server"] = {"exit_code": server.returncode, "timed_out": not server_ok}
+    meta["peers"]["client_1"] = {"exit_code": client.returncode, "timed_out": not client_ok}
+    _write_meta(out_dir, meta)
 
     # Verify both snapshot logs exist and are non-empty.
     for name in ("server.jsonl", "client_1.jsonl"):

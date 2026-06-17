@@ -253,6 +253,10 @@ func fire_weapon(slot: int, aim: Vector3 = Vector3.ZERO) -> void:
 	if slot < 0 or slot >= _weapons.size() or not is_instance_valid(_weapons[slot]):
 		return
 	_weapons[slot].fire()
+	# M1.3: autodebug event stream (no-op unless --sync-log). Fire-attempt, not
+	# guaranteed shot (weapon may be on cooldown/reloading); kept uniform across
+	# all weapon types by emitting at the single fire chokepoint.
+	Game.sync_log_event("fired", name, {"slot": slot})
 
 # Public entry point. Weapons always call this; never call _apply_damage directly.
 # SP: runs directly. MP client: routes to server via RPC (peer_id 1).
@@ -312,8 +316,13 @@ func _apply_damage(amount: float) -> void:
 	damaged.emit()
 	SoundManager.play_sfx("damage_hit", global_position)
 	print("[Mech] %s  %.0f / %.0f HP" % [name, health, max_health])
+	# M1.3: autodebug event stream. Runs at the server-authoritative damage
+	# chokepoint (clients route take_damage -> server via RPC), so hit/died are
+	# logged once, on the authoritative peer.
+	Game.sync_log_event("hit", name, {"amount": snappedf(actual, 0.01), "hp": snappedf(health, 0.01)})
 	if health <= 0.0:
 		health = 0.0
+		Game.sync_log_event("died", name, {})
 		_die()
 	# T40: broadcast health to clients after mutation.
 	if multiplayer.has_multiplayer_peer():
