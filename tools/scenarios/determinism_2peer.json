@@ -5,7 +5,7 @@
   "map_path": "res://resources/maps/MathTemple.tres",
   "mech": "res://resources/mechs/Hippogriff.tres",
   "duration_ticks": 400,
-  "oracles": ["determinism", "transform_desync", "health_desync", "lock_target", "team_assignment"],
+  "oracles": ["determinism", "transform_desync", "health_desync", "lock_target", "team_assignment", "crash_scan", "rpc_integrity", "event_sidefx"],
   "thresholds": {"pos_eps": 1.5, "rot_epsilon": 0.05, "persist_ticks": 5},
   "peers": {
     "server": {

@@ -21,6 +21,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from oracles import (  # noqa: E402
     base, determinism, transform_desync, health_desync, lock_target, team_assignment,
+    crash_scan, rpc_integrity, event_sidefx,
 )
 
 # Registry of oracle modules available in M1. Add modules here as they land.
@@ -30,6 +31,9 @@ ORACLES = {
     health_desync.NAME: health_desync,
     lock_target.NAME: lock_target,
     team_assignment.NAME: team_assignment,
+    crash_scan.NAME: crash_scan,
+    rpc_integrity.NAME: rpc_integrity,
+    event_sidefx.NAME: event_sidefx,
 }
 
 
@@ -58,6 +62,7 @@ def run(scenario_path, run_dir, baseline_dir, override, want_json, quiet):
         "baseline": baseline,
         "scenario": scenario,
         "thresholds": scenario.get("thresholds", {}),
+        "run_dir": os.path.abspath(run_dir),
     }
     names, unknown = select_oracles(scenario, override)
     for n in unknown:
