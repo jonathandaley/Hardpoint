@@ -92,6 +92,11 @@ func play_music(key: String, loop: bool = true) -> void:
 	var path: String = _MUSIC_PATHS[key]
 	var stream: AudioStream = _streams.get(key)
 	if stream == null:
+		# The music assets are not authored yet; skip the load so the engine does
+		# not log "Resource file not found" on every arena load. Re-enables itself
+		# automatically once the .ogg exists.
+		if not ResourceLoader.exists(path, "AudioStream"):
+			return
 		stream = ResourceLoader.load(path, "AudioStream") as AudioStream
 		if stream == null:
 			return
