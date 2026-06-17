@@ -2386,6 +2386,9 @@ func _ready() -> void:
 	_create_nav_region()
 	match_node.match_ended.connect(_on_match_ended)
 	match_node.start()
+	# ponytail: MovementLogger records a CSV + prints a stuck-% analysis on EVERY
+	# arena load, prod included (115-line diagnostic). Gate behind a debug flag or
+	# only instantiate when profiling, so shipped matches don't pay for it.
 	_movement_logger = load("res://autoloads/MovementLogger.gd").new()
 	add_child(_movement_logger)
 	_movement_logger.start_session()
