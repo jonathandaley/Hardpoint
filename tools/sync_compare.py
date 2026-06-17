@@ -19,12 +19,17 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from oracles import base, determinism, transform_desync  # noqa: E402
+from oracles import (  # noqa: E402
+    base, determinism, transform_desync, health_desync, lock_target, team_assignment,
+)
 
 # Registry of oracle modules available in M1. Add modules here as they land.
 ORACLES = {
     determinism.NAME: determinism,
     transform_desync.NAME: transform_desync,
+    health_desync.NAME: health_desync,
+    lock_target.NAME: lock_target,
+    team_assignment.NAME: team_assignment,
 }
 
 

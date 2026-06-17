@@ -12,3 +12,7 @@ audio/import/
 
 # Python
 tools/__pycache__/
+
+# Python bytecode (all dirs)
+__pycache__/
+*.pyc

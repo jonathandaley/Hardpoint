@@ -26,24 +26,6 @@ def _field_eps(field, th):
     return th["pos_eps"] if field == "pos" else th["rot_epsilon"]
 
 
-def _first_persistent_run(ticks_mags, eps, persist):
-    """Return the start tick of the first run of >= persist consecutive entries
-    with magnitude > eps, or None. ticks_mags is ordered by tick."""
-    run_start = None
-    run_len = 0
-    for t, m in ticks_mags:
-        if m > eps:
-            if run_start is None:
-                run_start = t
-            run_len += 1
-            if run_len >= persist:
-                return run_start
-        else:
-            run_start = None
-            run_len = 0
-    return None
-
-
 def run(ctx):
     primary = ctx["primary"]
     if "server" not in primary:
@@ -74,7 +56,7 @@ def run(ctx):
                 if not series:
                     continue
                 total_checked += 1
-                onset = _first_persistent_run(series, eps, persist)
+                onset = base.first_persistent_run(series, eps, persist)
                 if onset is None:
                     continue
                 pattern, ptick, peak = base.classify_pattern(series, eps)
