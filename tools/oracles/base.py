@@ -82,6 +82,53 @@ def verdict(oracle, status, **extra):
     return v
 
 
+def client_roles(primary):
+    """Networked peers (everything but the authoritative server), sorted."""
+    return sorted(r for r in primary if r != "server")
+
+
+def cross_series(server, client, mech_id, mag_fn):
+    """Per-tick (tick, magnitude) for one mech over the ticks server+client
+    share, where mag_fn(server_snap, client_snap) -> float. Ordered by tick."""
+    st = set(server.ticks)
+    out = []
+    for t in client.ticks:
+        if t not in st:
+            continue
+        ss = server.at(t, mech_id)
+        cs = client.at(t, mech_id)
+        if ss is not None and cs is not None:
+            out.append((t, mag_fn(ss, cs)))
+    return out
+
+
+def first_persistent_run(ticks_mags, eps, persist):
+    """Start tick of the first run of >= persist consecutive entries with
+    magnitude > eps, or None. ticks_mags is ordered by tick."""
+    run_start = None
+    run_len = 0
+    for t, m in ticks_mags:
+        if m > eps:
+            if run_start is None:
+                run_start = t
+            run_len += 1
+            if run_len >= persist:
+                return run_start
+        else:
+            run_start = None
+            run_len = 0
+    return None
+
+
+def by_tick(peerlog):
+    """{tick: {mech_id: snapshot}} for whole-tick lookups (e.g. is a lock
+    target alive at this tick)."""
+    d = {}
+    for s in peerlog.snaps:
+        d.setdefault(s["tick"], {})[s["mech_id"]] = s
+    return d
+
+
 def classify_pattern(ticks_mags, eps):
     """Classify a per-tick magnitude trajectory into one of the S4 patterns.
 
