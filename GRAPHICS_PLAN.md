@@ -1,4 +1,4 @@
-# MechBattle Graphics Plan
+# Hardpoint Graphics Plan
 
 ## §G GOAL
 

@@ -1,4 +1,4 @@
-# mechbattle
+# hardpoint
 
 ## File writes outside this directory
 
