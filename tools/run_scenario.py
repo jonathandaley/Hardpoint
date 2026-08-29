@@ -30,7 +30,6 @@ def launch(godot, role, sync_role, scenario_abs, out_dir):
         godot, "--headless", "--path", REPO,
         "--mp-scenario=" + scenario_abs,
         "--role=" + role,
-        "--peer-key=" + sync_role,
         "--sync-log",
         "--sync-role=" + sync_role,
         "--sync-dir=" + out_dir,
