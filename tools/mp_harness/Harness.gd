@@ -26,7 +26,6 @@ const DEFAULT_MECH := "res://resources/mechs/Hippogriff.tres"
 
 var _scenario: Dictionary = {}
 var _role: String = "server"
-var _peer_key: String = "client_1"  # M2.1: which peers{} entry drives this client
 var _port: int = 8910
 var _expected_clients: int = 1
 var _connected: Array = []
@@ -43,8 +42,6 @@ func _ready() -> void:
 			path = a.get_slice("=", 1)
 		elif a.begins_with("--role="):
 			_role = a.get_slice("=", 1)
-		elif a.begins_with("--peer-key="):
-			_peer_key = a.get_slice("=", 1)
 	if path == "":
 		push_error("[Harness] no --mp-scenario= given")
 		get_tree().quit(1)
@@ -151,7 +148,22 @@ func _try_override_input() -> void:
 	if mine == null:
 		return
 	var peers: Dictionary = _scenario.get("peers", {})
-	var key := _role if _role == "server" else _peer_key
+	# M2.4: bind the input spec to the ROSTER SLOT, not the launch process.
+	# ENet connect order is a race, so "which client process am I" is
+	# nondeterministic across runs; "which roster slot is my mech in" is not
+	# (server sorts ids before building the roster). The Nth client slot always
+	# runs the "client_N" spec, whichever process ended up owning it. Process
+	# log filenames still follow --sync-role, so a log file's name need not
+	# match the spec its mech ran; oracles key on mech_id and don't care.
+	var key := "server"
+	if _role != "server":
+		var nth := 0
+		for entry in Game.mp_active_match.get("roster", []):
+			if int(entry.get("peer_id", 0)) > 1:
+				nth += 1
+				if int(entry["peer_id"]) == my_id:
+					key = "client_%d" % nth
+					break
 	var spec: Dictionary = peers.get(key, {}).get("input", {})
 	var replay := ReplaySrc.new()
 	replay.name = "ReplayInput"

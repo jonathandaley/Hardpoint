@@ -1,0 +1,133 @@
+{
+  "name": "friendly_fire",
+  "seed": 9119,
+  "port": 8913,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Slip.tres",
+  "weapons": [
+    "res://scenes/weapons/MachineGunLight.tscn"
+  ],
+  "duration_ticks": 1500,
+  "oracles": [
+    "friendly_fire",
+    "health_desync",
+    "spawn_join",
+    "team_assignment",
+    "crash_scan",
+    "rpc_integrity",
+    "event_sidefx"
+  ],
+  "_comment": "Server (team 0) and client_1 (team 1) walk their spawn diagonals through the open bowl center, passing each other, then stop at tick 1150 and script an exact 159.7-deg about-face (plus +0.3 rad pitch to cancel the default -0.3 camera depression) into a 22.7m duel: attributed cross-team hits prove the damage path ran. client_2 (team 1, near its teammate) fires while sweeping a full circle, raking across client_1: B27 call-site team checks must keep every same-team shot out of the damage chokepoint, so no same-team hit event may appear. Aim keyframes computed from probe-run rest positions; deterministic replay keeps them valid.",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 60,
+            "fire_primary": true
+          },
+          {
+            "tick": 1150,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              -9.291,
+              -1.0
+            ]
+          },
+          {
+            "tick": 1250,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 60,
+            "fire_primary": true
+          },
+          {
+            "tick": 1150,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              -9.29,
+              -1.0
+            ]
+          },
+          {
+            "tick": 1250,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    },
+    "client_2": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0.0,
+              0.0
+            ],
+            "fire_primary": true
+          },
+          {
+            "tick": 100,
+            "look": [
+              5.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 550,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
