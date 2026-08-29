@@ -1,0 +1,123 @@
+<!doctype html>
+<!-- @dsCard group="Brand" name="Mech Render — Seeker" subtitle="Box-model turnaround — sensor scout. Tiered sensor array, amber scanner eye, twin hardpoint mounts." viewport="760x560" -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seeker — Box Model</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; background: var(--bg-void); color: var(--fg-1); font-family: var(--font-ui); -webkit-font-smoothing: antialiased; }
+  .sheet { max-width: 760px; margin: 0 auto; padding: 22px 24px 28px; box-sizing: border-box; }
+  .head { display: flex; align-items: baseline; gap: 16px; border-bottom: 2px solid var(--rule); padding-bottom: 14px; margin-bottom: 6px; }
+  .head h1 { font-family: var(--font-display); font-weight: 400; font-size: 30px; letter-spacing: 0.06em; margin: 0; }
+  .head .tag { font-family: var(--font-mono); font-size: 12px; color: #ff9248; letter-spacing: 0.14em; text-transform: uppercase; }
+  .head .spec { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.08em; }
+  .note { font-family: var(--font-ui); font-size: 13px; color: var(--fg-2); letter-spacing: 0.02em; line-height: 1.55; max-width: 760px; margin: 14px 0 26px; }
+  .note b { color: var(--fg-1); font-weight: 600; }
+  .note .am { color: #ff9248; }
+  .views { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 2px; background: var(--rule-faint); border: 1px solid var(--rule-faint); }
+  .view { background: var(--bg-void); position: relative; display: flex; flex-direction: column; align-items: center; padding: 10px 10px 14px; }
+  .view .vlabel { align-self: flex-start; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em; color: var(--fg-3); text-transform: uppercase; margin-bottom: 6px; }
+  .view canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; width: 100%; height: auto; background: radial-gradient(120% 90% at 50% 40%, #181522 0%, var(--bg-void) 70%); }
+  .legend { display: flex; flex-wrap: wrap; gap: 22px; align-items: center; margin-top: 18px; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.04em; }
+  .legend .item { display: flex; align-items: center; gap: 7px; }
+  .legend .sw { width: 12px; height: 12px; display: inline-block; border: 1px solid #00000080; }
+  .legend .sw.glow { box-shadow: 0 0 9px #FF730D; }
+  .legend .right { margin-left: auto; color: var(--fg-dim); }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="head">
+      <h1>SEEKER</h1>
+      <span class="tag">Sensor scout</span>
+      <span class="spec">LIGHT · SENSOR · primitive box model</span>
+    </div>
+    <p class="note">
+      Eyes of the team — and the roster's oddest loadout. Seeker is a <b>tiny light chassis</b> that hauls
+      a single <span class="am">Heavy</span> hardpoint, so the mount sits <b>massive on top</b>, dwarfing
+      the body beneath it. Its sensor identity stays compact: an amber <span class="am">scanner eye</span>
+      on the brow and pod dots on the flanks. Muted violet armor over deep indigo detail makes the amber pop.
+    </p>
+
+    <div class="views">
+      <div class="view"><span class="vlabel">3/4 · hero</span><canvas id="v-iso" width="300" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Front</span><canvas id="v-front" width="220" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Side · reverse-knee</span><canvas id="v-side" width="240" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Back</span><canvas id="v-back" width="240" height="360"></canvas></div>
+    </div>
+
+    <div class="legend">
+      <span class="item"><span class="sw" style="background:#524770"></span> armor</span>
+      <span class="item"><span class="sw" style="background:#332E47"></span> detail</span>
+      <span class="item"><span class="sw" style="background:#FF730D;box-shadow:0 0 9px #FF730D"></span> sensor eye / dots</span>
+      <span class="item"><span class="sw" style="background:#2b2b34"></span> heavy hardpoint (×1)</span>
+      <span class="right">flat-shaded · fixed key light · nearest-neighbor</span>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="mech-engine.js"></script>
+  <script>
+    buildMechStage({
+      armorTex: '../assets/textures/seeker-armor.png',
+      detailTex: '../assets/textures/seeker-detail.png',
+      emissive: 0xFF730D,
+      texRef: 1.15,
+      lookY: 1.15,
+      frustH: 3.55,
+      build: function (M) {
+        const A = M.armor, D = M.detail, MO = M.mount, E = M.emis;
+
+        // ---- COMPACT TORSO (tiny light scout) ----
+        M.box(0.92, 0.74, 0.66, 0, 1.42, 0, A);                 // small main body
+        M.box(0.58, 0.40, 0.09, 0, 1.46, 0.34, D);              // chest plate
+        M.box(0.80, 0.20, 0.30, 0, 1.54, -0.26, D);             // small back deck
+        M.box(0.78, 0.20, 0.52, 0, 1.02, 0, D);                 // torso-to-pelvis bevel
+
+        // ---- SENSOR FACE (amber identity, kept compact under the gun) ----
+        M.box(0.40, 0.13, 0.10, 0, 1.62, 0.34, E);              // wide scanner eye
+        M.glow(0, 1.62, 0.40, 0.5);
+        [-1, 1].forEach(function (s) {
+          M.box(0.10, 0.18, 0.24, s * 0.46, 1.50, 0.04, D);     // side sensor pod
+          M.box(0.06, 0.07, 0.06, s * 0.50, 1.52, 0.15, E);     // amber dot
+          M.glow(s * 0.53, 1.52, 0.18, 0.20);
+        });
+
+        // ---- ONE HEAVY HARDPOINT (oversized — dwarfs the chassis) ----
+        M.box(0.90, 0.18, 0.84, 0, 1.84, 0.02, MO);             // wide base plate over shoulders
+        M.box(0.68, 0.50, 0.68, 0, 2.14, 0.04, MO);             // massive mount block
+        M.box(0.52, 0.16, 0.52, 0, 2.43, 0.04, MO);             // mount collar
+        M.box(0.36, 0.16, 0.36, 0, 2.55, 0.04, M.socket);       // recessed socket
+
+        // ---- ADDED: back-deck scanner seam + rear flank dots ----
+        M.box(0.52, 0.07, 0.05, 0, 1.54, -0.42, E);             // back-deck seam
+        M.glow(0, 1.54, -0.48, 0.4);
+        [-1, 1].forEach(function (s) {
+          M.box(0.06, 0.22, 0.10, s * 0.47, 1.44, -0.14, E);    // rear flank dot strip
+          M.glow(s * 0.51, 1.44, -0.14, 0.32);
+        });
+
+        // ---- PELVIS ----
+        M.box(0.66, 0.30, 0.54, 0, 0.90, 0, D);
+
+        // ---- LEGS (lean reverse-knee, small — see CLAUDE.md) ----
+        // forward -> BACK -> forward.
+        [-1, 1].forEach(function (s) {
+          const hx = s * 0.34;
+          const hip  = [hx, 0.90,  0.00];
+          const knee = [hx, 0.60,  0.22];   // thigh: down + forward
+          const hock = [hx, 0.30, -0.24];   // shin: down + BACK (reverse knee)
+          const toe  = [hx, 0.11,  0.08];   // pastern: meets top of toe pad; foot is flush to ground
+          M.box(0.28, 0.26, 0.30, hip[0], hip[1], hip[2], A);
+          M.between(hip, knee, 0.23, 0.26, A);
+          M.between(knee, hock, 0.19, 0.20, D);
+          M.between(hock, toe, 0.16, 0.17, D);
+          M.box(0.28, 0.11, 0.36, hx, 0.055, 0.08, A);         // toe pad (bottom flush at y=0)
+        });
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,136 @@
+<!doctype html>
+<!-- @dsCard group="Brand" name="Mech Render — Kestrel" subtitle="Box-model turnaround — shield defender. Projected energy barrier from a forearm emitter, chest emitter core, two light mounts." viewport="760x560" -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kestrel — Box Model</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; background: var(--bg-void); color: var(--fg-1); font-family: var(--font-ui); -webkit-font-smoothing: antialiased; }
+  .sheet { max-width: 760px; margin: 0 auto; padding: 22px 24px 28px; box-sizing: border-box; }
+  .head { display: flex; align-items: baseline; gap: 16px; border-bottom: 2px solid var(--rule); padding-bottom: 14px; margin-bottom: 6px; }
+  .head h1 { font-family: var(--font-display); font-weight: 400; font-size: 30px; letter-spacing: 0.06em; margin: 0; }
+  .head .tag { font-family: var(--font-mono); font-size: 12px; color: #1AD9FF; letter-spacing: 0.14em; text-transform: uppercase; }
+  .head .spec { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.08em; }
+  .note { font-family: var(--font-ui); font-size: 13px; color: var(--fg-2); letter-spacing: 0.02em; line-height: 1.55; max-width: 760px; margin: 14px 0 26px; }
+  .note b { color: var(--fg-1); font-weight: 600; }
+  .note .cy { color: #1AD9FF; }
+  .views { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 2px; background: var(--rule-faint); border: 1px solid var(--rule-faint); }
+  .view { background: var(--bg-void); position: relative; display: flex; flex-direction: column; align-items: center; padding: 10px 10px 14px; }
+  .view .vlabel { align-self: flex-start; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em; color: var(--fg-3); text-transform: uppercase; margin-bottom: 6px; }
+  .view canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; width: 100%; height: auto; background: radial-gradient(120% 90% at 50% 40%, #14182a 0%, var(--bg-void) 70%); }
+  .legend { display: flex; flex-wrap: wrap; gap: 22px; align-items: center; margin-top: 18px; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.04em; }
+  .legend .item { display: flex; align-items: center; gap: 7px; }
+  .legend .sw { width: 12px; height: 12px; display: inline-block; border: 1px solid #00000080; }
+  .legend .sw.glow { box-shadow: 0 0 9px #1AD9FF; }
+  .legend .right { margin-left: auto; color: var(--fg-dim); }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="head">
+      <h1>KESTREL</h1>
+      <span class="tag">Shield defender</span>
+      <span class="spec">MEDIUM · SHIELD · primitive box model</span>
+    </div>
+    <p class="note">
+      No armor to speak of — Kestrel survives on a <b>projected energy shield</b> that only flickers into
+      view when it takes a hit. What stays visible is the hardware: a forearm <span class="cy">shield
+      emitter</span> and an <span class="cy">emitter core</span> in the lean chest, both idling cyan. The
+      off-hand keeps it light: <b>two light hardpoints</b> on the right shoulder. Bright cobalt frame over
+      deep indigo detail — the team's mobile cover.
+    </p>
+
+    <div class="views">
+      <div class="view"><span class="vlabel">3/4 · hero</span><canvas id="v-iso" width="320" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Front</span><canvas id="v-front" width="250" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Side · reverse-knee</span><canvas id="v-side" width="250" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Back</span><canvas id="v-back" width="250" height="360"></canvas></div>
+    </div>
+
+    <div class="legend">
+      <span class="item"><span class="sw" style="background:#33388A"></span> armor</span>
+      <span class="item"><span class="sw" style="background:#21245C"></span> detail</span>
+      <span class="item"><span class="sw glow" style="background:#1AD9FF"></span> shield emitter / core</span>
+      <span class="item"><span class="sw" style="background:#2b2b34"></span> light hardpoint (×2)</span>
+      <span class="right">flat-shaded · fixed key light · nearest-neighbor</span>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="mech-engine.js"></script>
+  <script>
+    buildMechStage({
+      armorTex: '../assets/textures/kestrel-armor.png',
+      detailTex: '../assets/textures/kestrel-detail.png',
+      emissive: 0x1AD9FF,
+      texRef: 1.05,
+      lookY: 1.18,
+      frustH: 3.4,
+      build: function (M) {
+        const A = M.armor, D = M.detail, MO = M.mount, E = M.emis;
+
+        // ---- TORSO (lean, lightly built) ----
+        M.box(0.94, 0.92, 0.62, 0, 1.50, 0, A);                 // main
+        M.box(0.62, 0.52, 0.08, 0, 1.54, 0.32, D);              // chest frame plate
+        M.box(0.30, 0.30, 0.12, 0, 1.54, 0.36, E);              // cyan emitter core
+        M.glow(0, 1.54, 0.44, 0.55);
+        M.box(0.84, 0.26, 0.32, 0, 1.70, -0.28, D);             // back deck
+        M.box(0.78, 0.20, 0.50, 0, 1.04, 0, D);                 // torso-to-pelvis bevel
+
+        // ---- HEAD (slim, cyan visor) ----
+        M.box(0.42, 0.34, 0.42, 0, 1.98, 0.02, A);              // head
+        M.box(0.30, 0.10, 0.10, 0, 2.00, 0.22, E);              // cyan visor
+        M.glow(0, 2.00, 0.28, 0.35);
+
+        // ---- SHOULDERS ----
+        M.box(0.34, 0.44, 0.50, 0.66, 1.60, 0, A);              // left (shield) shoulder
+        M.box(0.50, 0.42, 0.52, -0.66, 1.62, 0, A);             // right (weapon) shoulder
+
+        // ---- RIGHT ARM: 2 LIGHT HARDPOINTS (both guns on the right, clearly separate) ----
+        // NOTE: Kestrel's two weapons MUST both equip on the mech's RIGHT (-x) side — the
+        // left arm is the shield emitter and carries no gun. Keep both guns here.
+        M.box(0.22, 0.20, 0.26, -0.86, 1.71, 0.22, MO);         // upper mount
+        M.box(0.15, 0.09, 0.15, -0.86, 1.83, 0.24, MO);         // upper mount collar
+        M.box(0.22, 0.20, 0.26, -0.56, 1.44, 0.30, MO);         // lower mount
+        M.box(0.15, 0.09, 0.15, -0.56, 1.34, 0.32, MO);         // lower mount collar
+
+        // ---- LEFT ARM: SHIELD EMITTER ----
+        M.box(0.24, 0.42, 0.28, 0.64, 1.36, 0.08, A);           // upper arm
+        M.box(0.30, 0.28, 0.32, 0.68, 1.10, 0.26, D);           // forearm projector
+        M.box(0.18, 0.18, 0.12, 0.68, 1.10, 0.46, E);           // emitter tip
+        M.glow(0.68, 1.10, 0.54, 0.5);
+
+        // (the energy shield itself only flickers into view on a hit — not drawn here)
+
+        // ---- ADDED: back-deck seam + flank seams ----
+        M.box(0.54, 0.07, 0.06, 0, 1.70, -0.46, E);             // back-deck emitter seam
+        M.glow(0, 1.70, -0.52, 0.5);
+        [-1, 1].forEach(function (s) {
+          M.box(0.05, 0.46, 0.16, s * 0.48, 1.50, -0.10, E);    // torso flank seam (rear-biased)
+          M.glow(s * 0.52, 1.50, -0.10, 0.4);
+        });
+
+        // ---- PELVIS ----
+        M.box(0.72, 0.32, 0.56, 0, 0.90, 0, D);
+
+        // ---- LEGS (lean reverse-knee, balanced stance — see CLAUDE.md) ----
+        // forward -> BACK -> forward.
+        [-1, 1].forEach(function (s) {
+          const hx = s * 0.38;
+          const hip  = [hx, 0.90,  0.00];
+          const knee = [hx, 0.58,  0.24];   // thigh: down + forward
+          const hock = [hx, 0.27, -0.26];   // shin: down + BACK (reverse knee)
+          const toe  = [hx, 0.12,  0.08];   // pastern: meets top of toe pad; foot is flush to ground
+          M.box(0.31, 0.30, 0.34, hip[0], hip[1], hip[2], A);
+          M.between(hip, knee, 0.26, 0.30, A);
+          M.between(knee, hock, 0.21, 0.23, D);
+          M.between(hock, toe, 0.17, 0.19, D);
+          M.box(0.31, 0.12, 0.40, hx, 0.06, 0.08, A);          // toe pad (bottom flush at y=0)
+        });
+      }
+    });
+  </script>
+</body>
+</html>

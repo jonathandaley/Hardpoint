@@ -1,0 +1,94 @@
+/* ============================================================================
+   HARDPOINT — COLORS & TYPE
+   Design tokens for Hardpoint, a third-person mech-arena FPS (Godot 4.6).
+   Dark gun-metal navy + two saturated team signal channels + industrial accents.
+   Source of truth: github.com/jonathandaley/Hardpoint (HUD.gd colors, icon.svg,
+   SPEC.md invariants). Import this in any mock; preview/_card.css pulls it in.
+   ============================================================================ */
+
+/* Fonts — the game ships Godot's default; these are brand substitutes.
+   See README "Font substitutions". Black Ops One = display, Chakra Petch = UI,
+   Share Tech Mono = readouts, VT323 = pixel accents. */
+@import url('https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Chakra+Petch:wght@400;500;600;700&family=Share+Tech+Mono&family=VT323&display=swap');
+
+:root {
+  /* ---- Surfaces — gun-metal navy stack (never plain black) -------------- */
+  --bg-void:   #0d0d14;   /* root floor */
+  --bg-deep:   #14141a;   /* raised one step */
+  --bg-panel:  #1a1a22;   /* panels / modals */
+  --bg-raised: #232330;   /* raised cards, neutral beacon dot */
+  --bg-bar:    #08080d;   /* HUD bar track (behind value fills) */
+  --bg-scrim:  rgba(8, 8, 12, 0.82); /* modal overlay scrim */
+  --oil:       #1a1410;   /* warm near-black — danger button bg, grime */
+
+  /* ---- Foreground text ------------------------------------------------- */
+  --fg-1:   #e8e8ee;   /* primary text / headings */
+  --fg-2:   #b8b8c0;   /* body / secondary */
+  --fg-3:   #7a7a85;   /* labels / muted */
+  --fg-dim: #4d4d57;   /* disabled / faint */
+
+  /* ---- Team signal — local team ALWAYS blue, enemy ALWAYS red (SPEC V122)
+     Never swap, never green-vs-red. ------------------------------------- */
+  --team-ally:      #3380ff;
+  --team-ally-soft: #73acff;
+  --team-ally-dim:  #16203a;   /* primary-button fill */
+  --team-enemy:      #ff4d33;
+  --team-enemy-soft: #ff8066;
+  --team-enemy-dim:  #3a1410;   /* danger accent */
+
+  /* ---- HUD state signal ------------------------------------------------ */
+  --hp-full:      #00ff33;   /* local/ally health bar */
+  --hp-enemy:     #ff4d33;   /* enemy world-space health bar (= enemy red) */
+  --shield:       #3380ff;   /* shield bar (= ally blue) */
+  --damage-flash: #cc0000;   /* full-screen damage vignette (alpha-tweened) */
+
+  /* ---- Industrial accents — used sparingly (borders, glow, hazard) ----- */
+  --rust:      #b85c2a;   /* heavy-slot trim, bot chip, card hairline */
+  --caution:   #f7c948;   /* hazard chevrons, ammo, lock charging */
+  --neon-cyan: #28e0c6;   /* lock-on, ELO chip, light-slot accent */
+
+  /* ---- Rules / dividers ------------------------------------------------ */
+  --rule:       #4d4d4d;   /* 2px primary section rule */
+  --rule-faint: #2a2a32;   /* 1px hairline inside cards */
+
+  /* ---- Radius — square by default; 2px only on HUD bar caps ------------ */
+  --radius-0: 0px;
+  --radius-2: 2px;
+
+  /* ---- Shadow / glow — pressed-in cards, neon glow on active only ------ */
+  --shadow-panel: 0 2px 0 #000, inset 0 0 0 1px var(--rule-faint); /* @kind shadow */
+  --glow-ally:    0 0 12px rgba(51, 128, 255, 0.55);  /* @kind shadow */
+  --glow-enemy:   0 0 12px rgba(255, 77, 51, 0.55);   /* @kind shadow */
+  --glow-cyan:    0 0 12px rgba(40, 224, 198, 0.55);  /* @kind shadow */
+  --glow-caution: 0 0 14px rgba(247, 201, 72, 0.5);   /* @kind shadow */
+
+  /* ---- Type families --------------------------------------------------- */
+  --font-display: 'Black Ops One', 'Arial Black', system-ui, sans-serif;
+  --font-ui:      'Chakra Petch', 'Arial Narrow', system-ui, sans-serif;
+  --font-mono:    'Share Tech Mono', 'Courier New', monospace;
+  --font-pixel:   'VT323', 'Courier New', monospace;
+
+  /* ---- Type scale — 4px-grid friendly --------------------------------- */
+  --fs-display: 56px;
+  --fs-h1: 40px;
+  --fs-h2: 28px;
+  --fs-h3: 22px;
+  --fs-body: 16px;
+  --fs-label: 13px;   /* uppercase tracked labels */
+  --fs-micro: 10px;
+  --fs-readout: 22px; /* mono numerics */
+
+  /* ---- Spacing — multiples of 4 (mirrors Godot offset_left/top) -------- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-8: 48px;
+
+  /* ---- Semantic aliases ------------------------------------------------ */
+  --bg: var(--bg-void);
+  --fg: var(--fg-1);
+  --accent: var(--team-ally);
+}

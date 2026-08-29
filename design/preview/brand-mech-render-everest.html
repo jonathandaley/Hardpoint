@@ -1,0 +1,137 @@
+<!doctype html>
+<!-- @dsCard group="Brand" name="Mech Render — Everest" subtitle="Box-model turnaround — paladin. White armor, enormous front tower shield with a red cross, twin heavy shoulder mounts." viewport="760x560" -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Everest — Box Model</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; background: var(--bg-void); color: var(--fg-1); font-family: var(--font-ui); -webkit-font-smoothing: antialiased; }
+  .sheet { max-width: 760px; margin: 0 auto; padding: 22px 24px 28px; box-sizing: border-box; }
+  .head { display: flex; align-items: baseline; gap: 16px; border-bottom: 2px solid var(--rule); padding-bottom: 14px; margin-bottom: 6px; }
+  .head h1 { font-family: var(--font-display); font-weight: 400; font-size: 30px; letter-spacing: 0.06em; margin: 0; }
+  .head .tag { font-family: var(--font-mono); font-size: 12px; color: #ff5a5a; letter-spacing: 0.14em; text-transform: uppercase; }
+  .head .spec { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.08em; }
+  .note { font-family: var(--font-ui); font-size: 13px; color: var(--fg-2); letter-spacing: 0.02em; line-height: 1.55; max-width: 760px; margin: 14px 0 26px; }
+  .note b { color: var(--fg-1); font-weight: 600; }
+  .note .rd { color: #ff5a5a; }
+  .views { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 2px; background: var(--rule-faint); border: 1px solid var(--rule-faint); }
+  .view { background: var(--bg-void); position: relative; display: flex; flex-direction: column; align-items: center; padding: 10px 10px 14px; }
+  .view .vlabel { align-self: flex-start; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em; color: var(--fg-3); text-transform: uppercase; margin-bottom: 6px; }
+  .view canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; width: 100%; height: auto; background: radial-gradient(120% 90% at 50% 42%, #1a1a1f 0%, var(--bg-void) 70%); }
+  .legend { display: flex; flex-wrap: wrap; gap: 22px; align-items: center; margin-top: 18px; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.04em; }
+  .legend .item { display: flex; align-items: center; gap: 7px; }
+  .legend .sw { width: 12px; height: 12px; display: inline-block; border: 1px solid #00000080; }
+  .legend .right { margin-left: auto; color: var(--fg-dim); }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="head">
+      <h1>EVEREST</h1>
+      <span class="tag">Paladin</span>
+      <span class="spec">HEAVY · SHIELD · primitive box model</span>
+    </div>
+    <p class="note">
+      The immovable object. Everest is a <b>white paladin</b> that leads with an <b>enormous front tower
+      shield</b> emblazoned with a <span class="rd">red cross</span> — a wall of armor the team hides
+      behind. Its own guns ride high and clear of the shield: <b>two heavy hardpoints</b> on the shoulders.
+      Slowest, toughest frame in the roster, planted on a massive reverse-knee stance. Clean white armor
+      over pale steel detail.
+    </p>
+
+    <div class="views">
+      <div class="view"><span class="vlabel">3/4 · hero</span><canvas id="v-iso" width="330" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Front</span><canvas id="v-front" width="300" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Side · reverse-knee</span><canvas id="v-side" width="280" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Back</span><canvas id="v-back" width="280" height="360"></canvas></div>
+    </div>
+
+    <div class="legend">
+      <span class="item"><span class="sw" style="background:#d8d8de"></span> armor (white)</span>
+      <span class="item"><span class="sw" style="background:#9a9aa2"></span> detail</span>
+      <span class="item"><span class="sw" style="background:#E01515"></span> red cross</span>
+      <span class="item"><span class="sw" style="background:#2b2b34"></span> heavy hardpoint (×2)</span>
+      <span class="right">flat-shaded · fixed key light · nearest-neighbor</span>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="mech-engine.js"></script>
+  <script>
+    buildMechStage({
+      armorTex: '../assets/textures/everest-armor.png',
+      detailTex: '../assets/textures/everest-detail.png',
+      whitenArmor: 0.74,
+      whitenDetail: 0.46,
+      emissive: 0xE01515,
+      texRef: 1.5,
+      lookY: 1.30,
+      frustH: 4.15,
+      keyI: 1.0, ambI: 0.86, ambColor: 0x8a90a4,
+      shadowW: 3.0, shadowD: 2.1,
+      build: function (M) {
+        const A = M.armor, D = M.detail, MO = M.mount, E = M.emis;
+
+        // ---- TORSO (massive, upright paladin) ----
+        M.box(1.40, 1.20, 1.00, 0, 1.62, -0.10, A);             // main mass
+        M.box(1.50, 0.42, 0.46, 0, 1.98, -0.56, D);             // back deck
+        M.box(1.16, 0.40, 0.80, 0, 1.02, -0.06, D);             // torso-to-pelvis bevel
+
+        // ---- HELM (above the shield) ----
+        M.box(0.56, 0.50, 0.54, 0, 2.42, 0.02, A);              // helm
+        M.box(0.40, 0.12, 0.12, 0, 2.42, 0.28, E);              // red visor slit
+        M.box(0.16, 0.22, 0.16, 0, 2.66, -0.04, D);             // helm crest stub
+
+        // ---- TWIN HEAVY SHOULDER MOUNTS (clear of the shield) ----
+        [-1, 1].forEach(function (s) {
+          M.box(0.74, 0.82, 0.94, s * 1.12, 2.00, -0.06, A);    // shoulder block
+          M.box(0.80, 0.18, 0.98, s * 1.12, 2.42, -0.06, D);    // shoulder cap
+          M.box(0.44, 0.44, 0.48, s * 1.12, 2.02, 0.42, MO);    // heavy mount
+          M.box(0.32, 0.32, 0.16, s * 1.12, 2.02, 0.68, MO);    // mount collar
+        });
+
+        // ---- ENORMOUS FRONT TOWER SHIELD (white, red cross) ----
+        M.box(1.62, 2.02, 0.12, 0, 1.52, 0.52, D);              // shield backing / rim
+        M.box(1.46, 1.86, 0.14, 0, 1.52, 0.62, A);              // white shield face
+        // support struts from body to shield
+        [-1, 1].forEach(function (s) {
+          M.box(0.16, 0.20, 0.42, s * 0.34, 1.52, 0.34, D);     // strut
+        });
+        // red cross, raised proud of the face
+        M.box(0.34, 1.30, 0.08, 0, 1.60, 0.71, E);              // vertical bar
+        M.box(1.04, 0.34, 0.08, 0, 1.78, 0.71, E);              // horizontal bar
+
+        // ---- ADDED: rear reactor seam + ports + shoulder flank seams ----
+        M.box(0.94, 0.10, 0.06, 0, 1.98, -0.80, E);             // back-deck reactor seam
+        M.glow(0, 1.98, -0.86, 0.7);
+        [-1, 1].forEach(function (s) {
+          M.box(0.20, 0.20, 0.08, s * 0.42, 1.86, -0.80, E);    // twin reactor ports
+          M.glow(s * 0.42, 1.86, -0.86, 0.5);
+          M.box(0.06, 0.52, 0.22, s * 1.49, 2.00, -0.12, E);    // shoulder outer seam
+          M.glow(s * 1.53, 2.00, -0.12, 0.5);
+        });
+
+        // ---- PELVIS ----
+        M.box(1.06, 0.50, 0.86, 0, 0.96, -0.04, D);
+
+        // ---- LEGS (massive reverse-knee, planted — see CLAUDE.md) ----
+        // forward -> BACK -> forward.
+        [-1, 1].forEach(function (s) {
+          const hx = s * 0.56;
+          const hip  = [hx, 0.96, -0.02];
+          const knee = [hx, 0.64,  0.26];   // thigh: down + forward
+          const hock = [hx, 0.30, -0.34];   // shin: down + BACK (reverse knee)
+          const toe  = [hx, 0.20,  0.10];   // pastern: meets top of toe pad; foot is flush to ground
+          M.box(0.52, 0.44, 0.52, hip[0], hip[1], hip[2], A);
+          M.between(hip, knee, 0.46, 0.48, A);
+          M.between(knee, hock, 0.40, 0.40, D);
+          M.between(hock, toe, 0.34, 0.34, D);
+          M.box(0.58, 0.20, 0.70, hx, 0.10, 0.14, A);           // big foot (bottom flush at y=0)
+        });
+      }
+    });
+  </script>
+</body>
+</html>

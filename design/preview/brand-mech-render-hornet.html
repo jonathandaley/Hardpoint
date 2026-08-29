@@ -1,0 +1,132 @@
+<!doctype html>
+<!-- @dsCard group="Brand" name="Mech Render — Hornet" subtitle="Box-model turnaround — jet skirmisher. Forward pitch, glowing cockpit canopy, swept wings, rear thrusters, twin light mounts." viewport="760x560" -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hornet — Box Model</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; background: var(--bg-void); color: var(--fg-1); font-family: var(--font-ui); -webkit-font-smoothing: antialiased; }
+  .sheet { max-width: 760px; margin: 0 auto; padding: 22px 24px 28px; box-sizing: border-box; }
+  .head { display: flex; align-items: baseline; gap: 16px; border-bottom: 2px solid var(--rule); padding-bottom: 14px; margin-bottom: 6px; }
+  .head h1 { font-family: var(--font-display); font-weight: 400; font-size: 30px; letter-spacing: 0.06em; margin: 0; }
+  .head .tag { font-family: var(--font-mono); font-size: 12px; color: #99CCFF; letter-spacing: 0.14em; text-transform: uppercase; }
+  .head .spec { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.08em; }
+  .note { font-family: var(--font-ui); font-size: 13px; color: var(--fg-2); letter-spacing: 0.02em; line-height: 1.55; max-width: 760px; margin: 14px 0 26px; }
+  .note b { color: var(--fg-1); font-weight: 600; }
+  .note .jb { color: #99CCFF; }
+  .views { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 2px; background: var(--rule-faint); border: 1px solid var(--rule-faint); }
+  .view { background: var(--bg-void); position: relative; display: flex; flex-direction: column; align-items: center; padding: 10px 10px 14px; }
+  .view .vlabel { align-self: flex-start; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em; color: var(--fg-3); text-transform: uppercase; margin-bottom: 6px; }
+  .view canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; width: 100%; height: auto; background: radial-gradient(120% 90% at 50% 40%, #14182a 0%, var(--bg-void) 70%); }
+  .legend { display: flex; flex-wrap: wrap; gap: 22px; align-items: center; margin-top: 18px; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.04em; }
+  .legend .item { display: flex; align-items: center; gap: 7px; }
+  .legend .sw { width: 12px; height: 12px; display: inline-block; border: 1px solid #00000080; }
+  .legend .sw.glow { box-shadow: 0 0 9px #99CCFF; }
+  .legend .right { margin-left: auto; color: var(--fg-dim); }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="head">
+      <h1>HORNET</h1>
+      <span class="tag">Jet skirmisher</span>
+      <span class="spec">MEDIUM · JET · primitive box model</span>
+    </div>
+    <p class="note">
+      Built to harass. Hornet reads as a <b>forward-pitched jet</b> — body tipped into the run, a glowing
+      light-blue <span class="jb">cockpit canopy</span> wedged at the front and a pair of <span class="jb">rear
+      thrusters</span> venting behind. <b>Swept wing stabilizers</b> rake back off the shoulders. Loadout is
+      <b>two light hardpoints</b> (one per wing root) — small mounts, kept fast and clean. Steel-blue armor
+      over deep navy detail.
+    </p>
+
+    <div class="views">
+      <div class="view"><span class="vlabel">3/4 · hero</span><canvas id="v-iso" width="300" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Front</span><canvas id="v-front" width="240" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Side · reverse-knee</span><canvas id="v-side" width="260" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Back</span><canvas id="v-back" width="260" height="360"></canvas></div>
+    </div>
+
+    <div class="legend">
+      <span class="item"><span class="sw" style="background:#3D4770"></span> armor</span>
+      <span class="item"><span class="sw" style="background:#292E4D"></span> detail</span>
+      <span class="item"><span class="sw glow" style="background:#99CCFF"></span> canopy / thruster</span>
+      <span class="item"><span class="sw" style="background:#2b2b34"></span> light hardpoint (×2)</span>
+      <span class="right">flat-shaded · fixed key light · nearest-neighbor</span>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="mech-engine.js"></script>
+  <script>
+    buildMechStage({
+      armorTex: '../assets/textures/hornet-armor.png',
+      detailTex: '../assets/textures/hornet-detail.png',
+      emissive: 0x99CCFF,
+      texRef: 1.1,
+      lookY: 1.18,
+      frustH: 3.6,
+      keyI: 1.35, ambI: 0.92, rimI: 0.7,
+      build: function (M) {
+        const A = M.armor, D = M.detail, MO = M.mount, E = M.emis;
+        const PITCH = -0.20; // forward lean
+
+        // ---- TORSO (pitched forward into the run) ----
+        M.box(1.02, 0.94, 0.72, 0, 1.50, 0.06, A, PITCH);       // main
+        M.box(0.96, 0.24, 0.40, 0, 1.74, -0.30, D, PITCH);      // upper back / spine
+        M.box(0.86, 0.22, 0.56, 0, 1.06, 0.10, D, PITCH);       // torso-to-pelvis bevel
+
+        // ---- COCKPIT CANOPY (light-blue, forward wedge = the "head") ----
+        M.box(0.50, 0.38, 0.52, 0, 1.92, 0.22, A, -0.34);       // canopy housing, pitched
+        M.box(0.34, 0.18, 0.14, 0, 1.94, 0.48, E, -0.34);       // glowing canopy glass
+        M.glow(0, 1.95, 0.54, 0.55);
+
+        // ---- REAR THRUSTERS (light-blue glow behind) ----
+        [-1, 1].forEach(function (s) {
+          M.box(0.28, 0.32, 0.40, s * 0.32, 1.62, -0.46, D, PITCH);   // nozzle housing
+          M.box(0.17, 0.20, 0.12, s * 0.32, 1.56, -0.66, E);         // nozzle core
+          M.glow(s * 0.32, 1.55, -0.72, 0.5);
+        });
+
+        // ---- SWEPT WING STABILIZERS + 2 LIGHT HARDPOINTS ----
+        [-1, 1].forEach(function (s) {
+          M.box(0.30, 0.42, 0.50, s * 0.66, 1.54, 0, A, PITCH);       // shoulder block
+          // swept wing: outboard + back, slight dihedral
+          M.box(0.56, 0.10, 0.34, s * 0.92, 1.62, -0.18, A, 0, s * 0.55, -s * 0.30);
+          M.box(0.30, 0.07, 0.20, s * 1.14, 1.70, -0.34, D, 0, s * 0.55, -s * 0.30);  // wingtip detail
+          // light hardpoint mount (small) at the wing root
+          M.box(0.22, 0.18, 0.26, s * 0.62, 1.50, 0.26, MO);          // light mount
+        });
+
+        // ---- ADDED: rear spine light + shoulder flank seams ----
+        M.box(0.64, 0.07, 0.06, 0, 1.80, -0.50, E, PITCH);          // back spine light
+        M.glow(0, 1.80, -0.56, 0.55);
+        [-1, 1].forEach(function (s) {
+          M.box(0.05, 0.30, 0.20, s * 0.81, 1.54, -0.04, E, PITCH);  // shoulder flank seam
+          M.glow(s * 0.86, 1.54, -0.04, 0.4);
+        });
+
+        // ---- PELVIS ----
+        M.box(0.72, 0.32, 0.58, 0, 0.92, 0.02, D);
+
+        // ---- LEGS (lean reverse-knee, fast forward stance — see CLAUDE.md) ----
+        // forward -> BACK -> forward.
+        [-1, 1].forEach(function (s) {
+          const hx = s * 0.38;
+          const hip  = [hx, 0.92,  0.04];
+          const knee = [hx, 0.60,  0.30];   // thigh: down + forward
+          const hock = [hx, 0.28, -0.24];   // shin: down + BACK (reverse knee)
+          const toe  = [hx, 0.12,  0.14];   // pastern: meets top of toe pad; foot is flush to ground
+          M.box(0.31, 0.30, 0.34, hip[0], hip[1], hip[2], A);
+          M.between(hip, knee, 0.26, 0.30, A);
+          M.between(knee, hock, 0.21, 0.23, D);
+          M.between(hock, toe, 0.17, 0.19, D);
+          M.box(0.31, 0.12, 0.42, hx, 0.06, 0.14, A);
+        });
+      }
+    });
+  </script>
+</body>
+</html>

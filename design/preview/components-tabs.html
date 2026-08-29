@@ -1,0 +1,32 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Tabs & Chips" subtitle="Tab bar + status chips (ally/enemy/bot/elo)." viewport="700x160" --><html><head><meta charset="utf-8"><title>Tabs · Tags · Chips</title>
+<link rel="stylesheet" href="_card.css"></head>
+<body><div class="card">
+  <style>
+    .tab { font-family:var(--font-ui);font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+           font-size:16px;padding:8px 18px;background:transparent;border:1px solid transparent;
+           border-bottom:2px solid transparent;color:#7a7a85;cursor:pointer; }
+    .tab.on { color:#f2f2f2; border-bottom-color:#3380ff; }
+    .tab:hover:not(.on) { color:#b8b8c0; }
+    .chip{ display:inline-block;padding:3px 8px;font-family:var(--font-mono);font-size:10px;letter-spacing:.12em;
+           border:1px solid #4d4d4d;color:#b8b8c0; }
+    .chip.ally{ border-color:#3380ff;color:#73bfff;background:rgba(51,128,255,.1);}
+    .chip.enemy{ border-color:#ff4d33;color:#ff8066;background:rgba(255,77,51,.1);}
+    .chip.bot { border-color:#b85c2a;color:#b85c2a;}
+    .chip.elo { border-color:#28e0c6;color:#28e0c6;}
+  </style>
+  <div style="display:flex;border-bottom:2px solid #4d4d4d;">
+    <button class="tab on">MECH</button>
+    <button class="tab">PILOT</button>
+    <button class="tab">SKILL TREE</button>
+    <button class="tab">PROFILE</button>
+  </div>
+  <div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap;">
+    <span class="chip ally">ALLY</span>
+    <span class="chip enemy">ENEMY</span>
+    <span class="chip bot">[BOT]</span>
+    <span class="chip">READY</span>
+    <span class="chip elo">ELO 1842</span>
+    <span class="chip" style="border-color:#f7c948;color:#f7c948">LOCKED</span>
+  </div>
+</div></body></html>

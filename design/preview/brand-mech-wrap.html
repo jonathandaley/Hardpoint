@@ -1,0 +1,39 @@
+<!doctype html>
+<!-- @dsCard group="Brand" name="Mech Paint — Texture Wrap" subtitle="How tiles wrap a mech: one UV-unwrapped atlas per body, nearest-neighbor, one draw call." viewport="700x470" --><html><head><meta charset="utf-8"><title>Mech Paint — Texture Wrap</title>
+<link rel="stylesheet" href="_card.css"></head>
+<body><div class="card">
+  <style>
+    .wrap{ display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start; }
+    .atlas{ width:300px;height:300px;image-rendering:pixelated;border:1px solid #000;display:block; }
+    .cap{ font-family:var(--font-mono);font-size:10px;color:var(--fg-3);margin-top:6px;text-align:center;letter-spacing:.04em; }
+    h4{ font-family:var(--font-ui);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-2);margin:0 0 8px; }
+    .step{ display:flex;gap:9px;margin:7px 0;font-size:12px;color:var(--fg-2);line-height:1.4; }
+    .step b{ font-family:var(--font-mono);color:var(--fg-3);font-size:11px;flex:none;width:14px; }
+    .inv{ margin-top:14px;padding-top:12px;border-top:1px solid var(--rule-faint); }
+    .yes,.no{ font-size:11px;line-height:1.5;margin:3px 0;padding-left:18px;position:relative; }
+    .yes::before{ content:"✓";position:absolute;left:0;color:var(--hp-full); }
+    .no::before{ content:"✕";position:absolute;left:0;color:var(--team-enemy); }
+    .yes{ color:var(--fg-2); } .no{ color:var(--fg-3); }
+  </style>
+  <div class="wrap">
+    <div>
+      <img class="atlas" src="../assets/textures/slip-atlas.png" alt="Slip UV atlas">
+      <div class="cap">SLIP · 256² atlas · one mesh · ~10 draw calls</div>
+    </div>
+    <div>
+      <h4>The wrap, in order</h4>
+      <div class="step"><b>1</b><span>30–60 primitives (boxes, cylinders) merged into <b style="color:var(--fg-2)">one body mesh</b> in Blender.</span></div>
+      <div class="step"><b>2</b><span>Mesh is <b style="color:var(--fg-2)">UV-unwrapped</b> — every part becomes a flat island on one square atlas (128–256px).</span></div>
+      <div class="step"><b>3</b><span>Each island is filled with its channel: <b style="color:var(--fg-2)">armor</b> on big panels, <b style="color:var(--fg-2)">detail</b> on struts/feet, a solid <b style="color:var(--fg-2)">emissive</b> island for the visor.</span></div>
+      <div class="step"><b>4</b><span>Imported <b style="color:var(--fg-2)">nearest-neighbor</b> → the chunky pixels stay crisp on the model. Legs are a separate mesh/atlas so they can animate.</span></div>
+      <div class="inv">
+        <h4 style="margin-bottom:6px;">Rules</h4>
+        <div class="yes">Pixel-art UV atlas, 4–5 colours per mech, nearest-neighbor (GV3)</div>
+        <div class="yes">One atlas = one draw call per body (GV4)</div>
+        <div class="no">No triplanar panel-line shader — reads as wallpaper, ignores form (GV1)</div>
+        <div class="no">No flat per-face colour as the final look — too little surface interest (GV2)</div>
+      </div>
+    </div>
+  </div>
+  <div class="label-micro" style="margin-top:14px;">Today <b style="color:var(--fg-2)">MechVisuals.gd</b> ships the flat-albedo placeholder (GV2). These tiles are the painted fill for each atlas island once the Blender unwrap pipeline (G2–G17) lands.</div>
+</div></body></html>

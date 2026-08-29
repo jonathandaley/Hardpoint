@@ -1,0 +1,37 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Form Controls" subtitle="Text input, slider, checkbox." viewport="700x230" --><html><head><meta charset="utf-8"><title>Form Controls</title>
+<link rel="stylesheet" href="_card.css"></head>
+<body><div class="card">
+  <style>
+    .field-label { font-family:var(--font-ui);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#7a7a85;margin-bottom:6px; }
+    .input { background:#0d0d14;border:1px solid #4d4d4d;color:#f2f2f2;font-family:var(--font-mono);
+             font-size:14px;padding:8px 10px;letter-spacing:.04em;width:100%;box-sizing:border-box;}
+    .input:focus{outline:none;border-color:#3380ff;box-shadow:0 0 10px rgba(51,128,255,.4);}
+    .slider { width:100%; height:6px; background:#0d0d14; border:1px solid #2a2a32; position:relative;}
+    .slider > .fill { position:absolute;left:0;top:0;bottom:0;background:#3380ff;width:62%;}
+    .slider > .knob { position:absolute;top:-5px;left:calc(62% - 6px);width:12px;height:16px;background:#f2f2f2;border:1px solid #000;}
+    .check { width:18px;height:18px;background:#0d0d14;border:1px solid #4d4d4d;display:inline-block;vertical-align:middle;position:relative;}
+    .check.on { background:#1f5fcc;border-color:#3380ff;}
+    .check.on::after{ content:"";position:absolute;left:3px;top:0;width:6px;height:12px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);}
+  </style>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+    <div>
+      <div class="field-label">PILOT NAME</div>
+      <input class="input" value="VESPER-09"/>
+    </div>
+    <div>
+      <div class="field-label">SERVER IP</div>
+      <input class="input" value="10.0.0.42:8910"/>
+    </div>
+    <div>
+      <div class="field-label">MOUSE SENS · 0.0030</div>
+      <div class="slider"><div class="fill"></div><div class="knob"></div></div>
+    </div>
+    <div>
+      <div class="field-label">BOT FILL</div>
+      <label style="font-family:var(--font-ui);font-size:14px;display:flex;gap:10px;align-items:center;">
+        <span class="check on"></span> ENABLE
+      </label>
+    </div>
+  </div>
+</div></body></html>

@@ -50,3 +50,15 @@ G20|.|Arena surface texture pass: Math Temple pixel-art stone/metal treatment|-
 G21|.|Environmental decals: scorch marks, wear marks per arena|-
 G22|.|Per-arena atmosphere tuning: fog color/density, point light review|-
 G23|.|Weapons + effects pass: pixel-art atlas, muzzle flash/trails tuned for bloom|G7
+G24|.|Mech geometry port: translate design/preview/brand-mech-render-*.html build() box lists into MechVisuals.gd per-mech funcs (negate Z, add rotation arg to _add_box, keep animated leg skeleton). Staged per weight class. Geometry only -- flat mats, no atlas|GV4
+G25|.|Mech material upgrade: move mech mats off SHADING_MODE_UNSHADED to lit flat-shading + WorldEnvironment key/ambient/rim (this is most of why the design renders read well)|G7,GV2
+G26|.|Mech palette recolor: pull per-mech armor/detail/emissive hex from design/preview/brand-mech-palette.html + legend swatches into MechVisuals.gd flat colors|G0
+G27|.|UI polish pass: interpret design/ui_kits/game/*.jsx into HUD/menu changes; reconcile design/colors_and_type.css tokens against scattered inline Color() in HUD.gd|-
+
+## Design system reference
+
+design/ holds the Claude Design web kit (imported 2026-08-29, .gdignore'd). Relevant to graphics:
+- brand-mech-render-*.html + mech-engine.js: box-model mech turnarounds in the SAME primitive language as MechVisuals.gd (boxes at x,y,z + armor/detail/emissive split + digitigrade legs). Coordinate diffs: kit faces +Z, Godot faces -Z; kit legs are free boxes, Godot legs are an animated node skeleton. Source for G24.
+- assets/textures/*-armor.png / *-detail.png: 132x132 pixel-art tile pairs per mech -- candidate source art for the G4 / G11-G17 atlas track (still needs Blender UV unwrap G2/G3).
+- colors_and_type.css: design tokens for G26/G27.
+- HUD weapon icons already applied to assets/hardpoint/ (still need a Godot editor reimport pass; consider filter=nearest in the .import).

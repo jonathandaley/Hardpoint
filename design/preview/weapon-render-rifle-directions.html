@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rifle — Direction Study</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; background: var(--bg-void); color: var(--fg-1);
+    font-family: var(--font-ui); -webkit-font-smoothing: antialiased; }
+  .sheet { max-width: 1160px; margin: 0 auto; padding: 26px 30px 60px; box-sizing: border-box; }
+
+  .head { display: flex; align-items: baseline; gap: 16px; border-bottom: 2px solid var(--rule);
+    padding-bottom: 14px; }
+  .head h1 { font-family: var(--font-display); font-weight: 400; font-size: 30px; letter-spacing: .05em; margin: 0; }
+  .head .tag { font-family: var(--font-mono); font-size: 12px; color: var(--caution);
+    letter-spacing: .14em; text-transform: uppercase; }
+  .head .spec { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); letter-spacing: .08em; }
+
+  .lede { font-size: 13.5px; color: var(--fg-2); line-height: 1.55; max-width: 860px; margin: 16px 0 8px; }
+  .lede b { color: var(--fg-1); font-weight: 600; }
+  .lede .ht { color: var(--caution); }
+
+  .dir { border: 1px solid var(--rule-faint); background: var(--bg-deep); margin-top: 22px; }
+  .dir .bar { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border-bottom: 1px solid var(--rule-faint);
+    background: var(--bg-panel); }
+  .badge { font-family: var(--font-display); font-size: 20px; letter-spacing: .04em; color: var(--bg-void);
+    background: var(--caution); width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; }
+  .dir .nm { font-family: var(--font-display); font-size: 20px; letter-spacing: .05em; }
+  .dir .sz { font-family: var(--font-mono); font-size: 11px; color: var(--rust); letter-spacing: .12em; text-transform: uppercase;
+    border: 1px solid var(--rust); padding: 2px 8px; }
+  .dir .desc { margin-left: auto; font-size: 12.5px; color: var(--fg-2); max-width: 560px; line-height: 1.45; text-align: right; }
+  .dir .desc b { color: var(--fg-1); }
+
+  .panes { display: grid; grid-template-columns: 1.15fr 1.35fr 1fr; gap: 1px; background: var(--rule-faint); }
+  .pane { background: var(--bg-void); position: relative; display: flex; flex-direction: column; align-items: center;
+    padding: 10px 8px 12px; }
+  .pane .vl { align-self: flex-start; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .16em;
+    color: var(--fg-3); text-transform: uppercase; margin-bottom: 4px; }
+  .pane canvas { image-rendering: pixelated; display: block; width: 100%; height: auto;
+    background: radial-gradient(120% 100% at 50% 42%, #16161f 0%, var(--bg-void) 72%); }
+  .pane.mounted canvas { background: radial-gradient(120% 100% at 50% 40%, #191a13 0%, var(--bg-void) 72%); }
+  .pane.mounted .vl { color: var(--rust); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 22px; align-items: center; margin-top: 20px;
+    font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); letter-spacing: .04em; }
+  .legend .item { display: flex; align-items: center; gap: 7px; }
+  .legend .sw { width: 12px; height: 12px; display: inline-block; border: 1px solid #00000080; }
+  .legend .sw.glow { box-shadow: 0 0 9px var(--caution); }
+  .legend .right { margin-left: auto; color: var(--fg-dim); }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="head">
+      <h1>RIFLE</h1>
+      <span class="tag">Direction study · pick one</span>
+      <span class="spec">L / H · projectile · muzzle-heat · box-model pipeline</span>
+    </div>
+    <p class="lede">
+      One weapon, three silhouette directions — proving the same box-model pipeline the mechs use
+      (textured prisms, flat-shaded, nearest-neighbor, ortho turnaround). All share the neutral
+      <b>gunmetal</b> material family and a <span class="ht">muzzle-heat</span> glow at the bore
+      (projectile weapons only). Each shows a <b>¾ hero</b>, a <b>side profile</b>, and a small
+      <b>mounted</b> inset on a neutral hardpoint so scale and fit read. Tell me which letter to roll
+      out across the roster — or mix (e.g. "B body, C optic").
+    </p>
+
+    <!-- DIRECTION A -->
+    <div class="dir" id="A">
+      <div class="bar">
+        <span class="badge">A</span>
+        <span class="nm">SERVICE</span>
+        <span class="sz">battle rifle</span>
+        <span class="desc"><b>Clean & precise.</b> Straight barrel, in-line stock, angled box magazine.
+          The disciplined, military read — least grime, most legible silhouette.</span>
+      </div>
+      <div class="panes">
+        <div class="pane"><span class="vl">¾ · hero</span><canvas id="a-hero" width="320" height="250"></canvas></div>
+        <div class="pane"><span class="vl">side · profile</span><canvas id="a-side" width="380" height="188"></canvas></div>
+        <div class="pane mounted"><span class="vl">mounted · hardpoint</span><canvas id="a-mount" width="270" height="238"></canvas></div>
+      </div>
+    </div>
+
+    <!-- DIRECTION B -->
+    <div class="dir" id="B">
+      <div class="bar">
+        <span class="badge">B</span>
+        <span class="nm">BULLPUP</span>
+        <span class="sz">compact bruiser</span>
+        <span class="desc"><b>Short & aggressive.</b> Magazine behind the grip, chunky receiver, vented
+          heat shroud, carry-handle hump. Reads as industrial and close-quarters — most Matrix-3 grime.</span>
+      </div>
+      <div class="panes">
+        <div class="pane"><span class="vl">¾ · hero</span><canvas id="b-hero" width="320" height="250"></canvas></div>
+        <div class="pane"><span class="vl">side · profile</span><canvas id="b-side" width="380" height="188"></canvas></div>
+        <div class="pane mounted"><span class="vl">mounted · hardpoint</span><canvas id="b-mount" width="270" height="238"></canvas></div>
+      </div>
+    </div>
+
+    <!-- DIRECTION C -->
+    <div class="dir" id="C">
+      <div class="bar">
+        <span class="badge">C</span>
+        <span class="nm">MARKSMAN</span>
+        <span class="sz">→ sniper</span>
+        <span class="desc"><b>Long & technical.</b> Full-length rail + raised optic, ribbed cooling barrel,
+          big muzzle brake. The high-tech precision read — <b>reassigned as the Sniper</b> (bipod dropped, it
+          reads as clutter on a hardpoint).</span>
+      </div>
+      <div class="panes">
+        <div class="pane"><span class="vl">¾ · hero</span><canvas id="c-hero" width="320" height="250"></canvas></div>
+        <div class="pane"><span class="vl">side · profile</span><canvas id="c-side" width="380" height="188"></canvas></div>
+        <div class="pane mounted"><span class="vl">mounted · hardpoint</span><canvas id="c-mount" width="270" height="238"></canvas></div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span class="item"><span class="sw" style="background:#3a3e46"></span> armor steel</span>
+      <span class="item"><span class="sw" style="background:#24272e"></span> detail steel</span>
+      <span class="item"><span class="sw" style="background:#2f333b"></span> barrel / mid</span>
+      <span class="item"><span class="sw" style="background:#17181d"></span> bore / muzzle</span>
+      <span class="item"><span class="sw glow" style="background:#ff6a1a"></span> muzzle heat</span>
+      <span class="item"><span class="sw" style="background:#2b2b34"></span> neutral hardpoint</span>
+      <span class="right">flat-shaded · fixed key light · nearest-neighbor</span>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="weapon-engine.js"></script>
+  <script>
+    const TEX = { armorTex: '../assets/textures/weapon-steel-armor.png', detailTex: '../assets/textures/weapon-steel-detail.png' };
+
+    // ---- neutral hardpoint the weapon clamps onto (mounted inset only) ----
+    function mountCradle(M) {
+      M.box(1.05, 0.16, 0.72, 0, -0.52, 0.0, M.mount);      // chassis plate
+      M.box(0.60, 0.10, 0.60, 0, -0.42, 0.0, M.socket);     // recessed socket
+      M.box(0.20, 0.26, 0.20, 0, -0.30, 0.0, M.mount);      // pintle post
+      [-1, 1].forEach(s => M.box(0.08, 0.30, 0.34, s * 0.20, -0.20, 0.02, M.mount)); // clamp arms
+    }
+
+    // ============================ A — SERVICE =============================
+    function rifleA(M) {
+      const A = M.armor, D = M.detail, MI = M.mid, K = M.dark;
+      M.box(0.26, 0.30, 0.72, 0, 0.00, 0.05, A);            // receiver
+      M.box(0.12, 0.06, 0.64, 0, 0.18, 0.02, D);            // top rail rib
+      M.box(0.10, 0.10, 0.06, 0, 0.24, -0.20, K);           // rear sight
+      M.box(0.05, 0.14, 0.05, 0, 0.20, 0.62, K);            // front post
+      // handguard + barrel
+      M.box(0.20, 0.18, 0.40, 0, 0.00, 0.42, A);            // handguard
+      [-1, 0, 1].forEach(i => M.box(0.22, 0.03, 0.05, 0, 0.09, 0.34 + i * 0.12, K)); // vents
+      M.box(0.12, 0.12, 0.62, 0, 0.00, 0.74, MI);           // barrel
+      M.box(0.15, 0.15, 0.12, 0, 0.00, 1.06, K);            // muzzle device
+      M.heat(0, 0.00, 1.16, 0.36);
+      // magazine + grip
+      M.box(0.16, 0.34, 0.22, 0, -0.28, 0.12, D, 0.26);     // magazine
+      M.box(0.16, 0.14, 0.20, 0, -0.44, 0.17, D, 0.26);     // mag curve
+      M.box(0.10, 0.05, 0.22, 0, -0.14, -0.02, K);          // trigger guard
+      M.box(0.14, 0.26, 0.14, 0, -0.22, -0.12, D, -0.35);   // grip
+      // stock
+      M.box(0.16, 0.22, 0.50, 0, -0.02, -0.50, A);          // stock body
+      M.box(0.12, 0.06, 0.30, 0, 0.12, -0.45, D);           // comb
+      M.box(0.18, 0.28, 0.08, 0, -0.02, -0.76, K);          // butt pad
+    }
+
+    // ============================ B — BULLPUP =============================
+    function rifleB(M) {
+      const A = M.armor, D = M.detail, MI = M.mid, K = M.dark;
+      M.box(0.30, 0.40, 0.95, 0, 0.00, -0.05, A);           // main body
+      M.box(0.16, 0.12, 0.60, 0, 0.28, -0.05, D);           // carry-handle rail
+      M.box(0.14, 0.10, 0.20, 0, 0.36, 0.05, K);            // optic bump
+      M.box(0.14, 0.06, 0.30, 0, 0.22, -0.40, D);           // cheek rest
+      // heat shroud + barrel
+      M.box(0.22, 0.22, 0.42, 0, 0.02, 0.52, A);            // shroud
+      [0, 1, 2, 3].forEach(i => M.box(0.24, 0.04, 0.06, 0, 0.13, 0.36 + i * 0.11, K)); // vents
+      M.box(0.14, 0.14, 0.40, 0, 0.02, 0.68, MI);           // barrel
+      M.box(0.17, 0.17, 0.14, 0, 0.02, 0.90, K);            // muzzle brake
+      M.heat(0, 0.02, 1.00, 0.34);
+      // bullpup mag (behind grip) + grip
+      M.box(0.16, 0.32, 0.22, 0, -0.26, -0.40, D, -0.12);   // magazine (rear)
+      M.box(0.14, 0.26, 0.14, 0, -0.22, 0.05, D, -0.18);    // grip (forward)
+      M.box(0.10, 0.05, 0.18, 0, -0.12, 0.12, K);           // trigger guard
+      M.box(0.30, 0.38, 0.10, 0, 0.00, -0.56, A);           // butt plate
+    }
+
+    // ============================ C — MARKSMAN ============================
+    function rifleC(M) {
+      const A = M.armor, D = M.detail, MI = M.mid, K = M.dark;
+      M.box(0.22, 0.26, 0.82, 0, 0.00, -0.10, A);           // slim receiver
+      M.box(0.10, 0.05, 1.40, 0, 0.16, 0.12, K);            // full-length rail
+      // optic
+      M.box(0.06, 0.12, 0.06, 0, 0.24, -0.20, K);           // ring rear
+      M.box(0.06, 0.12, 0.06, 0, 0.24, 0.08, K);            // ring front
+      M.box(0.14, 0.14, 0.52, 0, 0.32, -0.06, MI);          // scope tube
+      M.box(0.17, 0.17, 0.12, 0, 0.32, 0.22, K);            // objective bell
+      M.box(0.15, 0.15, 0.10, 0, 0.32, -0.36, K);           // eyepiece
+      // ribbed barrel
+      M.box(0.11, 0.11, 1.10, 0, -0.02, 0.72, MI);          // barrel
+      for (let i = 0; i < 7; i++) M.box(0.16, 0.16, 0.03, 0, -0.02, 0.42 + i * 0.13, D); // cooling ribs
+      M.box(0.20, 0.20, 0.20, 0, -0.02, 1.34, K);           // muzzle brake
+      M.heat(0, -0.02, 1.48, 0.38);
+      // mag + grip
+      M.box(0.15, 0.30, 0.20, 0, -0.24, -0.05, D, 0.14);    // magazine
+      M.box(0.13, 0.24, 0.13, 0, -0.20, -0.28, D, -0.30);   // grip
+      // skeleton stock
+      M.tube([0.0, 0.06, -0.30], [0.0, 0.02, -0.70], 0.09, 0.05, MI);  // upper strut
+      M.tube([0.0, -0.16, -0.20], [0.0, -0.08, -0.66], 0.09, 0.05, MI);// lower strut
+      M.box(0.16, 0.34, 0.08, 0, -0.02, -0.74, A);          // butt
+    }
+
+    // ---- stage helpers ----
+    const HERO = { pos: [-3.1, 2.0, 3.35], frustH: 1.95, lookY: 0.02, shadow: { w: 2.4, d: 1.0, z: 0 } };
+    const SIDE = { pos: [-6.0, 0.24, 0.0001], frustH: 1.32, lookY: 0.02 };
+    const MOUNT = { pos: [-3.0, 2.15, 3.4], frustH: 2.8, lookY: -0.12, shadow: { w: 2.7, d: 1.2, z: -0.42 } };
+
+    function stageWeapon(prefix, build) {
+      buildWeaponStage(Object.assign({}, TEX, {
+        views: [
+          Object.assign({ id: prefix + '-hero' }, HERO),
+          Object.assign({ id: prefix + '-side' }, SIDE),
+        ],
+        build: build,
+      }));
+      buildWeaponStage(Object.assign({}, TEX, {
+        views: [Object.assign({ id: prefix + '-mount' }, MOUNT)],
+        build: function (M) { mountCradle(M); build(M); },
+      }));
+    }
+
+    stageWeapon('a', rifleA);
+    stageWeapon('b', rifleB);
+    stageWeapon('c', rifleC);
+  </script>
+</body>
+</html>

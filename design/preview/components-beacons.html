@@ -1,0 +1,28 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Beacon Dots + Score" subtitle="Top-center HUD strip — dots map to map XZ." viewport="700x150" --><html><head><meta charset="utf-8"><title>Beacon Dots & Score</title>
+<link rel="stylesheet" href="_card.css"></head>
+<body><div class="card">
+  <style>
+    .dot { width:22px;height:22px;border-radius:50%;border:2px solid #000; }
+    .dot.neutral { background:#3a3a44; }
+    .dot.a { background:#3380ff; box-shadow:0 0 10px rgba(51,128,255,.55); }
+    .dot.b { background:#ff4d33; box-shadow:0 0 10px rgba(255,77,51,.55); }
+    .dot.contested { background:conic-gradient(#3380ff 0 50%,#ff4d33 50% 100%); }
+    .dot.progress { background:conic-gradient(#3380ff 0 75%,#3a3a44 75%); }
+  </style>
+  <div style="display:flex;align-items:center;justify-content:center;gap:10px;">
+    <div style="width:130px;height:14px;background:rgba(20,20,26,.88);border:1px solid #000;position:relative;">
+      <div style="position:absolute;inset:0;background:#3380ff;width:62%;"></div>
+    </div>
+    <div class="dot a"></div><div class="dot contested"></div><div class="dot neutral"></div><div class="dot progress"></div><div class="dot b"></div>
+    <div style="width:130px;height:14px;background:rgba(20,20,26,.88);border:1px solid #000;position:relative;">
+      <div style="position:absolute;right:0;top:0;bottom:0;background:#ff4d33;width:48%;"></div>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;margin-top:6px;color:#7a7a85;">
+    <span style="color:#73bfff;">3 / 5 ALIVE</span>
+    <span>BEACON STRIP</span>
+    <span style="color:#ff8066;">4 / 5 ALIVE</span>
+  </div>
+  <div class="label-micro" style="margin-top:14px;">Top-center HUD strip. Dots map to physical beacon X-positions. Conic gradient = capture progress.</div>
+</div></body></html>

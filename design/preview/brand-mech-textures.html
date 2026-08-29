@@ -1,0 +1,29 @@
+<!doctype html>
+<!-- @dsCard group="Brand" name="Mech Paint — Pixel Textures" subtitle="Big-pixel armor + detail tiles per mech — tonal noise, grime & wear (640×360 look)." viewport="700x560" --><html><head><meta charset="utf-8"><title>Mech Paint — Pixel Textures</title>
+<link rel="stylesheet" href="_card.css"></head>
+<body><div class="card">
+  <style>
+    .grid{ display:grid;grid-template-columns:1fr 1fr;gap:10px; }
+    .tile{ position:relative;height:92px;border:1px solid #000;overflow:hidden;display:flex;align-items:flex-end; }
+    .tile .armor{ position:absolute;inset:0;background-size:cover;image-rendering:pixelated; }
+    .tile .det{ position:absolute;top:0;right:0;width:30px;height:100%;background-size:cover;image-rendering:pixelated;border-left:1px solid #000; }
+    .tile .emit{ position:absolute;top:7px;left:7px;width:12px;height:12px;border-radius:50%;border:1px solid rgba(0,0,0,.5); }
+    .tile .bar{ position:relative;z-index:1;width:100%;display:flex;align-items:baseline;gap:8px;padding:5px 8px;background:linear-gradient(transparent,rgba(8,8,12,.88)); }
+    .nm{ font-family:var(--font-mono);font-size:12px;color:#fff;letter-spacing:.05em; }
+    .arch{ font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#c8c8d0;margin-left:auto; }
+  </style>
+  <div class="grid">
+    <div class="tile"><div class="armor" style="background-image:url(../assets/textures/slip-armor.png)"></div><div class="det" style="background-image:url(../assets/textures/slip-detail.png)"></div><div class="emit" style="background:#1AD9FF;box-shadow:0 0 8px #1AD9FF"></div><div class="bar"><span class="nm">SLIP</span><span class="arch">Sprinter</span></div></div>
+    <div class="tile"><div class="armor" style="background-image:url(../assets/textures/cesh-armor.png)"></div><div class="det" style="background-image:url(../assets/textures/cesh-detail.png)"></div><div class="bar"><span class="nm">CESH</span><span class="arch">Stealth</span></div></div>
+    <div class="tile"><div class="armor" style="background-image:url(../assets/textures/seeker-armor.png)"></div><div class="det" style="background-image:url(../assets/textures/seeker-detail.png)"></div><div class="emit" style="background:#FF730D;box-shadow:0 0 8px #FF730D"></div><div class="bar"><span class="nm">SEEKER</span><span class="arch">Sensor</span></div></div>
+    <div class="tile"><div class="armor" style="background-image:url(../assets/textures/lynx-armor.png)"></div><div class="det" style="background-image:url(../assets/textures/lynx-detail.png)"></div><div class="emit" style="background:#FFA60D;box-shadow:0 0 8px #FFA60D"></div><div class="bar"><span class="nm">LYNX</span><span class="arch">Recon</span></div></div>
+    <div class="tile"><div class="armor" style="background-image:url(../assets/textures/hornet-armor.png)"></div><div class="det" style="background-image:url(../assets/textures/hornet-detail.png)"></div><div class="emit" style="background:#99CCFF;box-shadow:0 0 8px #99CCFF"></div><div class="bar"><span class="nm">HORNET</span><span class="arch">Jet</span></div></div>
+    <div class="tile"><div class="armor" style="background-image:url(../assets/textures/hippogriff-armor.png)"></div><div class="det" style="background-image:url(../assets/textures/hippogriff-detail.png)"></div><div class="emit" style="background:#FF260D;box-shadow:0 0 8px #FF260D"></div><div class="bar"><span class="nm">HIPPOGRIFF</span><span class="arch">Bomber</span></div></div>
+    <div class="tile"><div class="armor" style="background-image:url(../assets/textures/kestrel-armor.png)"></div><div class="det" style="background-image:url(../assets/textures/kestrel-detail.png)"></div><div class="emit" style="background:#1AD9FF;box-shadow:0 0 10px #1AD9FF"></div><div class="bar"><span class="nm">KESTREL</span><span class="arch">Shield</span></div></div>
+    <div class="tile"><div class="armor" style="background-image:url(../assets/textures/pegasus-armor.png)"></div><div class="det" style="background-image:url(../assets/textures/pegasus-detail.png)"></div><div class="emit" style="background:#FFBF1A;box-shadow:0 0 8px #FFBF1A"></div><div class="bar"><span class="nm">PEGASUS</span><span class="arch">Mobility</span></div></div>
+    <div class="tile"><div class="armor" style="background-image:url(../assets/textures/everest-armor.png)"></div><div class="det" style="background-image:url(../assets/textures/everest-detail.png)"></div><div class="emit" style="background:#E6E6FF;box-shadow:0 0 8px #E6E6FF"></div><div class="bar"><span class="nm">EVEREST</span><span class="arch">Paladin</span></div></div>
+    <div class="tile"><div class="armor" style="background-image:url(../assets/textures/vesuvius-armor.png)"></div><div class="det" style="background-image:url(../assets/textures/vesuvius-detail.png)"></div><div class="emit" style="background:#FF590D;box-shadow:0 0 12px #FF590D"></div><div class="bar"><span class="nm">VESUVIUS</span><span class="arch">Dreadnought</span></div></div>
+    <div class="tile"><div class="armor" style="background-image:url(../assets/textures/warhog-armor.png)"></div><div class="det" style="background-image:url(../assets/textures/warhog-detail.png)"></div><div class="bar"><span class="nm">WARHOG</span><span class="arch">Tank</span></div></div>
+  </div>
+  <div class="label-micro" style="margin-top:13px;">Each tile = base albedo + per-pixel lightness/hue jitter + grime &amp; wear speckles, 12×12 chunky grid. Big-pixel band on the right is the <b style="color:var(--fg-2)">detail</b> channel. Nearest-neighbor; matches the 640×360 render.</div>
+</div></body></html>

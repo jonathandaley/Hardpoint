@@ -1,0 +1,20 @@
+/* Hardpoint global stylesheet — root entry the DS compiler reads.
+   Tokens + fonts live in colors_and_type.css; this imports them and sets a
+   baseline. Preview cards use preview/_card.css, which imports the same tokens. */
+@import url('colors_and_type.css');
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-void);
+  color: var(--fg-1);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--neon-cyan); text-decoration: none; }
+a:hover { color: var(--fg-1); }
+
+::selection { background: var(--team-ally); color: var(--bg-void); }

@@ -1,0 +1,121 @@
+<!doctype html>
+<!-- @dsCard group="Brand" name="Mech Render — Cesh" subtitle="Box-model turnaround — stealth ambusher. Hunched crouch, faceted angled plates, dark sensor cowl, no emissive." viewport="760x560" -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cesh — Box Model</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; background: var(--bg-void); color: var(--fg-1); font-family: var(--font-ui); -webkit-font-smoothing: antialiased; }
+  .sheet { max-width: 760px; margin: 0 auto; padding: 22px 24px 28px; box-sizing: border-box; }
+  .head { display: flex; align-items: baseline; gap: 16px; border-bottom: 2px solid var(--rule); padding-bottom: 14px; margin-bottom: 6px; }
+  .head h1 { font-family: var(--font-display); font-weight: 400; font-size: 30px; letter-spacing: 0.06em; margin: 0; }
+  .head .tag { font-family: var(--font-mono); font-size: 12px; color: #8fb083; letter-spacing: 0.14em; text-transform: uppercase; }
+  .head .spec { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.08em; }
+  .note { font-family: var(--font-ui); font-size: 13px; color: var(--fg-2); letter-spacing: 0.02em; line-height: 1.55; max-width: 760px; margin: 14px 0 26px; }
+  .note b { color: var(--fg-1); font-weight: 600; }
+  .note .ac { color: #8fb083; }
+  .views { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 2px; background: var(--rule-faint); border: 1px solid var(--rule-faint); }
+  .view { background: var(--bg-void); position: relative; display: flex; flex-direction: column; align-items: center; padding: 10px 10px 14px; }
+  .view .vlabel { align-self: flex-start; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em; color: var(--fg-3); text-transform: uppercase; margin-bottom: 6px; }
+  .view canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; width: 100%; height: auto; background: radial-gradient(120% 90% at 50% 38%, #15151f 0%, var(--bg-void) 70%); }
+  .legend { display: flex; flex-wrap: wrap; gap: 22px; align-items: center; margin-top: 18px; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.04em; }
+  .legend .item { display: flex; align-items: center; gap: 7px; }
+  .legend .sw { width: 12px; height: 12px; display: inline-block; border: 1px solid #00000080; }
+  .legend .right { margin-left: auto; color: var(--fg-dim); }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="head">
+      <h1>CESH</h1>
+      <span class="tag">Stealth ambusher</span>
+      <span class="spec">MEDIUM · STEALTH · primitive box model</span>
+    </div>
+    <p class="note">
+      Built to disappear. Cesh reads as a <b>low, hunched crouch</b> — torso pitched forward over a
+      deep reverse-knee stance, so the silhouette is all <span class="ac">faceted angled plates</span>
+      and shadow. A flush sensor band sits on the brow — no top mount. The loadout is <b>asymmetric</b>:
+      the single weapon mounts on the <span class="ac">right side of the torso</span> (flank hardpoint —
+      the weapon itself equips separately), balanced by an <span class="ac">ornament cluster</span> on the
+      left flank. There is <b>no
+      emissive channel</b> at all — the one mech that never gives its position away. Olive-drab armor over
+      forest detail.
+    </p>
+
+    <div class="views">
+      <div class="view"><span class="vlabel">3/4 · hero</span><canvas id="v-iso" width="300" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Front</span><canvas id="v-front" width="220" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Side · reverse-knee</span><canvas id="v-side" width="240" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Back</span><canvas id="v-back" width="240" height="360"></canvas></div>
+    </div>
+
+    <div class="legend">
+      <span class="item"><span class="sw" style="background:#384733"></span> armor</span>
+      <span class="item"><span class="sw" style="background:#52664A"></span> detail</span>
+      <span class="item"><span class="sw" style="background:#2b2b34"></span> weapon (right flank) / antenna (left)</span>
+      <span class="right">stealth · no emissive · flat-shaded · nearest-neighbor</span>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="mech-engine.js"></script>
+  <script>
+    buildMechStage({
+      armorTex: '../assets/textures/cesh-armor.png',
+      detailTex: '../assets/textures/cesh-detail.png',
+      emissive: null,
+      texRef: 1.1,
+      lookY: 1.0,
+      frustH: 3.15,
+      build: function (M) {
+        const A = M.armor, D = M.detail, MO = M.mount;
+
+        // ---- TORSO (low, pitched forward — stealth crouch) ----
+        M.box(1.22, 0.80, 0.86, 0, 1.34, 0.06, A, -0.18);          // main, leaning forward
+        M.box(0.80, 0.52, 0.10, 0, 1.40, 0.50, D, -0.18);          // angled chest facet
+        M.box(1.04, 0.26, 0.74, 0, 0.98, 0.02, D);                 // torso-to-pelvis bevel
+        M.box(1.10, 0.34, 0.34, 0, 1.52, -0.34, D, -0.18);         // hunched back deck
+
+        // ---- LOW SENSOR STRIP (flush brow, not a top mount) ----
+        M.box(0.46, 0.12, 0.14, 0, 1.62, 0.40, M.socket, -0.18);   // dark sensor band
+
+        // ---- CANTED SHOULDER SHROUDS (faceted armor, both sides) ----
+        [-1, 1].forEach(function (s) {
+          M.box(0.40, 0.52, 0.60, s * 0.72, 1.50, 0.04, A, 0, 0, s * 0.34);  // big angled pauldron
+          M.box(0.20, 0.30, 0.40, s * 0.88, 1.38, 0.04, D, 0, 0, s * 0.34);  // outboard detail facet
+        });
+
+        // ---- ASYMMETRIC TORSO-FLANK LOADOUT: weapon on the mech's RIGHT (-x), ornament LEFT (+x) ----
+        // RIGHT flank — the single weapon HARDPOINT (weapon equips separately)
+        M.box(0.22, 0.36, 0.44, -0.66, 1.36, 0.06, MO, -0.18);     // flank hardpoint
+        // LEFT flank — ornamentation cluster (no weapon)
+        M.box(0.18, 0.34, 0.40, 0.66, 1.36, 0.06, D, -0.18);       // greeble plate
+        M.box(0.13, 0.10, 0.18, 0.72, 1.30, 0.26, D);              // forward vent nub
+        M.box(0.12, 0.20, 0.12, 0.62, 1.58, 0.02, D);              // antenna base
+        M.box(0.05, 0.32, 0.05, 0.62, 1.80, 0.02, MO);             // thin antenna mast
+        M.box(0.10, 0.07, 0.10, 0.62, 1.98, 0.02, MO);             // antenna tip
+
+        // ---- PELVIS ----
+        M.box(0.82, 0.36, 0.66, 0, 0.82, 0.02, D);
+
+        // ---- LEGS (digitigrade reverse-knee, deep crouch — see CLAUDE.md) ----
+        // forward -> BACK -> forward. Deeper bend than Slip: knee high+fwd, hock low+back.
+        [-1, 1].forEach(function (s) {
+          const hx = s * 0.42;
+          const hip  = [hx, 0.83,  0.02];
+          const knee = [hx, 0.58,  0.30];   // thigh: down + forward
+          const hock = [hx, 0.26, -0.26];   // shin: down + BACK (reverse knee)
+          const toe  = [hx, 0.12,  0.06];   // pastern: meets top of toe pad; foot is flush to ground
+          M.box(0.36, 0.30, 0.36, hip[0], hip[1], hip[2], A);
+          M.between(hip, knee, 0.30, 0.32, A);
+          M.between(knee, hock, 0.24, 0.26, D);
+          M.between(hock, toe, 0.20, 0.22, D);
+          M.box(0.36, 0.12, 0.40, hx, 0.06, 0.07, A);
+        });
+      }
+    });
+  </script>
+</body>
+</html>

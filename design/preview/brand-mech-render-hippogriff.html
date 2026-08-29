@@ -1,0 +1,130 @@
+<!doctype html>
+<!-- @dsCard group="Brand" name="Mech Render — Hippogriff" subtitle="Box-model turnaround — bomber. Jutting nose turret with red targeting eye, bomb-bay belly, three light mounts." viewport="760x560" -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hippogriff — Box Model</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; background: var(--bg-void); color: var(--fg-1); font-family: var(--font-ui); -webkit-font-smoothing: antialiased; }
+  .sheet { max-width: 760px; margin: 0 auto; padding: 22px 24px 28px; box-sizing: border-box; }
+  .head { display: flex; align-items: baseline; gap: 16px; border-bottom: 2px solid var(--rule); padding-bottom: 14px; margin-bottom: 6px; }
+  .head h1 { font-family: var(--font-display); font-weight: 400; font-size: 30px; letter-spacing: 0.06em; margin: 0; }
+  .head .tag { font-family: var(--font-mono); font-size: 12px; color: #ff5a44; letter-spacing: 0.14em; text-transform: uppercase; }
+  .head .spec { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.08em; }
+  .note { font-family: var(--font-ui); font-size: 13px; color: var(--fg-2); letter-spacing: 0.02em; line-height: 1.55; max-width: 760px; margin: 14px 0 26px; }
+  .note b { color: var(--fg-1); font-weight: 600; }
+  .note .rd { color: #ff5a44; }
+  .views { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 2px; background: var(--rule-faint); border: 1px solid var(--rule-faint); }
+  .view { background: var(--bg-void); position: relative; display: flex; flex-direction: column; align-items: center; padding: 10px 10px 14px; }
+  .view .vlabel { align-self: flex-start; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em; color: var(--fg-3); text-transform: uppercase; margin-bottom: 6px; }
+  .view canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; width: 100%; height: auto; background: radial-gradient(120% 90% at 50% 40%, #1c1b14 0%, var(--bg-void) 70%); }
+  .legend { display: flex; flex-wrap: wrap; gap: 22px; align-items: center; margin-top: 18px; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.04em; }
+  .legend .item { display: flex; align-items: center; gap: 7px; }
+  .legend .sw { width: 12px; height: 12px; display: inline-block; border: 1px solid #00000080; }
+  .legend .sw.glow { box-shadow: 0 0 9px #FF260D; }
+  .legend .right { margin-left: auto; color: var(--fg-dim); }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="head">
+      <h1>HIPPOGRIFF</h1>
+      <span class="tag">Bomber</span>
+      <span class="spec">MEDIUM · BOMBER · primitive box model</span>
+    </div>
+    <p class="note">
+      Front-heavy and deliberate. Hippogriff leads with a <b>jutting nose turret</b> — a blunt forward
+      assembly tipped with a <span class="rd">red targeting eye</span> — over a bulky
+      <span class="rd">bomb-bay belly</span> whose doors glow along the seam. It plants on a wide, sturdy
+      reverse-knee stance. Loadout is <b>three light hardpoints</b> (two shoulders, one chin) — small
+      mounts flanking the big nose. Olive-drab armor over dark khaki detail.
+    </p>
+
+    <div class="views">
+      <div class="view"><span class="vlabel">3/4 · hero</span><canvas id="v-iso" width="320" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Front</span><canvas id="v-front" width="250" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Side · reverse-knee</span><canvas id="v-side" width="270" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Back</span><canvas id="v-back" width="270" height="360"></canvas></div>
+    </div>
+
+    <div class="legend">
+      <span class="item"><span class="sw" style="background:#666642"></span> armor</span>
+      <span class="item"><span class="sw" style="background:#424229"></span> detail</span>
+      <span class="item"><span class="sw glow" style="background:#FF260D"></span> targeting eye / bay lights</span>
+      <span class="item"><span class="sw" style="background:#2b2b34"></span> light hardpoint (×3)</span>
+      <span class="right">flat-shaded · fixed key light · nearest-neighbor</span>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="mech-engine.js"></script>
+  <script>
+    buildMechStage({
+      armorTex: '../assets/textures/hippogriff-armor.png',
+      detailTex: '../assets/textures/hippogriff-detail.png',
+      emissive: 0xFF260D,
+      texRef: 1.3,
+      lookY: 1.12,
+      frustH: 3.7,
+      shadowW: 2.8, shadowD: 2.0,
+      build: function (M) {
+        const A = M.armor, D = M.detail, MO = M.mount, E = M.emis;
+
+        // ---- TORSO (broad) + BOMB-BAY BELLY ----
+        M.box(1.30, 0.84, 0.92, 0, 1.52, 0, A);                 // main mass
+        M.box(0.96, 0.40, 0.10, 0, 1.64, 0.48, D);              // upper chest plate
+        M.box(1.16, 0.30, 0.44, 0, 1.70, -0.40, D);             // back deck
+        M.box(1.20, 0.52, 0.88, 0, 1.04, 0.04, A);              // bulky belly (bomb bay)
+        M.box(0.72, 0.40, 0.09, 0, 1.02, 0.50, D);              // bay doors
+        M.box(0.54, 0.06, 0.10, 0, 0.90, 0.50, E);              // bay seam lights
+        M.glow(0, 0.90, 0.56, 0.45);
+
+        // ---- NOSE TURRET (jutting forward, red targeting eye = the face) ----
+        M.box(0.62, 0.52, 0.48, 0, 1.80, 0.30, A);              // turret housing
+        M.box(0.46, 0.42, 0.50, 0, 1.76, 0.66, A);              // snout
+        M.box(0.52, 0.48, 0.12, 0, 1.76, 0.92, D);              // nose tip plate
+        M.box(0.26, 0.16, 0.10, 0, 1.80, 0.99, E);              // red targeting eye
+        M.glow(0, 1.80, 1.06, 0.55);
+
+        // ---- SHOULDERS + 2 LIGHT HARDPOINTS ----
+        [-1, 1].forEach(function (s) {
+          M.box(0.36, 0.48, 0.62, s * 0.82, 1.60, 0, A);        // shoulder block
+          M.box(0.22, 0.18, 0.26, s * 0.82, 1.56, 0.34, MO);    // light mount (small)
+        });
+        // ---- 3rd LIGHT HARDPOINT (chin, under the nose) ----
+        M.box(0.26, 0.20, 0.30, 0, 1.34, 0.52, MO);             // chin mount
+
+        // ---- ADDED: rear exhaust seam + twin vents + flank seams ----
+        M.box(0.80, 0.08, 0.06, 0, 1.74, -0.64, E);             // back-deck exhaust seam
+        M.glow(0, 1.74, -0.70, 0.6);
+        [-1, 1].forEach(function (s) {
+          M.box(0.16, 0.16, 0.10, s * 0.30, 1.60, -0.62, E);    // twin rear vents
+          M.glow(s * 0.30, 1.60, -0.68, 0.45);
+          M.box(0.06, 0.40, 0.18, s * 0.66, 1.52, -0.16, E);    // torso flank seam
+          M.glow(s * 0.70, 1.52, -0.16, 0.4);
+        });
+
+        // ---- PELVIS ----
+        M.box(0.92, 0.34, 0.68, 0, 0.82, 0, D);
+
+        // ---- LEGS (sturdy reverse-knee, wide stance — see CLAUDE.md) ----
+        // forward -> BACK -> forward.
+        [-1, 1].forEach(function (s) {
+          const hx = s * 0.46;
+          const hip  = [hx, 0.84,  0.00];
+          const knee = [hx, 0.55,  0.28];   // thigh: down + forward
+          const hock = [hx, 0.25, -0.28];   // shin: down + BACK (reverse knee)
+          const toe  = [hx, 0.15,  0.10];   // pastern: meets top of toe pad; foot is flush to ground
+          M.box(0.40, 0.34, 0.42, hip[0], hip[1], hip[2], A);
+          M.between(hip, knee, 0.36, 0.38, A);
+          M.between(knee, hock, 0.30, 0.30, D);
+          M.between(hock, toe, 0.26, 0.26, D);
+          M.box(0.44, 0.15, 0.52, hx, 0.075, 0.12, A);         // toe pad (bottom flush at y=0)
+        });
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!doctype html>
+<!-- @dsCard group="Brand" name="Mech Paint — Roster" subtitle="Canonical 3-channel paint per mech (armor · detail · emissive), from MechVisuals.gd." viewport="700x470" --><html><head><meta charset="utf-8"><title>Mech Paint — Roster</title>
+<link rel="stylesheet" href="_card.css"></head>
+<body><div class="card">
+  <style>
+    .grid{ display:grid;grid-template-columns:1fr 1fr;gap:7px; }
+    .m{ display:flex;align-items:center;gap:9px;padding:7px 9px;background:#14141a;border:1px solid #2a2a32; }
+    .armor{ width:34px;height:34px;border:1px solid #000;flex:none; }
+    .det{ width:13px;height:34px;border:1px solid #000;flex:none; }
+    .emit{ width:13px;height:13px;border-radius:50%;flex:none; }
+    .emit.none{ border-radius:0;background:transparent;border:1px dashed #3a3a44; }
+    .nm{ font-family:var(--font-mono);font-size:12px;color:var(--fg-1);letter-spacing:.04em; }
+    .meta{ display:flex;flex-direction:column;gap:1px;min-width:0; }
+    .arch{ font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-3); }
+    .nrg{ margin-left:auto;font-family:var(--font-mono);font-size:10px;color:var(--fg-3);flex:none; }
+  </style>
+  <div class="grid">
+    <div class="m"><div class="armor" style="background:#384C8C"></div><div class="det" style="background:#243361"></div><div class="emit" style="background:#1AD9FF;box-shadow:0 0 9px #1AD9FF"></div><div class="meta"><span class="nm">SLIP</span><span class="arch">Sprinter · cyan flanks</span></div><span class="nrg">e3.0</span></div>
+    <div class="m"><div class="armor" style="background:#384733"></div><div class="det" style="background:#52664A"></div><div class="emit none"></div><div class="meta"><span class="nm">CESH</span><span class="arch">Stealth · no glow</span></div><span class="nrg">—</span></div>
+    <div class="m"><div class="armor" style="background:#524770"></div><div class="det" style="background:#332E47"></div><div class="emit" style="background:#FF730D;box-shadow:0 0 9px #FF730D"></div><div class="meta"><span class="nm">SEEKER</span><span class="arch">Sensor · amber</span></div><span class="nrg">e3.0</span></div>
+    <div class="m"><div class="armor" style="background:#3D4770"></div><div class="det" style="background:#292E4D"></div><div class="emit" style="background:#99CCFF;box-shadow:0 0 9px #99CCFF"></div><div class="meta"><span class="nm">HORNET</span><span class="arch">Jet · cockpit</span></div><span class="nrg">e2.0</span></div>
+    <div class="m"><div class="armor" style="background:#666642"></div><div class="det" style="background:#424229"></div><div class="emit" style="background:#FF260D;box-shadow:0 0 9px #FF260D"></div><div class="meta"><span class="nm">HIPPOGRIFF</span><span class="arch">Bomber · nose turret</span></div><span class="nrg">e3.0</span></div>
+    <div class="m"><div class="armor" style="background:#33388A"></div><div class="det" style="background:#21245C"></div><div class="emit" style="background:#1AD9FF;box-shadow:0 0 11px #1AD9FF"></div><div class="meta"><span class="nm">KESTREL</span><span class="arch">Shield · cyan emitter</span></div><span class="nrg">e4.0</span></div>
+    <div class="m"><div class="armor" style="background:#8A8A94"></div><div class="det" style="background:#5C5C66"></div><div class="emit" style="background:#FFBF1A;box-shadow:0 0 9px #FFBF1A"></div><div class="meta"><span class="nm">PEGASUS</span><span class="arch">Mobility · gold crest</span></div><span class="nrg">e3.0</span></div>
+    <div class="m"><div class="armor" style="background:#57575C"></div><div class="det" style="background:#333338"></div><div class="emit" style="background:#E6E6FF;box-shadow:0 0 9px #E6E6FF"></div><div class="meta"><span class="nm">EVEREST</span><span class="arch">Paladin · white cross</span></div><span class="nrg">e2.5</span></div>
+    <div class="m"><div class="armor" style="background:#2E140F"></div><div class="det" style="background:#3D1F14"></div><div class="emit" style="background:#FF590D;box-shadow:0 0 13px #FF590D"></div><div class="meta"><span class="nm">VESUVIUS</span><span class="arch">Dreadnought · lava</span></div><span class="nrg">e5.0</span></div>
+  </div>
+  <div class="label-micro" style="margin-top:13px;">Every mech = <b style="color:var(--fg-2)">armor</b> base + <b style="color:var(--fg-2)">detail</b> trim + optional <b style="color:var(--fg-2)">emissive</b> accent (energy multiplier shown). Unshaded albedo; emissive drives the bloom. Hexes are the literal Color() values from MechVisuals.gd.</div>
+</div></body></html>
