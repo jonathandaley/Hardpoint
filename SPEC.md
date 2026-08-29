@@ -23,7 +23,7 @@ Mech arena FPS, single-player vs bots, beacon-drain + kill-domination dual win c
   - `.tres` fields need default values or silent load failure.
   - `depth_test_disabled` transparent materials → undefined sort order → flicker; ⊥ use.
   - If approach fails 3x with variations → stop, report symptoms, ask to pivot.
-- Lives per match: 5 (fixed); each life uses next mech from pre-selected squad.
+- Lives per match: 5 (fixed); each life uses next mech from pre-selected squad. (MP live via T127; SP death-respawn pending T64.)
 - Visuals: opaque emissive meshes + Tween for FX. ⊥ transparent bubbles, ⊥ GPUParticles3D.
 - Art direction: Matrix 3 post-apocalyptic steam/cyberpunk. Rust, neon, grime, mechanical bulk.
 - Abilities: ⊥ every mech requires one; optional. Pool: jump, dash, area-heal, flight, energy shield (passive). Shields count as passive ability slot.
@@ -38,11 +38,11 @@ Mech arena FPS, single-player vs bots, beacon-drain + kill-domination dual win c
 ## §I INTERFACES
 
 - run: `build/hardpoint.x86_64` → game window
-- controls: WASD move | mouse look | LMB fire-all | RMB fire-active-subset | 1-4 toggle slots | R reload | Esc uncapture mouse
-- persist: `user://settings.cfg` (sensitivity, difficulty) | `user://profile.cfg` (wins, losses, pilot_name)
+- controls: WASD move | mouse look | LMB fire-all | RMB fire-active-subset | 1-4 toggle slots | R reload | Q ability | Tab spectate-cycle | Esc uncapture mouse
+- persist: `user://settings.cfg` (sensitivity, difficulty, volume) | `user://profile.cfg` (wins, losses, pilot_name, elo, level, xp, coins, skills)
 - data: `MechDef` `.tres` in `resources/mechs/` → Arena reads & spawns mechs
 - singleton: `Game.profile` & `Game.settings` read/write via `ConfigFile`
-- architecture: `InputSource → Player → Mech → Weapons`; `AIInputSource` & `PlayerInputSource` interchangeable
+- architecture: `InputSource → Player → Mech → Weapons`; `AIInputSource` / `PlayerInputSource` / `NetworkInputSource` (MP remote peer) / `ReplayInputSource` (autodebug harness) interchangeable
 - arena entry: `Arena.gd` reads `Game.loadout` (untyped dict) → instantiates player + bot mechs + weapons
 
 ## §V INVARIANTS
@@ -59,7 +59,7 @@ V9: heavy weapon fire rate slower & damage ~2x vs light counterpart
 V10: REFILLING mag regen rate always < sustained fire rate; burst play feel required
 V11: continuous-beam (Laser/Arc) damage ticks at fixed interval (e.g. 0.1s); ⊥ per-frame damage (TTK varies with framerate)
 V12: physical shield collider front face ! clear of mech capsule front (∴ raycasts hit shield not capsule)
-V13: algorithms & baked data → `tools/*.py`; ⊥ runtime GDScript for offline work
+V13: algorithms & baked data → `tools/*.py`; ⊥ runtime GDScript for offline work; retired one-shot bake scripts → `archive/` (penrose/hat/fractal gens moved 2026-08); `tools/` now also holds MP autodebug harness (T133-T135)
 V14: `Game.loadout` dict access → untyped `var`; ⊥ typed Resource access
 V15: bot AI target lock & homing → built once, shared by Rocket Launcher & Arc weapon; ⊥ duplicate system
 V16: ⊥ em-dashes in `.gd` comments; hyphens only
@@ -70,7 +70,7 @@ V20: dedicated server model; server = peer_id 1; ∀ game-state mutation (damage
 V21: pilot skills split into two classes. (a) baked stat multipliers -- health, walk_speed, lock_time, damage, projectile_speed, reload_time, inaccuracy, shield_capacity -- applied once in `Mech.apply_pilot_skills()` at spawn; ⊥ re-polled. (b) per-event modifiers -- repair_rate (Mech._process), ability_recharge (Mech._activate_ability/_deactivate_ability), beacon_capture + contested_hold (Beacon._update_capture) -- polled live but gated on `is_human_input()` or `_player_team_in_zone()` so bots never see them. xp_bonus + coin_pickup awarded once in `Game.update_after_match`. bot mechs ⊥ receive `apply_pilot_skills` regardless of class.
 V22: gameplay input reads (`Input.is_action_*`, `get_axis`, `get_vector`, action events) only in `PlayerInputSource.gd`; ⊥ raw gameplay input in `Mech`, weapons, HUD, AI; mouse_mode/cursor toggles are window-state and exempt (UI scenes + `Mech.set_input_source`)
 V23: ∀ cached `Node3D` ref → `is_instance_valid()` guard before deref; applies to lock targets, AI targets, projectile target/owner, beacon capturers
-V24: in MP-replicated paths `randf*`/`randi*` ⊥; SP-only spread RNG in `ProjectileGun`/`MachineGun`/`Shotgun`/`Patience`/`AerialStrike` exempt today (local-authoritative) but must move to server-only `_do_fire` when T40 lands; cosmetic RNG marked `# cosmetic`; AI behavior RNG → seeded `RandomNumberGenerator` instance
+V24: in MP-replicated paths `randf*`/`randi*` ⊥; spread RNG in `ProjectileGun`/`MachineGun`/`Shotgun`/`Patience`/`AerialStrike` → seeded `Game.rng` (landed T133 determinism work); match-seed generation via global `randi()` exempt (server-only, seed broadcast: `Match.gd:21`, `Lobby.gd:395`); cosmetic RNG marked `# cosmetic`; AI behavior RNG → seeded `RandomNumberGenerator` instance
 V25: damage flows through `Mech._take_damage_rpc` only; ⊥ direct `health` writes; ⊥ bypass RPC seam even SP
 V26: one-shot VFX/audio (muzzle flash, hit sparks, death explosion, damage hit, weapon fire, reload, mech death, ui clicks) → `VFX.*` / `SoundManager.*` autoload methods only; ⊥ inline one-shot `AudioStreamPlayer3D.new()` or effect `MeshInstance3D.new()` outside autoloads. weapon-owned persistent helpers (continuous-beam loop audio in `ArcWeapon`/`MachineGun`/`LaserCannon`; beam/tracer mesh in `ArcWeapon`/`LaserCannon`/`RaycastGun`/`Patience`) may be created inline by the weapon node that owns their lifetime.
 V27: `Beacon._capturers` entries validated each capture tick (`is_instance_valid` + `is_alive`); dead/freed mechs purged before capture math
@@ -123,9 +123,9 @@ T27|x|Cesh stealth: passive, hide nametag/HP bar from enemies, desaturate (stub 
 T28|x|audio scaffolding: bus layout (Master/SFX/Music), folders (`audio/weapons/footsteps/ui/ambient/impacts/abilities`), `AudioStreamPlayer3D` hooks (WeaponBase.fire, BipedLegs step, Mech.take_damage, Beacon state change, Match.on_match_ended, ability activations, UI clicks) with placeholder streams|-
 T29|.|audio content: two CC0 tracks -- ambient loop (always playing) + combat loop (crossfade in when player takes damage or fires within 5s, crossfade out after 5s quiet); two AudioStreamPlayer nodes, volume crossfade via Tween; both loops seamlessly looping|T28
 T30|x|visual FX: muzzle flash (0.08s decay), hit sparks (3-4 emissive cubes, 0.2s), death explosion (emissive sphere 0.3s + optional opaque chunks), shield hit -- opaque emissive + Tween|V7
-T31|x|floor art: `tools/hat_floor_tex.py` → hat_floor.png (1024px) UV-mapped to bowl mesh|V13
+T31|x|floor art: `archive/hat_floor_tex.py` (fmr tools/) → hat_floor.png (1024px) UV-mapped to bowl mesh|V13
 T32|x|lighting pass: directional + 2-3 points, try baked lightmap (2 fail → fall back)|-
-T33|x|fractal wall/ceiling art: `tools/fractal_wall_gen.py` → exterior circular walls only (archived for interior); interior walls use `_PENROSE_SVG_EDGES` directly|V13
+T33|x|fractal wall/ceiling art: `archive/fractal_wall_gen.py` (fmr tools/) → exterior circular walls only (archived for interior); interior walls use `_PENROSE_SVG_EDGES` directly|V13
 T34|x|hangar 3D diorama: lineup 3-6 mechs, turntable platform, CanvasLayer UI, swap on loadout change|-
 T35|x|team vs team: 5v5/6v6 bots, scaled arena, `Match` configurable team counts (`Game.loadout["team_size"]`)|−
 T36|x|bot role assignment: attacker/defender/flanker, role biases beacon priority & positioning|T35
@@ -156,8 +156,8 @@ T60|x|beacon HUD dot X positions match beacon physical XZ layout in arena (propo
 T61|x|weapon range system: `range` export already set per weapon in `.tscn`; enforce hitscan cutoff + projectile self-destruct at range in `WeaponBase`|V9
 T62|x|arena column repositioning: redistribute white pillar meshes to match current bowl scale and cover outer ring (positions not updated when arena grew)|−
 T63|x|leg rotation smoothing: legs rotate toward move direction gradually at rate scaled by `walk_speed`, no snap|T10
-T64|.|multi-mech loadout: hangar lets player select ordered squad of up to 5 mechs before match (order fixed at match start, no mid-match reorder); on death, full-screen UI overlay shows remaining squad mechs -- player taps to choose next, no timer, then spawns; on exhausting last mech player switches to spectate until match ends|T34,T57
-T65|.|team color perspective: client always renders own team blue, enemy red regardless of server team assignment|T40
+T64|~|multi-mech loadout: hangar squad-of-5 selection DONE (`Hangar._squad_paths` → `Game.loadout["squad"]`); MP death-picker DONE via T127 (`HUD.show_squad_picker_mp`); REMAINING = SP death-respawn path (SP death still goes straight to T58 spectate, squad lives unused); on exhausting last mech player switches to spectate until match ends|T34,T57,T127
+T65|.|team color perspective: client always renders own team blue, enemy red regardless of server team assignment; unblocked 2026-06 by T122 (HUD perspective landed), actionable now|T122
 T66|.|tutorial: first-run overlay on hangar screen explains controls; dismissed permanently per account; deferred until per-account system|T40,T75
 T67|.|multi-life game-end guard: `BeaconMatch` ⊥ ends match on last-player death if squad lives remain (V19); gate on T64|T64,V19
 T68|x|mech visual art pass: all 8 mechs get Matrix-3-style geometry (rust/neon/mechanical bulk); block-primitive placeholders replaced|−
@@ -223,6 +223,9 @@ T129|.|P15: 2-peer LAN smoke test -- gate task; host + join over LAN; full beaco
 T130|.|P16 deferred: dedicated server build -- `Game.gd._ready` reads `OS.get_cmdline_args()` for `--server [port]`; if present: auto-host on port, skip Title/SignIn/Hangar/Lobby flow (server holds the lobby), no local PlayerInputSource spawn at match start (V35); export preset `hardpoint.server.x86_64` builds headless (rendering disabled at engine init); deferred until T129 passes|V35,T129
 T131|.|P16 deferred: client-side prediction for own mech -- on remote peer's own-mech path, apply input locally each tick (prediction) + reconcile against server snapshot; snap on divergence > 1m, smooth otherwise; input ringbuffer for reconciliation; gated on T129 -- only build if interpolation feel is unacceptable in T129 LAN test|V37,T129
 T132|.|P16 deferred: reconnect / late-join -- on `peer_disconnected` server reserves slot 30s before bot-swap; reconnect within window resumes as spectate (no respawn into existing squad); fresh late-join allowed only between matches; full design + implementation deferred; tracked here so it does not surprise on first MP feedback|T123,T129
+T133|x|MP autodebug M0: determinism prerequisite -- `ReplayInputSource.gd`, seeded `Game.rng` at all sim RNG sites, headless 2-process loopback harness, determinism self-test gate (`tools/selftest.py`) GREEN; plan-of-record detail in MP_AUTODEBUG_PLAN.md|V24,V29,V42
+T134|x|MP autodebug M1: oracle library (`tools/oracles/`: determinism, transform_desync, health_desync, lock_target, team_assignment, event_sidefx, rpc_integrity, crash_scan) + `tools/sync_compare.py` driver + event stream wired into Mech/Beacon; 8 oracles green on `determinism_2peer` scenario|T133
+T135|.|MP autodebug M2: scenario suite -- richer scenarios exercising ammo/beacon/spawn_join/prediction/friendly-fire oracles; output = tooling that runs the audit MP bug batch (#10,#11,#15,#16,#27,#28) + T129 LAN smoke|T134,T129
 
 ## §B BUGS
 

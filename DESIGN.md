@@ -2,7 +2,11 @@
 
 A mech FPS with modular weapons and area control, inspired by War Robots. Single-player loop first; multiplayer deferred until the game is fun against bots.
 
-This document is the canonical reference. Load it at the start of every session.
+> **SUPERSEDED (2026-08-29): SPEC.md is canonical.** This file is the original design
+> doc, kept as historical reference. Known-stale vs current state: internal res is
+> 640×360 (not 320×180), art direction is Matrix-3 rust/neon (not white/grey/blue
+> math temple), and multiplayer is largely built (T109-T128). Do not load this at
+> session start; load SPEC.md.
 
 ---
 

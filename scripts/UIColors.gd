@@ -1,7 +1,7 @@
 class_name UIColors
 
 # Design tokens from colors_and_type.css (Design System project).
-# Only tokens referenced in game code live here — see the Design project for the full palette.
+# Only tokens referenced in game code live here - see the Design project for the full palette.
 
 # Surfaces
 const BG_BAR    := Color("#08080d")   # --bg-bar:    HUD track behind value fills

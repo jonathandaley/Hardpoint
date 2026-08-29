@@ -1,6 +1,6 @@
 # MP_AUTODEBUG_PLAN.md — Autonomous Multiplayer Debugging Harness
 
-Companion to DESIGN.md / SPEC.md / ROADMAP.md. Target: set-and-forget agentic
+Companion to SPEC.md (canonical; tracks this work as T133-T135) and MP_PLAN.md. Target: set-and-forget agentic
 debugging of multiplayer state divergence, zero interaction once running.
 
 ---
