@@ -4,28 +4,73 @@
   "port": 8911,
   "map_path": "res://resources/maps/MathTemple.tres",
   "mech": "res://resources/mechs/Slip.tres",
-  "weapons": ["res://scenes/weapons/MachineGunLight.tscn"],
+  "weapons": [
+    "res://scenes/weapons/MachineGunLight.tscn"
+  ],
   "duration_ticks": 600,
-  "oracles": ["ammo_desync", "crash_scan", "rpc_integrity", "team_assignment"],
-  "expect_fail": ["ammo_desync"],
-  "thresholds": {"ammo_settle_ticks": 120, "ammo_persist_ticks": 10},
+  "oracles": [
+    "ammo_desync",
+    "crash_scan",
+    "rpc_integrity",
+    "team_assignment",
+    "spawn_join"
+  ],
+  "expect_fail": [
+    "ammo_desync"
+  ],
+  "thresholds": {
+    "ammo_settle_ticks": 120,
+    "ammo_persist_ticks": 10
+  },
   "_comment": "Both peers hold position and hose a FIXED-mag machine gun into the void for ~3s, then cease. After the settle window, server and client must agree on every mech's ammo. expect_fail: clients never see server-side ammo mutation (open MP bug, HUD ammo group); remove the marker when ammo replication lands.",
   "peers": {
     "server": {
       "input": {
         "keyframes": [
-          {"tick": 0,   "move": [0, 0], "look": [0.0, 0.0]},
-          {"tick": 60,  "fire_primary": true},
-          {"tick": 240, "fire_primary": false}
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 60,
+            "fire_primary": true
+          },
+          {
+            "tick": 240,
+            "fire_primary": false
+          }
         ]
       }
     },
     "client_1": {
       "input": {
         "keyframes": [
-          {"tick": 0,   "move": [0, 0], "look": [0.0, 0.0]},
-          {"tick": 60,  "fire_primary": true},
-          {"tick": 240, "fire_primary": false}
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 60,
+            "fire_primary": true
+          },
+          {
+            "tick": 240,
+            "fire_primary": false
+          }
         ]
       }
     }
