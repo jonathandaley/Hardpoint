@@ -77,6 +77,19 @@ def vmax_diff(a, b):
     return max((abs(x - y) for x, y in zip(a, b)), default=0.0)
 
 
+def quat_angle(a, b):
+    """Angular distance in radians between two [x,y,z,w] quaternions.
+
+    Componentwise diff is wrong for rotations: q and -q are the same rotation
+    (double cover) but differ by up to 2.0 per component, which fires false
+    positives the moment a mech's yaw wraps past pi (caught by kill_confirm's
+    full-circle sweep). 2*acos(|dot|) is the true rotation angle between them.
+    """
+    import math
+    dot = abs(sum(x * y for x, y in zip(a, b)))
+    return 2.0 * math.acos(min(1.0, dot))
+
+
 def is_local(snap):
     """True if this snapshot's mech is simulated locally by the logging peer
     (owner == peer), hence authoritative and bit-deterministic. Networked mechs

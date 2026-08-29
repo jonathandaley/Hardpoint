@@ -17,7 +17,11 @@ NAME = "transform_desync"
 
 # Cross-peer tolerances. Looser than the determinism gate: a client interpolates
 # remote mechs, so sub-meter / small-angle lag is normal. Real desync is meters.
-DEFAULTS = {"pos_eps": 1.5, "rot_epsilon": 0.05, "persist_ticks": 5}
+# rot: sustained interp lag during a fast scripted turn (1.7 rad/s about-face in
+# kill_confirm) measured 0.22 rad peak with the angular metric -- 0.5 gives >2x
+# headroom while real rotation desyncs (wrong/frozen rotation) persist at
+# ~radians. Slow-turn scenarios may tighten via thresholds.rot_epsilon.
+DEFAULTS = {"pos_eps": 1.5, "rot_epsilon": 0.5, "persist_ticks": 5}
 
 FIELDS = ("pos", "rot_local", "rot_global")
 
@@ -52,7 +56,12 @@ def run(ctx):
                     ss = server.at(t, mid)
                     if cs is None or ss is None:
                         continue
-                    series.append((t, base.vmax_diff(cs[field], ss[field])))
+                    if field == "pos":
+                        series.append((t, base.vmax_diff(cs[field], ss[field])))
+                    else:
+                        # True rotation angle; componentwise diff false-fires on
+                        # the quaternion double cover when yaw wraps past pi.
+                        series.append((t, base.quat_angle(cs[field], ss[field])))
                 if not series:
                     continue
                 total_checked += 1
