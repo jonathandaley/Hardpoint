@@ -30,6 +30,7 @@ def launch(godot, role, sync_role, scenario_abs, out_dir):
         godot, "--headless", "--path", REPO,
         "--mp-scenario=" + scenario_abs,
         "--role=" + role,
+        "--peer-key=" + sync_role,
         "--sync-log",
         "--sync-role=" + sync_role,
         "--sync-dir=" + out_dir,
@@ -80,20 +81,28 @@ def main():
         meta["peers"]["server"] = {"exit_code": server.returncode, "timed_out": False, "early_exit": True}
         _write_meta(out_dir, meta)
         return 1
-    client, clog = launch(args.godot, "client", "client_1", scenario_abs, out_dir)
+    # M2.1: one process per non-server peer key in the scenario (client_1, client_2, ...).
+    peer_keys = sorted(k for k in scenario.get("peers", {}) if k != "server")
+    clients = []
+    for key in peer_keys:
+        proc, log = launch(args.godot, "client", key, scenario_abs, out_dir)
+        clients.append((key, proc, log))
 
-    client_ok = wait(client, args.timeout, "client")
+    ok = True
+    for key, proc, log in clients:
+        c_ok = wait(proc, args.timeout, key)
+        ok = ok and c_ok
+        log.close()
+        # crash_scan oracle (M1.3) reads these: nonzero exit / timeout = process death.
+        meta["peers"][key] = {"exit_code": proc.returncode, "timed_out": not c_ok}
     server_ok = wait(server, args.timeout, "server")
-    ok = client_ok and server_ok
+    ok = ok and server_ok
     slog.close()
-    clog.close()
-    # crash_scan oracle (M1.3) reads these: nonzero exit / timeout = process death.
     meta["peers"]["server"] = {"exit_code": server.returncode, "timed_out": not server_ok}
-    meta["peers"]["client_1"] = {"exit_code": client.returncode, "timed_out": not client_ok}
     _write_meta(out_dir, meta)
 
-    # Verify both snapshot logs exist and are non-empty.
-    for name in ("server.jsonl", "client_1.jsonl"):
+    # Verify all snapshot logs exist and are non-empty.
+    for name in ["server.jsonl"] + [k + ".jsonl" for k in peer_keys]:
         p = os.path.join(out_dir, name)
         n = sum(1 for _ in open(p)) if os.path.exists(p) else 0
         print(f"[run_scenario] {name}: {n} lines")

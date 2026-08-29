@@ -38,29 +38,37 @@ def load_jsonl(path):
 class PeerLog:
     """One peer's snapshot + event streams, indexed for oracle access."""
 
-    def __init__(self, role, snaps, events):
+    def __init__(self, role, snaps, events, beacons=None):
         self.role = role
         self.snaps = snaps
         self.events = events
+        self.beacons = beacons or []  # M2.1: per-tick beacon rows, may be absent
         self.by_key = {(s["tick"], s["mech_id"]): s for s in snaps}
         self.ticks = sorted({s["tick"] for s in snaps})
         self.mech_ids = sorted({s["mech_id"] for s in snaps})
+        self.beacon_by_key = {(b["tick"], b["beacon_id"]): b for b in self.beacons}
+        self.beacon_ids = sorted({b["beacon_id"] for b in self.beacons})
 
     def at(self, tick, mech_id):
         return self.by_key.get((tick, mech_id))
+
+    def beacon_at(self, tick, beacon_id):
+        return self.beacon_by_key.get((tick, beacon_id))
 
 
 def load_run(run_dir):
     """Return {role: PeerLog} for every <role>.jsonl in run_dir."""
     peers = {}
     for p in sorted(glob.glob(os.path.join(run_dir, "*.jsonl"))):
-        if p.endswith(".events.jsonl"):
+        if p.endswith(".events.jsonl") or p.endswith(".beacons.jsonl"):
             continue
         role = os.path.basename(p)[: -len(".jsonl")]
         snaps = load_jsonl(p)
         epath = os.path.join(run_dir, role + ".events.jsonl")
         events = load_jsonl(epath) if os.path.exists(epath) else []
-        peers[role] = PeerLog(role, snaps, events)
+        bpath = os.path.join(run_dir, role + ".beacons.jsonl")
+        beacons = load_jsonl(bpath) if os.path.exists(bpath) else []
+        peers[role] = PeerLog(role, snaps, events, beacons)
     return peers
 
 

@@ -295,9 +295,9 @@ func request_damage(amount: float, source: Node3D = null) -> void:
 			var dist: float = (source as Node3D).global_position.distance_to(global_position)
 			if dist > src_range * 1.2:
 				return
-	_apply_damage(amount)
+	_apply_damage(amount, source)
 
-func _apply_damage(amount: float) -> void:
+func _apply_damage(amount: float, source: Node3D = null) -> void:
 	if health <= 0.0 or invincible:
 		return
 	var actual := amount
@@ -319,7 +319,19 @@ func _apply_damage(amount: float) -> void:
 	# M1.3: autodebug event stream. Runs at the server-authoritative damage
 	# chokepoint (clients route take_damage -> server via RPC), so hit/died are
 	# logged once, on the authoritative peer.
-	Game.sync_log_event("hit", name, {"amount": snappedf(actual, 0.01), "hp": snappedf(health, 0.01)})
+	# M2.1: attribute the shooter. `source` is the weapon node (child of the
+	# owning mech), so walk up to the mech for name + team; -1/"" when unknown
+	# (source freed, or SP paths that pass null).
+	var src_name := ""
+	var src_team: int = -1
+	if Game.sync_logging_enabled and source != null and is_instance_valid(source):
+		var p: Node = source
+		while p != null and not p.is_in_group("mechs"):
+			p = p.get_parent()
+		if p != null:
+			src_name = p.name
+			src_team = p.get("team")
+	Game.sync_log_event("hit", name, {"amount": snappedf(actual, 0.01), "hp": snappedf(health, 0.01), "src": src_name, "src_team": src_team})
 	if health <= 0.0:
 		health = 0.0
 		Game.sync_log_event("died", name, {})
