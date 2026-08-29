@@ -33,6 +33,7 @@ func _do_fire() -> void:
 	var aim_dist: float = cam.global_position.distance_to(center_result.position) \
 		if center_result else r
 
+	var ghost_aims: Array = []  # audit #15: pellet aim points for the client ghost broadcast
 	for _i in pellet_count:
 		var pellet_fwd := cam_fwd
 		if spread_angle > 0.0:
@@ -55,3 +56,20 @@ func _do_fire() -> void:
 		proj.on_hit = func(body, pos): _emit_hit_if_visible(body, pos)
 		get_tree().current_scene.add_child(proj)
 		proj.global_transform = Transform3D(Basis(), global_position).looking_at(aim_point)
+		ghost_aims.append(aim_point)
+	# Audit #15: pellets were server-only; remote peers saw nothing. One RPC per
+	# shot carrying every pellet's aim point; clients spawn visual-only ghosts.
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_rpc_pellet_ghosts.rpc(ghost_aims)
+
+@rpc("authority", "unreliable")
+func _rpc_pellet_ghosts(aim_points: Array) -> void:
+	if multiplayer.is_server():
+		return
+	for ap in aim_points:
+		var ghost := PROJECTILE_SCENE.instantiate() as Projectile
+		ghost.is_ghost = true
+		ghost.speed = projectile_speed
+		ghost.lifetime = range / projectile_speed
+		get_tree().current_scene.add_child(ghost)
+		ghost.global_transform = Transform3D(Basis(), global_position).looking_at(ap)

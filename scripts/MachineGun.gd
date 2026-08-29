@@ -65,6 +65,7 @@ func _physics_process(delta: float) -> void:
 func _process(_delta: float) -> void:
 	if _reloading and _loop_player != null and _loop_player.playing:
 		_loop_player.stop()
+		_bc_loop(false)
 
 func _start_mg_loop() -> void:
 	var stream := SoundManager.get_sfx_stream("machinegun_fire")
@@ -86,6 +87,29 @@ func _start_mg_loop() -> void:
 func on_fire_release() -> void:
 	if _loop_player != null and _loop_player.playing:
 		_loop_player.stop()
+	_bc_loop(false)
+
+# Audit #10: the fire-sound loop player is local to the server, so remote peers
+# heard nothing from machine guns. Replicate loop on/off transitions (reliable:
+# transitions are rare and a lost "off" would loop forever on the client).
+var _loop_on_remote: bool = false
+
+func _bc_loop(on: bool) -> void:
+	if not (multiplayer.has_multiplayer_peer() and multiplayer.is_server()):
+		return
+	if on == _loop_on_remote:
+		return
+	_loop_on_remote = on
+	_rpc_mg_loop.rpc(on)
+
+@rpc("authority", "reliable")
+func _rpc_mg_loop(on: bool) -> void:
+	if multiplayer.is_server():
+		return
+	if on:
+		_start_mg_loop()
+	elif _loop_player != null and _loop_player.playing:
+		_loop_player.stop()
 
 func fire() -> void:
 	_trigger_held = true
@@ -99,9 +123,13 @@ func fire() -> void:
 		return
 	_cooldown = 1.0 / _current_rate
 	_start_mg_loop()
+	_bc_loop(true)
 	_do_fire()
 	if muzzle_flash_enabled:
-		VFX.muzzle_flash(global_position - global_transform.basis.z * 0.4, muzzle_color)
+		# Audit #10: this override dropped the broadcast flag WeaponBase.fire()
+		# passes, so remote peers never saw MG muzzle flashes.
+		var _bc: bool = multiplayer.has_multiplayer_peer() and multiplayer.is_server()
+		VFX.muzzle_flash(global_position - global_transform.basis.z * 0.4, muzzle_color, _bc)
 	if shake_magnitude > 0.0 and owner_mech != null and owner_mech.has_method("apply_camera_shake"):
 		owner_mech.apply_camera_shake(shake_magnitude)
 	if max_ammo >= 0:

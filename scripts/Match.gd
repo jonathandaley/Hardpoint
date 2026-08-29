@@ -22,6 +22,14 @@ func start() -> void:
 		Game.seed_rng(match_seed)  # M0.1: central gameplay RNG
 		_rpc_set_match_seed.rpc(match_seed)
 		_apply_bot_seeds()
+	elif multiplayer.has_multiplayer_peer():
+		# Audit #28: the server RPCs the seed from its own Arena._ready, which can
+		# race a client still loading Arena (no matching node path -> seed lost).
+		# The seed already rides the _rpc_match_start payload, so read it locally;
+		# the RPC stays as a no-op refresh for fast loaders.
+		match_seed = int(Game.mp_active_match.get("match_seed", 0))
+		Game.seed_rng(match_seed)
+		_apply_bot_seeds()
 
 func stop() -> void:
 	running = false

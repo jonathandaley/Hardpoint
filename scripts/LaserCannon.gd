@@ -64,6 +64,14 @@ func _do_fire() -> void:
 				result.collider.take_damage(damage, self)
 				_emit_hit_if_visible(result.collider, result.position)
 
+	_beam_fx(hit_pos)
+	# Audit #15: beam + loop audio were server-only; remote peers saw nothing.
+	# One RPC per damage tick (1/fire_rate); client-side fade timers hide the
+	# beam and stop the audio on their own when ticks stop arriving.
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_rpc_beam_fx.rpc(hit_pos)
+
+func _beam_fx(hit_pos: Vector3) -> void:
 	var hit_dist := maxf(0.01, global_position.distance_to(hit_pos))
 	_beam_pivot.look_at(hit_pos, Vector3.UP)
 	_beam.position = Vector3(0.0, 0.0, -hit_dist * 0.5)
@@ -73,6 +81,12 @@ func _do_fire() -> void:
 	_start_laser_loop()
 	_beam_timer = 0.12
 	_audio_timer = 0.35
+
+@rpc("authority", "unreliable_ordered")
+func _rpc_beam_fx(hit_pos: Vector3) -> void:
+	if multiplayer.is_server():
+		return
+	_beam_fx(hit_pos)
 
 func _start_laser_loop() -> void:
 	var stream := SoundManager.get_sfx_stream("laser_loop")

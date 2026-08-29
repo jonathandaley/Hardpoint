@@ -336,14 +336,31 @@ func _apply_damage(amount: float, source: Node3D = null) -> void:
 		health = 0.0
 		Game.sync_log_event("died", name, {})
 		_die()
+		# Audit #11: death must not ride the unreliable _sync_health stream (final
+		# packet droppable) -- and clients never ran _die() at all, so dead mechs
+		# stayed visible and the client-side squad picker / spectate (T127/T128,
+		# both driven by `died`) never triggered. Reliable death RPC fixes all three.
+		if multiplayer.has_multiplayer_peer():
+			_sync_death.rpc()
 	# T40: broadcast health to clients after mutation.
 	if multiplayer.has_multiplayer_peer():
 		_sync_health.rpc(health)
 
-# T40: clients receive health updates here; h=0 implies death (handle _die visuals client-side).
+# T40: clients receive health updates here (death arrives via _sync_death, reliable).
 @rpc("authority", "unreliable_ordered")
 func _sync_health(h: float) -> void:
 	health = h
+
+# Audit #11: reliable death replication. Runs the same _die() path as the server:
+# hides the body, disables collision, plays death SFX/VFX, emits `died` (which
+# drives the client-side squad picker T127 / spectate T128), and launches the
+# cockpit pod for the local player's own mech.
+@rpc("authority", "reliable")
+func _sync_death() -> void:
+	if is_dead:
+		return
+	health = 0.0
+	_die()
 
 @rpc("authority", "unreliable_ordered")
 func _sync_shield(pool: float) -> void:
@@ -370,6 +387,8 @@ func _do_shield_flash() -> void:
 	_flash_timer_es = _ES_FLASH_DUR
 
 func _die() -> void:
+	if is_dead:
+		return
 	is_dead = true
 	Game.ai_director_clear_intent(self)
 	print("[Mech] %s destroyed" % name)

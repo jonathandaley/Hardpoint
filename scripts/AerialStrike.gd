@@ -58,3 +58,30 @@ func _spawn_rocket(lock_target: Node3D) -> void:
 	get_tree().current_scene.add_child(proj)
 	var fwd_point := global_position - global_transform.basis.z
 	proj.global_transform = Transform3D(Basis(), global_position).looking_at(fwd_point)
+	# Audit #20: rockets were invisible to clients (same family as #15); ghost
+	# broadcast mirrors RocketLauncher's NodePath pattern (audit #8).
+	var target_path: NodePath = lock_target.get_path() if is_instance_valid(lock_target) else NodePath("")
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_rpc_spawn_ghost.rpc(global_position, proj.global_transform.basis,
+			proj.speed, proj.lifetime, proj.team, arc_time, arc_up_blend, turn_rate,
+			jitter, target_path)
+
+@rpc("authority", "reliable")
+func _rpc_spawn_ghost(pos: Vector3, basis: Basis, speed: float, lifetime: float, team: int,
+		p_arc_time: float, p_arc_up: float, p_turn: float, p_jitter: Vector3,
+		target_path: NodePath) -> void:
+	if multiplayer.is_server():
+		return
+	var ghost := HOMING_SCENE.instantiate() as HomingProjectile
+	ghost.is_ghost = true
+	ghost.speed = speed
+	ghost.lifetime = lifetime
+	ghost.team = team
+	ghost.arc_time = p_arc_time
+	ghost.arc_up_blend = p_arc_up
+	ghost.turn_rate = p_turn
+	ghost.target_offset = p_jitter
+	if not target_path.is_empty():
+		ghost.target = get_node_or_null(target_path) as Node3D
+	get_tree().current_scene.add_child(ghost)
+	ghost.global_transform = Transform3D(basis, pos)
