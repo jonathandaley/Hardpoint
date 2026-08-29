@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="MechBattle"
+config/name="Hardpoint"
 config/description="Mech arena FPS — War Robots-inspired."
 run/main_scene="res://scenes/ui/TitleScreen.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")

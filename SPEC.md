@@ -9,7 +9,7 @@ Mech arena FPS, single-player vs bots, beacon-drain + kill-domination dual win c
 - Engine: Godot 4.6, GDScript. No other runtime.
 - Renderer: Compatibility (OpenGL ES 3.0). ⊥ Forward+ features (no SDFGI, SSAO, volumetric fog, SSR, GPUParticles3D reliable).
 - Target hardware: T3500-class. Viewport 640x360 → 1280x720 nearest-neighbor.
-- OS: Linux x86_64 (Debian). Binary at `build/mechbattle.x86_64`.
+- OS: Linux x86_64 (Debian). Binary at `build/hardpoint.x86_64`.
 - Budget: CC0/free assets only.
 - Autoloads: `Game.gd`, `SoundManager.gd`, `VFX.gd`. ⊥ add more.
 - Algorithms / one-time bake → `tools/*.py`. ⊥ runtime GDScript for offline computation.
@@ -37,7 +37,7 @@ Mech arena FPS, single-player vs bots, beacon-drain + kill-domination dual win c
 
 ## §I INTERFACES
 
-- run: `build/mechbattle.x86_64` → game window
+- run: `build/hardpoint.x86_64` → game window
 - controls: WASD move | mouse look | LMB fire-all | RMB fire-active-subset | 1-4 toggle slots | R reload | Esc uncapture mouse
 - persist: `user://settings.cfg` (sensitivity, difficulty) | `user://profile.cfg` (wins, losses, pilot_name)
 - data: `MechDef` `.tres` in `resources/mechs/` → Arena reads & spawns mechs
@@ -220,7 +220,7 @@ T126|x|P13: MP ELO/XP/coins update at match end -- `_rpc_match_end` payload (T12
 T127|x|P14: MP squad lives -- extends T64 to MP; on own-mech death, client shows existing squad picker overlay; selection sends `_rpc_pick_next_mech(slot_idx:int)` `@rpc("any_peer")` to server; server validates sender owns slot (V41), slot not already used, lives > 0; server spawns next mech at team spawn cluster with `owner_peer_id` and new `NetworkInputSource`/`PlayerInputSource`; broadcasts roster update via `_rpc_sync_lobby` shape (or `_rpc_sync_match`); match-end guard T67 still applies|V35,V41,T64,T67
 T128|x|P14: MP spectate-on-squad-exhausted -- when local peer's last alive squad mech dies and no lives remain, switch to existing T58 spectate path; cycle through alive teammates (own team filter, includes bot teammates); HUD shows `SPECTATING: <NAME>` (T58); spectate camera continues until `_rpc_match_end` broadcast|T58,T83,T127
 T129|.|P15: 2-peer LAN smoke test -- gate task; host + join over LAN; full beacon-drain match to completion with 1 human + 1 human + bot-fill; verify: capture progress visible <200ms (V33), kills/damage replicated, ELO updates on both peers, disconnect mid-match continues (T123), no desync over 10min, no script errors; bench frame-time on host vs client (target <16ms host, <16ms client); record result; if remote-mech feel unacceptable on LAN → unblock T131|V33,T123
-T130|.|P16 deferred: dedicated server build -- `Game.gd._ready` reads `OS.get_cmdline_args()` for `--server [port]`; if present: auto-host on port, skip Title/SignIn/Hangar/Lobby flow (server holds the lobby), no local PlayerInputSource spawn at match start (V35); export preset `mechbattle.server.x86_64` builds headless (rendering disabled at engine init); deferred until T129 passes|V35,T129
+T130|.|P16 deferred: dedicated server build -- `Game.gd._ready` reads `OS.get_cmdline_args()` for `--server [port]`; if present: auto-host on port, skip Title/SignIn/Hangar/Lobby flow (server holds the lobby), no local PlayerInputSource spawn at match start (V35); export preset `hardpoint.server.x86_64` builds headless (rendering disabled at engine init); deferred until T129 passes|V35,T129
 T131|.|P16 deferred: client-side prediction for own mech -- on remote peer's own-mech path, apply input locally each tick (prediction) + reconcile against server snapshot; snap on divergence > 1m, smooth otherwise; input ringbuffer for reconciliation; gated on T129 -- only build if interpolation feel is unacceptable in T129 LAN test|V37,T129
 T132|.|P16 deferred: reconnect / late-join -- on `peer_disconnected` server reserves slot 30s before bot-swap; reconnect within window resumes as spectate (no respawn into existing squad); fresh late-join allowed only between matches; full design + implementation deferred; tracked here so it does not surprise on first MP feedback|T123,T129
 

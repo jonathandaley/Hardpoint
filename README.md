@@ -1,4 +1,4 @@
-# MechBattle
+# Hardpoint
 
 Third-person mech arena FPS. Beacon capture win condition: hold more beacons than the enemy to drain their score to zero. Single-player vs bots; multiplayer deferred until the solo loop is fun.
 
@@ -9,9 +9,9 @@ Built in Godot 4.6 (Compatibility renderer / OpenGL ES 3.0), targeting low-end h
 ## Running
 
 ```
-Download latest release "mechbattle_X.X.X.x86_64"
+Download latest release "hardpoint_X.X.X.x86_64"
 
-chmod +x mechbattle_X.X.X.x86_64
+chmod +x hardpoint_X.X.X.x86_64
 
 ```
 
@@ -102,7 +102,7 @@ tools/                    -- .gdignore: Godot skips this directory
   fractal_wall_gen.py     -- exterior wall geometry generator
 
 build/
-  mechbattle_*.x86_64   -- versioned Linux binaries
+  hardpoint_*.x86_64   -- versioned Linux binaries
 ```
 
 Scenes live under `scenes/`: `arena/`, `beacon/`, `mech/`, `ui/`, `weapons/`.
