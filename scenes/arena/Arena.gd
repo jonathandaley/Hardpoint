@@ -3376,6 +3376,11 @@ func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int) -> void:
 		new_mech.mark_requested.connect(_on_mark_requested)
 		new_mech.damaged.connect(hud.show_damage)
 		new_mech.died.connect(_on_local_mech_died_mp)
+		# Audit #27: mirror _setup_players_mp -- without this, landing hits after
+		# a squad respawn no longer flashes the hit-confirm X.
+		for weapon in new_mech.get_weapons():
+			if weapon.has_signal("hit_confirmed"):
+				weapon.hit_confirmed.connect(hud.register_hit)
 		# Reconnect spectated-mech died tracking without switching to spec cam.
 		if _spectated_mech != null and is_instance_valid(_spectated_mech):
 			if _spectated_mech.died.is_connected(_on_spectated_mech_died):

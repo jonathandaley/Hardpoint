@@ -51,7 +51,9 @@ func _do_fire() -> void:
 		_rpc_spawn_ghost.rpc(global_position, proj.global_transform.basis,
 			proj.speed, proj.lifetime, proj.team)
 
-@rpc("authority", "reliable")
+# Audit #16: unreliable -- ghosts are cosmetic and per-bullet (MG ~14/s/mech);
+# a dropped ghost is one invisible tracer round, not worth retransmit overhead.
+@rpc("authority", "unreliable")
 func _rpc_spawn_ghost(pos: Vector3, basis: Basis, speed: float, lifetime: float, team: int) -> void:
 	if multiplayer.is_server():
 		return

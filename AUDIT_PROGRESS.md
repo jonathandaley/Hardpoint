@@ -24,8 +24,8 @@ This file is the resumable state. If session dies, restart from "Next up".
 ### Bugs (Mech / weapons)
 8. ~~**RocketLauncher.gd sends raw instance_id over RPC**~~ FIXED: changed to NodePath + `get_node_or_null`. [needs MP test]
 9. ~~**MachineGun.gd:51-59 ramp logic breaks at high frame rates.**~~ FIXED: ramp update + `_trigger_held` clear moved to `_physics_process` so both ends of the flag live at physics rate; `_process` keeps only cooldown (super) and reload loop-stop.
-10. **MachineGun.fire() duplicates WeaponBase.fire() but drops MP broadcast**: `VFX.muzzle_flash(...)` is called without the broadcast flag and there's no positional fire-sound broadcast (loop player is local to the server). Remote peers see/hear nothing from machine guns. (Related to known open MP bug group.)
-11. **Mech.gd:322 `_sync_health` is `unreliable_ordered`, and death (h=0) rides on it.** The final health packet can be dropped, leaving a client showing a live mech (or wrong HP until the next hit). Death should be a reliable RPC (or Arena should broadcast death/respawn reliably — verify in Arena pass).
+10. ~~**MachineGun.fire() drops MP broadcast**~~ FIXED 2026-08-29: muzzle flash broadcast flag added; fire-loop on/off replicated via `_rpc_mg_loop` (reliable, transition-guarded). [needs visual check in T129]
+11. ~~**death rides unreliable `_sync_health`**~~ FIXED 2026-08-29: reliable `_sync_death` RPC runs `_die()` client-side. Bigger than logged: clients NEVER ran `_die()` at all -- dead mechs stayed visible and the client-side squad picker (T127) / spectate (T128) never triggered (`died` only emitted server-side). Kill verified end-to-end by kill_confirm scenario (mutual sniper kill, both peers agree hp 0).
 12. ~~**ProjectileGun/MachineGun/MissileLauncher aim-point can be behind the barrel.**~~ FIXED: added `(aim_point - global_position).dot(cam_fwd) <= 0` guard in all three weapons.
 13. ~~**Mech.gd:595 `_net_look_accum` grows without bound in SP/server play**~~ FIXED: drain in `_handle_look` when not a MP client.
 14. ~~**Mech.gd:88 `_body_meshes` is captured once in `_ready`**~~ FIXED: rebuild at end of `configure_weapons`.
@@ -33,11 +33,11 @@ This file is the resumable state. If session dies, restart from "Next up".
 17. ~~**Patience deals zero damage in MP.**~~ FIXED: PatienceHeavy.tscn `damage` set to 62.5 (= max_damage).
 18. ~~**AerialStrike._fire_burst awaits without validity checks**~~ FIXED: `is_instance_valid(self) and is_inside_tree()` guard at top of loop.
 19. ~~**PhysicalShield.gd has stray `pass` statements**~~ FIXED: removed.
-20. **AerialStrike has no MP ghost broadcast** (rockets invisible to clients), same family as finding 15.
+20. ~~**AerialStrike no MP ghost broadcast**~~ FIXED 2026-08-29: NodePath ghost RPC mirroring RocketLauncher (#8), incl. jitter offset. [needs visual check in T129]
 
 ### MP visual/audio gaps (likely overlap with known open MP bug list)
-15. RaycastGun tracer + muzzle flash mesh, LaserCannon beam, ArcWeapon beam, Shotgun pellets: all rendered server-side only; no ghost/broadcast for clients. Clients see nothing for these weapons. (Laser already listed in project_mp_bugs_open memory.)
-16. **ProjectileGun._rpc_spawn_ghost is `reliable`** — per-bullet reliable RPCs (machine gun ~14/s/mech) add retransmit overhead for purely cosmetic ghosts; `unreliable` is the right channel.
+15. ~~RaycastGun/LaserCannon/ArcWeapon/Shotgun client-invisible~~ FIXED 2026-08-29: per-shot `_rpc_shot_fx` (RaycastGun), per-tick `_rpc_beam_fx` + client fade timers (Laser), `_rpc_beam_fx`/`_rpc_hide_beam` (Arc), batched `_rpc_pellet_ghosts` (Shotgun). [needs visual check in T129]
+16. ~~**ProjectileGun._rpc_spawn_ghost reliable**~~ FIXED 2026-08-29: changed to `unreliable`.
 
 ### Bugs (AI)
 21. ~~**AIInputSource._pick_target_beacon hardcodes team identity**~~ FIXED: replaced `owner == 1` / `owner == 0` with `owner == _own_team` / `owner == 1 - _own_team`. [needs test in 5v5]
@@ -48,8 +48,8 @@ This file is the resumable state. If session dies, restart from "Next up".
 ### Bugs (Arena / MP / match flow)
 25. ~~**Bot-ified disconnected mechs stand still.**~~ FIXED: AIInputSource now attached to RemotePlayer (not mech), with fallback if player node not found. [needs test with real disconnect]
 26. ~~**Match.gd:41-44 base `_check_win` is inverted**~~ FIXED: `_end_match(i)` (BeaconMatch correctly overrides with drain logic; base class now correct for accumulate mode).
-27. **MP respawn loses the hit-confirm crosshair X**: `_rpc_spawn_next_mech` reconnects `damaged` → HUD but not each weapon's `hit_confirmed` → `hud.register_hit` (compare _setup_players_mp:4777-4780). After picking a next squad mech, landing hits no longer flashes the X. (Likely part of the known open "hit X" MP bug.)
-28. **Match seed RPC race (verify)**: server `Match.start()` runs in Arena._ready and immediately RPCs `_rpc_set_match_seed`; a slower client that hasn't finished loading Arena yet has no matching node path, so the seed (and deterministic bot RNG) is silently lost for that client. Consider re-sending or piggybacking the seed in `mp_active_match` (it's already there as `match_seed` — clients could just read it locally instead of via RPC).
+27. ~~**MP respawn loses hit-confirm X**~~ FIXED 2026-08-29: `hit_confirmed` -> `hud.register_hit` reconnected in `_rpc_spawn_next_mech`, mirroring `_setup_players_mp`.
+28. ~~**Match seed RPC race**~~ FIXED 2026-08-29: clients read `match_seed` locally from `Game.mp_active_match` in `Match.start()` (it already rides the `_rpc_match_start` payload); the RPC remains as a harmless refresh.
 29. ~~**Lobby/Hangar weapon catalogs omit ROCKET LAUNCHER HV**~~ FIXED: added to both catalogs.
 30. ~~**Hangar._build_weapon_picker uses `existing.free()`**~~ FIXED: changed to `queue_free()`.
 
@@ -100,7 +100,9 @@ Sonnet to follow the finding's suggested approach literally and not improvise.
 
 ## Next up
 - ~~#9, #22 MachineGun ramp + AI turn-speed~~ DONE 2026-06-09
-- #10, #11, #15, #16, #27 MP visual/audio gaps + #28 seed RPC race [batch when touching MP]
-  (do these in the T129 LAN-smoke session -- see MP_PLAN.md Phase 15 -- along with verifying the
-  [needs MP test] fixes #8, #21, #25)
+- ~~#10, #11, #15, #16, #20, #27, #28 MP batch~~ DONE 2026-08-29 (branch mp-bug-batch), suite-verified
+  5/5 scenarios green incl. new kill_confirm (mutual sniper kill exercises death replication).
+- T129 LAN-smoke session remains: human 2-peer feel test + EYEBALL the visual fixes
+  (#10/#15/#20 broadcasts verified crash/desync-clean by harness, not visually) + verify
+  [needs MP test] fixes #8, #21, #25.
 - #24 _enemy_mechs snapshot, #6 VFX alloc [low priority]

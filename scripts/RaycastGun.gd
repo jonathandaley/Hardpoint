@@ -39,9 +39,21 @@ func _do_fire() -> void:
 				result.collider.take_damage(damage, self)
 				_emit_hit_if_visible(result.collider, result.position)
 
+	_shot_fx(hit_pos)
+	# Audit #15: tracer + flash were server-only; remote peers saw nothing.
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_rpc_shot_fx.rpc(hit_pos)
+
+func _shot_fx(hit_pos: Vector3) -> void:
 	_spawn_tracer(muzzle_flash.global_position, hit_pos)
 	muzzle_flash.visible = true
 	_flash_timer = 0.08
+
+@rpc("authority", "unreliable")
+func _rpc_shot_fx(hit_pos: Vector3) -> void:
+	if multiplayer.is_server():
+		return
+	_shot_fx(hit_pos)
 
 func _spawn_tracer(origin: Vector3, target: Vector3) -> void:
 	var tracer := MeshInstance3D.new()

@@ -39,9 +39,19 @@ func on_fire_release() -> void:
 	_hide_beam()
 
 func _hide_beam() -> void:
+	# Audit #15: replicate the off-transition (guarded: _hide_beam is called
+	# every no-lock tick; only broadcast when the beam was actually showing).
+	if _beam_mesh.visible and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_rpc_hide_beam.rpc()
 	_beam_mesh.visible = false
 	if _loop_player != null and _loop_player.playing:
 		_loop_player.stop()
+
+@rpc("authority", "reliable")
+func _rpc_hide_beam() -> void:
+	if multiplayer.is_server():
+		return
+	_hide_beam()
 
 func _do_fire() -> void:
 	if owner_mech == null:
@@ -67,6 +77,12 @@ func _do_fire() -> void:
 				result.collider.take_damage(damage, self)
 				_emit_hit_if_visible(result.collider, result.position)
 
+	_beam_fx(target_pos)
+	# Audit #15: beam + loop audio were server-only; remote peers saw nothing.
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_rpc_beam_fx.rpc(target_pos)
+
+func _beam_fx(target_pos: Vector3) -> void:
 	var dist := maxf(0.01, global_position.distance_to(target_pos))
 	_beam_pivot.look_at(target_pos, Vector3.UP)
 	_beam_mesh.position = Vector3(0.0, 0.0, -dist * 0.5)
@@ -75,6 +91,12 @@ func _do_fire() -> void:
 	_beam_mesh.visible = true
 	if not was_visible:
 		_start_arc_loop()
+
+@rpc("authority", "unreliable_ordered")
+func _rpc_beam_fx(target_pos: Vector3) -> void:
+	if multiplayer.is_server():
+		return
+	_beam_fx(target_pos)
 
 func _start_arc_loop() -> void:
 	var stream := SoundManager.get_sfx_stream("arc_loop")
