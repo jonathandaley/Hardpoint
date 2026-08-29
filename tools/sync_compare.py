@@ -21,10 +21,11 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from oracles import (  # noqa: E402
     base, determinism, transform_desync, health_desync, lock_target, team_assignment,
-    crash_scan, rpc_integrity, event_sidefx,
+    crash_scan, rpc_integrity, event_sidefx, ammo_desync, beacon_desync, spawn_join,
+    friendly_fire, prediction_recon,
 )
 
-# Registry of oracle modules available in M1. Add modules here as they land.
+# Registry of oracle modules. Add modules here as they land.
 ORACLES = {
     determinism.NAME: determinism,
     transform_desync.NAME: transform_desync,
@@ -34,6 +35,11 @@ ORACLES = {
     crash_scan.NAME: crash_scan,
     rpc_integrity.NAME: rpc_integrity,
     event_sidefx.NAME: event_sidefx,
+    ammo_desync.NAME: ammo_desync,
+    beacon_desync.NAME: beacon_desync,
+    spawn_join.NAME: spawn_join,
+    friendly_fire.NAME: friendly_fire,
+    prediction_recon.NAME: prediction_recon,
 }
 
 
@@ -69,7 +75,18 @@ def run(scenario_path, run_dir, baseline_dir, override, want_json, quiet):
         print("WARNING: unknown oracle %r (not in M1 registry), skipping" % n, file=sys.stderr)
 
     results = [ORACLES[n].run(ctx) for n in names]
-    failed = any(r["verdict"] == base.FAIL for r in results)
+    # M2.2: strict xfail. A scenario lists known-open bugs in "expect_fail";
+    # their FAIL becomes non-fatal XFAIL, and a PASS becomes fatal XPASS so the
+    # marker gets removed the moment the bug is actually fixed.
+    expect_fail = set(scenario.get("expect_fail", []))
+    for r in results:
+        if r["oracle"] in expect_fail:
+            if r["verdict"] == base.FAIL:
+                r["verdict"] = "XFAIL"
+            elif r["verdict"] == base.PASS:
+                r["verdict"] = "XPASS"
+                r["note"] = "unexpected pass; remove from expect_fail. " + r.get("note", "")
+    failed = any(r["verdict"] in (base.FAIL, "XPASS") for r in results)
     report = {
         "scenario": scenario.get("name"),
         "run_dir": os.path.abspath(run_dir),
