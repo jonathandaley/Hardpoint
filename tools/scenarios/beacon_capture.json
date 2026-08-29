@@ -1,0 +1,31 @@
+{
+  "name": "beacon_capture",
+  "seed": 7331,
+  "port": 8912,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/DebugMech.tres",
+  "duration_ticks": 900,
+  "oracles": ["beacon_desync", "spawn_join", "crash_scan", "rpc_integrity"],
+  "thresholds": {"beacon_lag_ticks": 15, "beacon_progress_eps": 0.15},
+  "_comment": "Server mech walks its spawn-facing line 55m to Beacon1 at bowl center (enters r=3 zone ~tick 430), holds, captures (3s). Client idles at spawn. beacon_desync checks the client sees owner/state/progress within the V33 lag window. DebugMech for speed (7.5 m/s halves the walk).",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {"tick": 0,   "move": [0, -1], "look": [0.0, 0.0]},
+          {"tick": 150, "move": [1, -1]},
+          {"tick": 280, "move": [0, -1]},
+          {"tick": 520, "move": [-1, -1]},
+          {"tick": 600, "move": [0, 0]}
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {"tick": 0, "move": [0, 0], "look": [0.0, 0.0]}
+        ]
+      }
+    }
+  }
+}

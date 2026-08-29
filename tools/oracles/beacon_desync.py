@@ -12,7 +12,9 @@ from . import base
 NAME = "beacon_desync"
 
 # 15 ticks = 250ms at 60Hz: V33's 200ms visibility bound plus scheduling slack.
-DEFAULTS = {"beacon_lag_ticks": 15, "beacon_progress_eps": 0.5}
+# progress is normalized 0..1 over capture_time (3s), synced at 5Hz -> one
+# broadcast interval is ~0.067; eps 0.15 gives >2x headroom.
+DEFAULTS = {"beacon_lag_ticks": 15, "beacon_progress_eps": 0.15}
 
 
 def _series(server, client, bid, mag_fn):
