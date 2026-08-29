@@ -1,0 +1,152 @@
+<!doctype html>
+<!-- @dsCard group="Brand" name="Mech Render — Vesuvius" subtitle="Box-model turnaround — heavy dreadnought. Widest chassis, twin shoulder cannons, glowing lava seams between plates." viewport="760x560" -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vesuvius — Box Model</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; background: var(--bg-void); color: var(--fg-1); font-family: var(--font-ui); -webkit-font-smoothing: antialiased; }
+  .sheet { max-width: 760px; margin: 0 auto; padding: 22px 24px 28px; box-sizing: border-box; }
+  .head { display: flex; align-items: baseline; gap: 16px; border-bottom: 2px solid var(--rule); padding-bottom: 14px; margin-bottom: 6px; }
+  .head h1 { font-family: var(--font-display); font-weight: 400; font-size: 30px; letter-spacing: 0.06em; margin: 0; }
+  .head .tag { font-family: var(--font-mono); font-size: 12px; color: #ff7a3c; letter-spacing: 0.14em; text-transform: uppercase; }
+  .head .spec { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.08em; }
+  .note { font-family: var(--font-ui); font-size: 13px; color: var(--fg-2); letter-spacing: 0.02em; line-height: 1.55; max-width: 760px; margin: 14px 0 26px; }
+  .note b { color: var(--fg-1); font-weight: 600; }
+  .note .lv { color: #ff7a3c; }
+  .views { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 2px; background: var(--rule-faint); border: 1px solid var(--rule-faint); }
+  .view { background: var(--bg-void); position: relative; display: flex; flex-direction: column; align-items: center; padding: 10px 10px 14px; }
+  .view .vlabel { align-self: flex-start; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em; color: var(--fg-3); text-transform: uppercase; margin-bottom: 6px; }
+  .view canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; width: 100%; height: auto; background: radial-gradient(120% 90% at 50% 42%, #1a1410 0%, var(--bg-void) 70%); }
+  .legend { display: flex; flex-wrap: wrap; gap: 22px; align-items: center; margin-top: 18px; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.04em; }
+  .legend .item { display: flex; align-items: center; gap: 7px; }
+  .legend .sw { width: 12px; height: 12px; display: inline-block; border: 1px solid #00000080; }
+  .legend .sw.glow { box-shadow: 0 0 9px #FF590D; }
+  .legend .right { margin-left: auto; color: var(--fg-dim); }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="head">
+      <h1>VESUVIUS</h1>
+      <span class="tag">Heavy dreadnought</span>
+      <span class="spec">HEAVY · DREADNOUGHT · primitive box model</span>
+    </div>
+    <p class="note">
+      The wall of the roster. Vesuvius is the <b>widest, heaviest chassis</b> — a broad slab torso on
+      short, thick reverse-knee legs, carrying <b>three weapon hardpoints</b>. Its identity is internal
+      heat: a <span class="lv">furnace core</span> burns in the chest and <span class="lv">lava seams</span>
+      glow in every gap between armor plates — front and back, shoulders, hip line, brow. It carries
+      <b>three weapon hardpoints</b> (twin shoulders plus a center chest mount); the weapons equip
+      separately. Highest energy draw in the
+      roster (e5.0). Scorched near-black armor over ember-red detail.
+    </p>
+
+    <div class="views">
+      <div class="view"><span class="vlabel">3/4 · hero</span><canvas id="v-iso" width="330" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Front</span><canvas id="v-front" width="300" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Side · reverse-knee</span><canvas id="v-side" width="280" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Back</span><canvas id="v-back" width="280" height="360"></canvas></div>
+    </div>
+
+    <div class="legend">
+      <span class="item"><span class="sw" style="background:#2E140F"></span> armor</span>
+      <span class="item"><span class="sw" style="background:#3D1F14"></span> detail</span>
+      <span class="item"><span class="sw glow" style="background:#FF590D"></span> lava seam / furnace core</span>
+      <span class="item"><span class="sw" style="background:#2b2b34"></span> weapon hardpoint (×3)</span>
+      <span class="right">flat-shaded · fixed key light · nearest-neighbor</span>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="mech-engine.js"></script>
+  <script>
+    buildMechStage({
+      armorTex: '../assets/textures/vesuvius-armor.png',
+      detailTex: '../assets/textures/vesuvius-detail.png',
+      emissive: 0xFF590D,
+      texRef: 1.5,
+      lookY: 1.30,
+      frustH: 4.05,
+      shadowW: 3.2, shadowD: 2.2, shadowZ: 0.0,
+      build: function (M) {
+        const A = M.armor, D = M.detail, MO = M.mount, SK = M.socket, E = M.emis;
+
+        // ---- TORSO (broad slab) ----
+        M.box(1.66, 1.18, 1.08, 0, 1.70, 0, A);                 // main mass
+        M.box(1.24, 0.46, 0.10, 0, 1.98, 0.55, D);              // upper chest plate
+        M.box(1.34, 0.40, 0.10, 0, 1.40, 0.55, D);              // belly plate
+        M.box(1.46, 0.40, 0.42, 0, 1.98, -0.52, D);             // back deck
+
+        // ---- FURNACE CORE + LAVA SEAMS (emissive) ----
+        M.box(0.52, 0.30, 0.16, 0, 1.70, 0.52, E);              // furnace core, chest center
+        M.glow(0, 1.70, 0.64, 1.5);
+        M.box(0.06, 0.78, 0.14, -0.86, 1.66, 0.42, E);          // left vertical body seam
+        M.box(0.06, 0.78, 0.14,  0.86, 1.66, 0.42, E);          // right vertical body seam
+        M.glow(-0.90, 1.66, 0.46, 0.7); M.glow(0.90, 1.66, 0.46, 0.7);
+
+        // ---- REAR LAVA (mirror, so the back glows too) ----
+        M.box(0.52, 0.30, 0.16, 0, 1.70, -0.54, E);             // rear furnace vent
+        M.glow(0, 1.70, -0.66, 1.5);
+        M.box(0.06, 0.78, 0.14, -0.86, 1.66, -0.42, E);         // left rear body seam
+        M.box(0.06, 0.78, 0.14,  0.86, 1.66, -0.42, E);         // right rear body seam
+        M.glow(-0.90, 1.66, -0.46, 0.7); M.glow(0.90, 1.66, -0.46, 0.7);
+        M.box(1.00, 0.10, 0.06, 0, 1.98, -0.74, E);             // back-deck exhaust seam
+        M.glow(0, 1.98, -0.80, 1.1);
+
+        // ---- ADDED: side-face lava seams (flank glow on the x faces) ----
+        M.box(0.06, 0.82, 0.16, -0.84, 1.66, 0, E);
+        M.box(0.06, 0.82, 0.16,  0.84, 1.66, 0, E);
+        M.glow(-0.88, 1.66, 0, 0.7); M.glow(0.88, 1.66, 0, 0.7);
+
+        // ---- CENTER HARDPOINT (third weapon mount — mount only) ----
+        M.box(0.46, 0.40, 0.44, 0, 1.98, 0.46, MO);             // center mount block
+        M.box(0.32, 0.13, 0.32, 0, 2.16, 0.48, MO);             // mount collar
+
+        // ---- HEAVY BROW (low, between shoulders, lava visor) ----
+        M.box(0.66, 0.34, 0.52, 0, 2.36, 0.22, A);              // brow block
+        M.box(0.48, 0.09, 0.12, 0, 2.34, 0.50, E);              // lava visor seam
+        M.glow(0, 2.34, 0.56, 0.6);
+
+        // ---- MASSIVE SHOULDERS + TWIN CANNONS ----
+        [-1, 1].forEach(function (s) {
+          M.box(0.72, 0.78, 0.96, s * 1.14, 2.00, 0, A);        // shoulder block
+          M.box(0.78, 0.18, 1.00, s * 1.14, 2.41, 0, D);        // shoulder cap
+          M.box(0.42, 0.09, 0.54, s * 1.14, 2.51, 0, E);        // lava vent on top
+          M.glow(s * 1.14, 2.55, 0, 1.0);
+          M.box(0.06, 0.50, 0.10, s * 1.14, 1.78, 0.50, E);     // front shoulder seam
+          M.box(0.06, 0.50, 0.10, s * 1.14, 1.78, -0.50, E);    // rear shoulder seam
+          M.glow(s * 1.14, 1.80, -0.54, 0.6);
+          // shoulder cannon HARDPOINT MOUNT only (weapon equips separately)
+          M.box(0.42, 0.42, 0.46, s * 1.14, 2.00, 0.60, MO);    // cannon mount
+          M.box(0.30, 0.30, 0.14, s * 1.14, 2.00, 0.86, MO);    // mount collar
+        });
+
+        // ---- PELVIS + HIP LAVA LINE ----
+        M.box(1.04, 0.52, 0.84, 0, 1.00, 0, D);
+        M.box(1.00, 0.07, 0.12, 0, 0.78, 0.44, E);              // hip lava line
+        M.glow(0, 0.78, 0.50, 0.7);
+
+        // ---- LEGS (thick reverse-knee, short, wide stance — see CLAUDE.md) ----
+        // forward -> BACK -> forward. Heavy, planted.
+        [-1, 1].forEach(function (s) {
+          const hx = s * 0.58;
+          const hip  = [hx, 1.00,  0.00];
+          const knee = [hx, 0.66,  0.30];   // thigh: down + forward
+          const hock = [hx, 0.30, -0.34];   // shin: down + BACK (reverse knee)
+          const toe  = [hx, 0.20,  0.14];   // pastern: meets top of toe pad; foot is flush to ground
+          M.box(0.52, 0.44, 0.52, hip[0], hip[1], hip[2], A);
+          M.between(hip, knee, 0.46, 0.48, A);
+          M.box(0.20, 0.20, 0.20, knee[0], 0.62, 0.26, E);      // glowing knee joint
+          M.between(knee, hock, 0.40, 0.40, D);
+          M.between(hock, toe, 0.34, 0.34, D);
+          M.box(0.58, 0.20, 0.70, hx, 0.10, 0.16, A);           // big foot (bottom flush at y=0)
+          M.box(0.58, 0.07, 0.12, hx, 0.18, 0.48, E);           // lava toe seam
+        });
+      }
+    });
+  </script>
+</body>
+</html>

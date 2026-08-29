@@ -1,0 +1,140 @@
+<!doctype html>
+<!-- @dsCard group="Brand" name="Mech Render — Pegasus" subtitle="Box-model turnaround — mobility support. Gold crest fin, jump-jet backpack, gold heal-emitter core, two light mounts." viewport="760x560" -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pegasus — Box Model</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; background: var(--bg-void); color: var(--fg-1); font-family: var(--font-ui); -webkit-font-smoothing: antialiased; }
+  .sheet { max-width: 760px; margin: 0 auto; padding: 22px 24px 28px; box-sizing: border-box; }
+  .head { display: flex; align-items: baseline; gap: 16px; border-bottom: 2px solid var(--rule); padding-bottom: 14px; margin-bottom: 6px; }
+  .head h1 { font-family: var(--font-display); font-weight: 400; font-size: 30px; letter-spacing: 0.06em; margin: 0; }
+  .head .tag { font-family: var(--font-mono); font-size: 12px; color: #ffce4a; letter-spacing: 0.14em; text-transform: uppercase; }
+  .head .spec { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.08em; }
+  .note { font-family: var(--font-ui); font-size: 13px; color: var(--fg-2); letter-spacing: 0.02em; line-height: 1.55; max-width: 760px; margin: 14px 0 26px; }
+  .note b { color: var(--fg-1); font-weight: 600; }
+  .note .gd { color: #ffce4a; }
+  .views { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr; gap: 2px; background: var(--rule-faint); border: 1px solid var(--rule-faint); }
+  .view { background: var(--bg-void); position: relative; display: flex; flex-direction: column; align-items: center; padding: 10px 10px 14px; }
+  .view .vlabel { align-self: flex-start; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em; color: var(--fg-3); text-transform: uppercase; margin-bottom: 6px; }
+  .view canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; width: 100%; height: auto; background: radial-gradient(120% 90% at 50% 40%, #1d1c18 0%, var(--bg-void) 70%); }
+  .legend { display: flex; flex-wrap: wrap; gap: 22px; align-items: center; margin-top: 18px; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); letter-spacing: 0.04em; }
+  .legend .item { display: flex; align-items: center; gap: 7px; }
+  .legend .sw { width: 12px; height: 12px; display: inline-block; border: 1px solid #00000080; }
+  .legend .sw.glow { box-shadow: 0 0 9px #FFBF1A; }
+  .legend .right { margin-left: auto; color: var(--fg-dim); }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="head">
+      <h1>PEGASUS</h1>
+      <span class="tag">Mobility support</span>
+      <span class="spec">MEDIUM · JUMP+HEAL · primitive box model</span>
+    </div>
+    <p class="note">
+      The team's wings. Pegasus is a <b>sleek silver skirmisher</b> marked by a <span class="gd">gold crest
+      fin</span> sweeping off the head. A <b>jump-jet backpack</b> with gold nozzles powers its leap, and a
+      <span class="gd">gold heal-emitter core</span> on the chest projects the team mend. It stays nimble:
+      <b>two light hardpoints</b> on the shoulders. Bright steel-silver armor with gold accents — the
+      cleanest, most regal read in the roster.
+    </p>
+
+    <div class="views">
+      <div class="view"><span class="vlabel">3/4 · hero</span><canvas id="v-iso" width="300" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Front</span><canvas id="v-front" width="220" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Side · reverse-knee</span><canvas id="v-side" width="240" height="360"></canvas></div>
+      <div class="view"><span class="vlabel">Back</span><canvas id="v-back" width="240" height="360"></canvas></div>
+    </div>
+
+    <div class="legend">
+      <span class="item"><span class="sw" style="background:#8A8A94"></span> armor</span>
+      <span class="item"><span class="sw" style="background:#5C5C66"></span> detail</span>
+      <span class="item"><span class="sw glow" style="background:#FFBF1A"></span> crest / jets / heal core</span>
+      <span class="item"><span class="sw" style="background:#2b2b34"></span> light hardpoint (×2)</span>
+      <span class="right">flat-shaded · fixed key light · nearest-neighbor</span>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="mech-engine.js"></script>
+  <script>
+    buildMechStage({
+      armorTex: '../assets/textures/pegasus-armor.png',
+      detailTex: '../assets/textures/pegasus-detail.png',
+      emissive: 0xFFBF1A,
+      texRef: 1.1,
+      lookY: 1.22,
+      frustH: 3.7,
+      keyI: 0.95, ambI: 0.58,
+      build: function (M) {
+        const A = M.armor, D = M.detail, MO = M.mount, E = M.emis;
+
+        // ---- TORSO (sleek, upright) ----
+        M.box(0.96, 0.94, 0.66, 0, 1.52, 0, A);                 // main
+        M.box(0.52, 0.48, 0.08, 0, 1.54, 0.33, D);              // chest plate
+        M.box(0.24, 0.24, 0.12, 0, 1.52, 0.37, E);              // gold heal-emitter core
+        M.glow(0, 1.52, 0.45, 0.5);
+        M.box(0.80, 0.22, 0.50, 0, 1.06, 0, D);                 // torso-to-pelvis bevel
+
+        // ---- HEAD + GOLD CREST FIN ----
+        M.box(0.44, 0.34, 0.46, 0, 2.02, 0.04, A);              // head
+        M.box(0.30, 0.09, 0.10, 0, 2.04, 0.24, E);              // gold visor
+        M.glow(0, 2.04, 0.30, 0.32);
+        // central crest fin (silver blade, gold leading edge), swept up
+        M.box(0.09, 0.50, 0.40, 0, 2.34, -0.06, A);             // main fin
+        M.box(0.05, 0.50, 0.07, 0, 2.34, 0.16, E);              // gold leading edge
+        M.glow(0, 2.60, 0.06, 0.4);
+        [-1, 1].forEach(function (s) {
+          M.box(0.07, 0.32, 0.26, s * 0.13, 2.22, -0.08, A, 0, 0, s * 0.22);  // side crest blade
+          M.box(0.04, 0.30, 0.05, s * 0.15, 2.22, 0.10, E, 0, 0, s * 0.22);   // gold blade edge
+        });
+
+        // ---- JUMP-JET BACKPACK (gold nozzles) ----
+        M.box(0.62, 0.52, 0.28, 0, 1.64, -0.42, D);             // pack
+        [-1, 1].forEach(function (s) {
+          M.box(0.20, 0.24, 0.20, s * 0.22, 1.40, -0.50, A);    // nozzle housing
+          M.box(0.11, 0.11, 0.09, s * 0.22, 1.34, -0.60, E);    // gold nozzle core
+          M.glow(s * 0.22, 1.33, -0.66, 0.4);
+        });
+
+        // ---- SHOULDERS + 2 LIGHT HARDPOINTS ----
+        [-1, 1].forEach(function (s) {
+          M.box(0.32, 0.44, 0.52, s * 0.66, 1.62, 0, A);        // shoulder block
+          M.box(0.22, 0.18, 0.26, s * 0.66, 1.56, 0.30, MO);    // light mount (small)
+        });
+
+        // ---- ADDED: jump-pack vent strip + shoulder flank seams ----
+        M.box(0.50, 0.07, 0.05, 0, 1.80, -0.57, E);             // pack vent strip
+        M.glow(0, 1.80, -0.63, 0.45);
+        [-1, 1].forEach(function (s) {
+          M.box(0.05, 0.30, 0.18, s * 0.82, 1.60, -0.04, E);    // shoulder flank seam
+          M.glow(s * 0.86, 1.60, -0.04, 0.38);
+        });
+
+        // ---- PELVIS ----
+        M.box(0.70, 0.32, 0.56, 0, 0.90, 0, D);
+
+        // ---- LEGS (lean reverse-knee, poised — see CLAUDE.md) ----
+        // forward -> BACK -> forward. Small gold calf jet for the JUMP ability.
+        [-1, 1].forEach(function (s) {
+          const hx = s * 0.38;
+          const hip  = [hx, 0.90,  0.00];
+          const knee = [hx, 0.58,  0.24];   // thigh: down + forward
+          const hock = [hx, 0.27, -0.26];   // shin: down + BACK (reverse knee)
+          const toe  = [hx, 0.12,  0.08];   // pastern: meets top of toe pad; foot is flush to ground
+          M.box(0.31, 0.30, 0.34, hip[0], hip[1], hip[2], A);
+          M.between(hip, knee, 0.26, 0.30, A);
+          M.between(knee, hock, 0.21, 0.23, D);
+          M.between(hock, toe, 0.17, 0.19, D);
+          M.box(0.31, 0.12, 0.40, hx, 0.06, 0.08, A);          // toe pad (bottom flush at y=0)
+          M.box(0.09, 0.09, 0.08, hx, 0.30, -0.34, E);          // gold calf jet vent
+          M.glow(hx, 0.30, -0.40, 0.28);
+        });
+      }
+    });
+  </script>
+</body>
+</html>

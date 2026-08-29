@@ -1,0 +1,48 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  html, body { margin: 0; background: transparent; }
+  .cell { position: absolute; left: 0; width: 116px; height: 68px; }
+  canvas { image-rendering: pixelated; display: block; }
+</style>
+</head>
+<body>
+  <div id="stage"></div>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="weapon-engine.js"></script>
+  <script src="weapon-builders.js"></script>
+  <script>
+    const TEX = { armorTex: '../assets/textures/weapon-steel-armor.png', detailTex: '../assets/textures/weapon-steel-detail.png' };
+    const W = window.WEAPONS;
+    // side-profile framing per weapon, tuned to fill the 116x68 (58x34 @2x) HUD chip
+    const ICONS = [
+      { id:'rifle',  build:W.Rifle,          frustH:1.55, ly:0.02 },
+      { id:'sniper', build:W.Sniper,         frustH:1.95, ly:0.06 },
+      { id:'mgun',   build:W.MachineGun,     frustH:1.7,  ly:0.02 },
+      { id:'shot',   build:W.Shotgun,        frustH:1.55, ly:0.02 },
+      { id:'msl',    build:W.MissileH,       frustH:1.35, ly:0.06 },
+      { id:'rkt',    build:W.RocketLauncher, frustH:1.75, ly:0.12 },
+      { id:'laser',  build:W.LaserCannon,    frustH:1.6,  ly:0.0  },
+      { id:'arc',    build:W.ArcWeapon,      frustH:1.55, ly:0.0  },
+      { id:'pat',    build:W.Patience,       frustH:2.1,  ly:0.0  },
+      { id:'aerial', build:W.AerialStrike,   frustH:1.4,  ly:0.16, kind:'v' },
+    ];
+    const stage = document.getElementById('stage');
+    document.body.style.position = 'relative';
+    document.body.style.height = (ICONS.length * 68) + 'px';
+    document.body.style.width = '116px';
+    ICONS.forEach((w, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.style.top = (i * 68) + 'px';
+      cell.innerHTML = '<canvas id="'+w.id+'-icon" width="116" height="68"></canvas>';
+      stage.appendChild(cell);
+      const pos = w.kind === 'v' ? [-4.6, 1.1, 5.6] : [-6.0, 0.22, 0.0001];
+      buildWeaponStage(Object.assign({}, TEX, {
+        views: [{ id: w.id+'-icon', pos, frustH: w.frustH, lookY: w.ly }],
+        build: w.build,
+      }));
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!doctype html>
+<!-- @dsCard group="Brand" name="Weapon Rack" subtitle="All hardpoint weapons — box-model turnaround, gunmetal family" viewport="1180x1760" -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weapon Rack</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html, body { margin: 0; background: var(--bg-void); color: var(--fg-1);
+    font-family: var(--font-ui); -webkit-font-smoothing: antialiased; }
+  .sheet { max-width: 1180px; margin: 0 auto; padding: 26px 30px 64px; box-sizing: border-box; }
+
+  .head { display: flex; align-items: baseline; gap: 16px; border-bottom: 2px solid var(--rule); padding-bottom: 14px; }
+  .head h1 { font-family: var(--font-display); font-weight: 400; font-size: 30px; letter-spacing: .05em; margin: 0; }
+  .head .tag { font-family: var(--font-mono); font-size: 12px; color: var(--caution); letter-spacing: .14em; text-transform: uppercase; }
+  .head .spec { margin-left: auto; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); letter-spacing: .08em; }
+  .lede { font-size: 13px; color: var(--fg-2); line-height: 1.55; max-width: 900px; margin: 14px 0 4px; }
+  .lede b { color: var(--fg-1); font-weight: 600; }
+
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-top: 20px; }
+  .card { border: 1px solid var(--rule-faint); background: var(--bg-deep); display: flex; flex-direction: column; }
+  .card .bar { display: flex; align-items: center; gap: 10px; padding: 10px 13px; border-bottom: 1px solid var(--rule-faint); background: var(--bg-panel); }
+  .card .nm { font-family: var(--font-display); font-size: 18px; letter-spacing: .04em; }
+  .card .sz { font-family: var(--font-mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; border: 1px solid var(--rust); color: var(--rust); padding: 1px 6px; }
+  .card .sz.energy { border-color: var(--team-ally); color: var(--team-ally); }
+  .card .arch { margin-left: auto; font-family: var(--font-mono); font-size: 10px; color: var(--fg-3); letter-spacing: .06em; text-transform: uppercase; }
+  .views { display: grid; grid-template-columns: 1.25fr 1fr; gap: 1px; background: var(--rule-faint); }
+  .v { background: var(--bg-void); position: relative; display: flex; align-items: center; justify-content: center; padding: 6px; }
+  .v .vl { position: absolute; top: 6px; left: 8px; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .14em; color: var(--fg-dim); text-transform: uppercase; }
+  .v canvas { image-rendering: pixelated; display: block; width: 100%; height: auto;
+    background: radial-gradient(120% 100% at 50% 44%, #16161f 0%, var(--bg-void) 74%); }
+  .card .note { padding: 7px 13px; font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-3); letter-spacing: .03em; border-top: 1px solid var(--rule-faint); }
+  .card .note b { color: var(--fg-2); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; margin-top: 22px; font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); letter-spacing: .04em; }
+  .legend .item { display: flex; align-items: center; gap: 7px; }
+  .legend .sw { width: 12px; height: 12px; display: inline-block; border: 1px solid #00000080; }
+  .legend .sw.glow { box-shadow: 0 0 9px currentColor; }
+  .legend .right { margin-left: auto; color: var(--fg-dim); }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <div class="head">
+      <h1>WEAPON RACK</h1>
+      <span class="tag">Hardpoint arsenal</span>
+      <span class="spec">box-model · flat-shaded · nearest-neighbor · muzzle-heat + energy tells</span>
+    </div>
+    <p class="lede">
+      Every hardpoint weapon rendered in the mech's own pipeline — textured prisms, flat shading, ortho
+      turnaround. All share the <b>gunmetal</b> material family. <b>Projectile</b> weapons run hot at the
+      bore (orange muzzle-heat); <b>energy</b> weapons stay inert metal with only a small charged-emitter
+      tell — the bright part is the shot, in-game. Each card shows a <b>¾ hero</b> and a <b>side</b>.
+    </p>
+
+    <div class="grid" id="grid"></div>
+
+    <div class="legend">
+      <span class="item"><span class="sw" style="background:#3a3e46"></span> steel</span>
+      <span class="item"><span class="sw glow" style="background:#ff6a1a;color:#ff6a1a"></span> muzzle heat · projectile</span>
+      <span class="item"><span class="sw glow" style="background:#35e0ff;color:#35e0ff"></span> laser lens</span>
+      <span class="item"><span class="sw glow" style="background:#9fd0ff;color:#9fd0ff"></span> arc node</span>
+      <span class="item"><span class="sw glow" style="background:#b061ff;color:#b061ff"></span> patience charge</span>
+      <span class="right">fixed key light · barrel points →</span>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="weapon-engine.js"></script>
+  <script src="weapon-builders.js"></script>
+  <script>
+    const TEX = { armorTex: '../assets/textures/weapon-steel-armor.png', detailTex: '../assets/textures/weapon-steel-detail.png' };
+    const W = window.WEAPONS;
+
+    // per-weapon staging: hero frust / side frust / lookY, and framing kind.
+    // kind 'h' = horizontal barrel; 'v' = vertical (aerial strike).
+    const ROSTER = [
+      { id:'rifle',  nm:'RIFLE',           sz:'L / H', energy:false, arch:'projectile', build:W.Rifle,          hf:2.0, sf:1.35, ly:0.02, note:'Service pattern. Straight barrel, in-line stock, box mag.' },
+      { id:'sniper', nm:'SNIPER',          sz:'L / H', energy:false, arch:'projectile', build:W.Sniper,         hf:2.5, sf:1.7,  ly:0.06, note:'Long ribbed barrel, raised optic, muzzle brake.' },
+      { id:'mgun',   nm:'MACHINE GUN',     sz:'L / H', energy:false, arch:'projectile', build:W.MachineGun,     hf:2.15,sf:1.5,  ly:0.02, note:'Heavy barrel + shroud, side drum feed.' },
+      { id:'shot',   nm:'SHOTGUN',         sz:'L / H', energy:false, arch:'projectile', build:W.Shotgun,        hf:1.95,sf:1.35, ly:0.02, note:'Stubby, wide bore, under-barrel tube mag + pump.' },
+      { id:'msl',    nm:'MISSILE LAUNCHER',sz:'L / H', energy:false, arch:'homing rack', build:W.MissileH,      hf:1.5, sf:1.15, ly:0.06, note:'Rack of small homing missiles — <b>8 (L) / 12 (H)</b>.' },
+      { id:'rkt',    nm:'ROCKET LAUNCHER', sz:'L',     energy:false, arch:'homing · lobbed', build:W.RocketLauncher, hf:1.9, sf:1.55, ly:0.12, note:'Fat tube angled up, one homing warhead loaded.' },
+      { id:'laser',  nm:'LASER CANNON',    sz:'L / H', energy:true,  arch:'beam',       build:W.LaserCannon,    hf:1.9, sf:1.4,  ly:0.0,  note:'Focusing barrel + lens. Glow lives in the beam.' },
+      { id:'arc',    nm:'ARC WEAPON',      sz:'L / H', energy:true,  arch:'chain',      build:W.ArcWeapon,      hf:1.8, sf:1.35, ly:0.0,  note:'Coil pack + twin electrodes. Node charges on fire.' },
+      { id:'pat',    nm:'PATIENCE',        sz:'H',     energy:true,  arch:'charge sniper', build:W.Patience,    hf:2.55,sf:1.85, ly:0.0,  note:'Twin prongs, purple inner faces brighten with charge.' },
+      { id:'aerial', nm:'AERIAL STRIKE',   sz:'H',     energy:false, arch:'vertical salvo', build:W.AerialStrike, hf:1.5, sf:1.35, ly:0.08, kind:'v', note:'Near-vertical tube rack. Fires rockets nearly straight up.' },
+    ];
+
+    const grid = document.getElementById('grid');
+    ROSTER.forEach(w => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML =
+        '<div class="bar"><span class="nm">'+w.nm+'</span><span class="sz'+(w.energy?' energy':'')+'">'+w.sz+'</span><span class="arch">'+w.arch+'</span></div>'+
+        '<div class="views">'+
+          '<div class="v"><span class="vl">¾ hero</span><canvas id="'+w.id+'-hero" width="360" height="248"></canvas></div>'+
+          '<div class="v"><span class="vl">side</span><canvas id="'+w.id+'-side" width="300" height="248"></canvas></div>'+
+        '</div>'+
+        '<div class="note">'+w.note+'</div>';
+      grid.appendChild(card);
+    });
+
+    // camera rigs
+    function heroView(id, frust, ly, kind) {
+      if (kind === 'v') return { id, pos:[-2.6, 1.7, 3.4], frustH:frust, lookY:ly, shadow:{w:1.9,d:1.0,z:0} };
+      return { id, pos:[-3.1, 2.0, 3.35], frustH:frust, lookY:ly, shadow:{w:2.4,d:1.0,z:0} };
+    }
+    function sideView(id, frust, ly, kind) {
+      if (kind === 'v') return { id, pos:[-5.0, 0.9, 0.0001], frustH:frust, lookY:ly };
+      return { id, pos:[-6.0, 0.24, 0.0001], frustH:frust, lookY:ly };
+    }
+
+    ROSTER.forEach(w => {
+      buildWeaponStage(Object.assign({}, TEX, {
+        views: [ heroView(w.id+'-hero', w.hf, w.ly, w.kind), sideView(w.id+'-side', w.sf, w.ly, w.kind) ],
+        build: w.build,
+      }));
+    });
+  </script>
+</body>
+</html>

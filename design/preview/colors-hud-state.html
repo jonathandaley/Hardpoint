@@ -1,0 +1,26 @@
+<!doctype html>
+<!-- @dsCard group="Colors" name="Colors — HUD State" subtitle="Health, shield, damage flash signal colors." viewport="700x250" --><html><head><meta charset="utf-8"><title>Colors — HUD State</title>
+<link rel="stylesheet" href="_card.css"></head>
+<body><div class="card">
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;">
+    <div><div style="height:78px;background:#00ff33;box-shadow:0 0 16px rgba(0,255,51,0.45);"></div>
+      <div class="swatch-name" style="margin-top:6px">hp-full</div><div class="swatch-hex">#00ff33</div></div>
+    <div><div style="height:78px;background:#ffae00;"></div>
+      <div class="swatch-name" style="margin-top:6px">hp-mid</div><div class="swatch-hex">#ffae00</div></div>
+    <div><div style="height:78px;background:#c93a26;"></div>
+      <div class="swatch-name" style="margin-top:6px">hp-low</div><div class="swatch-hex">#c93a26</div></div>
+    <div><div style="height:78px;background:#3380ff;"></div>
+      <div class="swatch-name" style="margin-top:6px">shield</div><div class="swatch-hex">#3380ff</div></div>
+    <div><div style="height:78px;background:#cc0000;opacity:0.55;"></div>
+      <div class="swatch-name" style="margin-top:6px">damage-flash</div><div class="swatch-hex">#cc0000 · α</div></div>
+  </div>
+  <!-- live demo bars -->
+  <div style="margin-top:18px;display:flex;flex-direction:column;gap:6px;">
+    <div style="height:18px;background:rgba(20,20,26,.88);border:1px solid #000;position:relative;">
+      <div style="position:absolute;inset:0;width:78%;background:#00ff33;"></div>
+    </div>
+    <div style="height:12px;background:rgba(20,20,26,.88);border:1px solid #000;position:relative;">
+      <div style="position:absolute;inset:0;width:46%;background:#3380ff;"></div>
+    </div>
+  </div>
+</div></body></html>

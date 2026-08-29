@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hardpoint — Screens</title>
+<link rel="stylesheet" href="../../colors_and_type.css" />
+<style>
+  html, body { margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(circle at 20% -10%, rgba(51,128,255,0.05), transparent 40%),
+      #121218;
+    font-family: var(--font-ui);
+    -webkit-font-smoothing: antialiased;
+  }
+  #root { display: block; }
+  .gal-frame {
+    width: 1280px;
+    height: 720px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #000;
+    box-shadow: 0 10px 0 rgba(0,0,0,0.45), 0 0 0 1px #2a2a32, 0 24px 48px rgba(0,0,0,0.5);
+    background: var(--bg-void);
+  }
+  .gal-label {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.22em;
+    color: #7a7a85;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .gal-label b { color: #e8e8ee; font-weight: 400; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- React + Babel (pinned) -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- Three.js + repair-bay mech renderer (plain JS, must load before Hangar mounts) -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="mech-bay.js"></script>
+
+<!-- kit, in dependency order: primitives → widgets → screens -->
+<script type="text/babel" src="kit-primitives.jsx"></script>
+<script type="text/babel" src="kit-widgets.jsx"></script>
+<script type="text/babel" src="title-screen.jsx"></script>
+<script type="text/babel" src="sign-in-screen.jsx"></script>
+<script type="text/babel" src="mp-entry-screen.jsx"></script>
+<script type="text/babel" src="lobby-screen.jsx"></script>
+<script type="text/babel" src="hangar-screen.jsx"></script>
+<script type="text/babel" src="mech-picker-screen.jsx"></script>
+<script type="text/babel" src="settings-screen.jsx"></script>
+<script type="text/babel" src="hud-screen.jsx"></script>
+<script type="text/babel" src="pause-menu-screen.jsx"></script>
+<script type="text/babel" src="match-end-screen.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+  const SCREENS = [
+    { n: "01", t: "TITLE",             node: <TitleScreen /> },
+    { n: "02", t: "SIGN IN",           node: <SignIn /> },
+    { n: "03", t: "MULTIPLAYER · LAN", node: <MPEntry /> },
+    { n: "04", t: "LOBBY · STAGING",   node: <Lobby /> },
+    { n: "05", t: "HANGAR · REPAIR BAY", node: <Hangar /> },
+    { n: "06", t: "MECH PICKER",       node: <MechPicker /> },
+    { n: "07", t: "SETTINGS",          node: <Settings /> },
+    { n: "08", t: "HUD · IN-MATCH",    node: <HUD /> },
+    { n: "09", t: "PAUSE",             node: <PauseMenu /> },
+    { n: "10", t: "MATCH END · WIN",   node: <MatchEnd result="WIN" /> },
+    { n: "11", t: "MATCH END · LOSE",  node: <MatchEnd result="LOSE" /> },
+  ];
+
+  function Gallery() {
+    return (
+      <div style={{ minWidth: "100%", width: "max-content", minHeight: "100vh", boxSizing: "border-box", padding: 56 }}>
+        {/* header */}
+        <div style={{ display: "flex", alignItems: "baseline", gap: 18, marginBottom: 44 }}>
+          <img src="../../assets/logo-mark.svg" width={44} height={44} style={{ imageRendering: "pixelated" }} alt="" />
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 34, letterSpacing: "0.05em", color: "#e8e8ee" }}>
+            HARD<span style={{ color: "var(--team-ally)" }}>POINT</span> · SCREENS
+          </div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, color: "#7a7a85", letterSpacing: "0.2em" }}>
+            11 FRAMES · 1280 × 720 GAME CANVAS
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1280px)", gap: "64px 56px", justifyContent: "start", alignItems: "start" }}>
+          {SCREENS.map((s) => (
+            <div key={s.n} style={{ flex: "none" }}>
+              <div className="gal-label">{s.n} · <b>{s.t}</b></div>
+              <div className="gal-frame">{s.node}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById("root")).render(<Gallery />);
+</script>
+
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" fill="#0d0d14" />
+    <rect x="20" y="22" width="26" height="18" fill="none" stroke="#3380ff" stroke-width="2" />
+    <rect x="54" y="22" width="26" height="18" fill="none" stroke="#3380ff" stroke-width="2" />
+    <rect x="20" y="46" width="26" height="18" fill="none" stroke="#ff4d33" stroke-width="2" />
+    <rect x="54" y="46" width="26" height="18" fill="none" stroke="#28e0c6" stroke-width="2" />
+    <rect x="34" y="72" width="32" height="8" fill="#f7c948" />
+  </svg>
+</template>
+</body>
+</html>

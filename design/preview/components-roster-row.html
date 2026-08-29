@@ -1,0 +1,30 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Roster Row" subtitle="Hangar squad list — active state, slot chip." viewport="700x180" --><html><head><meta charset="utf-8"><title>Roster Row</title>
+<link rel="stylesheet" href="_card.css"></head>
+<body><div class="card">
+  <style>
+    .row-item { display:flex;align-items:center;gap:12px;padding:10px 12px;background:#14141a;border:1px solid #2a2a32;
+                font-family:var(--font-ui); }
+    .row-item + .row-item { border-top:none; }
+    .row-item:hover { background:#1f1f28; }
+    .row-item.active { background:#101830; border-color:#3380ff; box-shadow:0 0 10px rgba(51,128,255,.3) inset;}
+    .row-chip{ font-family:var(--font-mono);font-size:10px;letter-spacing:.1em;padding:2px 6px;border:1px solid #4d4d4d;color:#b8b8c0;}
+    .row-name{ font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:15px;}
+    .row-stats{ margin-left:auto;font-family:var(--font-mono);font-size:11px;color:#7a7a85;letter-spacing:.06em;}
+  </style>
+  <div class="row-item active">
+    <div class="row-chip" style="border-color:#28e0c6;color:#28e0c6;">L · L</div>
+    <div class="row-name">HORNET</div>
+    <div class="row-stats">SPD 8 · HP 180 · 2L</div>
+  </div>
+  <div class="row-item">
+    <div class="row-chip">L</div>
+    <div class="row-name">SLIP</div>
+    <div class="row-stats">SPD 12 · HP 120 · 1L</div>
+  </div>
+  <div class="row-item">
+    <div class="row-chip" style="border-color:#b85c2a;color:#b85c2a;">H · H · H</div>
+    <div class="row-name">VESUVIUS</div>
+    <div class="row-stats">SPD 4 · HP 320 · 3H</div>
+  </div>
+</div></body></html>

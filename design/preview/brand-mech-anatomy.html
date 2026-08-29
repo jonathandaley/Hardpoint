@@ -1,0 +1,37 @@
+<!doctype html>
+<!-- @dsCard group="Brand" name="Mech Paint — Anatomy" subtitle="How a paint scheme is built: armor + detail + emissive energy ramp." viewport="700x300" --><html><head><meta charset="utf-8"><title>Mech Paint — Anatomy</title>
+<link rel="stylesheet" href="_card.css"></head>
+<body><div class="card">
+  <style>
+    .chan{ display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--rule-faint); }
+    .chan:last-child{ border-bottom:0; }
+    .cw{ width:46px;height:46px;border:1px solid #000;flex:none; }
+    .ct{ font-family:var(--font-mono);font-size:12px;color:var(--fg-1);letter-spacing:.05em; }
+    .cd{ font-size:11px;color:var(--fg-3);margin-top:3px;line-height:1.45;max-width:430px; }
+    .ramp{ display:flex;gap:0;margin-top:4px; }
+    .ramp > i{ width:46px;height:22px;display:block; }
+    .rl{ display:flex;gap:0;margin-top:3px; }
+    .rl > span{ width:46px;font-family:var(--font-mono);font-size:9px;color:var(--fg-3);text-align:center; }
+  </style>
+  <div style="display:grid;grid-template-columns:1.05fr 1fr;gap:18px;">
+    <div>
+      <div class="chan"><div class="cw" style="background:#384C8C"></div><div><div class="ct">1 · ARMOR</div><div class="cd">Base albedo on body, waist, head, shoulders, legs. Carries the mech's identity colour. Unshaded — reads flat and graphic.</div></div></div>
+      <div class="chan"><div class="cw" style="background:#243361"></div><div><div class="ct">2 · DETAIL</div><div class="cd">Secondary tone for struts, vents, brackets, face panels. Usually a darker (or contrasting) sibling of armor.</div></div></div>
+      <div class="chan"><div class="cw" style="background:#0c0c12;box-shadow:0 0 12px #1AD9FF inset, 0 0 10px #1AD9FF"></div><div><div class="ct">3 · EMISSIVE <span class="muted">(optional)</span></div><div class="cd">Black albedo + an emission colour at an energy multiplier. Visors, sensors, lava vents, shield emitters. This is the only channel that glows.</div></div></div>
+    </div>
+    <div>
+      <div class="label-micro" style="margin-bottom:8px;">Emission energy ramp</div>
+      <div class="ramp">
+        <i style="background:#1a1a22"></i>
+        <i style="background:#0a2730;box-shadow:0 0 6px #1AD9FF inset"></i>
+        <i style="background:#0a3a47;box-shadow:0 0 9px #1AD9FF inset"></i>
+        <i style="background:#0c4d5e;box-shadow:0 0 13px #1AD9FF inset"></i>
+        <i style="background:#0e6175;box-shadow:0 0 18px #1AD9FF inset"></i>
+      </div>
+      <div class="rl"><span>off</span><span>2.0</span><span>3.0</span><span>4.0</span><span>5.0</span></div>
+      <div class="cd" style="margin-top:14px;">Tune via <b style="color:var(--fg-2)">emission_energy_multiplier</b>. Stealth mechs (Cesh, Warhog) ship with <b style="color:var(--fg-2)">no</b> emissive — pure grit. Dreadnought Vesuvius runs hottest at 5.0.</div>
+      <div class="label-micro" style="margin-top:14px;">To author a new scheme</div>
+      <div class="cd" style="margin-top:4px;">Pick armor + a darker detail, then assign one emissive accent + energy. Keep emissive scoped to small parts only.</div>
+    </div>
+  </div>
+</div></body></html>

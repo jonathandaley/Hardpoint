@@ -1,0 +1,24 @@
+<!doctype html>
+<!-- @dsCard group="Components" name="Weapon Slots" subtitle="Bottom-right slot panel — number key, glyph, ammo; dim = excluded." viewport="700x180" --><html><head><meta charset="utf-8"><title>Weapon Slots</title>
+<link rel="stylesheet" href="_card.css"></head>
+<body><div class="card">
+  <style>
+    .slot { width:58px;display:flex;flex-direction:column;align-items:center;gap:3px; }
+    .slot .num { font-family:var(--font-mono);font-size:11px;color:var(--fg-2);letter-spacing:.1em; }
+    .slot .ico { width:58px;height:34px;display:flex;align-items:center;justify-content:center;
+                 background:var(--bg-deep);border:1px solid var(--rule-faint);overflow:hidden; }
+    .slot .ico img { width:58px;height:34px;image-rendering:pixelated;display:block; }
+    .slot.active .ico { border-color:var(--team-ally);color:var(--team-ally-soft);box-shadow:0 0 10px rgba(51,128,255,.3) inset; }
+    .slot .ammo { width:58px;height:8px;background:var(--bg-bar);border:1px solid #000;position:relative; }
+    .slot .ammo > i { position:absolute;left:0;top:0;bottom:0;background:var(--caution);display:block; }
+    .slot .tag { font-family:var(--font-ui);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--fg-3);margin-top:3px; }
+    .slot.dim { opacity:.35; }
+  </style>
+  <div style="display:flex;gap:8px;justify-content:flex-start;">
+    <div class="slot active"><span class="num">1</span><div class="ico"><img src="../assets/textures/hud-icon-rifle.png" alt=""></div><div class="ammo"><i style="width:90%"></i></div><span class="tag">Rifle</span></div>
+    <div class="slot active"><span class="num">2</span><div class="ico"><img src="../assets/textures/hud-icon-mgun.png" alt=""></div><div class="ammo"><i style="width:55%"></i></div><span class="tag">MG</span></div>
+    <div class="slot active"><span class="num">3</span><div class="ico"><img src="../assets/textures/hud-icon-sniper.png" alt=""></div><div class="ammo"><i style="width:40%;background:var(--fg-3)"></i></div><span class="tag">Sniper · reloading</span></div>
+    <div class="slot dim"><span class="num">4</span><div class="ico"><img src="../assets/textures/hud-icon-missile.png" alt=""></div><div class="ammo"><i style="width:100%"></i></div><span class="tag">Missile · excluded</span></div>
+  </div>
+  <div class="label-micro" style="margin-top:16px;">Bottom-right panel. Active subset (RMB) highlighted blue; dimmed = excluded via 1-4 toggle. Ammo bar greys during reload. Icons baked from the box-model weapon rack (see Brand → Weapon Rack).</div>
+</div></body></html>
