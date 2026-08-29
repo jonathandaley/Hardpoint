@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d24n3lkcjunkm"
-path="res://.godot/imported/hud-icon-laser.png-afb4bad27743d5ab466f27781e6b6832.ctex"
+uid="uid://rrjrvvop7sqf"
+path="res://.godot/imported/hud-icon-aerial.png-ab0ff8d34646d6e4d08a0276bb53856a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/hud/hud-icon-laser.png"
-dest_files=["res://.godot/imported/hud-icon-laser.png-afb4bad27743d5ab466f27781e6b6832.ctex"]
+source_file="res://assets/hardpoint/hud-icon-aerial.png"
+dest_files=["res://.godot/imported/hud-icon-aerial.png-ab0ff8d34646d6e4d08a0276bb53856a.ctex"]
 
 [params]
 
