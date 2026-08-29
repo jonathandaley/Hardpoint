@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cvgi38w0fnpuh"
-path="res://.godot/imported/hud-icon-patience.png-4429a8387e78d5d48ec5303ced3e41fa.ctex"
+uid="uid://bkar2cdyoqbsc"
+path="res://.godot/imported/hud-icon-rifle.png-ea93212f3b50fa6f000b81e358a55948.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/hud/hud-icon-patience.png"
-dest_files=["res://.godot/imported/hud-icon-patience.png-4429a8387e78d5d48ec5303ced3e41fa.ctex"]
+source_file="res://assets/hardpoint/hud-icon-rifle.png"
+dest_files=["res://.godot/imported/hud-icon-rifle.png-ea93212f3b50fa6f000b81e358a55948.ctex"]
 
 [params]
 

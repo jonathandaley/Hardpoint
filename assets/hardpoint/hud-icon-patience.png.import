@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bflo2mtis10i5"
-path="res://.godot/imported/hud-icon-arc.png-aeb07de66553b52fb82401c519b207a6.ctex"
+uid="uid://cvgi38w0fnpuh"
+path="res://.godot/imported/hud-icon-patience.png-80b893fca96da47903c3499ebc81e936.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/hud/hud-icon-arc.png"
-dest_files=["res://.godot/imported/hud-icon-arc.png-aeb07de66553b52fb82401c519b207a6.ctex"]
+source_file="res://assets/hardpoint/hud-icon-patience.png"
+dest_files=["res://.godot/imported/hud-icon-patience.png-80b893fca96da47903c3499ebc81e936.ctex"]
 
 [params]
 

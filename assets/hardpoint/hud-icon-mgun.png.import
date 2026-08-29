@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dvgpqb11ijky7"
-path="res://.godot/imported/hud-icon-missile.png-acf63f704cb525ecb9bdadc3535ac593.ctex"
+uid="uid://dbmx7uqbpw4m6"
+path="res://.godot/imported/hud-icon-mgun.png-8931d88fd0145bf83ae1de6bac051416.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/hud/hud-icon-missile.png"
-dest_files=["res://.godot/imported/hud-icon-missile.png-acf63f704cb525ecb9bdadc3535ac593.ctex"]
+source_file="res://assets/hardpoint/hud-icon-mgun.png"
+dest_files=["res://.godot/imported/hud-icon-mgun.png-8931d88fd0145bf83ae1de6bac051416.ctex"]
 
 [params]
 

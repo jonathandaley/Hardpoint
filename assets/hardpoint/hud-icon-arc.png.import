@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dyp6f0s5b6t0k"
-path="res://.godot/imported/hud-icon-sniper.png-05231a62eb47d26ba9e7c9b34809f55e.ctex"
+uid="uid://bflo2mtis10i5"
+path="res://.godot/imported/hud-icon-arc.png-adf8fcd01bc62281df9135419c3f24bd.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/hud/hud-icon-sniper.png"
-dest_files=["res://.godot/imported/hud-icon-sniper.png-05231a62eb47d26ba9e7c9b34809f55e.ctex"]
+source_file="res://assets/hardpoint/hud-icon-arc.png"
+dest_files=["res://.godot/imported/hud-icon-arc.png-adf8fcd01bc62281df9135419c3f24bd.ctex"]
 
 [params]
 

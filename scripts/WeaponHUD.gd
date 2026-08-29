@@ -124,16 +124,16 @@ func _build_slot(weapon: Node, number: int, x: float) -> Array:
 
 func _weapon_icon_path(weapon: Node) -> String:
 	var path: String = weapon.get_script().resource_path
-	if "AerialStrike" in path:    return "res://assets/hud/hud-icon-aerial.png"
-	if "ArcWeapon" in path:       return "res://assets/hud/hud-icon-arc.png"
-	if "LaserCannon" in path:     return "res://assets/hud/hud-icon-laser.png"
-	if "MachineGun" in path:      return "res://assets/hud/hud-icon-mgun.png"
-	if "MissileLauncher" in path: return "res://assets/hud/hud-icon-missile.png"
-	if "Patience" in path:        return "res://assets/hud/hud-icon-patience.png"
-	if "RocketLauncher" in path:  return "res://assets/hud/hud-icon-rocket.png"
-	if "Shotgun" in path:         return "res://assets/hud/hud-icon-shotgun.png"
-	if "Sniper" in path:          return "res://assets/hud/hud-icon-sniper.png"
-	if "RaycastGun" in path or "Rifle" in path: return "res://assets/hud/hud-icon-rifle.png"
+	if "AerialStrike" in path:    return "res://assets/hardpoint/hud-icon-aerial.png"
+	if "ArcWeapon" in path:       return "res://assets/hardpoint/hud-icon-arc.png"
+	if "LaserCannon" in path:     return "res://assets/hardpoint/hud-icon-laser.png"
+	if "MachineGun" in path:      return "res://assets/hardpoint/hud-icon-mgun.png"
+	if "MissileLauncher" in path: return "res://assets/hardpoint/hud-icon-missile.png"
+	if "Patience" in path:        return "res://assets/hardpoint/hud-icon-patience.png"
+	if "RocketLauncher" in path:  return "res://assets/hardpoint/hud-icon-rocket.png"
+	if "Shotgun" in path:         return "res://assets/hardpoint/hud-icon-shotgun.png"
+	if "Sniper" in path:          return "res://assets/hardpoint/hud-icon-sniper.png"
+	if "RaycastGun" in path or "Rifle" in path: return "res://assets/hardpoint/hud-icon-rifle.png"
 	return ""
 
 func _weapon_color(weapon: Node) -> Color:
