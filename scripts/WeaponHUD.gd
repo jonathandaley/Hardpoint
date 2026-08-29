@@ -52,19 +52,35 @@ func _build_slot(weapon: Node, number: int, x: float) -> Array:
 	num_lbl.offset_bottom = NUM_H
 	add_child(num_lbl)
 
-	# Weapon icon - placeholder colored rect; replace with TextureRect when art exists
-	var icon := ColorRect.new()
-	icon.color = _weapon_color(weapon)
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon.offset_left   = x
-	icon.offset_right  = x + SLOT_W
-	icon.offset_top    = NUM_H
-	icon.offset_bottom = NUM_H + ICON_H
+	var icon_path := _weapon_icon_path(weapon)
+	var icon: Control
+	var tex: Texture2D = null
+	if icon_path != "" and ResourceLoader.exists(icon_path):
+		tex = load(icon_path) as Texture2D
+	if tex != null:
+		var tr := TextureRect.new()
+		tr.texture = tex
+		tr.stretch_mode = TextureRect.STRETCH_SCALE
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tr.offset_left   = x
+		tr.offset_right  = x + SLOT_W
+		tr.offset_top    = NUM_H
+		tr.offset_bottom = NUM_H + ICON_H
+		icon = tr
+	else:
+		var cr := ColorRect.new()
+		cr.color = _weapon_color(weapon)
+		cr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cr.offset_left   = x
+		cr.offset_right  = x + SLOT_W
+		cr.offset_top    = NUM_H
+		cr.offset_bottom = NUM_H + ICON_H
+		icon = cr
 	add_child(icon)
 
 	# Charge overlay - yellow fill grows left-to-right over the icon (Patience only)
 	var charge_fg := ColorRect.new()
-	charge_fg.color = Color(1.0, 0.88, 0.1, 0.72)
+	charge_fg.color = Color(UIColors.CAUTION, 0.72)
 	charge_fg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	charge_fg.offset_left   = x
 	charge_fg.offset_right  = x           # zero width until charging
@@ -74,7 +90,7 @@ func _build_slot(weapon: Node, number: int, x: float) -> Array:
 
 	# Cooldown overlay - gray shrinks left-to-right as cooldown expires (Sniper only)
 	var cooldown_fg := ColorRect.new()
-	cooldown_fg.color = Color(0.15, 0.15, 0.15, 0.78)
+	cooldown_fg.color = Color(UIColors.BG_RAISED, 0.78)
 	cooldown_fg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	cooldown_fg.offset_left   = x
 	cooldown_fg.offset_right  = x           # zero width when ready
@@ -87,7 +103,7 @@ func _build_slot(weapon: Node, number: int, x: float) -> Array:
 	var bar_bottom := SLOT_H - 2.0
 
 	var ammo_bg := ColorRect.new()
-	ammo_bg.color = Color(0.15, 0.15, 0.15, 0.9)
+	ammo_bg.color = Color(UIColors.BG_BAR, 0.9)
 	ammo_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ammo_bg.offset_left   = x
 	ammo_bg.offset_right  = x + SLOT_W
@@ -96,7 +112,7 @@ func _build_slot(weapon: Node, number: int, x: float) -> Array:
 	add_child(ammo_bg)
 
 	var ammo_fg := ColorRect.new()
-	ammo_fg.color = Color(0.2, 0.85, 0.3, 1.0)
+	ammo_fg.color = UIColors.HP_FULL
 	ammo_fg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ammo_fg.offset_left   = x
 	ammo_fg.offset_right  = x + SLOT_W   # full on spawn; updated each frame
@@ -105,6 +121,20 @@ func _build_slot(weapon: Node, number: int, x: float) -> Array:
 	add_child(ammo_fg)
 
 	return [icon, ammo_fg, charge_fg, cooldown_fg]
+
+func _weapon_icon_path(weapon: Node) -> String:
+	var path: String = weapon.get_script().resource_path
+	if "AerialStrike" in path:    return "res://assets/hud/hud-icon-aerial.png"
+	if "ArcWeapon" in path:       return "res://assets/hud/hud-icon-arc.png"
+	if "LaserCannon" in path:     return "res://assets/hud/hud-icon-laser.png"
+	if "MachineGun" in path:      return "res://assets/hud/hud-icon-mgun.png"
+	if "MissileLauncher" in path: return "res://assets/hud/hud-icon-missile.png"
+	if "Patience" in path:        return "res://assets/hud/hud-icon-patience.png"
+	if "RocketLauncher" in path:  return "res://assets/hud/hud-icon-rocket.png"
+	if "Shotgun" in path:         return "res://assets/hud/hud-icon-shotgun.png"
+	if "Sniper" in path:          return "res://assets/hud/hud-icon-sniper.png"
+	if "RaycastGun" in path or "Rifle" in path: return "res://assets/hud/hud-icon-rifle.png"
+	return ""
 
 func _weapon_color(weapon: Node) -> Color:
 	var path: String = weapon.get_script().resource_path
@@ -146,8 +176,8 @@ func _process(_delta: float) -> void:
 			if max_ammo != null and int(max_ammo) > 0:
 				pct = clampf(float(int(entry["weapon"].get("ammo"))) / float(int(max_ammo)), 0.0, 1.0)
 		entry["ammo_fg"].offset_right = entry["bar_left"] + SLOT_W * pct
-		entry["ammo_fg"].color = Color(0.5, 0.5, 0.5, 0.9) if reloading \
-				else Color(0.2, 0.85, 0.3, 1.0)
+		entry["ammo_fg"].color = Color(UIColors.FG_DIM, 0.9) if reloading \
+				else UIColors.HP_FULL
 
 		# Charge overlay (Patience)
 		if entry["weapon"].has_method("get_charge_progress"):
