@@ -26,6 +26,7 @@ const DEFAULT_MECH := "res://resources/mechs/Hippogriff.tres"
 
 var _scenario: Dictionary = {}
 var _role: String = "server"
+var _peer_key: String = "client_1"  # M2.1: which peers{} entry drives this client
 var _port: int = 8910
 var _expected_clients: int = 1
 var _connected: Array = []
@@ -42,6 +43,8 @@ func _ready() -> void:
 			path = a.get_slice("=", 1)
 		elif a.begins_with("--role="):
 			_role = a.get_slice("=", 1)
+		elif a.begins_with("--peer-key="):
+			_peer_key = a.get_slice("=", 1)
 	if path == "":
 		push_error("[Harness] no --mp-scenario= given")
 		get_tree().quit(1)
@@ -108,9 +111,12 @@ func _build_roster() -> Array:
 	return roster
 
 func _roster_entry(slot_idx: int, peer_id: int, team: int, mech_path: String) -> Dictionary:
+	# M2.1: scenario may pin per-slot weapon scenes ("weapons": ["res://...tscn"])
+	# so a scenario controls mag type / fire behavior instead of MechDef defaults.
+	var weapons: Array = _scenario.get("weapons", [])
 	var squad: Array = []
 	for _i in 5:
-		squad.append({"mech": mech_path, "weapons": []})
+		squad.append({"mech": mech_path, "weapons": weapons})
 	return {
 		"slot_idx": slot_idx,
 		"peer_id": peer_id,
@@ -145,7 +151,7 @@ func _try_override_input() -> void:
 	if mine == null:
 		return
 	var peers: Dictionary = _scenario.get("peers", {})
-	var key := _role if _role == "server" else "client_1"
+	var key := _role if _role == "server" else _peer_key
 	var spec: Dictionary = peers.get(key, {}).get("input", {})
 	var replay := ReplaySrc.new()
 	replay.name = "ReplayInput"

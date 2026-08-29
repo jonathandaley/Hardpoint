@@ -98,6 +98,7 @@ var _sync_role_override: String = ""
 var _sync_dir: String = "user://"
 var _sync_snap_file: FileAccess = null
 var _sync_event_file: FileAccess = null
+var _sync_beacon_file: FileAccess = null
 var _sync_files_open: bool = false
 var _sync_start_ms: int = 0
 var _sync_start_frame: int = 0
@@ -132,6 +133,7 @@ func _open_sync_files() -> void:
 	var dir := _sync_dir.trim_suffix("/")
 	_sync_snap_file = FileAccess.open("%s/%s.jsonl" % [dir, base], FileAccess.WRITE)
 	_sync_event_file = FileAccess.open("%s/%s.events.jsonl" % [dir, base], FileAccess.WRITE)
+	_sync_beacon_file = FileAccess.open("%s/%s.beacons.jsonl" % [dir, base], FileAccess.WRITE)
 	if _sync_snap_file == null or _sync_event_file == null:
 		push_error("Game: sync-log could not open output files in %s" % dir)
 		sync_logging_enabled = false
@@ -161,6 +163,22 @@ func _physics_process(_delta: float) -> void:
 	var peer := multiplayer.get_unique_id() if multiplayer.has_multiplayer_peer() else 1
 	for m in mechs:
 		_sync_snap_file.store_line(JSON.stringify(_mech_snapshot(m, tick, wall, role, peer)))
+	# M2.1: per-tick beacon state stream (own file so mech oracles stay untouched).
+	# Server fields are authoritative; client fields arrive via Beacon._sync_progress
+	# and _sync_state RPCs (T105), which is exactly the seam beacon_desync checks.
+	if _sync_beacon_file != null:
+		var beacons := get_tree().get_nodes_in_group("beacons")
+		beacons.sort_custom(func(a: Node, b: Node) -> bool: return a.name < b.name)
+		for b in beacons:
+			_sync_beacon_file.store_line(JSON.stringify({
+				"tick": tick,
+				"peer": peer,
+				"beacon_id": b.name,
+				"state": int(b.get("state")),
+				"owner_team": b.get("owner_team"),
+				"progress": snappedf(b.get("_capture_progress"), 0.001),
+				"capturing_team": b.get("_capturing_team"),
+			}))
 
 func _mech_snapshot(m: Node, tick: int, wall: int, role: String, peer: int) -> Dictionary:
 	var torso: Node3D = m.get("torso")
