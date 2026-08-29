@@ -5,26 +5,117 @@
   "map_path": "res://resources/maps/MathTemple.tres",
   "mech": "res://resources/mechs/Hippogriff.tres",
   "duration_ticks": 400,
-  "oracles": ["determinism", "transform_desync", "health_desync", "lock_target", "team_assignment", "crash_scan", "rpc_integrity", "event_sidefx"],
-  "thresholds": {"pos_eps": 1.5, "rot_epsilon": 0.05, "persist_ticks": 5},
+  "oracles": [
+    "determinism",
+    "transform_desync",
+    "health_desync",
+    "lock_target",
+    "team_assignment",
+    "crash_scan",
+    "rpc_integrity",
+    "event_sidefx",
+    "spawn_join",
+    "prediction_recon"
+  ],
+  "thresholds": {
+    "pos_eps": 1.5,
+    "rot_epsilon": 0.05,
+    "persist_ticks": 5
+  },
   "peers": {
     "server": {
       "input": {
         "keyframes": [
-          {"tick": 0,   "move": [0, -1], "look": [0.15, 0.0]},
-          {"tick": 100, "move": [1, 0],  "look": [-0.15, 0.0], "fire_primary": true},
-          {"tick": 200, "move": [0, -1], "look": [0.0, 0.0],   "fire_primary": false},
-          {"tick": 320, "move": [0, 0]}
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.15,
+              0.0
+            ]
+          },
+          {
+            "tick": 100,
+            "move": [
+              1,
+              0
+            ],
+            "look": [
+              -0.15,
+              0.0
+            ],
+            "fire_primary": true
+          },
+          {
+            "tick": 200,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ],
+            "fire_primary": false
+          },
+          {
+            "tick": 320,
+            "move": [
+              0,
+              0
+            ]
+          }
         ]
       }
     },
     "client_1": {
       "input": {
         "keyframes": [
-          {"tick": 0,   "move": [0, -1], "look": [-0.12, 0.0]},
-          {"tick": 120, "move": [-1, 0], "look": [0.12, 0.0], "fire_primary": true},
-          {"tick": 240, "move": [0, -1], "look": [0.0, 0.0],  "fire_primary": false},
-          {"tick": 340, "move": [0, 0]}
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              -0.12,
+              0.0
+            ]
+          },
+          {
+            "tick": 120,
+            "move": [
+              -1,
+              0
+            ],
+            "look": [
+              0.12,
+              0.0
+            ],
+            "fire_primary": true
+          },
+          {
+            "tick": 240,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ],
+            "fire_primary": false
+          },
+          {
+            "tick": 340,
+            "move": [
+              0,
+              0
+            ]
+          }
         ]
       }
     }
