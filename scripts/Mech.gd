@@ -240,6 +240,14 @@ func get_active_set() -> Array:
 func toggle_weapon_slot(idx: int) -> void:
 	if idx >= 0 and idx < _active_set.size():
 		_active_set[idx] = not _active_set[idx]
+		# B34/V44: toggles run server-side only (V38), so the client's WeaponHUD
+		# icon dim (reads get_active_set) never updated. Full array: idempotent.
+		if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+			_sync_active_set.rpc(_active_set)
+
+@rpc("authority", "reliable")
+func _sync_active_set(aset: Array) -> void:
+	_active_set = aset.duplicate()
 
 func _setup_weapon_owners() -> void:
 	for hp in _get_hardpoints():

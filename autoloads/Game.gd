@@ -215,6 +215,7 @@ func _mech_snapshot(m: Node, tick: int, wall: int, role: String, peer: int) -> D
 		"health": snappedf(m.get("health"), 0.01),
 		"ammo": ammo,
 		"lock_target": lock_id,
+		"active_set": m.get("_active_set"),
 		"team": m.get("team"),
 		"abilities": cds,
 	}
