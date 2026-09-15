@@ -378,6 +378,14 @@ func _broadcast_ammo_changes() -> void:
 			_ammo_synced[i] = a
 			_sync_ammo.rpc(i, a)
 
+# B32: server forwards hit confirms to the owning peer (WeaponBase._emit_hit_if_visible);
+# re-emitting the local weapon's signal reuses the existing HUD register_hit connections.
+@rpc("authority", "unreliable_ordered")
+func _sync_hit_confirmed(slot: int) -> void:
+	Game.sync_log_event("hit_confirm", name, {"slot": slot})
+	if slot >= 0 and slot < _weapons.size() and is_instance_valid(_weapons[slot]):
+		_weapons[slot].hit_confirmed.emit()
+
 @rpc("authority", "reliable")
 func _sync_ammo(slot: int, a: int) -> void:
 	if slot >= 0 and slot < _weapons.size() and is_instance_valid(_weapons[slot]):
