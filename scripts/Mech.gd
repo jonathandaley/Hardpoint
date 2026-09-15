@@ -62,6 +62,7 @@ const _ES_FLASH_DUR := 0.12
 var _stealth_saved_mats: Dictionary = {}  # MeshInstance3D -> original material
 
 var _weapons: Array = []
+var _ammo_synced: Array = []   # last ammo value broadcast per slot (server, MP only)
 var _active_set: Array = []  # parallel bool array; true = included in right-click subset
 var _was_firing_primary: bool = false
 
@@ -226,6 +227,9 @@ func _build_weapon_list() -> void:
 				_weapons.append(child)
 	_active_set.resize(_weapons.size())
 	_active_set.fill(true)
+	_ammo_synced.clear()
+	for w in _weapons:
+		_ammo_synced.append(w.get("ammo"))
 
 func get_weapons() -> Array:
 	return _weapons
@@ -362,6 +366,23 @@ func _sync_death() -> void:
 	health = 0.0
 	_die()
 
+# Audit ammo bug: clients never see server-side ammo mutation (V38 skips weapon
+# sim client-side), so HUD ammo froze at max. Server broadcasts per-slot ammo on
+# change; reliable because change-driven (a dropped final packet never self-corrects).
+func _broadcast_ammo_changes() -> void:
+	for i in _weapons.size():
+		if not is_instance_valid(_weapons[i]):
+			continue
+		var a: int = _weapons[i].ammo
+		if a != _ammo_synced[i]:
+			_ammo_synced[i] = a
+			_sync_ammo.rpc(i, a)
+
+@rpc("authority", "reliable")
+func _sync_ammo(slot: int, a: int) -> void:
+	if slot >= 0 and slot < _weapons.size() and is_instance_valid(_weapons[slot]):
+		_weapons[slot].ammo = a
+
 @rpc("authority", "unreliable_ordered")
 func _sync_shield(pool: float) -> void:
 	if _energy_shield != null:
@@ -491,6 +512,9 @@ func _physics_process(delta: float) -> void:
 			_update_lock(delta)
 			if _input_source.is_mark_pressed():
 				mark_requested.emit(global_position)
+
+	if multiplayer.has_multiplayer_peer():
+		_broadcast_ammo_changes()
 
 	_try_step_up()
 	if _step_up_remaining > 0.0:
