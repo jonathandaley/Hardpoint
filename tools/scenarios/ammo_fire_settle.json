@@ -15,14 +15,12 @@
     "team_assignment",
     "spawn_join"
   ],
-  "expect_fail": [
-    "ammo_desync"
-  ],
+  "expect_fail": [],
   "thresholds": {
     "ammo_settle_ticks": 120,
     "ammo_persist_ticks": 10
   },
-  "_comment": "Both peers hold position and hose a FIXED-mag machine gun into the void for ~3s, then cease. After the settle window, server and client must agree on every mech's ammo. expect_fail: clients never see server-side ammo mutation (open MP bug, HUD ammo group); remove the marker when ammo replication lands.",
+  "_comment": "Both peers hold position and hose a FIXED-mag machine gun into the void for ~3s, then cease. After the settle window, server and client must agree on every mech's ammo. Ammo replication landed (Mech._sync_ammo, change-driven reliable broadcast); oracle now a hard gate.",
   "peers": {
     "server": {
       "input": {

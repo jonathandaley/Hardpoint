@@ -48,6 +48,11 @@ func _physics_process(delta: float) -> void:
 	if max_ammo < 0:
 		return  # infinite - no magazine logic
 
+	# V38: clients don't simulate weapons; ammo arrives via Mech._sync_ammo.
+	# Without this gate a REFILLING mag regens locally and fights the sync.
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		return
+
 	match magazine_type:
 		MagazineType.FIXED:
 			if _reloading:
