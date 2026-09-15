@@ -7,21 +7,22 @@
   "weapons": [
     "res://scenes/weapons/MachineGunLight.tscn"
   ],
-  "duration_ticks": 600,
+  "duration_ticks": 1300,
   "oracles": [
     "ammo_desync",
     "crash_scan",
     "rpc_integrity",
     "team_assignment",
     "spawn_join",
-    "active_set_desync"
+    "active_set_desync",
+    "reload_desync"
   ],
   "expect_fail": [],
   "thresholds": {
     "ammo_settle_ticks": 120,
     "ammo_persist_ticks": 10
   },
-  "_comment": "Both peers hold position and hose a FIXED-mag machine gun into the void for ~3s, then cease. After the settle window, server and client must agree on every mech's ammo. Ammo replication landed (Mech._sync_ammo, change-driven reliable broadcast); oracle now a hard gate. B34 extension: post-ceasefire slot-0 toggle pulses on both peers; active_set_desync verifies the toggle replicates (server->client and client-forwarded round trip).",
+  "_comment": "Both peers hold position and hose a FIXED-mag machine gun into the void for ~3s, then cease. After the settle window, server and client must agree on every mech's ammo. Ammo replication landed (Mech._sync_ammo, change-driven reliable broadcast); oracle now a hard gate. B34 extension: post-ceasefire slot-0 toggle pulses on both peers; active_set_desync verifies the toggle replicates (server->client and client-forwarded round trip). B35 extension: R-pulse at tick 300 on both peers starts a manual reload (MachineGunLight 13.125s = ~788 ticks, completes ~1088); reload_desync verifies the reloading flag tracks across peers and the reload-end ammo refill re-exercises ammo_desync through a full reload cycle.",
   "peers": {
     "server": {
       "input": {
@@ -51,6 +52,10 @@
             "tick": 350,
             "action": "slot",
             "slot": 0
+          },
+          {
+            "tick": 300,
+            "action": "reload"
           }
         ]
       }
@@ -83,6 +88,10 @@
             "tick": 380,
             "action": "slot",
             "slot": 0
+          },
+          {
+            "tick": 300,
+            "action": "reload"
           }
         ]
       }

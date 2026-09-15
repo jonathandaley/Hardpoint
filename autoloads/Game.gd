@@ -189,12 +189,14 @@ func _mech_snapshot(m: Node, tick: int, wall: int, role: String, peer: int) -> D
 		rot_global = torso.global_transform.basis.get_rotation_quaternion()
 	var pos: Vector3 = m.global_position
 	var ammo: Dictionary = {}
+	var reloading: Dictionary = {}
 	var weapons = m.get("_weapons")
 	if weapons is Array:
 		for i in weapons.size():
 			var w = weapons[i]
 			if w != null:
 				ammo[str(i)] = w.get("ammo")
+				reloading[str(i)] = w.get("_reloading")
 	var lock = m.get("locked_target")
 	var lock_id = (lock.name as String) if lock != null and is_instance_valid(lock) else null
 	var cds: Dictionary = {}
@@ -216,6 +218,7 @@ func _mech_snapshot(m: Node, tick: int, wall: int, role: String, peer: int) -> D
 		"ammo": ammo,
 		"lock_target": lock_id,
 		"active_set": m.get("_active_set"),
+		"reloading": reloading,
 		"team": m.get("team"),
 		"abilities": cds,
 	}
