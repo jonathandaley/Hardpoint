@@ -16,7 +16,8 @@
     "team_assignment",
     "crash_scan",
     "rpc_integrity",
-    "event_sidefx"
+    "event_sidefx",
+    "hit_confirm"
   ],
   "_comment": "friendly_fire choreography with SniperLight (40dmg, 5-round FIXED mag, 10s reload): both duelists burn their first mag blind during the walk-in, reload, then fire the second mag with settled aim at 22.7m -- 5x40 > 175hp, so both mechs die. Exercises reliable death replication (_sync_death, audit #11): client must track HP to 0 and run client-side _die. Movement inputs identical to friendly_fire so the probe-computed aim stays valid (weapon RNG draws don't touch movement).",
   "peers": {

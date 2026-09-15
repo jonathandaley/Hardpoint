@@ -124,6 +124,14 @@ func _emit_hit_if_visible(target: Node, hit_pos: Vector3 = Vector3.ZERO) -> void
 		return
 	hit_confirmed.emit()
 	var _bc: bool = multiplayer.has_multiplayer_peer() and multiplayer.is_server()
+	# B32/V44: hits land server-side (V38), so a remote peer's own hit-X never
+	# flashed; forward the confirm to the owning peer, which re-emits its local
+	# weapon signal so existing HUD connections work unchanged.
+	if _bc and owner_mech != null and "owner_peer_id" in owner_mech:
+		var owner_peer: int = owner_mech.owner_peer_id
+		if owner_peer > 1 and owner_peer in multiplayer.get_peers():
+			var slot: int = owner_mech.get_weapons().find(self)
+			owner_mech.rpc_id(owner_peer, &"_sync_hit_confirmed", slot)
 	if impact_sound_enabled:
 		var sfx_pos := hit_pos if hit_pos != Vector3.ZERO else (target as Node3D).global_position
 		SoundManager.play_sfx("hit_impact", sfx_pos, _bc)

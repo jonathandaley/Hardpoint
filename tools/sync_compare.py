@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from oracles import (  # noqa: E402
     base, determinism, transform_desync, health_desync, lock_target, team_assignment,
     crash_scan, rpc_integrity, event_sidefx, ammo_desync, beacon_desync, spawn_join,
-    friendly_fire, prediction_recon,
+    friendly_fire, prediction_recon, hit_confirm,
 )
 
 # Registry of oracle modules. Add modules here as they land.
@@ -40,6 +40,7 @@ ORACLES = {
     spawn_join.NAME: spawn_join,
     friendly_fire.NAME: friendly_fire,
     prediction_recon.NAME: prediction_recon,
+    hit_confirm.NAME: hit_confirm,
 }
 
 
