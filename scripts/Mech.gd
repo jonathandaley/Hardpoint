@@ -388,11 +388,20 @@ func _broadcast_ammo_changes() -> void:
 
 # B32: server forwards hit confirms to the owning peer (WeaponBase._emit_hit_if_visible);
 # re-emitting the local weapon's signal reuses the existing HUD register_hit connections.
-@rpc("authority", "unreliable_ordered")
+# B35 flake fix: reliable per V44 -- this is a change-driven one-shot, and unreliable
+# drops (rare even on localhost) lost the confirm forever (suite flaked ~1/6 runs).
+@rpc("authority", "reliable")
 func _sync_hit_confirmed(slot: int) -> void:
 	Game.sync_log_event("hit_confirm", name, {"slot": slot})
 	if slot >= 0 and slot < _weapons.size() and is_instance_valid(_weapons[slot]):
 		_weapons[slot].hit_confirmed.emit()
+
+# B35: reload starts server-side; clients tick a cosmetic timer for the HUD bar.
+@rpc("authority", "reliable")
+func _sync_reload_started(slot: int) -> void:
+	if slot >= 0 and slot < _weapons.size() and is_instance_valid(_weapons[slot]) \
+			and _weapons[slot].has_method("start_reload_cosmetic"):
+		_weapons[slot].start_reload_cosmetic()
 
 @rpc("authority", "reliable")
 func _sync_ammo(slot: int, a: int) -> void:

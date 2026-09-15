@@ -48,10 +48,10 @@ func _physics_process(delta: float) -> void:
 	if max_ammo < 0:
 		return  # infinite - no magazine logic
 
-	# V38: clients don't simulate weapons; ammo arrives via Mech._sync_ammo.
-	# Without this gate a REFILLING mag regens locally and fights the sync.
-	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
-		return
+	# V38: clients don't simulate ammo; it arrives via Mech._sync_ammo. The FIXED
+	# reload timer still ticks client-side (cosmetic: HUD reload bar, seeded by
+	# _sync_reload_started); ammo refill and REFILLING regen stay server-only.
+	var _client: bool = multiplayer.has_multiplayer_peer() and not multiplayer.is_server()
 
 	match magazine_type:
 		MagazineType.FIXED:
@@ -59,11 +59,12 @@ func _physics_process(delta: float) -> void:
 				_reload_timer -= delta
 				if _reload_timer <= 0.0:
 					_reloading = false
-					ammo = max_ammo
+					if not _client:
+						ammo = max_ammo
 					if reload_done_sound_key != "":
 						SoundManager.play_sfx(reload_done_sound_key, global_position)
 		MagazineType.REFILLING:
-			if ammo < max_ammo:
+			if not _client and ammo < max_ammo:
 				_refill_accum += refill_rate * delta
 				var add: int = int(_refill_accum)
 				if add > 0:
@@ -114,6 +115,14 @@ func get_reload_progress() -> float:
 	return clampf(1.0 - _reload_timer / reload_time, 0.0, 1.0)
 
 func _start_reload() -> void:
+	start_reload_cosmetic()
+	# B35/V44: reload runs server-side only; broadcast the start so clients tick
+	# a cosmetic timer for the HUD reload bar (refill itself arrives via _sync_ammo).
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server() and owner_mech != null:
+		owner_mech.rpc(&"_sync_reload_started", owner_mech.get_weapons().find(self))
+
+# Shared by the server reload path and the client-side _sync_reload_started seam.
+func start_reload_cosmetic() -> void:
 	_reloading = true
 	_reload_timer = reload_time
 	if reload_start_sound_key != "":
