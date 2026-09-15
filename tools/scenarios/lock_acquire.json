@@ -1,0 +1,135 @@
+{
+  "name": "lock_acquire",
+  "seed": 9119,
+  "port": 8915,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Slip.tres",
+  "weapons": [
+    "res://scenes/weapons/RocketLauncherLight.tscn"
+  ],
+  "duration_ticks": 2500,
+  "oracles": [
+    "lock_target",
+    "friendly_fire",
+    "health_desync",
+    "spawn_join",
+    "team_assignment",
+    "crash_scan",
+    "rpc_integrity",
+    "event_sidefx",
+    "hit_confirm"
+  ],
+  "_comment": "kill_confirm choreography with RocketLauncherLight (requires_lock): duelists hold fire_primary throughout, but fire() no-ops until the 3s 5-degree-cone lock acquires during the settled-aim phase, then homing rockets fly. Exercises T102/B33 lock replication: lock_target oracle check 2 compares every client's lock_target against the server per tick; check 1 guards dead/absent locks on the authoritative stream (B21/B23).",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 60,
+            "fire_primary": true
+          },
+          {
+            "tick": 1150,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              -9.29,
+              -0.8
+            ]
+          },
+          {
+            "tick": 1250,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 60,
+            "fire_primary": true
+          },
+          {
+            "tick": 1150,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              -9.29,
+              -0.8
+            ]
+          },
+          {
+            "tick": 1250,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    },
+    "client_2": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0.0,
+              0.0
+            ],
+            "fire_primary": true
+          },
+          {
+            "tick": 100,
+            "look": [
+              5.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 550,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
