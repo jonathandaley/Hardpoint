@@ -13,14 +13,15 @@
     "crash_scan",
     "rpc_integrity",
     "team_assignment",
-    "spawn_join"
+    "spawn_join",
+    "active_set_desync"
   ],
   "expect_fail": [],
   "thresholds": {
     "ammo_settle_ticks": 120,
     "ammo_persist_ticks": 10
   },
-  "_comment": "Both peers hold position and hose a FIXED-mag machine gun into the void for ~3s, then cease. After the settle window, server and client must agree on every mech's ammo. Ammo replication landed (Mech._sync_ammo, change-driven reliable broadcast); oracle now a hard gate.",
+  "_comment": "Both peers hold position and hose a FIXED-mag machine gun into the void for ~3s, then cease. After the settle window, server and client must agree on every mech's ammo. Ammo replication landed (Mech._sync_ammo, change-driven reliable broadcast); oracle now a hard gate. B34 extension: post-ceasefire slot-0 toggle pulses on both peers; active_set_desync verifies the toggle replicates (server->client and client-forwarded round trip).",
   "peers": {
     "server": {
       "input": {
@@ -43,6 +44,13 @@
           {
             "tick": 240,
             "fire_primary": false
+          }
+        ],
+        "pulses": [
+          {
+            "tick": 350,
+            "action": "slot",
+            "slot": 0
           }
         ]
       }
@@ -68,6 +76,13 @@
           {
             "tick": 240,
             "fire_primary": false
+          }
+        ],
+        "pulses": [
+          {
+            "tick": 380,
+            "action": "slot",
+            "slot": 0
           }
         ]
       }
