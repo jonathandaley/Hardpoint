@@ -783,9 +783,51 @@ func _update_lock(delta: float) -> void:
 		lock_progress = _lock_timer / _lock_time
 		if _lock_timer >= _lock_time:
 			_set_locked_target(_lock_candidate if is_instance_valid(_lock_candidate) else null)
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_broadcast_lock_state()
 
 func _set_locked_target(node: Node3D) -> void:
 	locked_target = node
+
+# T102/B33: lock runs server-side only (V38), so client HUD lock ring + red box
+# were dead and the lock_target oracle had no client state to compare. Discrete
+# transitions (target/eligible changed) go reliable per V44; the progress ramp
+# rides unreliable_ordered (self-corrects next tick, ends in a reliable transition).
+var _lock_synced_name: String = ""
+var _elig_synced_name: String = ""
+var _lock_synced_progress: float = 0.0
+
+func _broadcast_lock_state() -> void:
+	var ln: String = String(locked_target.name) if is_instance_valid(locked_target) else ""
+	var en: String = String(lock_eligible_target.name) if is_instance_valid(lock_eligible_target) else ""
+	if ln != _lock_synced_name or en != _elig_synced_name:
+		_lock_synced_name = ln
+		_elig_synced_name = en
+		_lock_synced_progress = lock_progress
+		_sync_lock_state.rpc(ln, en, lock_progress)
+	elif lock_progress != _lock_synced_progress:
+		_lock_synced_progress = lock_progress
+		_sync_lock_progress.rpc(lock_progress)
+
+# V31: cross-peer mech refs travel as names (unique, mirrors sync-log mech_id).
+func _find_mech(mech_name: String) -> Node3D:
+	if mech_name == "":
+		return null
+	for m in get_tree().get_nodes_in_group("mechs"):
+		if String(m.name) == mech_name:
+			return m
+	return null
+
+@rpc("authority", "reliable")
+func _sync_lock_state(ln: String, en: String, p: float) -> void:
+	locked_target = _find_mech(ln)
+	lock_eligible_target = _find_mech(en)
+	lock_eligible = lock_eligible_target != null
+	lock_progress = p
+
+@rpc("authority", "unreliable_ordered")
+func _sync_lock_progress(p: float) -> void:
+	lock_progress = p
 
 func _handle_fire() -> void:
 	var primary: bool   = _input_source.is_firing_primary()
