@@ -388,8 +388,7 @@ func _broadcast_ammo_changes() -> void:
 
 # B32: server forwards hit confirms to the owning peer (WeaponBase._emit_hit_if_visible);
 # re-emitting the local weapon's signal reuses the existing HUD register_hit connections.
-# B35 flake fix: reliable per V44 -- this is a change-driven one-shot, and unreliable
-# drops (rare even on localhost) lost the confirm forever (suite flaked ~1/6 runs).
+# Reliable per V44: change-driven one-shot, a dropped packet would lose the flash forever.
 @rpc("authority", "reliable")
 func _sync_hit_confirmed(slot: int) -> void:
 	Game.sync_log_event("hit_confirm", name, {"slot": slot})
