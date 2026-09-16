@@ -9,12 +9,17 @@ received the forward. Server-owned shooters (host player, bots) confirm
 locally with no RPC and are out of scope. Confirms are consumed one-to-one
 (greedy, in tick order) so two hits cannot share one confirm. To avoid a
 vacuous pass the oracle SKIPs when the scenario produced no client-owned hits.
+
+Peer tick clocks are NOT aligned (V45): each peer counts its own physics
+frames from the moment it received match-start, so a client can stamp the
+confirm one tick BEFORE the server's hit tick. The window therefore opens
+`clock_skew` ticks early (T136: a zero negative bound flaked ~1/6 runs).
 """
 from . import base
 
 NAME = "hit_confirm"
 
-DEFAULTS = {"hit_confirm_max_delay_ticks": 30}
+DEFAULTS = {"hit_confirm_max_delay_ticks": 30, "hit_confirm_clock_skew_ticks": 2}
 
 
 def run(ctx):
@@ -26,6 +31,7 @@ def run(ctx):
         return base.verdict(NAME, base.SKIP, note="no client peers")
     th = {**DEFAULTS, **ctx.get("thresholds", {})}
     delay = int(th["hit_confirm_max_delay_ticks"])
+    skew = int(th["hit_confirm_clock_skew_ticks"])
     server = primary["server"]
 
     role_by_peer = {}
@@ -55,13 +61,13 @@ def run(ctx):
         checked += 1
         t = e["tick"]
         pool = confirms[role]
-        match = next((i for i, ct in enumerate(pool) if t <= ct <= t + delay), None)
+        match = next((i for i, ct in enumerate(pool) if t - skew <= ct <= t + delay), None)
         if match is None:
             return base.verdict(NAME, base.FAIL, mech_id=src, first_tick=t,
                                 field="hit_confirm", pattern="sudden_jump",
                                 peer=role,
-                                note="hit by %s at tick %d never confirmed on owning peer %s within %d ticks"
-                                     % (src, t, role, delay))
+                                note="hit by %s at tick %d never confirmed on owning peer %s within [-%d, +%d] ticks"
+                                     % (src, t, role, skew, delay))
         pool.pop(match)
     if checked == 0:
         return base.verdict(NAME, base.SKIP,
