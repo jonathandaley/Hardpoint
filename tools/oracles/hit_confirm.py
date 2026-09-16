@@ -13,13 +13,14 @@ vacuous pass the oracle SKIPs when the scenario produced no client-owned hits.
 Peer tick clocks are NOT aligned (V45): each peer counts its own physics
 frames from the moment it received match-start, so a client can stamp the
 confirm one tick BEFORE the server's hit tick. The window therefore opens
-`clock_skew` ticks early (T136: a zero negative bound flaked ~1/6 runs).
+`clock_skew` ticks early (T136: a zero negative bound flaked ~1/6 runs;
+measured skew over 24 loopback runs was -2..+3, default 4 = max + headroom).
 """
 from . import base
 
 NAME = "hit_confirm"
 
-DEFAULTS = {"hit_confirm_max_delay_ticks": 30, "hit_confirm_clock_skew_ticks": 2}
+DEFAULTS = {"hit_confirm_max_delay_ticks": 30, "hit_confirm_clock_skew_ticks": 4}
 
 
 def run(ctx):
