@@ -15,21 +15,28 @@ from . import base
 
 NAME = "crash_scan"
 
-# Godot prints these on a GDScript runtime fault ("SCRIPT ERROR") or a
-# push_error/push_warning ("USER ERROR"/"USER WARNING") -- the B17-class. The
-# bare "ERROR:" prefix is intentionally NOT matched: the resource loader emits
-# it for benign missing-asset warnings (e.g. a missing .ogg) that are content
-# issues, not netcode faults, and process death is caught via exit code/timeout.
+# Godot prints these on a GDScript runtime fault ("SCRIPT ERROR") or, on some
+# builds, push_error ("USER ERROR") -- the B17-class. Godot 4.6 headless prints
+# push_error as a bare "ERROR: <msg>" followed by "   at: push_error (...)", so
+# that two-line shape is matched too (B37). Any other bare "ERROR:" is engine
+# noise (resource loader, ENet send-after-close at teardown, resources-in-use
+# at exit) and is intentionally NOT matched; process death is caught via
+# exit code/timeout.
 ERROR_MARKERS = ("SCRIPT ERROR", "USER ERROR")
+PUSH_ERROR_FRAME = "at: push_error ("
 
 
 def _scan_log(path):
     """First (lineno, line) containing an error marker, or None."""
+    prev = None
     with open(path, errors="replace") as f:
         for i, line in enumerate(f, 1):
             for mark in ERROR_MARKERS:
                 if mark in line:
                     return i, line.rstrip()
+            if PUSH_ERROR_FRAME in line and prev is not None and prev[1].startswith("ERROR:"):
+                return prev
+            prev = (i, line.rstrip())
     return None
 
 

@@ -80,6 +80,12 @@ func _start_server() -> void:
 func _on_peer_connected(id: int) -> void:
 	if not _connected.has(id):
 		_connected.append(id)
+	# No Lobby scene in harness mode, so register the peer the way Lobby does;
+	# otherwise the client's _rpc_send_meta reply trips the V41 unknown-sender guard.
+	if not Game.mp_lobby["peers"].has(id):
+		Game.mp_lobby["peers"][id] = {
+			"pilot_name": "Peer %d" % id, "elo": 1000, "level": 1, "squad": [], "ready": false,
+		}
 	print("[Harness] client connected: %d (%d/%d)" % [id, _connected.size(), _expected_clients])
 	if _connected.size() >= _expected_clients and not _match_started:
 		_begin_match()
