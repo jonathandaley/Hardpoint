@@ -39,13 +39,15 @@ Human 2-peer LAN session. Passing closes T40 (SPEC.md). First session 2026-09-28
 - The tester is "pretty sure" but wants it rechecked. Possibly the box is only drawn when a lock weapon is present, or only on the server for non-lock loadouts.
 
 ### B-f: no way back to the lobby after quitting
-- Quitting a match returns to the hangar, and there is no way back into the waiting room (lobby).
+- Quitting a match returns to the hangar. From there only singleplayer is reachable until the game is restarted.
+- Cause: the only route into multiplayer is TitleScreen -> MPEntry (`TitleScreen.gd:10`) -> Lobby. The hangar has no link to either one.
+- Fix: give the hangar a way into MPEntry (or the title screen), and make sure the old peer is closed first (see B-g).
 
 ### B-g: log flood after the client quits (client log)
 - Endless `Node not found: "Arena"` / `"Arena/BeaconMatch"` + `Failed to get cached node from peer 1` + `Invalid packet received`, several per second.
 - Cause (read from code, not yet proven): `Arena._on_pause_quit` (Arena.gd ~3165) just changes scene to the hangar. It never closes `multiplayer.multiplayer_peer`, so the client stays connected and the server keeps sending `_rpc_snapshot` (20Hz) and BeaconMatch RPCs to an Arena the client no longer has. The HUD's end-of-match "RETURN TO HANGAR" button (HUD.gd:293) has the same shape.
-- Probably the same root as B-f: the client is half-left (out of the scene, still a connected peer), so the lobby flow never restarts. Fix both together: quitting should leave the session cleanly (close the peer, or explicitly return to the lobby).
-- Worth confirming how #25's bot-ify was triggered, since the peer apparently didn't disconnect.
+- The tester saw quitting disconnect the client (the server turned their mech into a bot). The code disagrees: `Game.disconnect_mp()` is only called from Lobby.gd:450 and MPEntry.gd:41, never on the arena quit path, and the flood shows the client still receiving from peer 1. Check next session: is the bot takeover triggered by something other than a real disconnect, or does the disconnect only happen when the client closes the window? The flood could also be the gap before a delayed disconnect.
+- Fix together with B-f: quitting should call `Game.disconnect_mp()` before changing scene.
 
 ### B-h: `receive_snapshot` on a mech outside the tree (client log)
 - `Condition "!is_inside_tree()"` from `get_global_transform`, via `Mech.receive_snapshot` (Mech.gd:417) <- `Arena._rpc_snapshot` (Arena.gd:3544).
