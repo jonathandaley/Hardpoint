@@ -414,6 +414,11 @@ func _sync_shield(pool: float) -> void:
 
 # T119: called by Arena._rpc_snapshot on clients to push a server transform sample.
 func receive_snapshot(entry: Dictionary) -> void:
+	# B43 (B-h): during a scene change the old Arena is detached but not yet freed and
+	# RPCs still reach it; ignore them. (Dictionary.get evaluates its default eagerly,
+	# so the global_transform defaults below must only run inside the tree.)
+	if not is_inside_tree():
+		return
 	_snap_buf.append({
 		"time": Time.get_ticks_msec() * 0.001,
 		"pos": entry.get("pos", global_position),

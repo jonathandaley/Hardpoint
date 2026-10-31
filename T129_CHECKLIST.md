@@ -49,7 +49,7 @@ Human 2-peer LAN session. Passing closes T40 (SPEC.md). First session 2026-09-28
 - The tester saw quitting disconnect the client (the server turned their mech into a bot). The code disagrees: `Game.disconnect_mp()` is only called from Lobby.gd:450 and MPEntry.gd:41, never on the arena quit path, and the flood shows the client still receiving from peer 1. Check next session: is the bot takeover triggered by something other than a real disconnect, or does the disconnect only happen when the client closes the window? The flood could also be the gap before a delayed disconnect.
 - Fix together with B-f: quitting should call `Game.disconnect_mp()` before changing scene.
 
-### B-h: `receive_snapshot` on a mech outside the tree (client log)
+### B-h: `receive_snapshot` on a mech outside the tree (client log) -- FIXED 2026-10-31 (T146, SPEC B43/V50)
 - `Condition "!is_inside_tree()"` from `get_global_transform`, via `Mech.receive_snapshot` (Mech.gd:417) <- `Arena._rpc_snapshot` (Arena.gd:3544).
 - `entry.get("quat", global_transform...)` evaluates its default argument eagerly, even when "quat" is present, so any snapshot for a valid-but-detached mech (dead or removed) errors. `_rpc_snapshot` only checks `is_instance_valid`, not `is_inside_tree`.
 - Low severity (noise), but it trips `crash_scan` (V46), so it will fail a suite run if a scenario ever hits it.
