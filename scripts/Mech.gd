@@ -359,7 +359,9 @@ func _apply_damage(amount: float, source: Node3D = null) -> void:
 		_sync_health.rpc(health)
 
 # T40: clients receive health updates here (death arrives via _sync_death, reliable).
-@rpc("authority", "unreliable_ordered")
+# B49 (V44): change-driven state -> reliable. Unreliable left a client showing a stale
+# HP for 10 s after one lost packet under 1% loss (T151 chaos sweep).
+@rpc("authority", "reliable")
 func _sync_health(h: float) -> void:
 	health = h
 
@@ -407,7 +409,7 @@ func _sync_ammo(slot: int, a: int) -> void:
 	if slot >= 0 and slot < _weapons.size() and is_instance_valid(_weapons[slot]):
 		_weapons[slot].ammo = a
 
-@rpc("authority", "unreliable_ordered")
+@rpc("authority", "reliable")
 func _sync_shield(pool: float) -> void:
 	if _energy_shield != null:
 		_energy_shield.set("shield_hp", pool)
@@ -986,7 +988,7 @@ func _deactivate_ability(key: String) -> void:
 				_rpc_ability_deactivated.rpc(_abilities.find(ability))
 			break
 
-@rpc("authority", "unreliable_ordered")
+@rpc("authority", "reliable")
 func _rpc_ability_activated(slot: int) -> void:
 	if slot < 0 or slot >= _abilities.size():
 		return
@@ -996,7 +998,7 @@ func _rpc_ability_activated(slot: int) -> void:
 			is_stealthy = true
 			_apply_stealth_visual(true)
 
-@rpc("authority", "unreliable_ordered")
+@rpc("authority", "reliable")
 func _rpc_ability_deactivated(slot: int) -> void:
 	if slot < 0 or slot >= _abilities.size():
 		return
