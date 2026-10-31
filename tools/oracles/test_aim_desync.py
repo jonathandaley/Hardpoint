@@ -36,6 +36,12 @@ def main():
     assert aim_desync.run(_ctx(wrap, wrapped))["verdict"] == base.PASS, "yaw wrap at pi is not desync"
     assert aim_desync.run(_ctx([[0.0, -0.3]] * 10, [[0.0, -0.3]] * 10))["verdict"] == base.SKIP, \
         "never settled long enough = no evidence"
+    # V45/B41: server log leading the client's by 6 ticks (3-process kill_confirm run) is skew, not desync
+    hold_turn_hold = [[0.0, -0.3]] * 100 + [[0.015 * i, -0.3] for i in range(1, 41)] + [[0.6, -0.3]] * 60
+    lead = hold_turn_hold[6:] + [[0.6, -0.3]] * 6
+    assert aim_desync.run(_ctx(hold_turn_hold, lead))["verdict"] == base.PASS, "6-tick clock skew is not desync"
+    offset = [[a[0] + 0.05, a[1]] for a in lead]
+    assert aim_desync.run(_ctx(hold_turn_hold, offset))["verdict"] == base.FAIL, "skew window must not hide a real offset"
     print("test_aim_desync: ok")
 
 

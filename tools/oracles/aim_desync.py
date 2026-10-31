@@ -18,16 +18,19 @@ from . import base
 
 NAME = "aim_desync"
 
-DEFAULTS = {"aim_eps": 0.005, "aim_settle_ticks": 30, "persist_ticks": 5}
+# aim_skew_ticks (V45/B41): the client aim must also stay unchanged this many ticks
+# AFTER t, so a server tick t that maps to a slightly later client moment still
+# sees the same value. Measured offsets -6..+5 (latency included).
+DEFAULTS = {"aim_eps": 0.005, "aim_settle_ticks": 30, "aim_skew_ticks": 15, "persist_ticks": 5}
 
 
 def _wrap(a):
     return math.atan2(math.sin(a), math.cos(a))
 
 
-def settled_diffs(client, server, settle):
+def settled_diffs(client, server, settle, skew=15):
     """{mech_id: [(tick, yaw_diff, pitch_diff)]} for the client's own mechs at
-    ticks where the client's aim has been unchanged for >= settle ticks."""
+    ticks t where the client's aim is unchanged over [t - settle, t + skew]."""
     series = {}
     for s in client.snaps:
         if s.get("owner") == s.get("peer") and "aim" in s:
@@ -36,12 +39,15 @@ def settled_diffs(client, server, settle):
     for mid, snaps in series.items():
         snaps.sort(key=lambda s: s["tick"])
         rows, last, still = [], None, 0
+        aims = {s["tick"]: s["aim"] for s in snaps}
         for s in snaps:
             a = s["aim"]
             still = still + 1 if a == last else 0
             last = a
             if still < settle:
                 continue
+            if any(aims.get(s["tick"] + dt, a) != a for dt in range(1, skew + 1)):
+                continue  # client starts turning within the skew window
             ss = server.at(s["tick"], mid)
             if ss is None or "aim" not in ss:
                 continue
@@ -59,7 +65,8 @@ def run(ctx):
     server = primary["server"]
     worst, checked = None, 0
     for role in base.client_roles(primary):
-        for mid, rows in settled_diffs(primary[role], server, int(th["aim_settle_ticks"])).items():
+        for mid, rows in settled_diffs(primary[role], server, int(th["aim_settle_ticks"]),
+                                       int(th["aim_skew_ticks"])).items():
             if not rows:
                 continue
             checked += 1

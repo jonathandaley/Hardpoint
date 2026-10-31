@@ -108,18 +108,30 @@ def client_roles(primary):
     return sorted(r for r in primary if r != "server")
 
 
-def cross_series(server, client, mech_id, mag_fn):
-    """Per-tick (tick, magnitude) for one mech over the ticks server+client
-    share, where mag_fn(server_snap, client_snap) -> float. Ordered by tick."""
-    st = set(server.ticks)
+# V45/B41: peer tick clocks start at each peer's own match-start receipt, so the
+# same tick number is a different moment on each peer. Measured client->server
+# offsets (latency included) span -6..+5 ticks (3-process kill_confirm hit -6).
+CROSS_PEER_SKEW_TICKS = 8
+
+
+def cross_series(server, client, mech_id, mag_fn, skew=CROSS_PEER_SKEW_TICKS):
+    """Per-tick (tick, magnitude) for one mech over the client's ticks, where
+    magnitude = min of mag_fn(server_snap, client_snap) over server ticks within
+    +-skew (V45): a real desync has no close server value anywhere nearby; a
+    clock offset does. Ordered by tick."""
     out = []
     for t in client.ticks:
-        if t not in st:
-            continue
-        ss = server.at(t, mech_id)
         cs = client.at(t, mech_id)
-        if ss is not None and cs is not None:
-            out.append((t, mag_fn(ss, cs)))
+        if cs is None:
+            continue
+        best = None
+        for dt in range(-skew, skew + 1):
+            ss = server.at(t + dt, mech_id)
+            if ss is not None:
+                m = mag_fn(ss, cs)
+                best = m if best is None else min(best, m)
+        if best is not None:
+            out.append((t, best))
     return out
 
 
