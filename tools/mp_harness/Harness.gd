@@ -46,6 +46,7 @@ var _actions: Array = []
 var _quit_frame: int = -1
 var _peer_checked: bool = false
 var _lobby_check_frame: int = -1
+var _lobby_wait: bool = false  # T159: server enters Lobby only after client acks
 
 func _ready() -> void:
 	var path := ""
@@ -168,6 +169,9 @@ func _process(_delta: float) -> void:
 		var scene := get_tree().current_scene
 		print("[Harness] peer_check %s: connected=%s scene=%s" % [_key, str(connected).to_lower(),
 			scene.name if scene != null else "<none>"])
+	if _lobby_wait and get_tree().current_scene != null and get_tree().current_scene.name == "Lobby":
+		_lobby_wait = false
+		_lobby_check_frame = Engine.get_physics_frames() + 90  # 90 ticks after ARRIVING
 	if _lobby_check_frame >= 0 and Engine.get_physics_frames() >= _lobby_check_frame:
 		_lobby_check_frame = -1
 		var peers: Dictionary = Game.mp_lobby["peers"]
@@ -245,9 +249,9 @@ func _run_action(a: Dictionary) -> void:
 			get_tree().current_scene.call("_on_pause_quit")
 			_quit_frame = Engine.get_physics_frames()
 		"return_to_lobby":
-			# = match end -> lobby, the V40 server-coordinated scene change (T121), sent
-			# while snapshots are still in flight (T146 / B-h)
-			Game._rpc_change_scene.rpc("res://scenes/ui/Lobby.tscn")
-			_lobby_check_frame = Engine.get_physics_frames() + 90
+			# = match end -> lobby: Game.server_change_scene, the V40/T159 coordinated
+			# change that Game._do_return_to_lobby (T121) uses, mid-stream (T146/T159)
+			Game.server_change_scene("res://scenes/ui/Lobby.tscn")
+			_lobby_wait = true
 		_:
 			push_error("[Harness] unknown action %s" % action)

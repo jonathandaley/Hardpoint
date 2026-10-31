@@ -19,6 +19,9 @@ def run(ctx):
     m = re.search(r"\[Harness\] lobby_check peers=(\d+) expected=(\d+) squads=(\d+) roster=(\d+)",
                   open(path, errors="replace").read())
     if m is None:
+        if "action return_to_lobby" in open(path, errors="replace").read():
+            return base.verdict(NAME, base.FAIL, note="return_to_lobby ran but the server never reached the lobby "
+                                                      "(no lobby_check before the run ended)")
         return base.verdict(NAME, base.SKIP, note="no lobby_check (no return_to_lobby action)")
     peers, expected, squads, roster = map(int, m.groups())
     problems = []

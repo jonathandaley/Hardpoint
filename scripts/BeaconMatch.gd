@@ -35,7 +35,7 @@ func _drain_tick() -> void:
 		scores[1] = max(0, scores[1] - per_beacon * a)
 	if b > 0:
 		scores[0] = max(0, scores[0] - per_beacon * b)
-	if multiplayer.has_multiplayer_peer():
+	if multiplayer.has_multiplayer_peer() and Game.mp_live:  # T159/V52 stream gate
 		_sync_scores.rpc(scores[0], scores[1])
 
 # T40: clients receive score updates here for HUD display; win evaluation stays server-only.

@@ -123,7 +123,7 @@ func _update_capture(delta: float) -> void:
 	_capture_progress += cap_delta / capture_time
 	if multiplayer.has_multiplayer_peer():
 		_progress_broadcast_timer -= delta
-		if _progress_broadcast_timer <= 0.0:
+		if _progress_broadcast_timer <= 0.0 and Game.mp_live:  # T159/V52 stream gate
 			_progress_broadcast_timer = _PROGRESS_BROADCAST_INTERVAL
 			_sync_progress.rpc(_capture_progress, _capturing_team)
 	if _capture_progress >= 1.0:
