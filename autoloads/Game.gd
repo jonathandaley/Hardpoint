@@ -193,6 +193,7 @@ func _mech_snapshot(m: Node, tick: int, wall: int, role: String, peer: int) -> D
 	var pitch = m.get("_camera_pitch")
 	var aim := [snappedf(yaw, 0.00001), snappedf(pitch if pitch != null else 0.0, 0.00001)]
 	var ammo: Dictionary = {}
+	var ammo_max: Dictionary = {}  # T149: world_invariants range check (-1 = infinite)
 	var reloading: Dictionary = {}
 	var weapons = m.get("_weapons")
 	if weapons is Array:
@@ -200,6 +201,7 @@ func _mech_snapshot(m: Node, tick: int, wall: int, role: String, peer: int) -> D
 			var w = weapons[i]
 			if w != null:
 				ammo[str(i)] = w.get("ammo")
+				ammo_max[str(i)] = w.get("max_ammo")
 				reloading[str(i)] = w.get("_reloading")
 	var lock = m.get("locked_target")
 	var lock_id = (lock.name as String) if lock != null and is_instance_valid(lock) else null
@@ -223,6 +225,8 @@ func _mech_snapshot(m: Node, tick: int, wall: int, role: String, peer: int) -> D
 		"aim": aim,
 		"scale": snappedf(m.global_transform.basis.get_scale().x, 0.001),  # T142: body_scale must survive replication
 		"health": snappedf(m.get("health"), 0.01),
+		"max_hp": m.get("max_health"),
+		"ammo_max": ammo_max,
 		"ammo": ammo,
 		"lock_target": lock_id,
 		"eligible": elig_id,
