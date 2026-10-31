@@ -529,6 +529,10 @@ func _physics_process(delta: float) -> void:
 			_maybe_forward_input()
 		_update_legs(delta)
 		return
+	# T162 (B51): an MP server holds every mech (players and bots) until all clients
+	# have loaded the match (Game.mp_live, V52) -- no head start for the host.
+	if not Game.mp_live and not (multiplayer.multiplayer_peer is OfflineMultiplayerPeer):
+		return
 
 	if not is_on_floor() and _step_up_remaining <= 0.0:
 		velocity += get_gravity() * delta

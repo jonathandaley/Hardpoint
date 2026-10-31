@@ -34,6 +34,8 @@ func stop() -> void:
 func _process(delta: float) -> void:
 	if not running:
 		return
+	if not Game.mp_live and not (multiplayer.multiplayer_peer is OfflineMultiplayerPeer):
+		return  # T162: match clock waits for every client too
 	# T40: match simulation runs server-only; clients receive result via _rpc_match_ended.
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
 		return
