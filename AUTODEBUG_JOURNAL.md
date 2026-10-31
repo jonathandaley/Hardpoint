@@ -17,3 +17,4 @@ date|task|outcome|commit|finding|suite
 2026-10-31|T147|DONE (B-d not reproduced)|b1c5a54|hud_layout guard + rendered peers/screenshots built; B-d matched server in every config (headless, rendered, 4 loadouts) -> NEEDS_HUMAN.md, real lobby flow queued in T152|16/16
 2026-10-31|T148|DONE|5e22d4e,f540ec7|B-e FIXED: eligible target never broadcast for no-lock loadouts (early return before broadcast). All T129 bugs now closed except B-c (tuning, NEEDS_HUMAN) and B-d (not reproduced)|17/17
 2026-10-31|T149|DONE|f5d5814|world_invariants (value/position/beacon sanity) on every scenario, all clean; stuck+softlock moved to T152|17/17
+2026-10-31|T150|DONE|3eac5ad,4a37c68|clients never interpolated (20 Hz steps, own mech too); real interpolation now, stalls 66%->1% clean, 5-6% wifi/bad (B48)|17/17
