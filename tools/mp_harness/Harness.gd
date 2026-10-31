@@ -189,6 +189,7 @@ func _try_override_input() -> void:
 		print("[Harness] settings override (%s): %s" % [key, overrides])
 	var replay := ReplaySrc.new()
 	replay.name = "ReplayInput"
+	replay.mech_id = mine.name
 	add_child(replay)
 	replay.load_spec(spec)
 	mine.set_input_source(replay)

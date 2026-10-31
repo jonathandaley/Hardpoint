@@ -12,7 +12,7 @@ extends "res://scripts/InputSource.gd"
 #                     "fire_secondary": false},
 #       {"tick": 120, "move": [1, 0], "look": [0.0, 0.0]}
 #     ],
-#     "pulses": [      # one-shot edge events (reload / ability / mark / slot N)
+#     "pulses": [      # one-shot edge events (reload / ability / mark / slot N), visible on their tick only
 #       {"tick": 60, "action": "reload"},
 #       {"tick": 90, "action": "slot", "slot": 1}
 #     ]
@@ -29,6 +29,7 @@ var _look: Vector2 = Vector2.ZERO
 var _fire_primary: bool = false
 var _fire_secondary: bool = false
 var _kf_idx: int = 0
+var mech_id: String = ""     # T158: set by Harness so input_press events name the mech
 
 func load_spec(spec: Dictionary) -> void:
 	_keyframes = spec.get("keyframes", []).duplicate(true)
@@ -44,6 +45,11 @@ func load_spec(spec: Dictionary) -> void:
 func _physics_process(_delta: float) -> void:
 	_tick += 1
 	_apply_due_keyframes()
+	# T158: ground truth for input_delivery -- the moment the "finger" presses.
+	for p in _pulses:
+		if int(p.get("tick", 0)) == _tick and String(p.get("action", "")) != "mark":
+			Game.sync_log_event("input_press", mech_id,
+				{"action": String(p["action"]), "slot": int(p.get("slot", -1))})
 
 # Activate every keyframe whose tick has arrived; the last one wins for any
 # field it specifies (fields persist across keyframes that omit them).
@@ -60,14 +66,17 @@ func _apply_due_keyframes() -> void:
 			_fire_secondary = bool(kf["fire_secondary"])
 		_kf_idx += 1
 
-# Consume the first un-fired pulse matching action whose tick has arrived.
-# Edge-triggered: returns true exactly once, on or after its tick.
+# Consume the pulse matching action on its own tick. T158: like
+# Input.is_action_just_pressed, a pulse is visible ONLY on its tick; a reader that
+# doesn't poll that tick misses it (real keyboard behavior). The old "on or after"
+# latch hid the client's every-2nd-tick sampling bug from the harness.
 func _take_pulse(action: String) -> Dictionary:
 	for p in _pulses:
-		if p.get("consumed", false):
-			continue
-		if int(p.get("tick", 0)) > _tick:
+		var t := int(p.get("tick", 0))
+		if t > _tick:
 			break
+		if t < _tick or p.get("consumed", false):
+			continue
 		if String(p.get("action", "")) == action:
 			p["consumed"] = true
 			return p
