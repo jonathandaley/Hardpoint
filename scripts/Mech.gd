@@ -716,11 +716,13 @@ func _handle_movement(delta: float) -> void:
 func _handle_slot_toggle() -> void:
 	var idx: int = _input_source.get_slot_toggle()
 	if idx >= 0:
+		Game.sync_log_event("input_applied", name, {"action": "slot", "slot": idx})  # T158
 		toggle_weapon_slot(idx)
 
 func _handle_reload() -> void:
 	if not _input_source.is_reload_pressed():
 		return
+	Game.sync_log_event("input_applied", name, {"action": "reload", "slot": -1})  # T158
 	for weapon in _weapons:
 		if is_instance_valid(weapon) and weapon.has_method("try_reload"):
 			weapon.try_reload()
@@ -876,6 +878,7 @@ func _handle_ability() -> void:
 				_deactivate_ability(key)
 	if not _input_source.is_ability_pressed():
 		return
+	Game.sync_log_event("input_applied", name, {"action": "ability", "slot": -1})  # T158
 	for ability in _abilities:
 		if ability.trigger != 0:
 			continue

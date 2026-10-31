@@ -1,0 +1,129 @@
+{
+  "name": "oneshot_pulses",
+  "seed": 5150,
+  "port": 8918,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Hippogriff.tres",
+  "duration_ticks": 600,
+  "net": "wifi",
+  "oracles": [
+    "input_delivery",
+    "aim_desync",
+    "spawn_join",
+    "team_assignment",
+    "crash_scan",
+    "rpc_integrity"
+  ],
+  "expect_fail": [
+    "input_delivery"
+  ],
+  "_comment": "T158 repro: both peers press R / slot 2 / ability on odd and even ticks (one-tick pulses, like Input.is_action_just_pressed) over wifi. input_delivery: every press applied exactly once by the server. Pre-fix the client sampled presses only on its every-2nd-tick send and sent them over unreliable _rpc_input. Server pulses are the control (applied locally every tick).",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0,
+              0
+            ]
+          }
+        ],
+        "pulses": [
+          {
+            "tick": 61,
+            "action": "reload"
+          },
+          {
+            "tick": 120,
+            "action": "reload"
+          },
+          {
+            "tick": 181,
+            "action": "reload"
+          },
+          {
+            "tick": 240,
+            "action": "reload"
+          },
+          {
+            "tick": 301,
+            "action": "slot",
+            "slot": 1
+          },
+          {
+            "tick": 360,
+            "action": "slot",
+            "slot": 1
+          },
+          {
+            "tick": 421,
+            "action": "ability"
+          },
+          {
+            "tick": 480,
+            "action": "ability"
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0,
+              0
+            ]
+          }
+        ],
+        "pulses": [
+          {
+            "tick": 61,
+            "action": "reload"
+          },
+          {
+            "tick": 120,
+            "action": "reload"
+          },
+          {
+            "tick": 181,
+            "action": "reload"
+          },
+          {
+            "tick": 240,
+            "action": "reload"
+          },
+          {
+            "tick": 301,
+            "action": "slot",
+            "slot": 1
+          },
+          {
+            "tick": 360,
+            "action": "slot",
+            "slot": 1
+          },
+          {
+            "tick": 421,
+            "action": "ability"
+          },
+          {
+            "tick": 480,
+            "action": "ability"
+          }
+        ]
+      }
+    }
+  }
+}
