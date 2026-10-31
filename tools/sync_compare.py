@@ -24,7 +24,7 @@ from oracles import (  # noqa: E402
     crash_scan, rpc_integrity, event_sidefx, ammo_desync, beacon_desync, spawn_join,
     friendly_fire, prediction_recon, hit_confirm, active_set_desync, reload_desync,
     aim_desync, input_delivery, beam_aim, log_flood, peer_closed, scene_routes, lobby_roster,
-    hud_layout, world_invariants, interp_smoothness,
+    hud_layout, world_invariants, interp_smoothness, latency_recovery, rpc_modes,
 )
 
 # Registry of oracle modules. Add modules here as they land.
@@ -55,7 +55,28 @@ ORACLES = {
     hud_layout.NAME: hud_layout,
     world_invariants.NAME: world_invariants,
     interp_smoothness.NAME: interp_smoothness,
+    latency_recovery.NAME: latency_recovery,
+    rpc_modes.NAME: rpc_modes,
 }
+
+
+def _thresholds(scenario, run_dir):
+    """Scenario thresholds, with T151 impaired-network windows underneath when
+    the run went through a lossy/jittery proxy profile (meta.json "net")."""
+    th = dict(scenario.get("thresholds", {}))
+    try:
+        with open(os.path.join(run_dir, "meta.json")) as f:
+            net = (json.load(f).get("net") or {}).get("profile")
+    except (OSError, ValueError):
+        net = None
+    if isinstance(net, str):
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "mp_harness"))
+        import netem_proxy
+        net = netem_proxy.resolve(net)
+    if isinstance(net, dict) and (net.get("loss") or net.get("jitter_ms") or net.get("outage")
+                                  or net.get("latency_ms", 0) > 5):
+        th = {**base.IMPAIRED_NET_THRESHOLDS, **th}
+    return th
 
 
 def select_oracles(scenario, override):
@@ -85,7 +106,7 @@ def run(scenario_path, run_dir, baseline_dir, override, want_json, quiet):
         "primary": primary,
         "baseline": baseline,
         "scenario": scenario,
-        "thresholds": scenario.get("thresholds", {}),
+        "thresholds": _thresholds(scenario, run_dir),
         "run_dir": os.path.abspath(run_dir),
     }
     names, unknown = select_oracles(scenario, override)

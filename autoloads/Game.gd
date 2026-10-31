@@ -215,6 +215,10 @@ func _mech_snapshot(m: Node, tick: int, wall: int, role: String, peer: int) -> D
 	return {
 		"tick": tick,
 		"wall_ms": wall,
+		# T151: shared wall clock (all harness peers run on one machine) -- oracles align
+		# client ticks to the server's by it; per-peer tick anchors differ by up to ~1 s
+		# when the reliable match-start packet is lost and resent.
+		"unix_ms": int(Time.get_unix_time_from_system() * 1000.0),
 		"peer": peer,
 		"role": role,
 		"mech_id": m.name,

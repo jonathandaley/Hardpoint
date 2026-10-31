@@ -1,0 +1,139 @@
+{
+  "name": "outage_recovery",
+  "seed": 9119,
+  "port": 8924,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Slip.tres",
+  "weapons": [
+    "res://scenes/weapons/SniperLight.tscn"
+  ],
+  "duration_ticks": 2500,
+  "oracles": [
+    "latency_recovery",
+    "crash_scan",
+    "log_flood",
+    "spawn_join",
+    "team_assignment"
+  ],
+  "_comment": "T151: kill_confirm's mutual-sniper fight with a 1.5 s total network blackout (both directions) ~10 s into the match. Per-tick oracles would flag the blackout itself, so only end-state recovery is judged: latency_recovery = every client agrees with the server at the end.",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 60,
+            "fire_primary": true
+          },
+          {
+            "tick": 1150,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              -9.29,
+              -0.8
+            ]
+          },
+          {
+            "tick": 1250,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 60,
+            "fire_primary": true
+          },
+          {
+            "tick": 1150,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              -9.29,
+              -0.8
+            ]
+          },
+          {
+            "tick": 1250,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    },
+    "client_2": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0.0,
+              0.0
+            ],
+            "fire_primary": true
+          },
+          {
+            "tick": 100,
+            "look": [
+              5.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 550,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "net": {
+    "latency_ms": 20,
+    "jitter_ms": 5,
+    "outage": [
+      15.0,
+      16.5
+    ]
+  }
+}

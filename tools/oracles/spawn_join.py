@@ -40,8 +40,12 @@ def run(ctx):
             ss, cs = server.at(first, mid), client.at(first, mid)
             checked += 1
             bad = None
-            if base.vmax_diff(ss["pos"], cs["pos"]) > pos_eps:
-                bad = ("pos", round(base.vmax_diff(ss["pos"], cs["pos"]), 3))
+            # T151: the client draws the mech INTERP_LAG behind -> closest server pos in the window
+            near = [server.at(first + d, mid) for d in range(-base.CROSS_PEER_SKEW_TICKS - base.INTERP_LAG_TICKS,
+                                                              base.CROSS_PEER_SKEW_TICKS + 1)]
+            gap = min(base.vmax_diff(n["pos"], cs["pos"]) for n in near if n is not None)
+            if gap > pos_eps:
+                bad = ("pos", round(gap, 3))
             elif ss.get("team") != cs.get("team"):
                 bad = ("team", "%s vs %s" % (ss.get("team"), cs.get("team")))
             elif ss.get("owner") != cs.get("owner"):
