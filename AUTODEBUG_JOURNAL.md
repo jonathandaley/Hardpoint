@@ -13,3 +13,4 @@ date|task|outcome|commit|finding|suite
 2026-10-31|T146|DONE|ec30467,86f658c|B-h FIXED (scene-change window, probe-tested). Found T160: server Lobby wipes clients on return after a match -> 2nd match can't be set up|13/13
 2026-10-31|T160|DONE|08cbe45,cb9ed1a|lobby forgot clients after a match + stale roster made later SP matches spawn as MP; both fixed (B44/V51)|14/14
 2026-10-31|T159|DONE|b9d2627|scene-change RPC races fixed both ways (transition handshake + mp_live gate, seed RPC deleted). Lead for new task: SP pause may not pause Arena (Arena process_mode ALWAYS inherited by all children)|14/14 + selftest GREEN
+2026-10-31|T161|DONE|701ab62,ddf4dab|SP pause froze nothing (Arena ALWAYS inherited); fixed, MP Esc = menu only (B46/V53)|15/15 + selftest GREEN
