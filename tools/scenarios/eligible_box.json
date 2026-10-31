@@ -1,0 +1,129 @@
+{
+  "name": "eligible_box",
+  "seed": 9119,
+  "port": 8923,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Slip.tres",
+  "weapons": [
+    "res://scenes/weapons/RifleLight.tscn"
+  ],
+  "duration_ticks": 1500,
+  "oracles": [
+    "lock_target",
+    "spawn_join",
+    "team_assignment",
+    "crash_scan",
+    "log_flood",
+    "aim_desync"
+  ],
+  "_comment": "T148 B-e: lock_acquire's aim choreography with rifles only (no lock weapon). The server computes the eligible target (red aim box) for the client's mech; lock_target checks the client sees the same eligible target. Pre-fix: _update_lock returned before _broadcast_lock_state for loadouts without a lock weapon.",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 60
+          },
+          {
+            "tick": 1150,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              -9.29,
+              -0.8
+            ]
+          },
+          {
+            "tick": 1250,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 60
+          },
+          {
+            "tick": 1150,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              -9.29,
+              -0.8
+            ]
+          },
+          {
+            "tick": 1250,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    },
+    "client_2": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 100,
+            "look": [
+              5.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 550,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

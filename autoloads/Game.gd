@@ -203,6 +203,8 @@ func _mech_snapshot(m: Node, tick: int, wall: int, role: String, peer: int) -> D
 				reloading[str(i)] = w.get("_reloading")
 	var lock = m.get("locked_target")
 	var lock_id = (lock.name as String) if lock != null and is_instance_valid(lock) else null
+	var elig = m.get("lock_eligible_target")  # T148: the red aim box target
+	var elig_id = (elig.name as String) if elig != null and is_instance_valid(elig) else null
 	var cds: Dictionary = {}
 	var raw_cds = m.get("_ability_cooldowns")
 	if raw_cds is Dictionary:
@@ -223,6 +225,7 @@ func _mech_snapshot(m: Node, tick: int, wall: int, role: String, peer: int) -> D
 		"health": snappedf(m.get("health"), 0.01),
 		"ammo": ammo,
 		"lock_target": lock_id,
+		"eligible": elig_id,
 		"active_set": m.get("_active_set"),
 		"reloading": reloading,
 		"team": m.get("team"),
