@@ -16,9 +16,11 @@ extends Node
 #     "duration_ticks": 600,
 #     "peers": {
 #       "server":   {"input": {...ReplayInputSource spec...}},
-#       "client_1": {"input": {...}}
+#       "client_1": {"input": {...}, "settings": {"mouse_sensitivity": 0.006}}
 #     }
 #   }
+# "settings" (optional, T138) overrides Game.settings for that roster slot.
+# Each process runs with its own user:// (run_scenario.py sets XDG_DATA_HOME).
 # role + scenario path come from cmdline (--role=, --mp-scenario=).
 
 const ReplaySrc := preload("res://scripts/ReplayInputSource.gd")
@@ -58,6 +60,8 @@ func _ready() -> void:
 		if k != "server":
 			_expected_clients += 1
 	print("[Harness] role=%s port=%d expected_clients=%d" % [_role, _port, _expected_clients])
+	# T138: run_scenario.py checks this path is inside the run folder (own user://).
+	print("[Harness] user_data_dir=%s" % OS.get_user_data_dir())
 	if _role == "server":
 		_start_server()
 	else:
@@ -171,6 +175,13 @@ func _try_override_input() -> void:
 					key = "client_%d" % nth
 					break
 	var spec: Dictionary = peers.get(key, {}).get("input", {})
+	# T138: per-slot settings overrides (e.g. client mouse_sensitivity != server),
+	# bound to the roster slot like the input spec (V43).
+	var overrides: Dictionary = peers.get(key, {}).get("settings", {})
+	for k in overrides:
+		Game.settings[k] = overrides[k]
+	if not overrides.is_empty():
+		print("[Harness] settings override (%s): %s" % [key, overrides])
 	var replay := ReplaySrc.new()
 	replay.name = "ReplayInput"
 	add_child(replay)

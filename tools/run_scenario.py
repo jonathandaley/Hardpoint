@@ -24,8 +24,15 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_GODOT = os.environ.get("GODOT", os.path.expanduser("~/bin/godot"))
 
 
+def user_dir_root(out_dir, sync_role):
+    return os.path.join(out_dir, "userdata", sync_role)
+
+
 def launch(godot, role, sync_role, scenario_abs, out_dir):
     log = open(os.path.join(out_dir, f"{sync_role}.log"), "w")
+    # T138: own user:// per process (Godot honors XDG_DATA_HOME on Linux), so peers
+    # never share settings.cfg/profile.cfg and runs never touch the real profile.
+    env = dict(os.environ, XDG_DATA_HOME=user_dir_root(out_dir, sync_role))
     args = [
         godot, "--headless", "--path", REPO,
         "--mp-scenario=" + scenario_abs,
@@ -34,8 +41,18 @@ def launch(godot, role, sync_role, scenario_abs, out_dir):
         "--sync-role=" + sync_role,
         "--sync-dir=" + out_dir,
     ]
-    proc = subprocess.Popen(args, stdout=log, stderr=subprocess.STDOUT)
+    proc = subprocess.Popen(args, stdout=log, stderr=subprocess.STDOUT, env=env)
     return proc, log
+
+
+def isolation_ok(out_dir, sync_role):
+    """T138 check: the peer's log reports a user:// inside its own run folder."""
+    want = user_dir_root(out_dir, sync_role) + os.sep
+    with open(os.path.join(out_dir, f"{sync_role}.log")) as f:
+        for line in f:
+            if line.startswith("[Harness] user_data_dir="):
+                return line.split("=", 1)[1].strip().startswith(want)
+    return False
 
 
 def _write_meta(out_dir, meta):
@@ -106,6 +123,10 @@ def main():
         n = sum(1 for _ in open(p)) if os.path.exists(p) else 0
         print(f"[run_scenario] {name}: {n} lines")
         if n == 0:
+            ok = False
+    for role in ["server"] + peer_keys:
+        if not isolation_ok(out_dir, role):
+            print(f"[run_scenario] {role}: user:// NOT isolated in run folder (T138)")
             ok = False
     return 0 if ok else 1
 
