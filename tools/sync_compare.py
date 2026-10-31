@@ -24,7 +24,7 @@ from oracles import (  # noqa: E402
     crash_scan, rpc_integrity, event_sidefx, ammo_desync, beacon_desync, spawn_join,
     friendly_fire, prediction_recon, hit_confirm, active_set_desync, reload_desync,
     aim_desync, input_delivery, beam_aim, log_flood, peer_closed, scene_routes, lobby_roster,
-    hud_layout, world_invariants, interp_smoothness, latency_recovery, rpc_modes,
+    hud_layout, world_invariants, interp_smoothness, latency_recovery, rpc_modes, fair_start,
 )
 
 # Registry of oracle modules. Add modules here as they land.
@@ -57,6 +57,7 @@ ORACLES = {
     interp_smoothness.NAME: interp_smoothness,
     latency_recovery.NAME: latency_recovery,
     rpc_modes.NAME: rpc_modes,
+    fair_start.NAME: fair_start,
 }
 
 
@@ -75,7 +76,8 @@ def _thresholds(scenario, run_dir):
         net = netem_proxy.resolve(net)
     if isinstance(net, dict) and (net.get("loss") or net.get("jitter_ms") or net.get("outage")
                                   or net.get("latency_ms", 0) > 5):
-        th = {**base.IMPAIRED_NET_THRESHOLDS, **th}
+        # relaxations win over a scenario's clean-link tuning: take the more lenient (larger) value
+        th = {**th, **{k: max(v, th.get(k, v)) for k, v in base.IMPAIRED_NET_THRESHOLDS.items()}}
     return th
 
 
@@ -84,7 +86,7 @@ def select_oracles(scenario, override):
         names = override
     else:
         names = scenario.get("oracles") or list(ORACLES)
-        for auto in ("world_invariants", "interp_smoothness"):  # T149/T150: every scenario (SKIP if n/a)
+        for auto in ("world_invariants", "interp_smoothness", "fair_start"):  # T149/T150: every scenario (SKIP if n/a)
             if auto not in names:
                 names = list(names) + [auto]
     known, unknown = [], []

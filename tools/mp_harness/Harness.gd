@@ -50,6 +50,7 @@ var _lobby_wait: bool = false  # T159: server enters Lobby only after client ack
 # T147: HUD layout dumps at these ticks (from override); scenario "hud_dump_ticks".
 var _hud_ticks: Array = []
 var _hud_file_started: bool = false  # first dump truncates (reruns into the same dir)
+var _live_logged: bool = false  # T162: server prints the sync tick it went live (all clients in)
 
 func _ready() -> void:
 	var path := ""
@@ -158,6 +159,9 @@ func _start_client() -> void:
 	# reaches us; _process polls for our local mech and then overrides input.
 
 func _process(_delta: float) -> void:
+	if _role == "server" and not _live_logged and Game.mp_live:
+		_live_logged = true
+		print("[Harness] live at sync tick %d" % (Engine.get_physics_frames() - int(Game.get("_sync_start_frame"))))
 	if not _override_done:
 		_try_override_input()
 		return
@@ -193,6 +197,10 @@ func _process(_delta: float) -> void:
 # Once our local player mech exists (Arena spawned it), swap its input source
 # for a ReplayInputSource driven by this role's scripted sequence.
 func _try_override_input() -> void:
+	# T162: the server's script starts when the match goes live (mechs are held
+	# until then), so choreography isn't eaten by the wait for clients.
+	if _role == "server" and _expected_clients > 0 and not Game.mp_live:
+		return
 	var my_id := multiplayer.get_unique_id()
 	var mine: Node = null
 	for m in get_tree().get_nodes_in_group("mechs"):
