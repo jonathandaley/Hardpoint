@@ -45,6 +45,7 @@ var _override_frame: int = -1
 var _actions: Array = []
 var _quit_frame: int = -1
 var _peer_checked: bool = false
+var _lobby_check_frame: int = -1
 
 func _ready() -> void:
 	var path := ""
@@ -89,6 +90,8 @@ func _load_json(path: String) -> Dictionary:
 
 func _start_server() -> void:
 	Game.host(_port)
+	# Register the host like Lobby._ready does (B44 relies on a populated lobby).
+	Game.mp_lobby["peers"][1] = {"pilot_name": "Host", "elo": 1000, "level": 1, "squad": [], "ready": false}
 	if _expected_clients <= 0:
 		_begin_match.call_deferred()
 		return
@@ -165,6 +168,14 @@ func _process(_delta: float) -> void:
 		var scene := get_tree().current_scene
 		print("[Harness] peer_check %s: connected=%s scene=%s" % [_key, str(connected).to_lower(),
 			scene.name if scene != null else "<none>"])
+	if _lobby_check_frame >= 0 and Engine.get_physics_frames() >= _lobby_check_frame:
+		_lobby_check_frame = -1
+		var peers: Dictionary = Game.mp_lobby["peers"]
+		var squads := 0
+		for pid in peers:
+			squads += 1 if not (peers[pid].get("squad", []) as Array).is_empty() else 0
+		print("[Harness] lobby_check peers=%d expected=%d squads=%d roster=%d" % [peers.size(),
+			_expected_clients + 1, squads, (Game.mp_active_match["roster"] as Array).size()])
 	if _deadline_frame >= 0 and Engine.get_physics_frames() >= _deadline_frame:
 		print("[Harness] duration reached, quitting (%s)" % _role)
 		Game.disconnect_mp()
@@ -237,5 +248,6 @@ func _run_action(a: Dictionary) -> void:
 			# = match end -> lobby, the V40 server-coordinated scene change (T121), sent
 			# while snapshots are still in flight (T146 / B-h)
 			Game._rpc_change_scene.rpc("res://scenes/ui/Lobby.tscn")
+			_lobby_check_frame = Engine.get_physics_frames() + 90
 		_:
 			push_error("[Harness] unknown action %s" % action)
