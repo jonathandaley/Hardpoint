@@ -3532,12 +3532,14 @@ func _snapshot_tick() -> void:
 	if not Game.mp_live:
 		return  # T159/V52: a client hasn't loaded Arena yet, or everyone is leaving
 	var snapshots: Array = []
+	var st := Time.get_ticks_msec() * 0.001  # T150: server send time, the interpolation timeline
 	for team in range(2):
 		for idx in range(_team_mechs[team].size()):
 			var m = _team_mechs[team][idx]
 			if not is_instance_valid(m) or m.get("is_dead"):
 				continue
 			snapshots.append({
+				"st": st,
 				"team": team,
 				"idx": idx,
 				"pos": m.global_position,
@@ -3549,8 +3551,17 @@ func _snapshot_tick() -> void:
 		return
 	_rpc_snapshot.rpc(snapshots)
 
+# T150: client clock offset = min(receive - server send) ~ clock offset + minimum
+# one-way delay. Mapping server send times through it strips network jitter from
+# the interpolation timeline. Relaxes upward slowly so clock drift can't strand it.
+var _snap_clock_offset: float = INF
+
 @rpc("authority", "unreliable_ordered")
 func _rpc_snapshot(snapshots: Array) -> void:
+	var now := Time.get_ticks_msec() * 0.001
+	var st: float = float(snapshots[0].get("st", now)) if not snapshots.is_empty() else now
+	_snap_clock_offset = minf(_snap_clock_offset + 0.0002, now - st)
+	var local_t := st + _snap_clock_offset
 	for entry in snapshots:
 		var t: int = entry.get("team", -1)
 		var i: int = entry.get("idx", -1)
@@ -3558,5 +3569,5 @@ func _rpc_snapshot(snapshots: Array) -> void:
 			continue
 		var m = _team_mechs[t][i]
 		if is_instance_valid(m):
-			m.receive_snapshot(entry)
+			m.receive_snapshot(entry, local_t)
 

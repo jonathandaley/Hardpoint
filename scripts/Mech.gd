@@ -413,20 +413,21 @@ func _sync_shield(pool: float) -> void:
 		_energy_shield.set("shield_hp", pool)
 
 # T119: called by Arena._rpc_snapshot on clients to push a server transform sample.
-func receive_snapshot(entry: Dictionary) -> void:
+func receive_snapshot(entry: Dictionary, local_t: float = -1.0) -> void:
 	# B43 (B-h): during a scene change the old Arena is detached but not yet freed and
 	# RPCs still reach it; ignore them. (Dictionary.get evaluates its default eagerly,
 	# so the global_transform defaults below must only run inside the tree.)
 	if not is_inside_tree():
 		return
 	_snap_buf.append({
-		"time": Time.get_ticks_msec() * 0.001,
+		# T150: server send time mapped to the local clock (Arena._rpc_snapshot)
+		"time": local_t if local_t >= 0.0 else Time.get_ticks_msec() * 0.001,
 		"pos": entry.get("pos", global_position),
 		"quat": entry.get("quat", global_transform.basis.get_rotation_quaternion()),
 		"vel": entry.get("vel", Vector3.ZERO),
 		"torso_y": entry.get("torso_y", torso.rotation.y),
 	})
-	if _snap_buf.size() > 2:
+	if _snap_buf.size() > _SNAP_BUF_MAX:
 		_snap_buf.pop_front()
 
 func _do_shield_flash() -> void:
@@ -611,26 +612,36 @@ func _check_step_dir(dir: Vector3, space: PhysicsDirectSpaceState3D, ex: Array, 
 func _update_legs(delta: float) -> void:
 	legs.call("update_gait", velocity, global_transform.basis, leg_rotation_speed, walk_speed, delta)
 
+# T150 (B48) / V37: render remote AND own mechs INTERP_DELAY behind the newest
+# server state, interpolating between the two buffered snapshots around that
+# moment. Was: a 2-snapshot buffer rendered 100 ms back, which always clamped to
+# the older snapshot -> no interpolation, 20 Hz steps (mechs stood still 2 of 3
+# ticks). Gaffer: delay >= 3 x snapshot interval (20 Hz -> 150 ms) survives one
+# lost packet plus jitter. Buffer starved -> hold the newest (no extrapolation).
+const INTERP_DELAY := 0.15   # s -- calibration knob (T150 measured, see SPEC B48)
+const _SNAP_BUF_MAX := 8     # 400 ms of 20 Hz snapshots
+
 func _apply_snapshot_interp() -> void:
 	if _snap_buf.is_empty():
 		return
-	var now := Time.get_ticks_msec() * 0.001
-	var render_t := now - 0.1
+	var render_t := Time.get_ticks_msec() * 0.001 - INTERP_DELAY
+	# Drop snapshots entirely behind render_t, keeping the one at/just before it.
+	while _snap_buf.size() >= 2 and (_snap_buf[1]["time"] as float) <= render_t:
+		_snap_buf.pop_front()
 	var interp_torso_y: float = torso.rotation.y
 	# B40: Basis(quat) carries no scale; keep the body_scale Arena set at spawn, or
 	# every client draws (and aims from) every mech at scale 1.
 	var body_scale := global_transform.basis.get_scale()
-	if _snap_buf.size() == 1:
-		global_transform = Transform3D(Basis(_snap_buf[0]["quat"] as Quaternion).scaled(body_scale), _snap_buf[0]["pos"] as Vector3)
-		velocity = _snap_buf[0]["vel"] as Vector3
-		interp_torso_y = _snap_buf[0].get("torso_y", torso.rotation.y)
+	var s0: Dictionary = _snap_buf[0]
+	if _snap_buf.size() == 1 or render_t <= (s0["time"] as float):
+		# Starved (render_t past the newest) or still filling (render_t before the oldest): hold s0.
+		global_transform = Transform3D(Basis(s0["quat"] as Quaternion).scaled(body_scale), s0["pos"] as Vector3)
+		velocity = s0["vel"] as Vector3
+		interp_torso_y = s0.get("torso_y", torso.rotation.y)
 	else:
-		var s0: Dictionary = _snap_buf[0]
 		var s1: Dictionary = _snap_buf[1]
 		var span: float = (s1["time"] as float) - (s0["time"] as float)
-		var t: float = 0.0
-		if span > 0.0001:
-			t = clampf((render_t - (s0["time"] as float)) / span, 0.0, 1.0)
+		var t: float = clampf((render_t - (s0["time"] as float)) / span, 0.0, 1.0) if span > 0.0001 else 1.0
 		global_transform = Transform3D(
 			Basis((s0["quat"] as Quaternion).slerp(s1["quat"] as Quaternion, t)).scaled(body_scale),
 			(s0["pos"] as Vector3).lerp(s1["pos"] as Vector3, t))
