@@ -11,3 +11,4 @@ date|task|outcome|commit|finding|suite
 2026-10-31|T144|DONE|2c501d3|B-f + B-g REPRODUCED: client stays connected after quit, 141x cached-node errors in 6.5 s; 4 dead-end scenes (static route check)|11/11
 2026-10-31|T145|DONE|67d6a96|B-f + B-g FIXED: MP quit disconnects then goes to title; Hangar MENU button; route check green. New MENU button not yet eyeballed (T156 screenshots)|11/11
 2026-10-31|T146|DONE|ec30467,86f658c|B-h FIXED (scene-change window, probe-tested). Found T160: server Lobby wipes clients on return after a match -> 2nd match can't be set up|13/13
+2026-10-31|T160|DONE|08cbe45,cb9ed1a|lobby forgot clients after a match + stale roster made later SP matches spawn as MP; both fixed (B44/V51)|14/14
