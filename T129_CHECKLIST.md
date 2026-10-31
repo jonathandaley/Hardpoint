@@ -38,12 +38,12 @@ Human 2-peer LAN session. Passing closes T40 (SPEC.md). First session 2026-09-28
 - With a lock-on weapon, the lock-on ring does add the red box.
 - The tester is "pretty sure" but wants it rechecked. Possibly the box is only drawn when a lock weapon is present, or only on the server for non-lock loadouts.
 
-### B-f: no way back to the lobby after quitting
+### B-f: no way back to the lobby after quitting -- FIXED 2026-10-31 (T145, SPEC B42/V49): Hangar MENU button; MP quit returns to title
 - Quitting a match returns to the hangar. From there only singleplayer is reachable until the game is restarted.
 - Cause: the only route into multiplayer is TitleScreen -> MPEntry (`TitleScreen.gd:10`) -> Lobby. The hangar has no link to either one.
 - Fix: give the hangar a way into MPEntry (or the title screen), and make sure the old peer is closed first (see B-g).
 
-### B-g: log flood after the client quits (client log)
+### B-g: log flood after the client quits (client log) -- FIXED 2026-10-31 (T145, SPEC B42): MP quit disconnects first. Old code provably stayed connected, so the bot takeover you saw likely came from closing the window
 - Endless `Node not found: "Arena"` / `"Arena/BeaconMatch"` + `Failed to get cached node from peer 1` + `Invalid packet received`, several per second.
 - Cause (read from code, not yet proven): `Arena._on_pause_quit` (Arena.gd ~3165) just changes scene to the hangar. It never closes `multiplayer.multiplayer_peer`, so the client stays connected and the server keeps sending `_rpc_snapshot` (20Hz) and BeaconMatch RPCs to an Arena the client no longer has. The HUD's end-of-match "RETURN TO HANGAR" button (HUD.gd:293) has the same shape.
 - The tester saw quitting disconnect the client (the server turned their mech into a bot). The code disagrees: `Game.disconnect_mp()` is only called from Lobby.gd:450 and MPEntry.gd:41, never on the arena quit path, and the flood shows the client still receiving from peer 1. Check next session: is the bot takeover triggered by something other than a real disconnect, or does the disconnect only happen when the client closes the window? The flood could also be the gap before a delayed disconnect.

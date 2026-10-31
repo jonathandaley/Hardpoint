@@ -321,6 +321,7 @@ func _show_squad_screen() -> void:
 	$BottomDivider.visible = true
 	$MatchmakingButton.visible = true
 	$SettingsButton.visible = true
+	$TitleButton.visible = true
 	if _team_size_container != null:
 		_team_size_container.visible = true
 	_back_btn.visible = false
@@ -348,6 +349,7 @@ func _show_detail_screen(slot: int) -> void:
 	$BottomDivider.visible = false
 	$MatchmakingButton.visible = false
 	$SettingsButton.visible = false
+	$TitleButton.visible = false
 	if _team_size_container != null:
 		_team_size_container.visible = false
 	_back_btn.visible = true
@@ -778,6 +780,12 @@ func _on_matchmaking_pressed() -> void:
 func _on_settings_pressed() -> void:
 	SoundManager.play_sfx_2d("ui_click")
 	get_tree().change_scene_to_file("res://scenes/ui/Settings.tscn")
+
+# B-f: the hangar was a dead end -- multiplayer (Title -> MPEntry) was unreachable
+# without restarting the game.
+func _on_title_pressed() -> void:
+	SoundManager.play_sfx_2d("ui_click")
+	get_tree().change_scene_to_file("res://scenes/ui/TitleScreen.tscn")
 
 func _init_map_selection() -> void:
 	if Game.loadout.get("map_def") == null:

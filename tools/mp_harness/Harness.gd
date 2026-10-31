@@ -38,7 +38,7 @@ var _match_started: bool = false
 var _override_done: bool = false
 var _deadline_frame: int = -1
 # T144: scenario "actions" for this roster slot, e.g.
-#   "actions": [{"tick": 200, "peer": "client_1", "action": "quit_to_hangar"}]
+#   "actions": [{"tick": 200, "peer": "client_1", "action": "pause_quit"}]
 # tick counts from the input override, like replay keyframes.
 var _key: String = ""
 var _override_frame: int = -1
@@ -229,7 +229,7 @@ func _run_action(a: Dictionary) -> void:
 	var action := String(a.get("action", ""))
 	print("[Harness] action %s (%s)" % [action, _key])
 	match action:
-		"quit_to_hangar":
+		"pause_quit":
 			# = pause menu QUIT (PauseMenu -> Arena._on_pause_quit)
 			get_tree().current_scene.call("_on_pause_quit")
 			_quit_frame = Engine.get_physics_frames()
