@@ -24,7 +24,7 @@ from oracles import (  # noqa: E402
     crash_scan, rpc_integrity, event_sidefx, ammo_desync, beacon_desync, spawn_join,
     friendly_fire, prediction_recon, hit_confirm, active_set_desync, reload_desync,
     aim_desync, input_delivery, beam_aim, log_flood, peer_closed, scene_routes, lobby_roster,
-    hud_layout, world_invariants,
+    hud_layout, world_invariants, interp_smoothness,
 )
 
 # Registry of oracle modules. Add modules here as they land.
@@ -54,6 +54,7 @@ ORACLES = {
     lobby_roster.NAME: lobby_roster,
     hud_layout.NAME: hud_layout,
     world_invariants.NAME: world_invariants,
+    interp_smoothness.NAME: interp_smoothness,
 }
 
 
@@ -62,8 +63,9 @@ def select_oracles(scenario, override):
         names = override
     else:
         names = scenario.get("oracles") or list(ORACLES)
-        if "world_invariants" not in names:  # T149: every scenario gets the sanity net
-            names = list(names) + ["world_invariants"]
+        for auto in ("world_invariants", "interp_smoothness"):  # T149/T150: every scenario (SKIP if n/a)
+            if auto not in names:
+                names = list(names) + [auto]
     known, unknown = [], []
     for n in names:
         (known if n in ORACLES else unknown).append(n)
