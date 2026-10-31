@@ -21,13 +21,14 @@ NAME = "transform_desync"
 # kill_confirm) measured 0.22 rad peak with the angular metric -- 0.5 gives >2x
 # headroom while real rotation desyncs (wrong/frozen rotation) persist at
 # ~radians. Slow-turn scenarios may tighten via thresholds.rot_epsilon.
-DEFAULTS = {"pos_eps": 1.5, "rot_epsilon": 0.5, "persist_ticks": 5}
+# scale_eps (T142): body_scale is constant per mech; any gap is a replication bug.
+DEFAULTS = {"pos_eps": 1.5, "rot_epsilon": 0.5, "scale_eps": 0.01, "persist_ticks": 5}
 
-FIELDS = ("pos", "rot_local", "rot_global")
+FIELDS = ("pos", "rot_local", "rot_global", "scale")
 
 
 def _field_eps(field, th):
-    return th["pos_eps"] if field == "pos" else th["rot_epsilon"]
+    return {"pos": th["pos_eps"], "scale": th["scale_eps"]}.get(field, th["rot_epsilon"])
 
 
 def run(ctx):
@@ -56,7 +57,10 @@ def run(ctx):
                     ss = server.at(t, mid)
                     if cs is None or ss is None:
                         continue
-                    if field == "pos":
+                    if field == "scale":
+                        if field in cs and field in ss:  # absent in pre-T142 logs
+                            series.append((t, abs(cs[field] - ss[field])))
+                    elif field == "pos":
                         series.append((t, base.vmax_diff(cs[field], ss[field])))
                     else:
                         # True rotation angle; componentwise diff false-fires on

@@ -41,22 +41,36 @@ func _process(delta: float) -> void:
 			if _loop_player != null and _loop_player.playing:
 				_loop_player.stop()
 
+# Crosshair ray from the owner's camera: {} if no camera, else {"pos", "result"}.
+func _crosshair_ray() -> Dictionary:
+	var cam := owner_mech.get("camera") as Camera3D
+	if cam == null:
+		return {}
+	var from := cam.global_position
+	var to := from + (-cam.global_transform.basis.z * range)
+	var query := PhysicsRayQueryParameters3D.create(from, to)
+	query.exclude = owner_mech.get_exclude_rids()
+	var result := get_world_3d().direct_space_state.intersect_ray(query)
+	return {"pos": result.position if result else to, "result": result, "from": from}
+
+
+# T142: harness-only description of a crosshair ray for beam_check / beam_fire events.
+func _ray_info(ray: Dictionary) -> Dictionary:
+	var p: Vector3 = ray["pos"]
+	var f: Vector3 = ray["from"]
+	var r: Dictionary = ray["result"]
+	return {"hit": [p.x, p.y, p.z], "cam": [f.x, f.y, f.z],
+		"collider": String(r.collider.name) if r else ""}
+
 func _do_fire() -> void:
 	if owner_mech == null:
 		return
-	var cam := owner_mech.get("camera") as Camera3D
-	if cam == null:
+	var ray := _crosshair_ray()
+	if ray.is_empty():
 		return
-
-	var from := cam.global_position
-	var to := from + (-cam.global_transform.basis.z * range)
-	var space := get_world_3d().direct_space_state
-	var query := PhysicsRayQueryParameters3D.create(from, to)
-	query.exclude = owner_mech.get_exclude_rids()
-	var hit_pos := to
-	var result := space.intersect_ray(query)
+	var hit_pos: Vector3 = ray["pos"]
+	var result: Dictionary = ray["result"]
 	if result:
-		hit_pos = result.position
 		if result.collider.has_method("take_damage"):
 			var target_team: int = result.collider.get("team") if "team" in result.collider else -1
 			var own_team: int = owner_mech.get("team") if "team" in owner_mech else -2
@@ -65,6 +79,8 @@ func _do_fire() -> void:
 				_emit_hit_if_visible(result.collider, result.position)
 
 	_beam_fx(hit_pos)
+	if Game.sync_logging_enabled:
+		Game.sync_log_event("beam_fire", owner_mech.name, _ray_info(ray))  # T142
 	# Audit #15: beam + loop audio were server-only; remote peers saw nothing.
 	# One RPC per damage tick (1/fire_rate); client-side fade timers hide the
 	# beam and stop the audio on their own when ticks stop arriving.
@@ -87,6 +103,16 @@ func _rpc_beam_fx(hit_pos: Vector3) -> void:
 	if multiplayer.is_server():
 		return
 	_beam_fx(hit_pos)
+	# T142 (B-b): on the owner's own screen the server's beam must land where the
+	# owner's crosshair points. Harness-only (sync logging); costs nothing in play.
+	if Game.sync_logging_enabled and owner_mech != null \
+			and int(owner_mech.get("owner_peer_id")) == multiplayer.get_unique_id():
+		var ray := _crosshair_ray()
+		if not ray.is_empty():
+			var info := _ray_info(ray)
+			info["server_hit"] = [hit_pos.x, hit_pos.y, hit_pos.z]
+			info["local_hit"] = info["hit"]
+			Game.sync_log_event("beam_check", owner_mech.name, info)
 
 func _start_laser_loop() -> void:
 	var stream := SoundManager.get_sfx_stream("laser_loop")
