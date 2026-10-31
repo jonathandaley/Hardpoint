@@ -10,3 +10,4 @@ date|task|outcome|commit|finding|suite
 2026-10-31|T143|DONE|e12f7a2,748a019|crash_scan allow-list + log_flood; found T159 (RPC before Arena under bad net) and B41 (my aim_desync broke V45; skew-tolerant series oracles)|10/10
 2026-10-31|T144|DONE|2c501d3|B-f + B-g REPRODUCED: client stays connected after quit, 141x cached-node errors in 6.5 s; 4 dead-end scenes (static route check)|11/11
 2026-10-31|T145|DONE|67d6a96|B-f + B-g FIXED: MP quit disconnects then goes to title; Hangar MENU button; route check green. New MENU button not yet eyeballed (T156 screenshots)|11/11
+2026-10-31|T146|DONE|ec30467,86f658c|B-h FIXED (scene-change window, probe-tested). Found T160: server Lobby wipes clients on return after a match -> 2nd match can't be set up|13/13
