@@ -20,6 +20,8 @@ extends Node
 #     }
 #   }
 # "settings" (optional, T138) overrides Game.settings for that roster slot.
+# "net" (optional, T139): chaos profile name or dict; clients go through
+# tools/mp_harness/netem_proxy.py (run_scenario.py --net overrides).
 # Each process runs with its own user:// (run_scenario.py sets XDG_DATA_HOME).
 # role + scenario path come from cmdline (--role=, --mp-scenario=).
 
@@ -29,6 +31,7 @@ const DEFAULT_MECH := "res://resources/mechs/Hippogriff.tres"
 var _scenario: Dictionary = {}
 var _role: String = "server"
 var _port: int = 8910
+var _connect_port: int = -1  # T139: client dials the chaos proxy instead of the server
 var _expected_clients: int = 1
 var _connected: Array = []
 var _match_started: bool = false
@@ -44,6 +47,8 @@ func _ready() -> void:
 			path = a.get_slice("=", 1)
 		elif a.begins_with("--role="):
 			_role = a.get_slice("=", 1)
+		elif a.begins_with("--connect-port="):
+			_connect_port = int(a.get_slice("=", 1))
 	if path == "":
 		push_error("[Harness] no --mp-scenario= given")
 		get_tree().quit(1)
@@ -133,7 +138,7 @@ func _roster_entry(slot_idx: int, peer_id: int, team: int, mech_path: String) ->
 	}
 
 func _start_client() -> void:
-	Game.join("127.0.0.1", _port)
+	Game.join("127.0.0.1", _connect_port if _connect_port > 0 else _port)
 	# Arena loads automatically when the server's _rpc_match_start (call_local)
 	# reaches us; _process polls for our local mech and then overrides input.
 
