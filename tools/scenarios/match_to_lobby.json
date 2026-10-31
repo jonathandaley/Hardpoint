@@ -1,0 +1,61 @@
+{
+  "name": "match_to_lobby",
+  "seed": 8484,
+  "port": 8921,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Hippogriff.tres",
+  "duration_ticks": 500,
+  "oracles": [
+    "crash_scan",
+    "log_flood",
+    "rpc_integrity",
+    "spawn_join"
+  ],
+  "actions": [
+    {
+      "tick": 240,
+      "peer": "server",
+      "action": "return_to_lobby"
+    }
+  ],
+  "_comment": "T146: server returns everyone to the lobby (V40 _rpc_change_scene, the T121 match-end path) while snapshots/input are in flight. B-h itself is guarded by tools/gd_probes/detached_snapshot (it never fired here). Expected RED until T160 + T159: server Lobby._ready wipes mp_lobby peers ('_apply_squad: unknown peer', every run) and in-flight client _rpc_input hits the server's departed Arena ('Node not found: Arena/Mech_1_0', most runs).",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0,
+              0
+            ]
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              2,
+              0
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "expect_fail": [
+    "crash_scan"
+  ]
+}

@@ -61,6 +61,33 @@ def main():
         rc = sh(cmp_args)
         results.append((name, "PASS" if rc == 0 else "FAIL"))
 
+    # T146: engine-level probes (tools/gd_probes/*.tscn) -- tiny scenes that drive
+    # one code path headless and must exit 0, print their done line, and log no
+    # engine errors (crash_scan rules).
+    if not args.only:
+        sys.path.insert(0, HERE)
+        from oracles import crash_scan
+        for probe in sorted(glob.glob(os.path.join(HERE, "gd_probes", "*.tscn"))):
+            name = "probe:" + os.path.basename(probe)[:-5]
+            out = os.path.join(os.path.abspath(args.out_root), name.replace(":", "_"))
+            os.makedirs(out, exist_ok=True)
+            log = os.path.join(out, "probe.log")
+            env = dict(os.environ, XDG_DATA_HOME=os.path.join(out, "userdata"))
+            godot = args.godot or os.environ.get("GODOT", os.path.expanduser("~/bin/godot"))
+            with open(log, "w") as f:
+                try:
+                    rc = subprocess.run([godot, "--headless", "--path", os.path.dirname(HERE),
+                                         "res://tools/gd_probes/" + os.path.basename(probe), "--quit-after", "600"],
+                                        stdout=f, stderr=subprocess.STDOUT, env=env, timeout=120).returncode
+                except subprocess.TimeoutExpired:
+                    rc = -1
+            done = "[probe]" in open(log, errors="replace").read()
+            hit = crash_scan.scan_log(log)
+            ok = rc == 0 and done and hit is None
+            print("=== %s === %s%s" % (name, "PASS" if ok else "FAIL",
+                                       "" if ok else " (exit %s, done=%s, %s)" % (rc, done, hit)))
+            results.append((name, "PASS" if ok else "FAIL"))
+
     print("\n=== suite summary ===")
     bad = 0
     for name, verdict in results:

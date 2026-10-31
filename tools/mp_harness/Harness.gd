@@ -233,5 +233,9 @@ func _run_action(a: Dictionary) -> void:
 			# = pause menu QUIT (PauseMenu -> Arena._on_pause_quit)
 			get_tree().current_scene.call("_on_pause_quit")
 			_quit_frame = Engine.get_physics_frames()
+		"return_to_lobby":
+			# = match end -> lobby, the V40 server-coordinated scene change (T121), sent
+			# while snapshots are still in flight (T146 / B-h)
+			Game._rpc_change_scene.rpc("res://scenes/ui/Lobby.tscn")
 		_:
 			push_error("[Harness] unknown action %s" % action)
