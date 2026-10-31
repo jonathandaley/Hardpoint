@@ -9,3 +9,4 @@ date|task|outcome|commit|finding|suite
 2026-10-31|T142|DONE|2456913|B-b FIXED: real cause = client interp wiped mech body_scale (B40), beam 0.41->0.027 m; B-c = 42 deg lock-hold cone (tuning, same in SP) -> NEEDS_HUMAN.md|10/10 + selftest GREEN
 2026-10-31|T143|DONE|e12f7a2,748a019|crash_scan allow-list + log_flood; found T159 (RPC before Arena under bad net) and B41 (my aim_desync broke V45; skew-tolerant series oracles)|10/10
 2026-10-31|T144|DONE|2c501d3|B-f + B-g REPRODUCED: client stays connected after quit, 141x cached-node errors in 6.5 s; 4 dead-end scenes (static route check)|11/11
+2026-10-31|T145|DONE|67d6a96|B-f + B-g FIXED: MP quit disconnects then goes to title; Hangar MENU button; route check green. New MENU button not yet eyeballed (T156 screenshots)|11/11
