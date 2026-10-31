@@ -42,7 +42,6 @@ var _desired_move_dir: Vector3 = Vector3.ZERO
 var _no_damage_timer: float = 0.0  # seconds since last damage hit; drives repair_rate skill
 var _net_input_tick: int = 0       # increments every physics tick; used for 30Hz throttle
 var _net_input_seq: int = 0        # monotonic send counter
-var _net_look_accum: Vector2 = Vector2.ZERO  # accumulated between RPC sends (get_look_delta drains on read)
 var _rpc_rate_times: Array = []    # server-side sliding window of _rpc_input arrival times (1s)
 var _rpc_rate_warned: bool = false # true while peer is over 60Hz limit (suppress repeat warnings)
 var _snap_buf: Array = []          # V37: last 2 server snapshots [{time,pos,quat,vel}]; T120 reads for interp
@@ -639,21 +638,19 @@ func _maybe_forward_input() -> void:
 	if multiplayer.is_server():
 		return
 	if owner_peer_id != multiplayer.get_unique_id():
-		_net_look_accum = Vector2.ZERO  # discard accumulation for mechs we don't own
 		return
 	_net_input_tick += 1
 	if _net_input_tick % 2 != 0:
 		return
 	var payload := {
 		"move": _input_source.get_move_direction(),
-		"look": _net_look_accum,
+		"aim": Vector2(torso.rotation.y, _camera_pitch),  # V47: absolute, latest wins
 		"fire_prim": _input_source.is_firing_primary(),
 		"fire_sec": _input_source.is_firing_secondary(),
 		"slot_toggle": _input_source.get_slot_toggle(),
 		"reload": _input_source.is_reload_pressed(),
 		"ability": _input_source.is_ability_pressed(),
 	}
-	_net_look_accum = Vector2.ZERO
 	_net_input_seq += 1
 	rpc_id(1, &"_rpc_input", _net_input_seq, payload)
 
@@ -680,10 +677,16 @@ func _rpc_input(seq: int, payload: Dictionary) -> void:
 	_input_source.push_input(payload)
 
 func _handle_look() -> void:
+	# V47 (B38): a remote client's aim arrives absolute; apply it as-is. Deltas over
+	# the lossy _rpc_input channel lost rotation for good, and the server scaled them
+	# by its OWN sensitivity -> server aim drifted from what the client saw.
+	if _input_source.has_method("get_abs_aim"):
+		var aim = _input_source.get_abs_aim()
+		if aim != null:
+			torso.rotation.y = aim.x
+			_camera_pitch = clampf(aim.y, -1.2, 0.4)
+		return
 	var look: Vector2 = _input_source.get_look_delta()
-	_net_look_accum += look
-	if not multiplayer.has_multiplayer_peer() or multiplayer.is_server():
-		_net_look_accum = Vector2.ZERO
 	if look == Vector2.ZERO:
 		return
 	var sens: float = Game.settings.get("mouse_sensitivity", 0.003)

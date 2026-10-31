@@ -12,16 +12,13 @@
     "crash_scan",
     "rpc_integrity"
   ],
-  "expect_fail": [
-    "aim_desync"
-  ],
   "port": 8917,
   "net": {
     "latency_ms": 20,
     "jitter_ms": 10,
     "loss": 0.05
   },
-  "_comment": "T140 B-a repro (b): same sweep, equal sensitivity, 5% loss each way via netem_proxy. ~135 input packets carry look deltas during sweeps; each lost one loses 2 ticks of rotation for good (_rpc_input is unreliable_ordered, look sent as deltas). Expected RED until T141.",
+  "_comment": "T140 B-a repro (b): same sweep, equal sensitivity, 5% loss each way via netem_proxy. ~135 input packets carry look deltas during sweeps; each lost one loses 2 ticks of rotation for good (_rpc_input is unreliable_ordered, look sent as deltas). Was RED until T141 (B38/V47); now a guard.",
   "peers": {
     "server": {
       "input": {
