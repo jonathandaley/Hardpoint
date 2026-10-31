@@ -2346,7 +2346,9 @@ var _spec_yaw: float = 0.0
 var _spec_pitch: float = -0.3
 
 func _ready() -> void:
-	process_mode = Node.PROCESS_MODE_ALWAYS
+	# T161 (B46): Arena stays pausable. It used to be PROCESS_MODE_ALWAYS (so Esc
+	# could unpause), which every child inherited -- pausing froze nothing. Esc while
+	# paused is now handled by PauseMenu (PROCESS_MODE_ALWAYS).
 	pause_menu.resume_requested.connect(_on_pause_resume)
 	pause_menu.quit_requested.connect(_on_pause_quit)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
@@ -3150,15 +3152,19 @@ func _input(event: InputEvent) -> void:
 		_cycle_spectator()
 		return
 	if event.is_action_pressed("ui_cancel") and not _match_over:
+		get_viewport().set_input_as_handled()  # PauseMenu must not see this same Esc
 		_toggle_pause()
 
 func _toggle_pause() -> void:
-	if get_tree().paused:
+	if pause_menu.visible:
 		_on_pause_resume()
-	else:
+		return
+	# T161: SP pauses the match; MP can't pause a shared simulation (a host pause
+	# would freeze the server for everyone), so it only opens the menu.
+	if multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
 		get_tree().paused = true
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-		pause_menu.show()
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	pause_menu.show()
 
 func _on_pause_resume() -> void:
 	pause_menu.hide()
