@@ -12,12 +12,8 @@
     "crash_scan",
     "rpc_integrity"
   ],
-  "expect_fail": [
-    "aim_desync",
-    "transform_desync"
-  ],
   "port": 8916,
-  "_comment": "T140 B-a repro (a): client mouse_sensitivity 0.006 vs server default 0.003. Client turns + pitches in 4 sweeps with 60-tick holds; aim_desync compares the client's own aim with the server's copy at settled ticks. Expected RED until T141 (server scales forwarded look deltas by its OWN sensitivity, Mech.gd _handle_look). transform_desync also RED here (57 deg torso yaw gap > its 0.5 rad tolerance).",
+  "_comment": "T140 B-a repro (a): client mouse_sensitivity 0.006 vs server default 0.003. Client turns + pitches in 4 sweeps with 60-tick holds; aim_desync compares the client's own aim with the server's copy at settled ticks. Was RED until T141 (B38/V47); now a guard (server scales forwarded look deltas by its OWN sensitivity, Mech.gd _handle_look). Pre-fix: 56.7 deg yaw gap (transform_desync RED too).",
   "peers": {
     "server": {
       "input": {

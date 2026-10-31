@@ -6,7 +6,7 @@ extends "res://scripts/InputSource.gd"
 # All getters consume one-shot fields on read (matches PlayerInputSource contract).
 
 var _move_dir: Vector2 = Vector2.ZERO
-var _look_delta: Vector2 = Vector2.ZERO
+var _abs_aim = null  # Vector2(yaw, pitch) from the owning client; null until first packet (V47)
 var _fire_primary: bool = false
 var _fire_secondary: bool = false
 var _slot_toggle: int = -1
@@ -15,7 +15,11 @@ var _ability: bool = false
 
 func push_input(payload: Dictionary) -> void:
 	_move_dir = payload.get("move", Vector2.ZERO)
-	_look_delta += payload.get("look", Vector2.ZERO)
+	# V47: aim arrives absolute (latest wins), so a lost packet is healed by the next
+	# one and the server's own sensitivity never touches it. V41: untrusted input.
+	var aim = payload.get("aim")
+	if aim is Vector2 and aim.is_finite():
+		_abs_aim = aim
 	_fire_primary = payload.get("fire_prim", false)
 	_fire_secondary = payload.get("fire_sec", false)
 	var st: int = payload.get("slot_toggle", -1)
@@ -28,9 +32,10 @@ func get_move_direction() -> Vector2:
 	return _move_dir
 
 func get_look_delta() -> Vector2:
-	var d := _look_delta
-	_look_delta = Vector2.ZERO
-	return d
+	return Vector2.ZERO  # remote aim is absolute, see get_abs_aim()
+
+func get_abs_aim():
+	return _abs_aim
 
 func is_firing_primary() -> bool:
 	return _fire_primary

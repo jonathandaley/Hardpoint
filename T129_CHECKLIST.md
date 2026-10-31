@@ -15,7 +15,7 @@ Human 2-peer LAN session. Passing closes T40 (SPEC.md). First session 2026-09-28
 
 ## Bugs found
 
-### B-a: client aim drifts off over time (server aim is fine)
+### B-a: client aim drifts off over time (server aim is fine) -- FIXED 2026-10-31 (T141, SPEC B38/V47)
 - Accurate at match start, then drifts later on.
 - The client's shots look correct on the client's own screen, but the server's result is off by a few degrees.
 - The offset looks roughly constant at any one moment but isn't the same from moment to moment. The tester suspects "rotation being calculated differently" between the peers.
