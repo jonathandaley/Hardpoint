@@ -2371,6 +2371,8 @@ func _ready() -> void:
 		_setup_players_mp()
 		if multiplayer.is_server():
 			_start_snapshot_timer()
+		else:
+			Game._rpc_transition_ack.rpc_id(1)  # T159: Arena loaded, server may stream
 		Game.match_ended_mp.connect(_on_mp_match_ended)
 		Game.mp_peer_disconnected.connect(_on_peer_disconnected_in_match)
 	else:
@@ -3521,6 +3523,8 @@ func _start_snapshot_timer() -> void:
 	add_child(t)
 
 func _snapshot_tick() -> void:
+	if not Game.mp_live:
+		return  # T159/V52: a client hasn't loaded Arena yet, or everyone is leaving
 	var snapshots: Array = []
 	for team in range(2):
 		for idx in range(_team_mechs[team].size()):

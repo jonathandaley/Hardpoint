@@ -76,7 +76,7 @@ var settings: Dictionary = {
 }
 
 # M0.1: central seeded RNG for all gameplay randomness (weapon spread, etc.).
-# Seeded from the match_seed in Match.start()/_rpc_set_match_seed so the server
+# Seeded from the match_seed in Match.start() (MP: the _rpc_match_start payload) so the server
 # (and any deterministic replay) produces a reproducible physics tick stream.
 # Cosmetic randomness (VFX, camera shake, drop-pod debris) stays on the global
 # randf_range and is intentionally NOT routed here.
@@ -574,9 +574,61 @@ func _rpc_sync_lobby(data: Dictionary) -> void:
 	lobby_updated.emit()
 
 # V40: all coordinated scene transitions go through here (server-origin only).
-@rpc("authority", "call_local", "reliable")
+# T159/V52: clients only (call_remote) -- they leave first and ack; the server
+# changes after every ack (server_change_scene), so no client RPC is in flight to
+# a scene the server already left.
+@rpc("authority", "call_remote", "reliable")
 func _rpc_change_scene(path: String) -> void:
 	get_tree().change_scene_to_file(path)
+	_rpc_transition_ack.rpc_id(1)
+
+# ---- Scene-transition handshake (T159, V52) ----
+# Server-side: true only while every client has the match Arena loaded. The
+# continuous unreliable streams (snapshots, beacon progress, scores) send only
+# while live, so nothing streams into a scene a client hasn't loaded yet or has
+# already left (Godot drops those packets and logs 'Node not found').
+var mp_live: bool = false
+var _await_acks: Array = []
+var _await_then: Callable = Callable()
+var _await_id: int = 0
+
+# Server: run `then` once every connected client has acked (or after 5 s).
+func server_await_clients(then: Callable) -> void:
+	_await_id += 1
+	var my_id := _await_id
+	_await_acks = Array(multiplayer.get_peers())
+	_await_then = then
+	if _await_acks.is_empty():
+		_finish_await()
+		return
+	get_tree().create_timer(5.0, true).timeout.connect(func() -> void:
+		if my_id == _await_id and _await_then.is_valid():
+			push_warning("[Game] transition: no ack from %s after 5 s, continuing" % str(_await_acks))
+			_finish_await())
+
+func _finish_await() -> void:
+	_await_id += 1
+	_await_acks.clear()
+	var then := _await_then
+	_await_then = Callable()
+	if then.is_valid():
+		then.call()
+
+# Client -> server: "I'm in the new scene" (Arena loaded, or left for the lobby).
+@rpc("any_peer", "call_remote", "reliable")
+func _rpc_transition_ack() -> void:
+	if not multiplayer.is_server():
+		return
+	_await_acks.erase(multiplayer.get_remote_sender_id())  # V41: unknown sender = no-op
+	if _await_acks.is_empty() and _await_then.is_valid():
+		_finish_await()
+
+# Server: coordinated scene change (V40). Streams stop, clients leave and ack,
+# then the server follows.
+func server_change_scene(path: String) -> void:
+	mp_live = false
+	server_await_clients(func() -> void: get_tree().change_scene_to_file(path))
+	_rpc_change_scene.rpc(path)
 
 func broadcast_lobby() -> void:
 	if not multiplayer.is_server():
@@ -650,6 +702,11 @@ var mp_active_match: Dictionary = {
 # Server broadcasts this; all peers store match data and change scene (V40).
 @rpc("authority", "call_local", "reliable")
 func _rpc_match_start(map_path: String, roster: Array, match_seed: int) -> void:
+	if multiplayer.is_server():
+		# T159: stream nothing until every client has loaded Arena (it acks from Arena._ready);
+		# set up before any ack can arrive.
+		mp_live = false
+		server_await_clients(func() -> void: mp_live = true)
 	mp_active_match = {
 		"map_path":   map_path,
 		"roster":     roster,
@@ -788,7 +845,7 @@ func _do_return_to_lobby() -> void:
 	for peer_id in mp_lobby["peers"].keys():
 		mp_lobby["peers"][peer_id]["ready"] = false
 	broadcast_lobby()
-	_rpc_change_scene.rpc("res://scenes/ui/Lobby.tscn")
+	server_change_scene("res://scenes/ui/Lobby.tscn")
 
 func _process(_delta: float) -> void:
 	if _mp_return_deadline > 0.0 and multiplayer.has_multiplayer_peer() and multiplayer.is_server():

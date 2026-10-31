@@ -17,19 +17,16 @@ func start() -> void:
 	scores = [0, 0]
 	elapsed = 0.0
 	running = true
-	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
-		match_seed = randi()
-		Game.seed_rng(match_seed)  # M0.1: central gameplay RNG
-		_rpc_set_match_seed.rpc(match_seed)
-		_apply_bot_seeds()
-	elif multiplayer.has_multiplayer_peer():
-		# Audit #28: the server RPCs the seed from its own Arena._ready, which can
-		# race a client still loading Arena (no matching node path -> seed lost).
-		# The seed already rides the _rpc_match_start payload, so read it locally;
-		# the RPC stays as a no-op refresh for fast loaders.
+	if multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
+		match_seed = randi()  # SP: fresh seed per match
+	else:
+		# MP: every peer (server included) reads the seed from the _rpc_match_start
+		# payload (V24). T159: the old _rpc_set_match_seed was sent from the server's
+		# Arena._ready and raced clients still loading Arena (audit #28) -- dropped
+		# as 'Node not found: Arena/BeaconMatch' under latency. Deleted.
 		match_seed = int(Game.mp_active_match.get("match_seed", 0))
-		Game.seed_rng(match_seed)
-		_apply_bot_seeds()
+	Game.seed_rng(match_seed)  # M0.1: central gameplay RNG
+	_apply_bot_seeds()
 
 func stop() -> void:
 	running = false
@@ -74,12 +71,6 @@ func on_player_eliminated(_player: Node) -> void:
 	pass
 
 # T104: server broadcasts match_seed so client bot RNG matches server.
-@rpc("authority", "reliable")
-func _rpc_set_match_seed(seed: int) -> void:
-	match_seed = seed
-	Game.seed_rng(match_seed)  # M0.1: central gameplay RNG (mirror server)
-	_apply_bot_seeds()
-
 func _apply_bot_seeds() -> void:
 	for ai in get_tree().get_nodes_in_group("ai_input_sources"):
 		if ai.has_method("set_mp_seed") and "bot_id" in ai:
