@@ -29,13 +29,16 @@ def user_dir_root(out_dir, sync_role):
     return os.path.join(out_dir, "userdata", sync_role)
 
 
-def launch(godot, role, sync_role, scenario_abs, out_dir, extra=()):
+def launch(godot, role, sync_role, scenario_abs, out_dir, extra=(), rendered=False):
     log = open(os.path.join(out_dir, f"{sync_role}.log"), "w")
     # T138: own user:// per process (Godot honors XDG_DATA_HOME on Linux), so peers
     # never share settings.cfg/profile.cfg and runs never touch the real profile.
     env = dict(os.environ, XDG_DATA_HOME=user_dir_root(out_dir, sync_role))
-    args = [
-        godot, "--headless", "--path", REPO,
+    # T147: a rendered peer runs on a private Xvfb display (xvfb-run) instead of
+    # --headless, so screenshots show what a player sees.
+    head = ["xvfb-run", "-a", "-s", "-screen 0 1280x720x24", godot] if rendered else [godot, "--headless"]
+    args = head + [
+        "--path", REPO,
         "--mp-scenario=" + scenario_abs,
         "--role=" + role,
         "--sync-log",
@@ -86,6 +89,8 @@ def main():
     ap.add_argument("out_dir")
     ap.add_argument("--godot", default=DEFAULT_GODOT)
     ap.add_argument("--timeout", type=float, default=60.0)
+    ap.add_argument("--render", action="append", default=[],
+                    help="T147: run this peer (e.g. client_1) rendered under Xvfb; repeatable")
     ap.add_argument("--net", default=None,
                     help="T139 chaos profile (none|lan|wifi|bad|JSON); overrides scenario 'net'")
     args = ap.parse_args()
@@ -127,7 +132,8 @@ def main():
     peer_keys = sorted(k for k in scenario.get("peers", {}) if k != "server")
     clients = []
     for key in peer_keys:
-        proc, log = launch(args.godot, "client", key, scenario_abs, out_dir, client_extra)
+        proc, log = launch(args.godot, "client", key, scenario_abs, out_dir, client_extra,
+                           rendered=key in args.render or key in scenario.get("render", []))
         clients.append((key, proc, log))
 
     ok = True

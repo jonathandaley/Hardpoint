@@ -47,6 +47,9 @@ var _quit_frame: int = -1
 var _peer_checked: bool = false
 var _lobby_check_frame: int = -1
 var _lobby_wait: bool = false  # T159: server enters Lobby only after client acks
+# T147: HUD layout dumps at these ticks (from override); scenario "hud_dump_ticks".
+var _hud_ticks: Array = []
+var _hud_file_started: bool = false  # first dump truncates (reruns into the same dir)
 
 func _ready() -> void:
 	var path := ""
@@ -161,6 +164,8 @@ func _process(_delta: float) -> void:
 	var t := Engine.get_physics_frames() - _override_frame
 	while not _actions.is_empty() and int(_actions[0].get("tick", 0)) <= t:
 		_run_action(_actions.pop_front())
+	while not _hud_ticks.is_empty() and int(_hud_ticks[0]) <= t:
+		_dump_hud(int(_hud_ticks.pop_front()))
 	if _quit_frame >= 0 and not _peer_checked and Engine.get_physics_frames() - _quit_frame >= 60:
 		_peer_checked = true
 		var mp := multiplayer.multiplayer_peer
@@ -235,6 +240,8 @@ func _try_override_input() -> void:
 			_actions.append(a)
 	_actions.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return int(a.get("tick", 0)) < int(b.get("tick", 0)))
+	_hud_ticks = _scenario.get("hud_dump_ticks", []).duplicate()
+	_hud_ticks.sort()
 	_deadline_frame = Engine.get_physics_frames() + int(_scenario.get("duration_ticks", 600))
 	print("[Harness] input override done for %s (mech %s); deadline frame %d" % [_role, mine.name, _deadline_frame])
 
@@ -255,3 +262,38 @@ func _run_action(a: Dictionary) -> void:
 			_lobby_wait = true
 		_:
 			push_error("[Harness] unknown action %s" % action)
+
+# T147: one JSON line per visible HUD Control: path, class, global rect, text.
+# Headless still computes Control layout (offsets/anchors -> rects).
+func _dump_hud(tick: int) -> void:
+	var hud: Node = get_tree().current_scene.get_node_or_null("HUD") if get_tree().current_scene else null
+	if hud == null:
+		return
+	var vp := get_viewport().get_visible_rect().size
+	var rows: Array = []
+	var stack: Array = [hud]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+		if n is Control and (n as Control).is_visible_in_tree():
+			var r := (n as Control).get_global_rect()
+			rows.append({"path": String(hud.get_path_to(n)), "class": n.get_class(),
+				"rect": [r.position.x, r.position.y, r.size.x, r.size.y],
+				"text": String(n.get("text")) if "text" in n else ""})
+	var path: String = String(Game.get("_sync_dir")).path_join("%s.hud.jsonl" % _sync_role())
+	var f := FileAccess.open(path, FileAccess.READ_WRITE if _hud_file_started else FileAccess.WRITE)
+	_hud_file_started = true
+	f.seek_end()
+	f.store_line(JSON.stringify({"tick": tick, "slot": _key, "viewport": [vp.x, vp.y], "controls": rows}))
+	f.close()
+	if DisplayServer.get_name() != "headless":  # rendered run (Xvfb): save what the player sees
+		await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png(
+			String(Game.get("_sync_dir")).path_join("%s.hud_%d.png" % [_sync_role(), tick]))
+
+func _sync_role() -> String:
+	for a in OS.get_cmdline_args() + OS.get_cmdline_user_args():
+		if a.begins_with("--sync-role="):
+			return a.get_slice("=", 1)
+	return _role

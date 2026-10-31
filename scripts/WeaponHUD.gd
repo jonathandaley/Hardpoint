@@ -76,6 +76,7 @@ func _build_slot(weapon: Node, number: int, x: float) -> Array:
 		cr.offset_top    = NUM_H
 		cr.offset_bottom = NUM_H + ICON_H
 		icon = cr
+	icon.name = "Icon%d" % number  # T147: hud_layout oracle finds slots by name
 	add_child(icon)
 
 	# Charge overlay - yellow fill grows left-to-right over the icon (Patience only)

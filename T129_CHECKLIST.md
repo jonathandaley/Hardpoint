@@ -28,7 +28,7 @@ Human 2-peer LAN session. Passing closes T40 (SPEC.md). First session 2026-09-28
 - Keeps its lock while the target is well outside the aim cone.
 - Not checked whether the server does the same.
 
-### B-d: client weapon HUD icons are squashed together at the bottom of the screen
+### B-d: client weapon HUD icons are squashed together at the bottom of the screen -- NOT REPRODUCED in harness (T147); guarded by hud_layout; see NEEDS_HUMAN.md
 - Client only. Both windows at the default resolution, so a different window size isn't the cause.
 - Wrong from spawn.
 - Toggling weapons changes how the squashed icons look, erratically. Firing is unaffected, and the reload bar and ammo counter render correctly.
