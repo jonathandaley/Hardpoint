@@ -1,0 +1,69 @@
+{
+  "name": "hud_layout",
+  "seed": 9393,
+  "port": 8922,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Hippogriff.tres",
+  "duration_ticks": 200,
+  "hud_dump_ticks": [
+    60,
+    130
+  ],
+  "oracles": [
+    "hud_layout",
+    "crash_scan",
+    "log_flood",
+    "spawn_join"
+  ],
+  "_comment": "T147 B-d guard: both peers dump every visible HUD control rect at tick 60 and after a slot-1 toggle (tick 130); hud_layout checks on-screen, icon overlap/size, client == server. B-d itself never reproduced (headless, rendered, 4 loadouts).",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0,
+              0
+            ]
+          }
+        ],
+        "pulses": [
+          {
+            "tick": 100,
+            "action": "slot",
+            "slot": 0
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0,
+              0
+            ]
+          }
+        ],
+        "pulses": [
+          {
+            "tick": 100,
+            "action": "slot",
+            "slot": 0
+          }
+        ]
+      }
+    }
+  }
+}

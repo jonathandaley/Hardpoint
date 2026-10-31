@@ -15,3 +15,13 @@ Delete an entry once you've answered it (or answer inline and the agent will act
   (client camera sat higher/further back because client mechs lost their body_scale).
 - **Decision:** keep 42 deg, or lower the cap? e.g. `clampf(..., 1.0, 3.0)` = 21 deg max.
   Tell the agent a number and it will change the constant; how it feels is your call.
+
+## 2026-10-31 | T147 | B-d (client weapon icons squashed) did not reproduce
+
+- **What:** the client's weapon HUD matched the server's to the pixel in every harness run: headless,
+  rendered on a virtual display (screenshot: `build/suite_runs/T147_render/client_1.hud_60.png`), and with
+  4 loadouts (Hippogriff rifles, Slip MG / rocket / sniper). The `hud_layout` check now guards the class.
+- **Untested path:** the real Title -> MPEntry -> Lobby flow with squad weapons picked per slot (the harness
+  starts the match directly). T152 will drive the real lobby; if B-d is real it should show up there.
+- **No action needed now.** If you happen to see it again, a screenshot (F12 isn't wired; any screenshot tool)
+  and which mech/weapons the client had would pin it immediately.

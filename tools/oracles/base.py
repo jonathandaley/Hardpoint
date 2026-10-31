@@ -60,7 +60,7 @@ def load_run(run_dir):
     """Return {role: PeerLog} for every <role>.jsonl in run_dir."""
     peers = {}
     for p in sorted(glob.glob(os.path.join(run_dir, "*.jsonl"))):
-        if p.endswith(".events.jsonl") or p.endswith(".beacons.jsonl"):
+        if p.endswith((".events.jsonl", ".beacons.jsonl", ".hud.jsonl")):  # side streams, not peers
             continue
         role = os.path.basename(p)[: -len(".jsonl")]
         snaps = load_jsonl(p)
