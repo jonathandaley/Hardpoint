@@ -219,6 +219,7 @@ func _mech_snapshot(m: Node, tick: int, wall: int, role: String, peer: int) -> D
 		"rot_local": [snappedf(rot_local.x, 0.0001), snappedf(rot_local.y, 0.0001), snappedf(rot_local.z, 0.0001), snappedf(rot_local.w, 0.0001)],
 		"rot_global": [snappedf(rot_global.x, 0.0001), snappedf(rot_global.y, 0.0001), snappedf(rot_global.z, 0.0001), snappedf(rot_global.w, 0.0001)],
 		"aim": aim,
+		"scale": snappedf(m.global_transform.basis.get_scale().x, 0.001),  # T142: body_scale must survive replication
 		"health": snappedf(m.get("health"), 0.01),
 		"ammo": ammo,
 		"lock_target": lock_id,

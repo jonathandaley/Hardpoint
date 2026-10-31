@@ -1,0 +1,103 @@
+{
+  "name": "laser_aim",
+  "seed": 6262,
+  "port": 8919,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Slip.tres",
+  "weapons": [
+    "res://scenes/weapons/LaserCannonLight.tscn"
+  ],
+  "duration_ticks": 600,
+  "oracles": [
+    "beam_aim",
+    "aim_desync",
+    "transform_desync",
+    "spawn_join",
+    "crash_scan",
+    "rpc_integrity"
+  ],
+  "_comment": "T142 B-b guard: client (sens 0.006 vs server 0.003, the B-a trigger) turns, holds still, then fires LaserCannonLight; beam_aim checks each server-reported beam hit lands on the client's own crosshair hit. Fires only while settled (mid-turn lag is not desync). Red-tested by disabling server-side absolute aim.",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0,
+              0
+            ]
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "settings": {
+        "mouse_sensitivity": 0.006
+      },
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0,
+              0
+            ]
+          },
+          {
+            "tick": 60,
+            "look": [
+              6,
+              1
+            ]
+          },
+          {
+            "tick": 120,
+            "look": [
+              0,
+              0
+            ]
+          },
+          {
+            "tick": 180,
+            "fire_primary": true
+          },
+          {
+            "tick": 300,
+            "fire_primary": false
+          },
+          {
+            "tick": 320,
+            "look": [
+              -9,
+              -2
+            ]
+          },
+          {
+            "tick": 370,
+            "look": [
+              0,
+              0
+            ]
+          },
+          {
+            "tick": 420,
+            "fire_primary": true
+          },
+          {
+            "tick": 510,
+            "fire_primary": false
+          }
+        ]
+      }
+    }
+  }
+}
