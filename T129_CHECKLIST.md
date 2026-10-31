@@ -21,10 +21,10 @@ Human 2-peer LAN session. Passing closes T40 (SPEC.md). First session 2026-09-28
 - The offset looks roughly constant at any one moment but isn't the same from moment to moment. The tester suspects "rotation being calculated differently" between the peers.
 - Lead: something rotation-related accumulates differently on client vs server, so the client's aim point or basis desyncs from the server's copy. Not yet traced. See memory feedback_weapon_aim_pattern (the aim point must come from a camera raycast).
 
-### B-b: laser misses even on the client's own screen
+### B-b: laser misses even on the client's own screen -- FIXED 2026-10-31 (T141 aim + T142 client mech scale, SPEC B38/B40)
 - The only weapon that looks wrong from the client's own perspective. May be the same root cause as B-a but showing up locally because the laser's visual comes from server state (`_rpc_beam_fx`).
 
-### B-c: client arc weapon stays locked on too long / too far off-angle
+### B-c: client arc weapon stays locked on too long / too far off-angle -- MP causes fixed (B38, B40); remaining 42 deg hold cone is tuning, see NEEDS_HUMAN.md
 - Keeps its lock while the target is well outside the aim cone.
 - Not checked whether the server does the same.
 

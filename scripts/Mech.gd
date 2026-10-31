@@ -612,8 +612,11 @@ func _apply_snapshot_interp() -> void:
 	var now := Time.get_ticks_msec() * 0.001
 	var render_t := now - 0.1
 	var interp_torso_y: float = torso.rotation.y
+	# B40: Basis(quat) carries no scale; keep the body_scale Arena set at spawn, or
+	# every client draws (and aims from) every mech at scale 1.
+	var body_scale := global_transform.basis.get_scale()
 	if _snap_buf.size() == 1:
-		global_transform = Transform3D(Basis(_snap_buf[0]["quat"] as Quaternion), _snap_buf[0]["pos"] as Vector3)
+		global_transform = Transform3D(Basis(_snap_buf[0]["quat"] as Quaternion).scaled(body_scale), _snap_buf[0]["pos"] as Vector3)
 		velocity = _snap_buf[0]["vel"] as Vector3
 		interp_torso_y = _snap_buf[0].get("torso_y", torso.rotation.y)
 	else:
@@ -624,7 +627,7 @@ func _apply_snapshot_interp() -> void:
 		if span > 0.0001:
 			t = clampf((render_t - (s0["time"] as float)) / span, 0.0, 1.0)
 		global_transform = Transform3D(
-			Basis((s0["quat"] as Quaternion).slerp(s1["quat"] as Quaternion, t)),
+			Basis((s0["quat"] as Quaternion).slerp(s1["quat"] as Quaternion, t)).scaled(body_scale),
 			(s0["pos"] as Vector3).lerp(s1["pos"] as Vector3, t))
 		velocity = (s0["vel"] as Vector3).lerp(s1["vel"] as Vector3, t)
 		interp_torso_y = lerp_angle(
