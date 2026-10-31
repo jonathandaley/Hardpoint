@@ -31,73 +31,88 @@ def main():
     ap.add_argument("--godot", default=None)
     ap.add_argument("--timeout", type=float, default=120.0)
     ap.add_argument("--only", action="append", default=None, help="scenario name(s) to run")
-    ap.add_argument("--net", default=None, help="T139 chaos profile for every scenario")
+    ap.add_argument("--net", default=None,
+                    help="T139/T151 chaos profile(s) for every scenario, comma-separated (e.g. lan,wifi,bad)")
+    ap.add_argument("--no-probes", action="store_true", help="skip tools/gd_probes (e.g. for --net sweeps)")
     args = ap.parse_args()
 
     scenarios = sorted(glob.glob(os.path.join(HERE, "scenarios", "*.json")))
     results = []
-    for spath in scenarios:
-        with open(spath) as f:
-            scen = json.load(f)
-        name = scen.get("name", os.path.basename(spath))
-        if args.only and name not in args.only:
-            continue
-        out = os.path.join(os.path.abspath(args.out_root), name)
-        run_args = ["--timeout", str(args.timeout)]
-        if args.godot:
-            run_args += ["--godot", args.godot]
-        if args.net is not None:
-            run_args += ["--net", args.net]
-        print("=== %s ===" % name, flush=True)
-        rc = sh([os.path.join(HERE, "run_scenario.py"), spath, os.path.join(out, "run1")] + run_args)
-        cmp_args = [os.path.join(HERE, "sync_compare.py"), spath, os.path.join(out, "run1")]
-        if rc == 0 and "determinism" in scen.get("oracles", []):
-            rc = sh([os.path.join(HERE, "run_scenario.py"), spath, os.path.join(out, "run2")] + run_args)
-            cmp_args += ["--baseline-run", os.path.join(out, "run2")]
-        if rc != 0:
-            print("!!! %s: run_scenario failed (exit %d)" % (name, rc))
-            results.append((name, "ERROR"))
-            continue
-        rc = sh(cmp_args)
-        results.append((name, "PASS" if rc == 0 else "FAIL"))
+    # T151: one pass per profile; None = each scenario's own "net" (usually lossless loopback)
+    profiles = args.net.split(",") if args.net else [None]
+    for net in profiles:
+        _run_scenarios(args, scenarios, net, len(profiles) > 1, results)
 
-    # T146: engine-level probes (tools/gd_probes/*.tscn) -- tiny scenes that drive
-    # one code path headless and must exit 0, print their done line, and log no
-    # engine errors (crash_scan rules).
-    if not args.only:
-        sys.path.insert(0, HERE)
-        from oracles import crash_scan
-        for probe in sorted(glob.glob(os.path.join(HERE, "gd_probes", "*.tscn"))):
-            name = "probe:" + os.path.basename(probe)[:-5]
-            out = os.path.join(os.path.abspath(args.out_root), name.replace(":", "_"))
-            os.makedirs(out, exist_ok=True)
-            log = os.path.join(out, "probe.log")
-            env = dict(os.environ, XDG_DATA_HOME=os.path.join(out, "userdata"))
-            godot = args.godot or os.environ.get("GODOT", os.path.expanduser("~/bin/godot"))
-            with open(log, "w") as f:
-                try:
-                    rc = subprocess.run([godot, "--headless", "--path", os.path.dirname(HERE),
-                                         "res://tools/gd_probes/" + os.path.basename(probe), "--quit-after", "6000"],
-                                        stdout=f, stderr=subprocess.STDOUT, env=env, timeout=120).returncode
-                except subprocess.TimeoutExpired:
-                    rc = -1
-            done = "[probe]" in open(log, errors="replace").read()
-            hit = crash_scan.scan_log(log)
-            ok = rc == 0 and done and hit is None
-            print("=== %s === %s%s" % (name, "PASS" if ok else "FAIL",
-                                       "" if ok else " (exit %s, done=%s, %s)" % (rc, done, hit)))
-            results.append((name, "PASS" if ok else "FAIL"))
+    # T146: engine-level probes (run once; network-independent)
+    if not args.only and not args.no_probes:
+        _run_probes(args, results)
 
     print("\n=== suite summary ===")
     bad = 0
     for name, verdict in results:
-        print("%-24s %s" % (name, verdict))
+        print("%-28s %s" % (name, verdict))
         bad += verdict != "PASS"
     if not results:
         print("no scenarios matched")
         return 2
     print("%d/%d scenarios pass" % (len(results) - bad, len(results)))
     return 1 if bad else 0
+
+
+def _run_scenarios(args, scenarios, net, label, results):
+    for spath in scenarios:
+        with open(spath) as f:
+            scen = json.load(f)
+        name = scen.get("name", os.path.basename(spath))
+        if args.only and name not in args.only:
+            continue
+        out = os.path.join(os.path.abspath(args.out_root), name + ("@" + net if label else ""))
+        run_args = ["--timeout", str(args.timeout)]
+        if args.godot:
+            run_args += ["--godot", args.godot]
+        if net is not None:
+            run_args += ["--net", net]
+        print("=== %s ===" % name, flush=True)
+        rc = sh([os.path.join(HERE, "run_scenario.py"), spath, os.path.join(out, "run1")] + run_args)
+        cmp_args = [os.path.join(HERE, "sync_compare.py"), spath, os.path.join(out, "run1")]
+        # T151: a second run only means something on a lossless link (random delay shifts input ticks)
+        if rc == 0 and "determinism" in scen.get("oracles", []) and net in (None, "none"):
+            rc = sh([os.path.join(HERE, "run_scenario.py"), spath, os.path.join(out, "run2")] + run_args)
+            cmp_args += ["--baseline-run", os.path.join(out, "run2")]
+        if rc != 0:
+            print("!!! %s: run_scenario failed (exit %d)" % (name, rc))
+            results.append((name + ("@" + net if label else ""), "ERROR"))
+            continue
+        rc = sh(cmp_args)
+        results.append((name + ("@" + net if label else ""), "PASS" if rc == 0 else "FAIL"))
+
+
+def _run_probes(args, results):
+    # T146: engine-level probes (tools/gd_probes/*.tscn) -- tiny scenes that drive
+    # one code path headless and must exit 0, print their done line, and log no
+    # engine errors (crash_scan rules).
+    sys.path.insert(0, HERE)
+    from oracles import crash_scan
+    for probe in sorted(glob.glob(os.path.join(HERE, "gd_probes", "*.tscn"))):
+        name = "probe:" + os.path.basename(probe)[:-5]
+        out = os.path.join(os.path.abspath(args.out_root), name.replace(":", "_"))
+        os.makedirs(out, exist_ok=True)
+        log = os.path.join(out, "probe.log")
+        env = dict(os.environ, XDG_DATA_HOME=os.path.join(out, "userdata"))
+        godot = args.godot or os.environ.get("GODOT", os.path.expanduser("~/bin/godot"))
+        with open(log, "w") as f:
+            try:
+                rc = subprocess.run([godot, "--headless", "--path", os.path.dirname(HERE),
+                                     "res://tools/gd_probes/" + os.path.basename(probe), "--quit-after", "6000"],
+                                    stdout=f, stderr=subprocess.STDOUT, env=env, timeout=120).returncode
+            except subprocess.TimeoutExpired:
+                rc = -1
+        done = "[probe]" in open(log, errors="replace").read()
+        hit = crash_scan.scan_log(log)
+        ok = rc == 0 and done and hit is None
+        print("=== %s === %s%s" % (name, "PASS" if ok else "FAIL",
+                                   "" if ok else " (exit %s, done=%s, %s)" % (rc, done, hit)))
+        results.append((name, "PASS" if ok else "FAIL"))
 
 
 if __name__ == "__main__":

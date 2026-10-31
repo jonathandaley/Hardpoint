@@ -46,13 +46,18 @@ def resolve(profile):
 class Lane:
     """One direction of traffic with its own impairment schedule."""
 
-    def __init__(self, name, cfg, rng, stats):
+    def __init__(self, name, cfg, rng, stats, t0=0.0):
         self.name, self.cfg, self.rng, self.stats = name, cfg, rng, stats
         self.last_due = 0.0
+        self.t0 = t0  # proxy start (loop time); "outage": [start_s, end_s] is relative to it
 
     def push(self, loop, send, data):
         c, s = self.cfg, self.stats
         s[self.name + "_in"] += 1
+        out = c.get("outage")  # T151: total blackout window, both directions
+        if out and out[0] <= loop.time() - self.t0 < out[1]:
+            s[self.name + "_outage"] += 1
+            return
         if self.rng.random() < c.get("loss", 0.0):
             s[self.name + "_drop"] += 1
             return
@@ -79,8 +84,8 @@ def run(listen, target, cfg, seed):
     stats = collections.Counter()
     # one RNG per lane: a lane's drop pattern depends only on its own packet order,
     # not on how c2s/s2c traffic interleaves (which varies run to run)
-    c2s = Lane("c2s", cfg, random.Random(seed * 2), stats)
-    s2c = Lane("s2c", cfg, random.Random(seed * 2 + 1), stats)
+    c2s = Lane("c2s", cfg, random.Random(seed * 2), stats, loop.time())
+    s2c = Lane("s2c", cfg, random.Random(seed * 2 + 1), stats, loop.time())
     down = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     down.bind(("127.0.0.1", listen))
     down.setblocking(False)
@@ -179,6 +184,8 @@ def selftest():
     assert back < got, ("s2c loss expected too", got, back)
     got, back, first, st = _selftest_case('{"loss": 1.0}', 50)
     assert got == 0 and back == 0, ("total loss must drop everything", got, back)
+    got, back, first, st = _selftest_case('{"outage": [0, 30]}', 20)
+    assert got == 0 and st.get("c2s_outage") == 20, ("outage window must black out the link", got, st)
     print("netem_proxy selftest ok")
 
 

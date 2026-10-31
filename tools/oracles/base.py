@@ -56,9 +56,42 @@ class PeerLog:
         return self.beacon_by_key.get((tick, beacon_id))
 
 
+def tick_offset(server_snaps, client_snaps):
+    """T151: client->server tick offset from the shared `unix_ms` wall clock:
+    median of (server tick at the same wall time - client tick). 0 when the log
+    predates unix_ms. Per-peer tick clocks start at each peer's own match-start
+    receipt; a lost-and-resent reliable start packet skews them by up to ~1 s."""
+    import bisect
+    srv = sorted({(s["unix_ms"], s["tick"]) for s in server_snaps if "unix_ms" in s})
+    if not srv:
+        return 0
+    times = [u for u, _ in srv]
+    seen, diffs = set(), []
+    for s in client_snaps:
+        if "unix_ms" not in s or s["tick"] in seen:
+            continue
+        seen.add(s["tick"])
+        i = bisect.bisect_left(times, s["unix_ms"])
+        best = min((j for j in (i - 1, i) if 0 <= j < len(times)), key=lambda j: abs(times[j] - s["unix_ms"]))
+        diffs.append(srv[best][1] - s["tick"])
+    if not diffs:
+        return 0
+    diffs.sort()
+    return diffs[len(diffs) // 2]
+
+
+def _shift(rows, off):
+    for r in rows:
+        r["tick_local"] = r["tick"]
+        r["tick"] = r["tick"] + off
+    return rows
+
+
 def load_run(run_dir):
-    """Return {role: PeerLog} for every <role>.jsonl in run_dir."""
-    peers = {}
+    """Return {role: PeerLog} for every <role>.jsonl in run_dir. T151: client
+    snapshot/event/beacon ticks are renumbered onto the server's tick timeline
+    (tick_offset); the original stays in `tick_local`. PeerLog.offset records it."""
+    raw = {}
     for p in sorted(glob.glob(os.path.join(run_dir, "*.jsonl"))):
         if p.endswith((".events.jsonl", ".beacons.jsonl", ".hud.jsonl")):  # side streams, not peers
             continue
@@ -68,7 +101,15 @@ def load_run(run_dir):
         events = load_jsonl(epath) if os.path.exists(epath) else []
         bpath = os.path.join(run_dir, role + ".beacons.jsonl")
         beacons = load_jsonl(bpath) if os.path.exists(bpath) else []
+        raw[role] = (snaps, events, beacons)
+    server_snaps = raw.get("server", ([],))[0]
+    peers = {}
+    for role, (snaps, events, beacons) in raw.items():
+        off = 0 if role == "server" else tick_offset(server_snaps, snaps)
+        if off:
+            _shift(snaps, off), _shift(events, off), _shift(beacons, off)
         peers[role] = PeerLog(role, snaps, events, beacons)
+        peers[role].offset = off
     return peers
 
 
@@ -112,20 +153,34 @@ def client_roles(primary):
 # same tick number is a different moment on each peer. Measured client->server
 # offsets (latency included) span -6..+5 ticks (3-process kill_confirm hit -6).
 CROSS_PEER_SKEW_TICKS = 8
+# T151: with ticks aligned by wall clock (load_run), a client's view of a mech is
+# BEHIND the server by Mech.INTERP_DELAY (150 ms = 9 ticks, T150) plus one-way
+# latency, by design -- so the window also reaches this much further back.
+INTERP_LAG_TICKS = 12
+
+# T151: on an impaired link a lost reliable packet is resent after ENet's timeout
+# (hundreds of ms), so "converges within N ticks" becomes "within ~1.5 s". Merged
+# under scenario thresholds when meta.json shows an impaired net profile.
+IMPAIRED_NET_THRESHOLDS = {
+    "persist_ticks": 30, "hp_persist_ticks": 90, "lock_persist_ticks": 90, "ammo_persist_ticks": 90,
+    "active_set_persist_ticks": 90, "reload_persist_ticks": 90, "hit_confirm_max_delay_ticks": 120,
+    "beacon_lag_ticks": 90, "interp_max_stall": 0.2,
+}
 
 
 def cross_series(server, client, mech_id, mag_fn, skew=CROSS_PEER_SKEW_TICKS):
     """Per-tick (tick, magnitude) for one mech over the client's ticks, where
     magnitude = min of mag_fn(server_snap, client_snap) over server ticks within
-    +-skew (V45): a real desync has no close server value anywhere nearby; a
-    clock offset does. Ordered by tick."""
+    [-skew - INTERP_LAG_TICKS, +skew] (V45, T151): a real desync has no close
+    server value anywhere nearby; clock jitter and designed client lag do.
+    Ordered by tick."""
     out = []
     for t in client.ticks:
         cs = client.at(t, mech_id)
         if cs is None:
             continue
         best = None
-        for dt in range(-skew, skew + 1):
+        for dt in range(-skew - INTERP_LAG_TICKS, skew + 1):
             ss = server.at(t + dt, mech_id)
             if ss is not None:
                 m = mag_fn(ss, cs)

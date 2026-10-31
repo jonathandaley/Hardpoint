@@ -16,6 +16,7 @@
     "event_sidefx",
     "spawn_join",
     "prediction_recon",
+    "rpc_modes",
     "aim_desync"
   ],
   "thresholds": {
