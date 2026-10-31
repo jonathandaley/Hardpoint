@@ -18,8 +18,10 @@ Plan of record: `MP_AUTODEBUG_PLAN.md` §9. Queue: SPEC.md §T.
      expect_fail (strict xfail in sync_compare) so the suite stays green; the fix
      task removes the xfail.
    - Bug found → backprop skill (§B row, §V if it would catch recurrence).
-4. **Verify.** `python3 tools/run_suite.py` all green (~3 min, 6 scenarios as of 2026-10-31). Sim or RNG
-   code touched → also `python3 tools/selftest.py`.
+4. **Verify.** `python3 tools/run_suite.py` all green (~6 min: 15 scenarios + gd_probes as of
+   2026-10-31). Sim or RNG code touched → also `python3 tools/selftest.py`. Netcode touched
+   (RPCs, snapshots, sync, transitions) → also `python3 tools/run_suite.py --net wifi,bad --no-probes`
+   (~12 min, must stay green).
 5. **Ship.** Flip the row to `x`, commit `T<n>: <goal>` (+ attribution lines),
    push to main (see memory `git-push-from-claude`). One commit per task;
    instrumentation commits never mixed with fix commits.
