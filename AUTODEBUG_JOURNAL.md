@@ -15,3 +15,4 @@ date|task|outcome|commit|finding|suite
 2026-10-31|T159|DONE|b9d2627|scene-change RPC races fixed both ways (transition handshake + mp_live gate, seed RPC deleted). Lead for new task: SP pause may not pause Arena (Arena process_mode ALWAYS inherited by all children)|14/14 + selftest GREEN
 2026-10-31|T161|DONE|701ab62,ddf4dab|SP pause froze nothing (Arena ALWAYS inherited); fixed, MP Esc = menu only (B46/V53)|15/15 + selftest GREEN
 2026-10-31|T147|DONE (B-d not reproduced)|b1c5a54|hud_layout guard + rendered peers/screenshots built; B-d matched server in every config (headless, rendered, 4 loadouts) -> NEEDS_HUMAN.md, real lobby flow queued in T152|16/16
+2026-10-31|T148|DONE|5e22d4e,f540ec7|B-e FIXED: eligible target never broadcast for no-lock loadouts (early return before broadcast). All T129 bugs now closed except B-c (tuning, NEEDS_HUMAN) and B-d (not reproduced)|17/17
