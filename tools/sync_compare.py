@@ -23,7 +23,7 @@ from oracles import (  # noqa: E402
     base, determinism, transform_desync, health_desync, lock_target, team_assignment,
     crash_scan, rpc_integrity, event_sidefx, ammo_desync, beacon_desync, spawn_join,
     friendly_fire, prediction_recon, hit_confirm, active_set_desync, reload_desync,
-    aim_desync, input_delivery, beam_aim,
+    aim_desync, input_delivery, beam_aim, log_flood,
 )
 
 # Registry of oracle modules. Add modules here as they land.
@@ -47,6 +47,7 @@ ORACLES = {
     aim_desync.NAME: aim_desync,
     input_delivery.NAME: input_delivery,
     beam_aim.NAME: beam_aim,
+    log_flood.NAME: log_flood,
 }
 
 

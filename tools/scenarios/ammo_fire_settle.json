@@ -11,7 +11,7 @@
   "oracles": [
     "ammo_desync",
     "input_delivery",
-    "crash_scan",
+    "crash_scan", "log_flood",
     "rpc_integrity",
     "team_assignment",
     "spawn_join",

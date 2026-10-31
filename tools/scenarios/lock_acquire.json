@@ -14,7 +14,7 @@
     "health_desync",
     "spawn_join",
     "team_assignment",
-    "crash_scan",
+    "crash_scan", "log_flood",
     "rpc_integrity",
     "event_sidefx",
     "hit_confirm",
