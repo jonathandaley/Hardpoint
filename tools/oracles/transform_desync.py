@@ -41,31 +41,27 @@ def run(ctx):
     th = {**DEFAULTS, **ctx.get("thresholds", {})}
     persist = int(th["persist_ticks"])
     server = primary["server"]
-    server_ticks = set(server.ticks)
 
     worst = None  # (first_tick, verdict-dict) -- earliest persistent divergence wins
     total_checked = 0
+    skew = int(th.get("cross_peer_skew_ticks", base.CROSS_PEER_SKEW_TICKS))
     for role in sorted(clients):
         client = primary[role]
-        common = [t for t in client.ticks if t in server_ticks]
         for mid in client.mech_ids:
             for field in FIELDS:
                 eps = _field_eps(field, th)
-                series = []
-                for t in common:
-                    cs = client.at(t, mid)
-                    ss = server.at(t, mid)
-                    if cs is None or ss is None:
-                        continue
-                    if field == "scale":
-                        if field in cs and field in ss:  # absent in pre-T142 logs
-                            series.append((t, abs(cs[field] - ss[field])))
-                    elif field == "pos":
-                        series.append((t, base.vmax_diff(cs[field], ss[field])))
-                    else:
-                        # True rotation angle; componentwise diff false-fires on
-                        # the quaternion double cover when yaw wraps past pi.
-                        series.append((t, base.quat_angle(cs[field], ss[field])))
+                if field == "scale":
+                    def mag(ss, cs, f=field):  # absent in pre-T142 logs -> no evidence
+                        return abs(cs[f] - ss[f]) if f in cs and f in ss else 0.0
+                elif field == "pos":
+                    def mag(ss, cs, f=field):
+                        return base.vmax_diff(cs[f], ss[f])
+                else:
+                    # True rotation angle; componentwise diff false-fires on
+                    # the quaternion double cover when yaw wraps past pi.
+                    def mag(ss, cs, f=field):
+                        return base.quat_angle(cs[f], ss[f])
+                series = base.cross_series(server, client, mid, mag, skew)
                 if not series:
                     continue
                 total_checked += 1

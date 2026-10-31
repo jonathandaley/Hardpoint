@@ -30,7 +30,8 @@ def run(ctx):
         client = primary[role]
         for mid in client.mech_ids:
             series = base.cross_series(server, client, mid,
-                                       lambda ss, cs: abs(ss["health"] - cs["health"]))
+                                       lambda ss, cs: abs(ss["health"] - cs["health"]),
+                                       int(th.get("cross_peer_skew_ticks", base.CROSS_PEER_SKEW_TICKS)))
             if not series:
                 continue
             checked += 1
