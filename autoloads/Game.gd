@@ -283,6 +283,7 @@ func host(port: int = 8910) -> void:
 		push_error("Game.host: create_server failed (port %d): %d" % [port, err])
 		mp_join_failed.emit()
 		return
+	_clear_mp_session()
 	multiplayer.multiplayer_peer = peer
 
 func join(ip: String, port: int = 8910) -> void:
@@ -298,6 +299,14 @@ func disconnect_mp() -> void:
 	if multiplayer.multiplayer_peer != null:
 		multiplayer.multiplayer_peer.close()
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
+	_clear_mp_session()
+
+# B44: called wherever an MP session starts or ends. No stale lobby peers (a new
+# host must start fresh) and no stale roster (Arena._ready treats a non-empty
+# roster as "this is an MP match", so a later SP match would spawn as MP).
+func _clear_mp_session() -> void:
+	mp_lobby["peers"].clear()
+	mp_active_match["roster"] = []
 
 func _on_mp_peer_connected(id: int) -> void:
 	mp_peer_connected.emit(id)
@@ -341,10 +350,12 @@ func _on_mp_peer_disconnected(id: int) -> void:
 
 func _on_mp_connection_failed() -> void:
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
+	_clear_mp_session()
 	mp_join_failed.emit()
 
 func _on_mp_server_disconnected() -> void:
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
+	_clear_mp_session()
 	mp_server_lost.emit()
 
 func _load_profile() -> void:
