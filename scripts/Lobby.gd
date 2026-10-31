@@ -64,7 +64,12 @@ func _ready() -> void:
 
 	_setup_map_option()
 
-	if multiplayer.is_server():
+	# B44: Lobby also loads on the V40 return after a match -- the match is over, and
+	# the connected peers must NOT be wiped (only a fresh host session starts empty).
+	Game.mp_active_match["roster"] = []
+	if multiplayer.is_server() and not Game.mp_lobby["peers"].is_empty():
+		Game.broadcast_lobby()
+	elif multiplayer.is_server():
 		Game.mp_lobby = {
 			"peers":      {},
 			"bot_fill":   true,
