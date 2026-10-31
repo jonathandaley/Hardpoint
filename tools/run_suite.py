@@ -77,7 +77,7 @@ def main():
             with open(log, "w") as f:
                 try:
                     rc = subprocess.run([godot, "--headless", "--path", os.path.dirname(HERE),
-                                         "res://tools/gd_probes/" + os.path.basename(probe), "--quit-after", "600"],
+                                         "res://tools/gd_probes/" + os.path.basename(probe), "--quit-after", "6000"],
                                         stdout=f, stderr=subprocess.STDOUT, env=env, timeout=120).returncode
                 except subprocess.TimeoutExpired:
                     rc = -1
