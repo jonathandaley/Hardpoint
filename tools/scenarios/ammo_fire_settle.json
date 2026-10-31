@@ -10,6 +10,7 @@
   "duration_ticks": 1300,
   "oracles": [
     "ammo_desync",
+    "input_delivery",
     "crash_scan",
     "rpc_integrity",
     "team_assignment",

@@ -14,10 +14,7 @@
     "crash_scan",
     "rpc_integrity"
   ],
-  "expect_fail": [
-    "input_delivery"
-  ],
-  "_comment": "T158 repro: both peers press R / slot 2 / ability on odd and even ticks (one-tick pulses, like Input.is_action_just_pressed) over wifi. input_delivery: every press applied exactly once by the server. Pre-fix the client sampled presses only on its every-2nd-tick send and sent them over unreliable _rpc_input. Server pulses are the control (applied locally every tick).",
+  "_comment": "T158 repro: both peers press R / slot 2 / ability on odd and even ticks (one-tick pulses, like Input.is_action_just_pressed) over wifi. input_delivery: every press applied exactly once by the server. Was RED until T158 (B39): the client sampled presses only on its every-2nd-tick send and sent them over unreliable _rpc_input. Server pulses are the control (applied locally every tick). Post-fix 16/16 on wifi and bad.",
   "peers": {
     "server": {
       "input": {
