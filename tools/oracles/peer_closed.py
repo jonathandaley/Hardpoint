@@ -1,5 +1,5 @@
 """peer_closed oracle (T144, B-g): after a peer leaves the match through a
-harness lifecycle action (e.g. quit_to_hangar = the real pause-menu quit), its
+harness lifecycle action (pause_quit = the real pause-menu quit; quit_to_hangar = its pre-T145 name), its
 multiplayer peer must be closed. Harness prints `[Harness] peer_check <slot>:
 connected=<bool>` 60 ticks after the action. B-g: quitting just changed scene,
 the client stayed connected, and the server kept streaming RPCs into an Arena
@@ -20,14 +20,14 @@ def run(ctx):
     for path in logs:
         role = os.path.basename(path)[: -len(".log")]
         text = open(path, errors="replace").read()
-        if not re.search(r"\[Harness\] action (quit_to_hangar)", text):
+        if not re.search(r"\[Harness\] action (pause_quit|quit_to_hangar)", text):
             continue
         quits += 1
         m = re.search(r"\[Harness\] peer_check \S+: connected=(\w+)", text)
         if m is None:
             bad.append("%s: no peer_check after quit (process ended too soon?)" % role)
         elif m.group(1) != "false":
-            bad.append("%s: still connected 60 ticks after quitting to hangar" % role)
+            bad.append("%s: still connected 60 ticks after quitting" % role)
     if not quits:
         return base.verdict(NAME, base.SKIP, note="no lifecycle quit in run")
     if bad:

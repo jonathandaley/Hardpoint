@@ -17,10 +17,10 @@
     {
       "tick": 200,
       "peer": "client_1",
-      "action": "quit_to_hangar"
+      "action": "pause_quit"
     }
   ],
-  "_comment": "T144 B-f/B-g repro: client quits through the real pause-menu path at tick 200 and idles in the hangar ~6.5 s while the server keeps the match running. peer_closed: client must be disconnected; log_flood/crash_scan: no 'Node not found: Arena' stream; scene_routes: no dead-end screens. Expected RED until T145: client stays connected, 141x 'Failed to get cached node' in ~6.5 s, 4 dead-end scenes.",
+  "_comment": "T144 B-f/B-g repro: client quits through the real pause-menu path at tick 200 and idles in the hangar ~6.5 s while the server keeps the match running. peer_closed: client must be disconnected; log_flood/crash_scan: no 'Node not found: Arena' stream; scene_routes: no dead-end screens. Was RED until T145 (B42): client stays connected, 141x 'Failed to get cached node' in ~6.5 s, 4 dead-end scenes.",
   "peers": {
     "server": {
       "input": {
@@ -56,11 +56,5 @@
         ]
       }
     }
-  },
-  "expect_fail": [
-    "peer_closed",
-    "scene_routes",
-    "crash_scan",
-    "log_flood"
-  ]
+  }
 }
