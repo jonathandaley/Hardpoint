@@ -22,13 +22,14 @@ import time
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_GODOT = os.environ.get("GODOT", os.path.expanduser("~/bin/godot"))
+PROXY = os.path.join(REPO, "tools", "mp_harness", "netem_proxy.py")
 
 
 def user_dir_root(out_dir, sync_role):
     return os.path.join(out_dir, "userdata", sync_role)
 
 
-def launch(godot, role, sync_role, scenario_abs, out_dir):
+def launch(godot, role, sync_role, scenario_abs, out_dir, extra=()):
     log = open(os.path.join(out_dir, f"{sync_role}.log"), "w")
     # T138: own user:// per process (Godot honors XDG_DATA_HOME on Linux), so peers
     # never share settings.cfg/profile.cfg and runs never touch the real profile.
@@ -40,7 +41,7 @@ def launch(godot, role, sync_role, scenario_abs, out_dir):
         "--sync-log",
         "--sync-role=" + sync_role,
         "--sync-dir=" + out_dir,
-    ]
+    ] + list(extra)
     proc = subprocess.Popen(args, stdout=log, stderr=subprocess.STDOUT, env=env)
     return proc, log
 
@@ -53,6 +54,14 @@ def isolation_ok(out_dir, sync_role):
             if line.startswith("[Harness] user_data_dir="):
                 return line.split("=", 1)[1].strip().startswith(want)
     return False
+
+
+def _proxy_stats(out_dir):
+    with open(os.path.join(out_dir, "proxy.log")) as f:
+        for line in f:
+            if line.startswith("[netem] stats "):
+                return json.loads(line[len("[netem] stats "):])
+    return None
 
 
 def _write_meta(out_dir, meta):
@@ -77,6 +86,8 @@ def main():
     ap.add_argument("out_dir")
     ap.add_argument("--godot", default=DEFAULT_GODOT)
     ap.add_argument("--timeout", type=float, default=60.0)
+    ap.add_argument("--net", default=None,
+                    help="T139 chaos profile (none|lan|wifi|bad|JSON); overrides scenario 'net'")
     args = ap.parse_args()
 
     scenario_abs = os.path.abspath(args.scenario)
@@ -89,11 +100,26 @@ def main():
           f"out={out_dir}")
 
     meta = {"scenario": scenario.get("name"), "peers": {}}
+    # T139: with a net profile, clients reach the server through netem_proxy.py.
+    net = args.net if args.net is not None else scenario.get("net")
+    proxy, client_extra = None, []
+    if net is not None:
+        port = int(scenario.get("port", 8910))
+        proxy_log = open(os.path.join(out_dir, "proxy.log"), "w")
+        proxy = subprocess.Popen(
+            [sys.executable, PROXY, "--listen", str(port + 1000), "--target", str(port),
+             "--profile", net if isinstance(net, str) else json.dumps(net),
+             "--seed", str(int(scenario.get("seed", 0)))],
+            stdout=proxy_log, stderr=subprocess.STDOUT)
+        client_extra = ["--connect-port=%d" % (port + 1000)]
+        print(f"[run_scenario] net={net} via proxy :{port + 1000}")
     server, slog = launch(args.godot, "server", "server", scenario_abs, out_dir)
     time.sleep(2.0)  # let the server bind loopback before the client connects
     if server.poll() is not None:
         print("[run_scenario] server exited early; see server.log")
         slog.close()
+        if proxy is not None:
+            proxy.kill()
         meta["peers"]["server"] = {"exit_code": server.returncode, "timed_out": False, "early_exit": True}
         _write_meta(out_dir, meta)
         return 1
@@ -101,7 +127,7 @@ def main():
     peer_keys = sorted(k for k in scenario.get("peers", {}) if k != "server")
     clients = []
     for key in peer_keys:
-        proc, log = launch(args.godot, "client", key, scenario_abs, out_dir)
+        proc, log = launch(args.godot, "client", key, scenario_abs, out_dir, client_extra)
         clients.append((key, proc, log))
 
     ok = True
@@ -115,6 +141,12 @@ def main():
     ok = ok and server_ok
     slog.close()
     meta["peers"]["server"] = {"exit_code": server.returncode, "timed_out": not server_ok}
+    if proxy is not None:
+        proxy.terminate()
+        proxy.wait(timeout=10)
+        proxy_log.close()
+        meta["net"] = {"profile": net, "stats": _proxy_stats(out_dir)}
+        print(f"[run_scenario] proxy stats: {meta['net']['stats']}")
     _write_meta(out_dir, meta)
 
     # Verify all snapshot logs exist and are non-empty.

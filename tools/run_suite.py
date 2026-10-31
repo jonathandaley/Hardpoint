@@ -31,6 +31,7 @@ def main():
     ap.add_argument("--godot", default=None)
     ap.add_argument("--timeout", type=float, default=120.0)
     ap.add_argument("--only", action="append", default=None, help="scenario name(s) to run")
+    ap.add_argument("--net", default=None, help="T139 chaos profile for every scenario")
     args = ap.parse_args()
 
     scenarios = sorted(glob.glob(os.path.join(HERE, "scenarios", "*.json")))
@@ -45,6 +46,8 @@ def main():
         run_args = ["--timeout", str(args.timeout)]
         if args.godot:
             run_args += ["--godot", args.godot]
+        if args.net is not None:
+            run_args += ["--net", args.net]
         print("=== %s ===" % name, flush=True)
         rc = sh([os.path.join(HERE, "run_scenario.py"), spath, os.path.join(out, "run1")] + run_args)
         cmp_args = [os.path.join(HERE, "sync_compare.py"), spath, os.path.join(out, "run1")]
