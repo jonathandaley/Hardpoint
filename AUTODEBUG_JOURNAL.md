@@ -7,3 +7,4 @@ date|task|outcome|commit|finding|suite
 2026-10-31|T141|DONE|92ee4ea|B-a FIXED: aim sent absolute; residual 0.000000 rad on sens-mismatch, 5% loss, and bad net (was 56.7 / 2.4 deg). B38+V47|8/8 + selftest GREEN
 2026-10-31|T158|DONE|e5f83a6,e87b1da|client lost ~50% of R/1-4/Q presses (sampled every 2nd tick); harness hid it (replay pulses latched). Fixed: cumulative press counts per packet; 16/16 on wifi+bad. B39, V47 extended|9/9 + selftest GREEN
 2026-10-31|T142|DONE|2456913|B-b FIXED: real cause = client interp wiped mech body_scale (B40), beam 0.41->0.027 m; B-c = 42 deg lock-hold cone (tuning, same in SP) -> NEEDS_HUMAN.md|10/10 + selftest GREEN
+2026-10-31|T143|DONE|e12f7a2,748a019|crash_scan allow-list + log_flood; found T159 (RPC before Arena under bad net) and B41 (my aim_desync broke V45; skew-tolerant series oracles)|10/10
