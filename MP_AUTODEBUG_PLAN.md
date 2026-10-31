@@ -159,6 +159,8 @@ returns a verdict:
 | `latency_recovery` (Mode B) | converges after disturbance ends | back below epsilon within recovery window |
 | `crash_scan` | stderr + exit codes | no push_error, no nonzero exit, no process death (catches B17-class) |
 
+(2026-10-31: HUD layout/state and screenshot review moved IN scope -- see §9.)
+
 **Out of scope (route to a `NEEDS_HUMAN.md` list, never attempt):**
 rendered-position smoothing that does not appear in transform logs; input feel /
 perceived rubber-banding within tolerance; audio sync; animation phase that does
@@ -247,9 +249,7 @@ interaction:
 2. **Dependencies pre-installed.** Nothing fetched mid-run. Install the Python
    deps for the comparison/oracle tools via aptitude before starting (I'll list
    packages when we build M1; you run aptitude separately).
-3. **Push policy.** Recommend **commit but do not push** — autonomous commits are
-   safe and reversible, pushing is a publish action and your repo stays private.
-   Override to allow push is one allow-list line if you want it.
+3. **Push policy.** Commit + push to main per task (user decision 2026-10-31).
 4. **Scope manifest sign-off.** Confirm the in/out-of-scope split in §4 so the
    agent never wanders into feel/visual territory.
 5. **Determinism baseline green.** Do not unleash M3 until the §1 self-test
@@ -277,3 +277,72 @@ interaction:
 
 M0–M2 are buildable now. M3 has bugs to chew on once netcode is generating
 divergence. Sonnet for M0–M2 (mechanical/build-out), Opus for the M3 brief design.
+
+---
+
+## 9. Coverage map v2 (2026-10-31) -- every bug class, how it is caught
+
+Written after T129 showed the M0-M2 harness was green while real LAN play had
+8 bugs (B-a..B-h, `T129_CHECKLIST.md`). Root lesson: the harness ran under
+conditions real play never has -- shared settings file, zero loss, zero
+latency, one match per process, no scene flow, no HUD checks. v2 closes those
+gaps first, then adds breadth. Tasks are SPEC.md §T T137-T157, in run order (T137 = loop brief, needs user).
+
+Sources: Gaffer on Games "Snapshot Interpolation" (buffer >= 3x send interval;
+test at 5% loss, +-2 frames jitter); Godot high-level multiplayer docs (node
+paths must match, unreliable_ordered drops late packets, channel 0 = three
+channels, no cross-channel ordering guarantee); Godot forum "Node not found"
+threads (RPC before spawn, RPC after free, authority change timing); Politowski
+et al. 2023 game-bug taxonomy, arXiv 2311.16645 (63 categories: network,
+temporal, non-temporal, navigation, crash, sound, balance, graphics); Forge
+network tests (headless AI clients on localhost); userspace UDP chaos proxies
+(rs-lag, udp-wan-proxy -- reimplemented as stdlib Python, no root, no deps).
+
+### Harness gaps that hid the T129 bugs (fix first)
+
+| Gap | Hid | Fix |
+|---|---|---|
+| all peers share one `user://` (settings.cfg, profile.cfg) | B-a sensitivity mismatch; profile write races | T138 per-process `XDG_DATA_HOME` + per-peer settings in scenario |
+| loopback = 0 loss, 0 latency | B-a lost look deltas; interp starvation; stale-snapshot races | T139 chaos proxy |
+| no scene flow (scenarios start in Arena, end at exit) | B-f, B-g | T144 lifecycle actions |
+| HUD never inspected | B-d, B-e | T147, T148 |
+| one match per process | cross-match state leaks | T152 |
+
+### Bug classes
+
+| Class (taxonomy) | Ours / known instances | Detection | Status |
+|---|---|---|---|
+| State desync: replicated fields | B31-B35, audit #11 | per-field oracles (health, ammo, beacon, lock, active_set, reload, hit_confirm) | have (M1-M2) |
+| State desync: owner-local aim | **B-a** (likely B-b, B-c) | `aim_desync`: owner-client torso yaw + cam pitch vs server, V45 skew | T140-T142 |
+| Dual simulation (state computed on 2 peers, never reconciled) | B-a; `Mech.gd:633` own torso never overwritten | same oracle; V-rule: receiver ⊥ applies own settings to remote input | T141-T142 |
+| Lossy channel for non-idempotent data (deltas, one-shot events) | `_rpc_input` look deltas over unreliable_ordered | chaos loss profile + aim oracle | T141 |
+| Dual-path staleness (reliable event + older unreliable snapshot field) | `active_set`/`reloading` in `_mech_snapshot` + reliable `_sync_*` | reorder/latency profile + existing field oracles | T151 |
+| Interpolation starvation / hitch | 100ms buffer @20Hz (`Mech.gd:613`) < Gaffer 3x rule (150ms) | log ticks where render_t > newest snapshot | T150 |
+| RPC to missing node (before spawn / after free / detached) | **B-h**, B-g flood; Godot forum class | crash_scan + engine-error patterns (`Node not found`, `Failed to get cached node`, `!is_inside_tree`) | T143, T146 |
+| Session lifecycle (quit, disconnect, timeout, rejoin) | **B-f, B-g**, B37 | lifecycle actions + `log_flood` + `peer_closed` | T144-T145, T153 |
+| Cross-match leaks | untested | 2 matches per process, oracles on match 2 | T152 |
+| HUD layout | **B-d** | headless Control-rect dump: overlap, min size, off-viewport, server/client parity | T147 |
+| HUD state parity | **B-e**, B32-B35 | per-loadout element visibility, server vs client | T148 |
+| Invalid value (non-temporal) | B21, B28 | `world_invariants`: hp/ammo in range, no NaN, beacons in range | T149 |
+| Invalid position / stuck / out of bounds (navigational) | B6, B19 | `world_invariants`: y > kill floor, moving input but no displacement >3s | T149 |
+| Softlock / unwinnable | V19 | match ends within scenario budget | T149 |
+| Event cadence (accelerated / delayed response) | B29 | determinism gate + fire cadence ≤ weapon rate | have + T149 |
+| Framerate dependence | B29, V42 | determinism selftest | have |
+| Crash (start, action, shutdown) | B17 | crash_scan + exit codes; soak | have + T152 |
+| Leaks / perf / bandwidth | untested | soak: orphan + object count, physics ms/tick, bytes/s per peer | T152 |
+| Match-end bookkeeping | V36 ELO | both peers' ELO/XP deltas match formula | T154 |
+| Runaway sound | B12-class | loop players still playing N ticks after event/death | T155 |
+| Visual (corrupt frame, missing asset, wrong transition) | B14, B16, B18 | rendered screenshots at scripted moments, agent vision review | T156 |
+| Feel (rubber-band, smoothing) | -- | out of scope → NEEDS_HUMAN.md; session recorder gives context | T157 |
+
+### Deliberately skipped (ponytail)
+
+- RPC payload fuzzing beyond V41: LAN with friends; add if it ever goes public.
+- Pixel-diff baselines: art still changing (G24-G27); agent vision review instead.
+- Prediction (T131), dedicated server (T130), host migration: only if T150 / feel demands.
+- Godot upgrade re-verification: V46 already says how; do it when upgrading.
+
+### Rule for every new oracle
+
+Red before green: each oracle must FAIL on a known-bad run (archived run, stashed
+fix, or synthetic log) before its PASS means anything (B36, B37 lessons).
