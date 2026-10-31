@@ -5,7 +5,8 @@ Plan of record: `MP_AUTODEBUG_PLAN.md` §9. Queue: SPEC.md §T.
 
 ## One iteration = one task
 
-1. **Pick.** Lowest-numbered §T row with status `.` or `~`, T138 or later, that
+1. **Pick.** First §T row in table order (rows may be inserted out of number
+   order to reprioritize) with status `.` or `~`, T138 or later, that
    `AUTODEBUG_JOURNAL.md` does not list as BLOCKED. None left → journal "queue
    empty", PushNotification, `ScheduleWakeup stop:true`. Done.
 2. **Context.** Read the row, its cites (§V, earlier §T, §B), the last ~5 journal

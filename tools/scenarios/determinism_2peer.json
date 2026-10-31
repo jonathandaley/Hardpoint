@@ -15,7 +15,8 @@
     "rpc_integrity",
     "event_sidefx",
     "spawn_join",
-    "prediction_recon"
+    "prediction_recon",
+    "aim_desync"
   ],
   "thresholds": {
     "pos_eps": 1.5,

@@ -15,7 +15,8 @@
     "team_assignment",
     "spawn_join",
     "active_set_desync",
-    "reload_desync"
+    "reload_desync",
+    "aim_desync"
   ],
   "expect_fail": [],
   "thresholds": {
