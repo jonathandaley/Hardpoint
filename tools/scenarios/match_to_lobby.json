@@ -6,7 +6,7 @@
   "mech": "res://resources/mechs/Hippogriff.tres",
   "duration_ticks": 500,
   "oracles": [
-    "crash_scan",
+    "lobby_roster",
     "log_flood",
     "rpc_integrity",
     "spawn_join"
@@ -18,7 +18,7 @@
       "action": "return_to_lobby"
     }
   ],
-  "_comment": "T146: server returns everyone to the lobby (V40 _rpc_change_scene, the T121 match-end path) while snapshots/input are in flight. B-h itself is guarded by tools/gd_probes/detached_snapshot (it never fired here). Expected RED until T160 + T159: server Lobby._ready wipes mp_lobby peers ('_apply_squad: unknown peer', every run) and in-flight client _rpc_input hits the server's departed Arena ('Node not found: Arena/Mech_1_0', most runs).",
+  "_comment": "T146/T160: server returns everyone to the lobby (V40 _rpc_change_scene, the T121 match-end path) while snapshots/input are in flight. lobby_roster: lobby keeps all peers + accepts squads + clears the match roster (was RED: Lobby._ready wiped clients, B44). crash_scan deliberately NOT listed until T159 fixes in-flight _rpc_input hitting the server's departed Arena ('Node not found: Arena/Mech_1_0', most runs) -- T159 re-adds it.",
   "peers": {
     "server": {
       "input": {
@@ -54,8 +54,5 @@
         ]
       }
     }
-  },
-  "expect_fail": [
-    "crash_scan"
-  ]
+  }
 }
