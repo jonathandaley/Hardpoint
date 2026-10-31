@@ -13,7 +13,7 @@
     "aim_desync",
     "transform_desync",
     "spawn_join",
-    "crash_scan",
+    "crash_scan", "log_flood",
     "rpc_integrity"
   ],
   "_comment": "T142 B-b guard: client (sens 0.006 vs server 0.003, the B-a trigger) turns, holds still, then fires LaserCannonLight; beam_aim checks each server-reported beam hit lands on the client's own crosshair hit. Fires only while settled (mid-turn lag is not desync). Red-tested by disabling server-side absolute aim.",

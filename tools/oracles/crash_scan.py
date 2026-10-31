@@ -3,40 +3,46 @@
 Reads the per-peer process logs (<role>.log, stdout+stderr merged by
 run_scenario.py) and meta.json (exit codes / timeouts). FAILs on:
   - a nonzero exit code or a timeout kill (process death / hang), or
-  - a Godot error line (ERROR:, SCRIPT ERROR, USER ERROR, push_error/
-    push_warning escalations) in any peer log.
+  - SCRIPT ERROR / USER ERROR, or
+  - ANY Godot "ERROR:" line not on the shutdown-noise allow-list (T143).
+    That covers push_error (Godot 4.6 prints it as bare "ERROR:" + "at:
+    push_error", B37) and engine errors such as "Node not found", "Failed to
+    get cached node", 'Condition "!is_inside_tree()"', "Invalid packet
+    received" -- the B-g/B-h class, which the old marker list ignored.
+Allow-list = noise measured on green runs (31 archived suite runs, 2026-10-31).
 Needs no event stream -- it is a pure log/exit scan.
 """
 import glob
 import json
 import os
+import re
 
 from . import base
 
 NAME = "crash_scan"
 
-# Godot prints these on a GDScript runtime fault ("SCRIPT ERROR") or, on some
-# builds, push_error ("USER ERROR") -- the B17-class. Godot 4.6 headless prints
-# push_error as a bare "ERROR: <msg>" followed by "   at: push_error (...)", so
-# that two-line shape is matched too (B37). Any other bare "ERROR:" is engine
-# noise (resource loader, ENet send-after-close at teardown, resources-in-use
-# at exit) and is intentionally NOT matched; process death is caught via
-# exit code/timeout.
 ERROR_MARKERS = ("SCRIPT ERROR", "USER ERROR")
-PUSH_ERROR_FRAME = "at: push_error ("
+# ponytail: allow-list, not deny-list -- unknown engine errors fail by default.
+# Add an entry only with evidence it is teardown noise, never to silence a bug.
+ALLOWED_ERRORS = (
+    re.compile(r"^ERROR: \d+ resources still in use at exit"),        # engine exit report
+    re.compile(r"^ERROR: Unable to send packet on channel \d+, max channels: \d+"),  # ENet send after close at teardown
+)
 
 
-def _scan_log(path):
-    """First (lineno, line) containing an error marker, or None."""
-    prev = None
+def _allowed(line):
+    return any(p.search(line) for p in ALLOWED_ERRORS)
+
+
+def scan_log(path):
+    """First (lineno, line) that is an error, or None."""
     with open(path, errors="replace") as f:
         for i, line in enumerate(f, 1):
-            for mark in ERROR_MARKERS:
-                if mark in line:
-                    return i, line.rstrip()
-            if PUSH_ERROR_FRAME in line and prev is not None and prev[1].startswith("ERROR:"):
-                return prev
-            prev = (i, line.rstrip())
+            line = line.rstrip()
+            if any(m in line for m in ERROR_MARKERS):
+                return i, line
+            if line.startswith("ERROR:") and not _allowed(line):
+                return i, line
     return None
 
 
@@ -59,13 +65,13 @@ def run(ctx):
                 return base.verdict(NAME, base.FAIL, peer=role, pattern="sudden_jump",
                                     note="%s exited nonzero (code %s)" % (role, rc))
 
-    # 2. Error markers in each peer log.
+    # 2. Error lines in each peer log.
     logs = sorted(glob.glob(os.path.join(run_dir, "*.log")))
     if not logs and not os.path.exists(meta_path):
         return base.verdict(NAME, base.SKIP, note="no *.log or meta.json in run_dir")
     for path in logs:
         role = os.path.basename(path)[: -len(".log")]
-        hit = _scan_log(path)
+        hit = scan_log(path)
         if hit is not None:
             lineno, line = hit
             return base.verdict(NAME, base.FAIL, peer=role, first_tick=None,
