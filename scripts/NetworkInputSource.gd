@@ -12,6 +12,7 @@ var _fire_secondary: bool = false
 var _slot_toggle: int = -1
 var _reload: bool = false
 var _ability: bool = false
+var _last_presses: Array = [0, 0, 0, 0, 0, 0]  # T158: last cumulative counts seen
 
 func push_input(payload: Dictionary) -> void:
 	_move_dir = payload.get("move", Vector2.ZERO)
@@ -22,11 +23,27 @@ func push_input(payload: Dictionary) -> void:
 		_abs_aim = aim
 	_fire_primary = payload.get("fire_prim", false)
 	_fire_secondary = payload.get("fire_sec", false)
-	var st: int = payload.get("slot_toggle", -1)
-	if st >= 0:
-		_slot_toggle = st
-	_reload = _reload or payload.get("reload", false)
-	_ability = _ability or payload.get("ability", false)
+	# T158/V47: one-shots arrive as cumulative press counts [reload, ability, slot0..3];
+	# new presses = diff vs the last packet, so a lost packet is healed by the next.
+	# ponytail: presses closer than one packet (2 ticks) collapse -- one reload, and a
+	# double-tapped slot toggles by parity; humans can't press faster than that.
+	var c = payload.get("presses")
+	if not (c is Array and c.size() == 6):
+		return
+	for i in 6:
+		if typeof(c[i]) != TYPE_INT:
+			return  # V41: malformed, drop the whole update
+	for i in 6:
+		var n: int = c[i] - int(_last_presses[i])
+		if n <= 0:
+			continue
+		if i == 0:
+			_reload = true
+		elif i == 1:
+			_ability = true
+		elif n % 2 == 1:
+			_slot_toggle = i - 2
+	_last_presses = c.duplicate()
 
 func get_move_direction() -> Vector2:
 	return _move_dir

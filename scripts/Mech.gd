@@ -42,6 +42,7 @@ var _desired_move_dir: Vector3 = Vector3.ZERO
 var _no_damage_timer: float = 0.0  # seconds since last damage hit; drives repair_rate skill
 var _net_input_tick: int = 0       # increments every physics tick; used for 30Hz throttle
 var _net_input_seq: int = 0        # monotonic send counter
+var _press_counts: Array = [0, 0, 0, 0, 0, 0]  # T158/V47: cumulative presses [reload, ability, slot0..3]
 var _rpc_rate_times: Array = []    # server-side sliding window of _rpc_input arrival times (1s)
 var _rpc_rate_warned: bool = false # true while peer is over 60Hz limit (suppress repeat warnings)
 var _snap_buf: Array = []          # V37: last 2 server snapshots [{time,pos,quat,vel}]; T120 reads for interp
@@ -639,6 +640,16 @@ func _maybe_forward_input() -> void:
 		return
 	if owner_peer_id != multiplayer.get_unique_id():
 		return
+	# T158 (B39): a press lasts ONE tick (is_action_just_pressed) but packets go out
+	# every 2nd tick, so sample every tick into cumulative counts. The counts ride
+	# every packet (V47: absolute, latest wins), so a lost packet can't lose a press.
+	if _input_source.is_reload_pressed():
+		_press_counts[0] += 1
+	if _input_source.is_ability_pressed():
+		_press_counts[1] += 1
+	var st: int = _input_source.get_slot_toggle()
+	if st >= 0 and st < 4:
+		_press_counts[2 + st] += 1
 	_net_input_tick += 1
 	if _net_input_tick % 2 != 0:
 		return
@@ -647,9 +658,7 @@ func _maybe_forward_input() -> void:
 		"aim": Vector2(torso.rotation.y, _camera_pitch),  # V47: absolute, latest wins
 		"fire_prim": _input_source.is_firing_primary(),
 		"fire_sec": _input_source.is_firing_secondary(),
-		"slot_toggle": _input_source.get_slot_toggle(),
-		"reload": _input_source.is_reload_pressed(),
-		"ability": _input_source.is_ability_pressed(),
+		"presses": _press_counts.duplicate(),
 	}
 	_net_input_seq += 1
 	rpc_id(1, &"_rpc_input", _net_input_seq, payload)
