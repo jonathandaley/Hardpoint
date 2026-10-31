@@ -37,6 +37,14 @@ var _connected: Array = []
 var _match_started: bool = false
 var _override_done: bool = false
 var _deadline_frame: int = -1
+# T144: scenario "actions" for this roster slot, e.g.
+#   "actions": [{"tick": 200, "peer": "client_1", "action": "quit_to_hangar"}]
+# tick counts from the input override, like replay keyframes.
+var _key: String = ""
+var _override_frame: int = -1
+var _actions: Array = []
+var _quit_frame: int = -1
+var _peer_checked: bool = false
 
 func _ready() -> void:
 	var path := ""
@@ -146,6 +154,17 @@ func _process(_delta: float) -> void:
 	if not _override_done:
 		_try_override_input()
 		return
+	var t := Engine.get_physics_frames() - _override_frame
+	while not _actions.is_empty() and int(_actions[0].get("tick", 0)) <= t:
+		_run_action(_actions.pop_front())
+	if _quit_frame >= 0 and not _peer_checked and Engine.get_physics_frames() - _quit_frame >= 60:
+		_peer_checked = true
+		var mp := multiplayer.multiplayer_peer
+		var connected := mp != null and not (mp is OfflineMultiplayerPeer) \
+			and mp.get_connection_status() != MultiplayerPeer.CONNECTION_DISCONNECTED
+		var scene := get_tree().current_scene
+		print("[Harness] peer_check %s: connected=%s scene=%s" % [_key, str(connected).to_lower(),
+			scene.name if scene != null else "<none>"])
 	if _deadline_frame >= 0 and Engine.get_physics_frames() >= _deadline_frame:
 		print("[Harness] duration reached, quitting (%s)" % _role)
 		Game.disconnect_mp()
@@ -194,5 +213,25 @@ func _try_override_input() -> void:
 	replay.load_spec(spec)
 	mine.set_input_source(replay)
 	_override_done = true
+	_key = key
+	_override_frame = Engine.get_physics_frames()
+	for a in _scenario.get("actions", []):
+		if String(a.get("peer", "")) == key:
+			_actions.append(a)
+	_actions.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return int(a.get("tick", 0)) < int(b.get("tick", 0)))
 	_deadline_frame = Engine.get_physics_frames() + int(_scenario.get("duration_ticks", 600))
 	print("[Harness] input override done for %s (mech %s); deadline frame %d" % [_role, mine.name, _deadline_frame])
+
+# T144: lifecycle actions go through the game's real code paths, never a
+# harness shortcut, so a fix in the game is what turns the oracles green.
+func _run_action(a: Dictionary) -> void:
+	var action := String(a.get("action", ""))
+	print("[Harness] action %s (%s)" % [action, _key])
+	match action:
+		"quit_to_hangar":
+			# = pause menu QUIT (PauseMenu -> Arena._on_pause_quit)
+			get_tree().current_scene.call("_on_pause_quit")
+			_quit_frame = Engine.get_physics_frames()
+		_:
+			push_error("[Harness] unknown action %s" % action)
