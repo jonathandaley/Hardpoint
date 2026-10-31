@@ -1,0 +1,66 @@
+{
+  "name": "quit_flow",
+  "seed": 7373,
+  "port": 8920,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Hippogriff.tres",
+  "duration_ticks": 600,
+  "oracles": [
+    "peer_closed",
+    "scene_routes",
+    "crash_scan",
+    "log_flood",
+    "rpc_integrity",
+    "spawn_join"
+  ],
+  "actions": [
+    {
+      "tick": 200,
+      "peer": "client_1",
+      "action": "quit_to_hangar"
+    }
+  ],
+  "_comment": "T144 B-f/B-g repro: client quits through the real pause-menu path at tick 200 and idles in the hangar ~6.5 s while the server keeps the match running. peer_closed: client must be disconnected; log_flood/crash_scan: no 'Node not found: Arena' stream; scene_routes: no dead-end screens. Expected RED until T145: client stays connected, 141x 'Failed to get cached node' in ~6.5 s, 4 dead-end scenes.",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0,
+              0
+            ]
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0,
+              0
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "expect_fail": [
+    "peer_closed",
+    "scene_routes",
+    "crash_scan",
+    "log_flood"
+  ]
+}
