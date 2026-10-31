@@ -188,6 +188,10 @@ func _mech_snapshot(m: Node, tick: int, wall: int, role: String, peer: int) -> D
 		rot_local = torso.transform.basis.get_rotation_quaternion()
 		rot_global = torso.global_transform.basis.get_rotation_quaternion()
 	var pos: Vector3 = m.global_position
+	# T140: aim as plain floats; quaternion snapping noise (~0.04 rad) hides small drift
+	var yaw: float = torso.rotation.y if torso != null else 0.0
+	var pitch = m.get("_camera_pitch")
+	var aim := [snappedf(yaw, 0.00001), snappedf(pitch if pitch != null else 0.0, 0.00001)]
 	var ammo: Dictionary = {}
 	var reloading: Dictionary = {}
 	var weapons = m.get("_weapons")
@@ -214,6 +218,7 @@ func _mech_snapshot(m: Node, tick: int, wall: int, role: String, peer: int) -> D
 		"pos": [snappedf(pos.x, 0.0001), snappedf(pos.y, 0.0001), snappedf(pos.z, 0.0001)],
 		"rot_local": [snappedf(rot_local.x, 0.0001), snappedf(rot_local.y, 0.0001), snappedf(rot_local.z, 0.0001), snappedf(rot_local.w, 0.0001)],
 		"rot_global": [snappedf(rot_global.x, 0.0001), snappedf(rot_global.y, 0.0001), snappedf(rot_global.z, 0.0001), snappedf(rot_global.w, 0.0001)],
+		"aim": aim,
 		"health": snappedf(m.get("health"), 0.01),
 		"ammo": ammo,
 		"lock_target": lock_id,

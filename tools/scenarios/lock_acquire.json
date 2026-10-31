@@ -17,7 +17,8 @@
     "crash_scan",
     "rpc_integrity",
     "event_sidefx",
-    "hit_confirm"
+    "hit_confirm",
+    "aim_desync"
   ],
   "_comment": "kill_confirm choreography with RocketLauncherLight (requires_lock): duelists hold fire_primary throughout, but fire() no-ops until the 3s 5-degree-cone lock acquires during the settled-aim phase, then homing rockets fly. Exercises T102/B33 lock replication: lock_target oracle check 2 compares every client's lock_target against the server per tick; check 1 guards dead/absent locks on the authoritative stream (B21/B23).",
   "peers": {

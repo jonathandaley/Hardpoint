@@ -1,0 +1,116 @@
+{
+  "name": "aim_sweep_sens",
+  "seed": 4242,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Hippogriff.tres",
+  "duration_ticks": 600,
+  "oracles": [
+    "aim_desync",
+    "transform_desync",
+    "spawn_join",
+    "team_assignment",
+    "crash_scan",
+    "rpc_integrity"
+  ],
+  "expect_fail": [
+    "aim_desync",
+    "transform_desync"
+  ],
+  "port": 8916,
+  "_comment": "T140 B-a repro (a): client mouse_sensitivity 0.006 vs server default 0.003. Client turns + pitches in 4 sweeps with 60-tick holds; aim_desync compares the client's own aim with the server's copy at settled ticks. Expected RED until T141 (server scales forwarded look deltas by its OWN sensitivity, Mech.gd _handle_look). transform_desync also RED here (57 deg torso yaw gap > its 0.5 rad tolerance).",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0,
+              0
+            ]
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0,
+              0
+            ]
+          },
+          {
+            "tick": 60,
+            "look": [
+              5,
+              0
+            ]
+          },
+          {
+            "tick": 120,
+            "look": [
+              0,
+              0
+            ]
+          },
+          {
+            "tick": 180,
+            "look": [
+              -4,
+              1
+            ]
+          },
+          {
+            "tick": 240,
+            "look": [
+              0,
+              0
+            ]
+          },
+          {
+            "tick": 300,
+            "look": [
+              3,
+              -2
+            ]
+          },
+          {
+            "tick": 390,
+            "look": [
+              0,
+              0
+            ]
+          },
+          {
+            "tick": 450,
+            "look": [
+              -6,
+              0
+            ]
+          },
+          {
+            "tick": 510,
+            "look": [
+              0,
+              0
+            ]
+          }
+        ]
+      },
+      "settings": {
+        "mouse_sensitivity": 0.006
+      }
+    }
+  }
+}

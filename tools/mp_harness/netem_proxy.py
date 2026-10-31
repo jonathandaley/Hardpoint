@@ -76,9 +76,11 @@ class Lane:
 
 def run(listen, target, cfg, seed):
     loop = asyncio.new_event_loop()
-    rng = random.Random(seed)
     stats = collections.Counter()
-    c2s, s2c = Lane("c2s", cfg, rng, stats), Lane("s2c", cfg, rng, stats)
+    # one RNG per lane: a lane's drop pattern depends only on its own packet order,
+    # not on how c2s/s2c traffic interleaves (which varies run to run)
+    c2s = Lane("c2s", cfg, random.Random(seed * 2), stats)
+    s2c = Lane("s2c", cfg, random.Random(seed * 2 + 1), stats)
     down = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     down.bind(("127.0.0.1", listen))
     down.setblocking(False)
