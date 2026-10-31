@@ -805,6 +805,10 @@ func _update_lock(delta: float) -> void:
 		lock_progress = 0.0
 		_lock_timer = 0.0
 		# _lock_candidate intentionally kept - hold cone needs it for indicator stability
+		# B47 (B-e): the red aim box (eligible target) is drawn for every loadout, so
+		# broadcast it here too -- this early return used to skip the broadcast below.
+		if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+			_broadcast_lock_state()
 		return
 	if candidate == null:
 		_lock_timer = 0.0

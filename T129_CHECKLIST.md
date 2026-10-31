@@ -33,7 +33,7 @@ Human 2-peer LAN session. Passing closes T40 (SPEC.md). First session 2026-09-28
 - Wrong from spawn.
 - Toggling weapons changes how the squashed icons look, erratically. Firing is unaffected, and the reload bar and ammo counter render correctly.
 
-### B-e: red aiming box
+### B-e: red aiming box -- FIXED 2026-10-31 (T148, SPEC B47): eligible target was never broadcast for loadouts without a lock weapon
 - The client never gets the red aiming box (the square aim indicator) when flying a mech with only rifles and no lock-on weapons.
 - With a lock-on weapon, the lock-on ring does add the red box.
 - The tester is "pretty sure" but wants it rechecked. Possibly the box is only drawn when a lock weapon is present, or only on the server for non-lock loadouts.
