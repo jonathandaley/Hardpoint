@@ -14,15 +14,20 @@ from . import base
 
 NAME = "interp_smoothness"
 
-DEFAULTS = {"interp_min_move": 0.02, "interp_max_stall": 0.15, "interp_min_samples": 30}
+DEFAULTS = {"interp_min_move": 0.02, "interp_max_stall": 0.15, "interp_min_samples": 30, "interp_warmup_ticks": 30}
 
 
-def stall_ratios(server, client, min_move):
-    """{mech_id: (moving_ticks, stalled_ticks)} for one client."""
+def stall_ratios(server, client, min_move, warmup=30):
+    """{mech_id: (moving_ticks, stalled_ticks)} for one client. The first
+    `warmup` ticks of each mech's series are skipped: the interpolation buffer
+    starts empty when streaming begins (T162: mechs start moving right then)."""
     out = {}
     for mid in client.mech_ids:
         moving = stalled = 0
+        first = next((t for t in client.ticks if client.at(t, mid) is not None), None)
         for t in client.ticks:
+            if first is None or t < first + warmup:
+                continue
             a, b = client.at(t, mid), client.at(t + 1, mid)
             sa, sb = server.at(t, mid), server.at(t + 1, mid)
             if None in (a, b, sa, sb) or math.dist(sa["pos"], sb["pos"]) < min_move:
@@ -40,7 +45,8 @@ def run(ctx):
     th = {**DEFAULTS, **ctx.get("thresholds", {})}
     worst, checked = None, 0
     for role in base.client_roles(primary):
-        for mid, (moving, stalled) in stall_ratios(primary["server"], primary[role], float(th["interp_min_move"])).items():
+        for mid, (moving, stalled) in stall_ratios(primary["server"], primary[role], float(th["interp_min_move"]),
+                                                   int(th["interp_warmup_ticks"])).items():
             if moving < int(th["interp_min_samples"]):
                 continue
             checked += 1

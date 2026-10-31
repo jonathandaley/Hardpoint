@@ -59,8 +59,10 @@ def run(ctx):
         role = role_by_peer.get(owner_by_mech.get(src))
         if role is None:
             continue  # server-owned or unattributed shooter; no RPC involved
-        checked += 1
         t = e["tick"]
+        if primary[role].ticks and t + delay > primary[role].ticks[-1]:
+            continue  # T162: the owning client stopped logging before the confirm window closed
+        checked += 1
         pool = confirms[role]
         match = next((i for i, ct in enumerate(pool) if t - skew <= ct <= t + delay), None)
         if match is None:
