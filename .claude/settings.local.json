@@ -25,5 +25,18 @@
     "defaultMode": "default"
   },
   "spinnerTipsEnabled": false,
-  "prefersReducedMotion": true
+  "prefersReducedMotion": true,
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /home/jonathan/.claude/hooks/usage_guard.py"
+          }
+        ]
+      }
+    ]
+  }
 }
