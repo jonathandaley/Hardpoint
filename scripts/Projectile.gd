@@ -54,6 +54,14 @@ func _spawn_smoke() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if not Game.prof_on:  # T165 profiling shim
+		_physics_process_impl(delta)
+		return
+	var t0 := Time.get_ticks_usec()
+	_physics_process_impl(delta)
+	Game.prof_add("projectile", Time.get_ticks_usec() - t0)
+
+func _physics_process_impl(delta: float) -> void:
 	_age += delta
 	if _age >= lifetime:
 		queue_free()
