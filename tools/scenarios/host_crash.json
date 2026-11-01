@@ -1,0 +1,58 @@
+{
+  "name": "host_crash",
+  "seed": 5656,
+  "port": 8931,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Hippogriff.tres",
+  "duration_ticks": 1600,
+  "oracles": [
+    "peer_closed",
+    "crash_scan",
+    "log_flood",
+    "spawn_join"
+  ],
+  "actions": [
+    {
+      "tick": 60,
+      "peer": "server",
+      "action": "kill_client"
+    }
+  ],
+  "_comment": "T167: the host process is SIGKILLed at tick 60 (crash / power cut: no ENet goodbye). Every client must notice within its run (Game.PEER_TIMEOUT_MS, ~16 s) and land on the title (V54); peer_closed requires a server_lost_check on each client when the server was killed. crash_scan allows -9 for the server only.",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

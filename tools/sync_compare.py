@@ -24,7 +24,7 @@ from oracles import (  # noqa: E402
     crash_scan, rpc_integrity, event_sidefx, ammo_desync, beacon_desync, spawn_join,
     friendly_fire, prediction_recon, hit_confirm, active_set_desync, reload_desync,
     aim_desync, input_delivery, beam_aim, log_flood, peer_closed, scene_routes, lobby_roster,
-    hud_layout, world_invariants, interp_smoothness, latency_recovery, rpc_modes, fair_start, soak, menu_flow, bot_takeover,
+    hud_layout, world_invariants, interp_smoothness, latency_recovery, rpc_modes, fair_start, soak, menu_flow, bot_takeover, peer_drop,
 )
 
 # Registry of oracle modules. Add modules here as they land.
@@ -61,6 +61,7 @@ ORACLES = {
     soak.NAME: soak,
     menu_flow.NAME: menu_flow,
     bot_takeover.NAME: bot_takeover,
+    peer_drop.NAME: peer_drop,
 }
 
 
@@ -92,7 +93,7 @@ def select_oracles(scenario, override):
         names = override
     else:
         names = scenario.get("oracles") or list(ORACLES)
-        for auto in ("world_invariants", "interp_smoothness", "fair_start"):  # T149/T150: every scenario (SKIP if n/a)
+        for auto in ("world_invariants", "interp_smoothness", "fair_start", "peer_drop"):  # T149/T150: every scenario (SKIP if n/a)
             if auto not in names:
                 names = list(names) + [auto]
     known, unknown = [], []
