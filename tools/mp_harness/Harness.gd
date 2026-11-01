@@ -55,6 +55,12 @@ var _live_logged: bool = false  # T162: server prints the sync tick it went live
 var _perf_next: int = -1
 var _match_end_frame: int = -1
 var _match_seen_running: bool = false  # Match.running is false before start too
+# T163: scenario "matches": N plays N matches in one session. After a lobby_check the
+# server starts the next match (same peers); every peer re-binds input to its new mech.
+# Actions take "match": n (default 1). Match 2+ logs land in <run>/match<n>/ (Game).
+var _matches: int = 1
+var _match_n: int = 0
+var _mine: Node = null
 
 func _ready() -> void:
 	var path := ""
@@ -77,6 +83,7 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 	_port = int(_scenario.get("port", 8910))
+	_matches = int(_scenario.get("matches", 1))
 	var peers: Dictionary = _scenario.get("peers", {})
 	_expected_clients = 0
 	for k in peers:
@@ -177,6 +184,14 @@ func _process(_delta: float) -> void:
 	if _role == "server" and not _live_logged and Game.mp_live:
 		_live_logged = true
 		print("[Harness] live at sync tick %d" % (Engine.get_physics_frames() - int(Game.get("_sync_start_frame"))))
+	_lobby_tick()
+	if _override_done and _match_n < _matches and not is_instance_valid(_mine):
+		_override_done = false  # T163: match over; bind to the next match's mech
+		_live_logged = false
+		var old := get_node_or_null("ReplayInput")
+		if old != null:
+			old.name = "ReplayInputOld"
+			old.queue_free()
 	if not _override_done:
 		_try_override_input()
 		return
@@ -207,6 +222,12 @@ func _process(_delta: float) -> void:
 		var scene := get_tree().current_scene
 		print("[Harness] peer_check %s: connected=%s scene=%s" % [_key, str(connected).to_lower(),
 			scene.name if scene != null else "<none>"])
+	if _deadline_frame >= 0 and Engine.get_physics_frames() >= _deadline_frame:
+		print("[Harness] duration reached, quitting (%s)" % _role)
+		Game.disconnect_mp()
+		get_tree().quit(0)
+
+func _lobby_tick() -> void:
 	if _lobby_wait and get_tree().current_scene != null and get_tree().current_scene.name == "Lobby":
 		_lobby_wait = false
 		_lobby_check_frame = Engine.get_physics_frames() + 90  # 90 ticks after ARRIVING
@@ -218,10 +239,8 @@ func _process(_delta: float) -> void:
 			squads += 1 if not (peers[pid].get("squad", []) as Array).is_empty() else 0
 		print("[Harness] lobby_check peers=%d expected=%d squads=%d roster=%d" % [peers.size(),
 			_expected_clients + 1, squads, (Game.mp_active_match["roster"] as Array).size()])
-	if _deadline_frame >= 0 and Engine.get_physics_frames() >= _deadline_frame:
-		print("[Harness] duration reached, quitting (%s)" % _role)
-		Game.disconnect_mp()
-		get_tree().quit(0)
+		if _role == "server" and _match_n < _matches:
+			_begin_match()  # T163: next match from the lobby, same peers
 
 # Once our local player mech exists (Arena spawned it), swap its input source
 # for a ReplayInputSource driven by this role's scripted sequence.
@@ -278,16 +297,19 @@ func _try_override_input() -> void:
 func _finish_override(key: String, mine: Node) -> void:
 	_override_done = true
 	_key = key
+	_mine = mine
+	_match_n += 1
+	_hud_file_started = false  # match 2+ dumps go to the new match dir
 	_override_frame = Engine.get_physics_frames()
 	for a in _scenario.get("actions", []):
-		if String(a.get("peer", "")) == key:
+		if String(a.get("peer", "")) == key and int(a.get("match", 1)) == _match_n:
 			_actions.append(a)
 	_actions.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return int(a.get("tick", 0)) < int(b.get("tick", 0)))
 	_hud_ticks = _scenario.get("hud_dump_ticks", []).duplicate()
 	_hud_ticks.sort()
 	_deadline_frame = Engine.get_physics_frames() + int(_scenario.get("duration_ticks", 600))
-	print("[Harness] input override done for %s (mech %s); deadline frame %d" % [_role, mine.name, _deadline_frame])
+	print("[Harness] input override done for %s (mech %s, match %d); deadline frame %d" % [_role, mine.name, _match_n, _deadline_frame])
 
 # T144: lifecycle actions go through the game's real code paths, never a
 # harness shortcut, so a fix in the game is what turns the oracles green.
