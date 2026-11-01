@@ -35,14 +35,15 @@ def check_stuck(server, window, end_tick=None):
         by_mech.setdefault(s["mech_id"], []).append(s)
     for mid, snaps in by_mech.items():
         snaps.sort(key=lambda s: s["tick"])
-        for a, b in zip(snaps, snaps[window:]):
+        for i, (a, b) in enumerate(zip(snaps, snaps[window:])):
             if a["health"] <= 0 or b["health"] <= 0 or "vel" not in a:
                 continue
             if end_tick is not None and b["tick"] >= end_tick:
                 break  # match over: mechs are frozen with their last velocity
-            seg = [s for s in snaps if a["tick"] <= s["tick"] <= b["tick"]]
+            seg = snaps[i:i + window + 1]  # sorted by tick, one snap per tick
             trying = all(math.hypot(s["vel"][0], s["vel"][2]) > 1.0 for s in seg)
-            if trying and math.dist(a["pos"], b["pos"]) < 0.5:
+            # never left a 0.5 m circle (endpoints alone flag a bot that walks out and back, B55)
+            if trying and max(math.dist(a["pos"], s["pos"]) for s in seg) < 0.5:
                 return mid, a["tick"], b["tick"]
     return None
 

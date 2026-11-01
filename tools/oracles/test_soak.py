@@ -3,6 +3,8 @@ import json
 import os
 import tempfile
 
+import math
+
 from . import base, soak
 
 
@@ -30,6 +32,9 @@ def main():
     stuck = [{"tick": t, "mech_id": "M", "pos": [0.0, 0.0, 0.0], "vel": [0.0, 0.0, 6.0], "health": 100.0}
              for t in range(600)]
     assert _run(_perf() + ended, snaps=stuck)["field"] == "stuck", "pushing but not moving"
+    loop = [{"tick": t, "mech_id": "M", "pos": [math.sin(t / 30.0), 0.0, 0.0], "vel": [0.0, 0.0, 1.5],
+             "health": 100.0} for t in range(600)]
+    assert _run(_perf() + ended, snaps=loop)["verdict"] == base.PASS, "out and back is not stuck (B55)"
     assert _run(_perf() + ended, stats={"s2c_bytes": 10 ** 9, "clients": 1})["field"] == "bandwidth"
     assert _run("no perf here\n")["verdict"] == base.SKIP
     print("test_soak: ok")
