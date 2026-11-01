@@ -1,0 +1,34 @@
+{
+  "name": "soak_match",
+  "seed": 2468,
+  "port": 8925,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Hippogriff.tres",
+  "duration_ticks": 54000,
+  "soak": true,
+  "bots_per_team": 2,
+  "net": "bad",
+  "oracles": [
+    "soak",
+    "world_invariants",
+    "crash_scan",
+    "log_flood",
+    "latency_recovery",
+    "health_desync",
+    "transform_desync",
+    "spawn_join",
+    "team_assignment"
+  ],
+  "_comment": "T152 soak: one whole match, bots on every peer (clients' bots through the real network input path) plus 2 filler bots per team, on the 'bad' net profile. Ends 300 ticks after the match ends.",
+  "peers": {
+    "server": {
+      "bot": true
+    },
+    "client_1": {
+      "bot": true
+    },
+    "client_2": {
+      "bot": true
+    }
+  }
+}

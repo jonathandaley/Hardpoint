@@ -21,7 +21,8 @@ Plan of record: `MP_AUTODEBUG_PLAN.md` §9. Queue: SPEC.md §T.
 4. **Verify.** `python3 tools/run_suite.py` all green (~6 min: 15 scenarios + gd_probes as of
    2026-10-31). Sim or RNG code touched → also `python3 tools/selftest.py`. Netcode touched
    (RPCs, snapshots, sync, transitions) → also `python3 tools/run_suite.py --net wifi,bad --no-probes`
-   (~12 min, must stay green).
+   (~12 min, must stay green). Long-run / perf / leak work → `python3 tools/run_suite.py --soak --only
+   soak_match` (~15 min).
 5. **Ship.** Flip the row to `x`, commit `T<n>: <goal>` (+ attribution lines),
    push to main (see memory `git-push-from-claude`). One commit per task;
    instrumentation commits never mixed with fix commits.

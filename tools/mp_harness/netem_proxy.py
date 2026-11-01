@@ -54,6 +54,7 @@ class Lane:
     def push(self, loop, send, data):
         c, s = self.cfg, self.stats
         s[self.name + "_in"] += 1
+        s[self.name + "_bytes"] += len(data)  # T152: bandwidth budget
         out = c.get("outage")  # T151: total blackout window, both directions
         if out and out[0] <= loop.time() - self.t0 < out[1]:
             s[self.name + "_outage"] += 1
