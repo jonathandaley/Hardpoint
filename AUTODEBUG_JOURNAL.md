@@ -21,3 +21,4 @@ date|task|outcome|commit|finding|suite
 2026-10-31|T151|DONE|2d12e60,0ba7823|chaos sweep: fixed B49 (health/shield/ability RPCs unreliable -> stale HP 10 s at 1% loss); wall-clock tick alignment for oracles; queued T162 (late client start)|clean 18/18, wifi+bad 30/30
 2026-10-31|T162|DONE|063e890,dfd3529|server held match until all clients in (no 1 s host head start); 3 oracle side-effects fixed (client-gone tail, interp warm-up, threshold precedence)|18/18, selftest GREEN, sweep 30/30 (re-verdict)
 2026-10-31|T152|DONE|330cbd8|soak: full bot match on bad net ends ~4.5 min, no leaks, 28 KB/s/client; combat physics spikes p90 18 ms -> T165; 4 harness/oracle traps fixed (B52)|18/18 + soak PASS
+2026-10-31|T165|DONE (diagnosis)|a78a6ac|server keeps 60.0 ticks/s through fights; 18-30 ms readings = Godot's max-step-per-second; real spikes = projectile/mech frames up to ~20 ms + deaths 6-7 ms -> T166|18/18 + selftest GREEN
