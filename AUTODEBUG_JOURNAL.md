@@ -20,3 +20,4 @@ date|task|outcome|commit|finding|suite
 2026-10-31|T150|DONE|3eac5ad,4a37c68|clients never interpolated (20 Hz steps, own mech too); real interpolation now, stalls 66%->1% clean, 5-6% wifi/bad (B48)|17/17
 2026-10-31|T151|DONE|2d12e60,0ba7823|chaos sweep: fixed B49 (health/shield/ability RPCs unreliable -> stale HP 10 s at 1% loss); wall-clock tick alignment for oracles; queued T162 (late client start)|clean 18/18, wifi+bad 30/30
 2026-10-31|T162|DONE|063e890,dfd3529|server held match until all clients in (no 1 s host head start); 3 oracle side-effects fixed (client-gone tail, interp warm-up, threshold precedence)|18/18, selftest GREEN, sweep 30/30 (re-verdict)
+2026-10-31|T152|DONE|330cbd8|soak: full bot match on bad net ends ~4.5 min, no leaks, 28 KB/s/client; combat physics spikes p90 18 ms -> T165; 4 harness/oracle traps fixed (B52)|18/18 + soak PASS
