@@ -1,0 +1,104 @@
+{
+  "name": "screenshot_tour",
+  "review": true,
+  "render": [
+    "client_1"
+  ],
+  "seed": 9191,
+  "port": 8935,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Hippogriff.tres",
+  "duration_ticks": 2100,
+  "hud_dump_ticks": [
+    90
+  ],
+  "shots": [
+    "spawn",
+    "damaged",
+    "dead",
+    "match_end"
+  ],
+  "oracles": [
+    "crash_scan",
+    "log_flood"
+  ],
+  "actions": [
+    {
+      "tick": 600,
+      "peer": "server",
+      "action": "kill_mech",
+      "slot": "client_1",
+      "amount": 150
+    },
+    {
+      "tick": 900,
+      "peer": "server",
+      "action": "kill_mech",
+      "slot": "client_1"
+    },
+    {
+      "tick": 1500,
+      "peer": "server",
+      "action": "end_match",
+      "winner": 0
+    }
+  ],
+  "_comment": "T156 review run (not a suite verdict; run: run_suite.py --only screenshot_tour). client_1 rendered under Xvfb; PNGs at spawn, firing (tick 90), first damage (server kill_mech amount 150), death (squad picker), match end (result screen) -> run1/client_1.hud_<tag>.png. Agent reviews them against the T156 checklist; ambiguous -> NEEDS_HUMAN.md. Server ticks are wall-paced; the rendered client runs ~4x slow, so shots are event-driven.",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 60,
+            "fire_primary": true,
+            "move": [
+              0,
+              0
+            ]
+          },
+          {
+            "tick": 200,
+            "fire_primary": false
+          }
+        ]
+      }
+    }
+  },
+  "_checklist": [
+    "every shot: 3D scene rendered (no black/magenta frame), HUD drawn on top, text legible against the scene behind it",
+    "spawn/firing: health bar top-left, team bars + lives + beacon rings top, crosshair centred, one icon per weapon bottom-right at full size with slot number + ammo bar",
+    "firing: ammo bars drain",
+    "damaged: health bar shorter by the damage taken (150/500 here)",
+    "dead: scene dimmed, SELECT NEXT MECH picker lists the remaining squad, team lives count drops",
+    "match_end: result banner matches the winner (client team lost here), table readable, BACK TO LOBBY visible",
+    "not covered: lock ring / red aim box (lock needs ~25 s of aiming at 4x slow render), spectate, other loadouts (menu_flow shot covers Kestrel ARC+SHOTGUN)"
+  ]
+}

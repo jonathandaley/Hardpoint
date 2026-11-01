@@ -69,6 +69,8 @@ def _run_scenarios(args, scenarios, net, label, results):
             continue
         if scen.get("soak") and not (args.soak or (args.only and name in args.only)):
             continue  # T152: soaks run on request (--soak / --only), not every verify
+        if scen.get("review") and not (args.only and name in args.only):
+            continue  # T156: rendered screenshot runs are for review, not verdicts
         out = os.path.join(os.path.abspath(args.out_root), name + ("@" + net if label else ""))
         run_args = ["--timeout", str(max(args.timeout, 1800.0) if scen.get("soak") else args.timeout)]
         if args.godot:
