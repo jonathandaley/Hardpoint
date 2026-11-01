@@ -4,7 +4,7 @@
   "port": 8921,
   "map_path": "res://resources/maps/MathTemple.tres",
   "mech": "res://resources/mechs/Hippogriff.tres",
-  "duration_ticks": 500,
+  "duration_ticks": 800,
   "oracles": [
     "lobby_roster",
     "crash_scan",
@@ -19,7 +19,7 @@
       "action": "return_to_lobby"
     }
   ],
-  "_comment": "T146/T160: server returns everyone to the lobby (V40 _rpc_change_scene, the T121 match-end path) while snapshots/input are in flight. lobby_roster: lobby keeps all peers + accepts squads + clears the match roster (was RED: Lobby._ready wiped clients, B44). crash_scan re-added by T159 (transition handshake, V52).",
+  "_comment": "T146/T160: server returns everyone to the lobby (V40 _rpc_change_scene, the T121 match-end path) while snapshots/input are in flight. lobby_roster: lobby keeps all peers + accepts squads + clears the match roster (was RED: Lobby._ready wiped clients, B44). crash_scan re-added by T159 (transition handshake, V52). duration 800 (T155): on `bad` a lost+resent reliable change-scene can take ~2.5 s, plus STREAM_DRAIN_S and the 90-tick lobby_check wait.",
   "peers": {
     "server": {
       "input": {

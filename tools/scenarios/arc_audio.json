@@ -1,0 +1,147 @@
+{
+  "name": "arc_audio",
+  "seed": 8383,
+  "port": 8933,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Slip.tres",
+  "weapons": [
+    "res://scenes/weapons/ArcWeaponLight.tscn"
+  ],
+  "duration_ticks": 1700,
+  "oracles": [
+    "loop_audio",
+    "crash_scan",
+    "log_flood",
+    "spawn_join",
+    "team_assignment"
+  ],
+  "_comment": "T155: lock_acquire choreography with ArcWeaponLight (beam needs a lock; client_1's mech locks + beams from ~1436). Fire released at 1490 (loop must stop on every peer), held again at 1510, then the server kills client_1's mech mid-beam at 1580 (kill_mech, real take_damage). loop_audio: no audible loop on a dead mech, after match end, or on a client while the server's beam is off.",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 60,
+            "fire_primary": true
+          },
+          {
+            "tick": 1150,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              -9.29,
+              -0.8
+            ]
+          },
+          {
+            "tick": 1250,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 60,
+            "fire_primary": true
+          },
+          {
+            "tick": 1150,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              -9.29,
+              -0.8
+            ]
+          },
+          {
+            "tick": 1250,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 1490,
+            "fire_primary": false
+          },
+          {
+            "tick": 1510,
+            "fire_primary": true
+          }
+        ]
+      }
+    },
+    "client_2": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0.0,
+              0.0
+            ],
+            "fire_primary": true
+          },
+          {
+            "tick": 100,
+            "look": [
+              5.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 550,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "actions": [
+    {
+      "tick": 1580,
+      "peer": "server",
+      "action": "kill_mech",
+      "slot": "client_1"
+    }
+  ]
+}

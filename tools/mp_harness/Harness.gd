@@ -516,6 +516,17 @@ func _run_action(a: Dictionary) -> void:
 		"end_match":
 			# T154: the real match end (Match.force_end, as on a team wipe) -> Game._rpc_match_end
 			get_tree().current_scene.get("match_node").force_end(int(a.get("winner", 0)))
+		"kill_mech":
+			# T155: server kills the mech flown by roster slot "slot" (e.g. client_1) through take_damage
+			var nth := 0
+			for e in Game.mp_active_match.get("roster", []):
+				var pid := int(e.get("peer_id", 0))
+				if pid > 1:
+					nth += 1
+				if (pid == 1 and a.get("slot") == "server") or (pid > 1 and a.get("slot") == "client_%d" % nth):
+					for m in get_tree().get_nodes_in_group("mechs"):
+						if int(m.get("owner_peer_id")) == pid and not m.get("is_dead"):
+							m.take_damage(float(m.get("health")) + 1000.0)
 		"lobby_after_match":
 			# T154: the real post-match return (all ready / 30 s timeout -> Game._do_return_to_lobby)
 			Game._do_return_to_lobby()
