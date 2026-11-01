@@ -5,7 +5,7 @@ extends Node
 func muzzle_flash(pos: Vector3, color: Color = Color(1.0, 0.80, 0.30), broadcast: bool = false) -> void:
 	if broadcast and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		_rpc_muzzle_flash.rpc(pos, color)
-	var mi := _sphere(0.14, color, 6.0)
+	var mi := _sphere(0.14, color, 6.0, true)
 	mi.scale = Vector3(1.875, 1.875, 1.875)
 	get_tree().current_scene.add_child(mi)
 	mi.global_position = pos
@@ -54,7 +54,7 @@ func hit_sparks(pos: Vector3, color: Color = Color(1.0, 0.55, 0.15), broadcast: 
 	if broadcast and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		_rpc_hit_sparks.rpc(pos, color)
 	for i in 6:
-		var mi := _sphere(0.055, color, 3.5)
+		var mi := _sphere(0.055, color, 3.5, true)
 		get_tree().current_scene.add_child(mi)
 		mi.global_position = pos
 		var dir := Vector3(randf_range(-1.0, 1.0), randf_range(0.2, 1.0), randf_range(-1.0, 1.0)).normalized()  # cosmetic
@@ -157,7 +157,23 @@ func _explode_sphere(pos: Vector3, radius: float, color: Color, emission: float,
 		tw_fade.finished.connect(mi.queue_free)
 	)
 
-func _sphere(radius: float, color: Color, emission: float) -> MeshInstance3D:
+# T166 (B53): hit sparks / muzzle flashes ran on every hit and shot, and each sphere
+# built a new SphereMesh + StandardMaterial3D (~0.6 ms per hit_sparks call).
+# shared=true reuses one mesh + material per (radius, color, emission); only for
+# callers that never modify the material (explosion chunks tween emission -> unique).
+var _shared_sphere: Dictionary = {}
+
+func _sphere(radius: float, color: Color, emission: float, shared: bool = false) -> MeshInstance3D:
+	if shared:
+		var key := "%s|%s|%s" % [radius, color, emission]
+		if not _shared_sphere.has(key):
+			var proto := _sphere(radius, color, emission)
+			_shared_sphere[key] = [proto.mesh, proto.get_surface_override_material(0)]
+			proto.free()
+		var smi := MeshInstance3D.new()
+		smi.mesh = _shared_sphere[key][0]
+		smi.set_surface_override_material(0, _shared_sphere[key][1])
+		return smi
 	var mi := MeshInstance3D.new()
 	var mesh := SphereMesh.new()
 	mesh.radius = radius
