@@ -23,3 +23,5 @@ date|task|outcome|commit|finding|suite
 2026-10-31|T152|DONE|330cbd8|soak: full bot match on bad net ends ~4.5 min, no leaks, 28 KB/s/client; combat physics spikes p90 18 ms -> T165; 4 harness/oracle traps fixed (B52)|18/18 + soak PASS
 2026-10-31|T165|DONE (diagnosis)|a78a6ac|server keeps 60.0 ticks/s through fights; 18-30 ms readings = Godot's max-step-per-second; real spikes = projectile/mech frames up to ~20 ms + deaths 6-7 ms -> T166|18/18 + selftest GREEN
 2026-10-31|T166|DONE|df8d4df,b2d2ca6|SFX OGG decoder setup ~1 ms/play -> WAV (per hit 1.7->0.36 ms); B-d ROOT CAUSE found+fixed (fresh-import icon size, B54). TODO next session: confirmation soak|17/18 pre-B54 (hud_layout red = B-d), hud_layout green after; selftest GREEN
+2026-10-31|T166 confirm|DONE|257e561|confirm soak: server phys p90 17.7 -> 8.9 ms, max 24.2 -> 10.5 ms (T166 holds); soak `stuck` false FAIL on out-and-back bot fixed (B55)|soak PASS (re-verdict)
+2026-10-31|T163|DONE|e716ca4,8dc4340|two matches per session (`matches`: N, match 2+ logs in run1/match<n>/); no cross-match leak found; interp warm-up anchored at live (B56)|20/20 (incl two_matches#m2), two_matches wifi+bad 4/4 (re-verdict)
