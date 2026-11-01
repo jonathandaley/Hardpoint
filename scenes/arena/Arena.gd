@@ -3196,6 +3196,8 @@ func on_player_eliminated(p: Node) -> void:
 
 func _on_match_ended(winning_team: int) -> void:
 	_match_over = true
+	if Game.sync_logging_enabled:
+		Game.sync_log_event("match_end", "", {"winner": winning_team})  # T155 loop_audio
 	if _movement_logger != null:
 		_movement_logger.stop_and_analyze()
 	# Disable all mechs (deferred so in-flight _physics_process finishes first - B17).

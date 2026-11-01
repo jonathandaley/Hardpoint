@@ -248,11 +248,15 @@ func _mech_snapshot(m: Node, tick: int, wall: int, role: String, peer: int) -> D
 	var ammo: Dictionary = {}
 	var ammo_max: Dictionary = {}  # T149: world_invariants range check (-1 = infinite)
 	var reloading: Dictionary = {}
+	var loops: Array = []  # T155: weapon slots whose loop audio (arc/laser beam) is playing
 	var weapons = m.get("_weapons")
 	if weapons is Array:
 		for i in weapons.size():
 			var w = weapons[i]
 			if w != null:
+				var lp = w.get("_loop_player")
+				if lp != null and lp.playing and not lp.stream_paused:  # audible (a disabled node pauses its player)
+					loops.append(i)
 				ammo[str(i)] = w.get("ammo")
 				ammo_max[str(i)] = w.get("max_ammo")
 				reloading[str(i)] = w.get("_reloading")
@@ -290,6 +294,7 @@ func _mech_snapshot(m: Node, tick: int, wall: int, role: String, peer: int) -> D
 		"eligible": elig_id,
 		"active_set": m.get("_active_set"),
 		"reloading": reloading,
+		"loops": loops,
 		"team": m.get("team"),
 		"abilities": cds,
 	}
