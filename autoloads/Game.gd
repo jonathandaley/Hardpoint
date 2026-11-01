@@ -377,6 +377,12 @@ func _clear_mp_session() -> void:
 	mp_active_match["roster"] = []
 
 func _on_mp_peer_connected(id: int) -> void:
+	if multiplayer.is_server() and not mp_active_match["roster"].is_empty():
+		# T153: no joins mid-match (roster set = Arena, until Lobby._ready clears it). Kick
+		# before any RPC reaches it; the joiner's server_disconnected sends it to the title.
+		# (refuse_new_connections would silently reset it: client thinks it joined, times out.)
+		multiplayer.multiplayer_peer.disconnect_peer(id)
+		return
 	mp_peer_connected.emit(id)
 	# Lobby._on_peer_connected runs synchronously above, populating mp_lobby["peers"][id].
 	# Now request real profile meta so the placeholder is replaced promptly.
@@ -425,6 +431,8 @@ func _on_mp_server_disconnected() -> void:
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
 	_clear_mp_session()
 	mp_server_lost.emit()
+	# T153 (V40 exception): host gone -> back to the title, not an offline zombie Arena/Lobby
+	get_tree().change_scene_to_file.call_deferred("res://scenes/ui/TitleScreen.tscn")
 
 func _load_profile() -> void:
 	var cfg := ConfigFile.new()
