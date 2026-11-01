@@ -20,6 +20,14 @@ def main():
     assert _v([0.1 * max(0, t - 6) for t in range(120)]) == base.PASS, "smooth but delayed"
     assert _v([0.1 * (t - t % 3) for t in range(120)]) == base.FAIL, "20 Hz steps on a 60 Hz tick"
     assert _v([0.1 * t if t < 60 else 6.0 for t in range(120)]) == base.FAIL, "frozen half the time"
+    # B56: client loaded 40 ticks before the match went live; first frames after live lag by the
+    # interp delay. Warm-up counts from live, not from the client's first tick.
+    srv = [0.0] * 40 + [0.1 * t for t in range(60)]
+    late = [0.0] * 55 + [0.1 * t for t in range(45)]
+    ctx = {"primary": {"server": _log("server", srv, 1), "client_1": _log("client_1", late, 7)}, "thresholds": {}}
+    assert interp_smoothness.run(ctx)["verdict"] == base.FAIL, "no live tick known: onset lag counts"
+    assert sum(interp_smoothness.stall_ratios(ctx["primary"]["server"], ctx["primary"]["client_1"], 0.02,
+                                              live=40)["Mech_0_0"][1:]) == 0, "warm-up from live hides onset lag"
     print("test_interp_smoothness: ok")
 
 
