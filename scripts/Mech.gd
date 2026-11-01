@@ -43,6 +43,7 @@ var _no_damage_timer: float = 0.0  # seconds since last damage hit; drives repai
 var _net_input_tick: int = 0       # increments every physics tick; used for 30Hz throttle
 var _net_input_seq: int = 0        # monotonic send counter
 var _press_counts: Array = [0, 0, 0, 0, 0, 0]  # T158/V47: cumulative presses [reload, ability, slot0..3]
+var last_input_ms: int = 0           # T167: server, wall ms of the owner's last _rpc_input (Arena silence check)
 var _rpc_rate_times: Array = []    # server-side sliding window of _rpc_input arrival times (1s)
 var _rpc_rate_warned: bool = false # true while peer is over 60Hz limit (suppress repeat warnings)
 var _snap_buf: Array = []          # V37: last 2 server snapshots [{time,pos,quat,vel}]; T120 reads for interp
@@ -712,6 +713,7 @@ func _rpc_input(seq: int, payload: Dictionary) -> void:
 	if sender != owner_peer_id:
 		push_error("[Mech] _rpc_input: sender %d doesn't own this mech (owner=%d)" % [sender, owner_peer_id])
 		return
+	last_input_ms = Time.get_ticks_msec()
 	var now := Time.get_ticks_msec() / 1000.0
 	while not _rpc_rate_times.is_empty() and now - float(_rpc_rate_times[0]) > 1.0:
 		_rpc_rate_times.pop_front()
