@@ -1,22 +1,24 @@
 extends Node
 
-# SFX key → res:// path. Drop .ogg files here to activate sounds.
+# SFX key → res:// path. One-shots are WAV (T166/B53: starting an Ogg Vorbis playback
+# costs ~0.9 ms of decoder setup per play -- ~1 ms per shot/hit on every peer);
+# only the rarely-started loops stay .ogg (their scripts set AudioStreamOggVorbis.loop).
 const _SFX_PATHS: Dictionary = {
-	"rifle_fire":      "res://audio/sfx/weapons/rifle_fire.ogg",
-	"shotgun_fire":    "res://audio/sfx/weapons/shotgun_fire.ogg",
-	"machinegun_fire": "res://audio/sfx/weapons/machinegun_fire.ogg",
-	"sniper_fire":     "res://audio/sfx/weapons/sniper_fire.ogg",
-	"missile_launch":  "res://audio/sfx/weapons/missile_launch.ogg",
-	"rocket_launch":   "res://audio/sfx/weapons/rocket_launch.ogg",
-	"aerial_strike":   "res://audio/sfx/weapons/aerial_strike.ogg",
-	"patience_shot":   "res://audio/sfx/weapons/patience_shot.ogg",
+	"rifle_fire":      "res://audio/sfx/weapons/rifle_fire.wav",
+	"shotgun_fire":    "res://audio/sfx/weapons/shotgun_fire.wav",
+	"machinegun_fire": "res://audio/sfx/weapons/machinegun_fire.wav",
+	"sniper_fire":     "res://audio/sfx/weapons/sniper_fire.wav",
+	"missile_launch":  "res://audio/sfx/weapons/missile_launch.wav",
+	"rocket_launch":   "res://audio/sfx/weapons/rocket_launch.wav",
+	"aerial_strike":   "res://audio/sfx/weapons/aerial_strike.wav",
+	"patience_shot":   "res://audio/sfx/weapons/patience_shot.wav",
 	"laser_loop":      "res://audio/sfx/weapons/laser_loop.ogg",
 	"arc_loop":        "res://audio/sfx/weapons/arc_loop.ogg",
-	"hit_impact":      "res://audio/sfx/weapons/hit_impact.ogg",
-	"mech_death":      "res://audio/sfx/mech/death_explosion.ogg",
-	"damage_hit":      "res://audio/sfx/mech/damage_hit.ogg",
-	"footstep":        "res://audio/sfx/mech/footstep.ogg",
-	"ui_click":        "res://audio/sfx/ui/click.ogg",
+	"hit_impact":      "res://audio/sfx/weapons/hit_impact.wav",
+	"mech_death":      "res://audio/sfx/mech/death_explosion.wav",
+	"damage_hit":      "res://audio/sfx/mech/damage_hit.wav",
+	"footstep":        "res://audio/sfx/mech/footstep.wav",
+	"ui_click":        "res://audio/sfx/ui/click.wav",
 }
 
 const _MUSIC_PATHS: Dictionary = {
