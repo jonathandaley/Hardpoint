@@ -458,6 +458,11 @@ func _die_impl() -> void:
 	VFX.death_explosion(global_position + Vector3(0, 0.8, 0))
 	set_physics_process(false)
 	set_process(false)
+	# T155 (B63): weapons keep processing after the mech stops; one fired up to death
+	# never saw a release, so its loop audio (arc beam, MG) played on, on every peer.
+	for w in _weapons:
+		if is_instance_valid(w):
+			w.on_fire_release()
 	$CollisionShape3D.disabled = true
 	if _input_source != null and _input_source.has_method("is_human_input") and _input_source.is_human_input():
 		_launch_cockpit_pod()
