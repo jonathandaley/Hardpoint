@@ -25,9 +25,17 @@ def main():
     srv = [0.0] * 40 + [0.1 * t for t in range(60)]
     late = [0.0] * 55 + [0.1 * t for t in range(45)]
     ctx = {"primary": {"server": _log("server", srv, 1), "client_1": _log("client_1", late, 7)}, "thresholds": {}}
-    assert interp_smoothness.run(ctx)["verdict"] == base.FAIL, "no live tick known: onset lag counts"
+    assert interp_smoothness.run(ctx)["verdict"] != base.FAIL, "onset lag is not a stall even without a live tick (B60)"
     assert sum(interp_smoothness.stall_ratios(ctx["primary"]["server"], ctx["primary"]["client_1"], 0.02,
                                               live=40)["Mech_0_0"][1:]) == 0, "warm-up from live hides onset lag"
+    # B60: mech standing still, then moving for 41 ticks (bot takeover at the end of a run); client shows
+    # the start 12 ticks late. Onset lag is not a stall; a 20 Hz stepped picture after onset still is.
+    srv2 = [0.0] * 100 + [0.1 * t for t in range(41)]
+    ctx2 = lambda c: {"primary": {"server": _log("server", srv2, 1), "client_1": _log("client_1", c, 7)},
+                      "thresholds": {"interp_min_samples": 20}}
+    assert interp_smoothness.run(ctx2([0.0] * 112 + [0.1 * t for t in range(29)]))["verdict"] == base.PASS, "onset lag"
+    stepped = [0.0] * 100 + [0.1 * (t - t % 3) for t in range(41)]
+    assert interp_smoothness.run(ctx2(stepped))["verdict"] == base.FAIL, "stepped after onset"
     print("test_interp_smoothness: ok")
 
 

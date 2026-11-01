@@ -14,15 +14,18 @@ from . import base, fair_start
 
 NAME = "interp_smoothness"
 
-DEFAULTS = {"interp_min_move": 0.02, "interp_max_stall": 0.15, "interp_min_samples": 30, "interp_warmup_ticks": 30}
+DEFAULTS = {"interp_min_move": 0.02, "interp_max_stall": 0.15, "interp_min_samples": 30, "interp_warmup_ticks": 30,
+            "interp_onset_ticks": 12}
 
 
-def stall_ratios(server, client, min_move, warmup=30, live=None):
+def stall_ratios(server, client, min_move, warmup=30, live=None, onset=12):
     """{mech_id: (moving_ticks, stalled_ticks)} for one client. The first
     `warmup` ticks after streaming begins are skipped: the interpolation buffer
     starts empty then (T162: mechs start moving right then). Streaming begins at
     the later of the mech's first client tick and the server's `live` tick (V52;
-    B56: a client that loads early idles un-streamed until live)."""
+    B56: a client that loads early idles un-streamed until live). A tick counts
+    only once the server mech has been moving for `onset` ticks: a mech that
+    starts from rest shows on the client latency + INTERP_DELAY later (B60)."""
     out = {}
     for mid in client.mech_ids:
         moving = stalled = 0
@@ -32,7 +35,9 @@ def stall_ratios(server, client, min_move, warmup=30, live=None):
                 continue
             a, b = client.at(t, mid), client.at(t + 1, mid)
             sa, sb = server.at(t, mid), server.at(t + 1, mid)
-            if None in (a, b, sa, sb) or math.dist(sa["pos"], sb["pos"]) < min_move:
+            sa0, sb0 = server.at(t - onset, mid), server.at(t - onset + 1, mid)
+            if None in (a, b, sa, sb, sa0, sb0) or math.dist(sa["pos"], sb["pos"]) < min_move \
+                    or math.dist(sa0["pos"], sb0["pos"]) < min_move:
                 continue
             moving += 1
             stalled += math.dist(a["pos"], b["pos"]) < 1e-4
@@ -49,7 +54,8 @@ def run(ctx):
     for role in base.client_roles(primary):
         for mid, (moving, stalled) in stall_ratios(primary["server"], primary[role], float(th["interp_min_move"]),
                                                    int(th["interp_warmup_ticks"]),
-                                                   fair_start.live_tick(ctx.get("run_dir"))).items():
+                                                   fair_start.live_tick(ctx.get("run_dir")),
+                                                   int(th["interp_onset_ticks"])).items():
             if moving < int(th["interp_min_samples"]):
                 continue
             checked += 1
