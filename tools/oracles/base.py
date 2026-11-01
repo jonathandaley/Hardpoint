@@ -70,6 +70,8 @@ def tick_offset(server_snaps, client_snaps):
     for s in client_snaps:
         if "unix_ms" not in s or s["tick"] in seen:
             continue
+        if not times[0] <= s["unix_ms"] <= times[-1]:
+            continue  # T152: client logged while the server wasn't -- no counterpart
         seen.add(s["tick"])
         i = bisect.bisect_left(times, s["unix_ms"])
         best = min((j for j in (i - 1, i) if 0 <= j < len(times)), key=lambda j: abs(times[j] - s["unix_ms"]))
@@ -158,13 +160,15 @@ CROSS_PEER_SKEW_TICKS = 8
 # latency, by design -- so the window also reaches this much further back.
 INTERP_LAG_TICKS = 12
 
-# T151: on an impaired link a lost reliable packet is resent after ENet's timeout
-# (hundreds of ms), so "converges within N ticks" becomes "within ~1.5 s". Merged
-# under scenario thresholds when meta.json shows an impaired net profile.
+# T151/T152: on an impaired link a lost reliable packet is resent after ENet's
+# timeout, which doubles per consecutive loss (soak on 'bad': a 2-loss streak took
+# ~2 s), so "converges within N ticks" becomes "within ~3 s". Permanent loss of
+# change-driven state is caught statically by rpc_modes (B49). Merged as the more
+# lenient value when meta.json shows an impaired net profile.
 IMPAIRED_NET_THRESHOLDS = {
-    "persist_ticks": 30, "hp_persist_ticks": 90, "lock_persist_ticks": 90, "ammo_persist_ticks": 90,
-    "active_set_persist_ticks": 90, "reload_persist_ticks": 90, "hit_confirm_max_delay_ticks": 120,
-    "beacon_lag_ticks": 90, "interp_max_stall": 0.2,
+    "persist_ticks": 30, "hp_persist_ticks": 180, "lock_persist_ticks": 180, "ammo_persist_ticks": 180,
+    "active_set_persist_ticks": 180, "reload_persist_ticks": 180, "hit_confirm_max_delay_ticks": 180,
+    "beacon_lag_ticks": 180, "interp_max_stall": 0.2,
 }
 
 

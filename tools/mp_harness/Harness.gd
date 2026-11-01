@@ -51,6 +51,10 @@ var _lobby_wait: bool = false  # T159: server enters Lobby only after client ack
 var _hud_ticks: Array = []
 var _hud_file_started: bool = false  # first dump truncates (reruns into the same dir)
 var _live_logged: bool = false  # T162: server prints the sync tick it went live (all clients in)
+# T152 soak: perf/leak samples every 600 ticks; server ends the run 300 ticks after match end.
+var _perf_next: int = -1
+var _match_end_frame: int = -1
+var _match_seen_running: bool = false  # Match.running is false before start too
 
 func _ready() -> void:
 	var path := ""
@@ -136,6 +140,12 @@ func _build_roster() -> Array:
 	for cid in ids:
 		roster.append(_roster_entry(slot, cid, 1, mech_path))
 		slot += 1
+	# T152: filler bots (same entry shape as Lobby._build_roster bot fill)
+	for i in int(_scenario.get("bots_per_team", 0)) * 2:
+		var bot := _roster_entry(slot, 0, i % 2, mech_path)
+		bot["bot_id"] = i
+		roster.append(bot)
+		slot += 1
 	return roster
 
 func _roster_entry(slot_idx: int, peer_id: int, team: int, mech_path: String) -> Dictionary:
@@ -155,6 +165,11 @@ func _roster_entry(slot_idx: int, peer_id: int, team: int, mech_path: String) ->
 
 func _start_client() -> void:
 	Game.join("127.0.0.1", _connect_port if _connect_port > 0 else _port)
+	# T152: a client whose server is gone ends its run -- otherwise it keeps playing an
+	# offline match and pollutes the logs (and the wall-clock tick alignment).
+	multiplayer.server_disconnected.connect(func() -> void:
+		print("[Harness] server gone, quitting (%s)" % _role)
+		get_tree().quit(0))
 	# Arena loads automatically when the server's _rpc_match_start (call_local)
 	# reaches us; _process polls for our local mech and then overrides input.
 
@@ -166,6 +181,19 @@ func _process(_delta: float) -> void:
 		_try_override_input()
 		return
 	var t := Engine.get_physics_frames() - _override_frame
+	if _scenario.get("soak", false):
+		if _perf_next < 0 or Engine.get_physics_frames() >= _perf_next:
+			_perf_sample()
+			_perf_next = Engine.get_physics_frames() + 600
+		var scn := get_tree().current_scene
+		var mn = scn.get("match_node") if scn != null else null
+		if mn != null and bool(mn.get("running")):
+			_match_seen_running = true
+		if _role == "server" and _match_seen_running and _match_end_frame < 0 and mn != null and not bool(mn.get("running")):
+			_match_end_frame = Engine.get_physics_frames()
+			print("[Harness] match ended at sync tick %d" % (_match_end_frame - int(Game.get("_sync_start_frame"))))
+		if _match_end_frame >= 0 and Engine.get_physics_frames() >= _match_end_frame + 300:
+			_deadline_frame = Engine.get_physics_frames()  # soak = exactly one match
 	while not _actions.is_empty() and int(_actions[0].get("tick", 0)) <= t:
 		_run_action(_actions.pop_front())
 	while not _hud_ticks.is_empty() and int(_hud_ticks[0]) <= t:
@@ -227,6 +255,10 @@ func _try_override_input() -> void:
 					key = "client_%d" % nth
 					break
 	var spec: Dictionary = peers.get(key, {}).get("input", {})
+	if peers.get(key, {}).get("bot", false):
+		_attach_bot(mine)
+		_finish_override(key, mine)
+		return
 	# T138: per-slot settings overrides (e.g. client mouse_sensitivity != server),
 	# bound to the roster slot like the input spec (V43).
 	var overrides: Dictionary = peers.get(key, {}).get("settings", {})
@@ -240,6 +272,9 @@ func _try_override_input() -> void:
 	add_child(replay)
 	replay.load_spec(spec)
 	mine.set_input_source(replay)
+	_finish_override(key, mine)
+
+func _finish_override(key: String, mine: Node) -> void:
 	_override_done = true
 	_key = key
 	_override_frame = Engine.get_physics_frames()
@@ -305,3 +340,29 @@ func _sync_role() -> String:
 		if a.begins_with("--sync-role="):
 			return a.get_slice("=", 1)
 	return _role
+
+# T152: drive this peer's own mech with the game's bot AI (as Arena does for a
+# disconnected player, _bot_ify_disconnected_mech). On a client the AI's input
+# goes through the real network path (_maybe_forward_input -> _rpc_input).
+func _attach_bot(mech: Node) -> void:
+	if mech.get_node_or_null("NavAgent") == null:
+		var nav := NavigationAgent3D.new()
+		nav.name = "NavAgent"
+		nav.path_desired_distance = 1.5
+		nav.target_desired_distance = 2.5
+		mech.add_child(nav)
+	var ai: Node = load("res://scripts/AIInputSource.gd").new()
+	ai.name = "HarnessBot"
+	ai.bot_id = 100 + int(Game.mp_active_match.get("roster", []).size())
+	mech.add_child(ai)
+	mech.set_input_source(ai)
+	ai.set_mp_seed(int(_scenario.get("seed", 0)) ^ multiplayer.get_unique_id())
+	print("[Harness] bot drives %s (%s)" % [mech.name, _key if _key != "" else _role])
+
+# T152: one perf/leak sample line (Performance monitors) for the soak oracle.
+func _perf_sample() -> void:
+	var tick := Engine.get_physics_frames() - int(Game.get("_sync_start_frame"))
+	print("[Harness] perf tick=%d phys_ms=%.3f objects=%d nodes=%d orphans=%d mem=%d" % [tick,
+		Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
+		Performance.get_monitor(Performance.OBJECT_COUNT), Performance.get_monitor(Performance.OBJECT_NODE_COUNT),
+		Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT), Performance.get_monitor(Performance.MEMORY_STATIC)])

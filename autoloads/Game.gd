@@ -229,6 +229,7 @@ func _mech_snapshot(m: Node, tick: int, wall: int, role: String, peer: int) -> D
 		"aim": aim,
 		"scale": snappedf(m.global_transform.basis.get_scale().x, 0.001),  # T142: body_scale must survive replication
 		"health": snappedf(m.get("health"), 0.01),
+		"vel": [snappedf(m.velocity.x, 0.01), snappedf(m.velocity.y, 0.01), snappedf(m.velocity.z, 0.01)],  # T152 stuck check
 		"max_hp": m.get("max_health"),
 		"ammo_max": ammo_max,
 		"ammo": ammo,

@@ -34,6 +34,7 @@ def main():
     ap.add_argument("--net", default=None,
                     help="T139/T151 chaos profile(s) for every scenario, comma-separated (e.g. lan,wifi,bad)")
     ap.add_argument("--no-probes", action="store_true", help="skip tools/gd_probes (e.g. for --net sweeps)")
+    ap.add_argument("--soak", action="store_true", help="T152: also run 'soak' scenarios (one full match, ~15 min)")
     args = ap.parse_args()
 
     scenarios = sorted(glob.glob(os.path.join(HERE, "scenarios", "*.json")))
@@ -66,8 +67,10 @@ def _run_scenarios(args, scenarios, net, label, results):
         name = scen.get("name", os.path.basename(spath))
         if args.only and name not in args.only:
             continue
+        if scen.get("soak") and not (args.soak or (args.only and name in args.only)):
+            continue  # T152: soaks run on request (--soak / --only), not every verify
         out = os.path.join(os.path.abspath(args.out_root), name + ("@" + net if label else ""))
-        run_args = ["--timeout", str(args.timeout)]
+        run_args = ["--timeout", str(max(args.timeout, 1800.0) if scen.get("soak") else args.timeout)]
         if args.godot:
             run_args += ["--godot", args.godot]
         if net is not None:
