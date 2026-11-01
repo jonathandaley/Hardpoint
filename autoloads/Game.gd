@@ -711,10 +711,16 @@ func _rpc_transition_ack() -> void:
 	if _await_acks.is_empty() and _await_then.is_valid():
 		_finish_await()
 
+const STREAM_DRAIN_S := 0.3  # B61: > bad-profile jitter (±30 ms) + snapshot interval (50 ms), with margin
+
 # Server: coordinated scene change (V40). Streams stop, clients leave and ack,
 # then the server follows.
 func server_change_scene(path: String) -> void:
 	mp_live = false
+	# B61: snapshots/scores ride unreliable ENet channels, the change rides a reliable one;
+	# on a jittery link a snapshot sent just before can land after it, once the client's
+	# Arena is gone ('Node not found: Arena'). Let in-flight streams drain first.
+	await get_tree().create_timer(STREAM_DRAIN_S).timeout
 	server_await_clients(func() -> void: get_tree().change_scene_to_file(path))
 	_rpc_change_scene.rpc(path)
 
