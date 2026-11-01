@@ -61,6 +61,10 @@ func _build_slot(weapon: Node, number: int, x: float) -> Array:
 		var tr := TextureRect.new()
 		tr.texture = tex
 		tr.stretch_mode = TextureRect.STRETCH_SCALE
+		# B54 (B-d): icons are 116x68 PNGs; by default a TextureRect's minimum size is its
+		# texture size, so on a fresh import the icon outgrew its 36x22 slot (overlapping,
+		# pushed off the bottom). A stale import cache on the dev/host machine hid it.
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		tr.offset_left   = x
 		tr.offset_right  = x + SLOT_W
