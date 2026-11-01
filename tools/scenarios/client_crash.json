@@ -1,0 +1,79 @@
+{
+  "name": "client_crash",
+  "seed": 5555,
+  "port": 8930,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Hippogriff.tres",
+  "duration_ticks": 1100,
+  "oracles": [
+    "bot_takeover",
+    "crash_scan",
+    "log_flood",
+    "spawn_join",
+    "team_assignment"
+  ],
+  "expect_fail": [
+    "bot_takeover"
+  ],
+  "actions": [
+    {
+      "tick": 60,
+      "peer": "client_1",
+      "action": "kill_client"
+    }
+  ],
+  "_comment": "T153 repro (fix: T167): client_1 is SIGKILLed at tick 60 (crash / pulled cable: no ENet goodbye). The server must notice and hand its mech to the bot within takeover_kill_window (900 ticks = 15 s). Measured: ENet's own peer timeout took ~26 s in one run and never fired in 40 s in another, so the dead player's mech stands on its last input. bot_takeover strict-xfail until T167. crash_scan allows -9 for the killed peer only.",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    },
+    "client_2": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

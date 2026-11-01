@@ -114,8 +114,14 @@ func _start_server() -> void:
 		_begin_match.call_deferred()
 		return
 	multiplayer.peer_connected.connect(_on_peer_connected)
+	multiplayer.peer_disconnected.connect(func(id: int) -> void:  # T153 bot_takeover
+		print("[Harness] peer_disconnected id=%d at sync tick %d" % [id,
+			Engine.get_physics_frames() - int(Game.get("_sync_start_frame"))]))
 
 func _on_peer_connected(id: int) -> void:
+	if _match_started:
+		print("[Harness] late peer connected: %d (mid-match; game decides)" % id)
+		return  # T153: a mid-match join is the game's to handle, not the harness's
 	if not _connected.has(id):
 		_connected.append(id)
 	# No Lobby scene in harness mode, so register the peer the way Lobby does;
@@ -179,9 +185,21 @@ func _start_client() -> void:
 func _quit_with_server() -> void:
 	# T152: a client whose server is gone ends its run -- otherwise it keeps playing an
 	# offline match and pollutes the logs (and the wall-clock tick alignment).
+	# T153: first give the game 90 frames to route itself (V40 exception: peer torn
+	# down, back to the title) and print where it went (peer_closed oracle).
 	multiplayer.server_disconnected.connect(func() -> void:
 		print("[Harness] server gone, quitting (%s)" % _role)
+		for _i in 90:
+			await get_tree().process_frame
+		var scene := get_tree().current_scene
+		print("[Harness] server_lost_check %s: connected=%s scene=%s rejoin=%s" % [_key, str(_mp_connected()).to_lower(),
+			scene.name if scene != null else "<none>", str(_rejoining).to_lower()])
 		get_tree().quit(0))
+
+func _mp_connected() -> bool:
+	var mp := multiplayer.multiplayer_peer
+	return mp != null and not (mp is OfflineMultiplayerPeer) \
+		and mp.get_connection_status() != MultiplayerPeer.CONNECTION_DISCONNECTED
 
 # T164: "menu": true -> reach the match through the real UI, as a player does:
 # TitleScreen -> MPEntry (host / join) -> Lobby (squad picker, ready, start).
@@ -193,22 +211,8 @@ func _quit_with_server() -> void:
 # whose ENet ids sort opposite to their process names swap pick vs input spec.
 # A stuck step prints "[Harness] MENU FAIL ..." and exits 3 (crash_scan, menu_flow).
 func _menu_flow() -> void:
-	if not await _wait_scene("TitleScreen"):
+	if not await _menu_connect():
 		return
-	_click("MultiplayerButton")
-	if not await _wait_scene("MPEntry"):
-		return
-	var entry := get_tree().current_scene
-	if _role == "server":
-		entry.get_node("TabContainer/Host/PortEdit").text = str(_port)
-		_click("TabContainer/Host/HostButton")
-	else:
-		(entry.get_node("TabContainer") as TabContainer).current_tab = 1
-		await get_tree().process_frame  # tab switch -> Join page laid out
-		entry.get_node("TabContainer/Join/IPEdit").text = "127.0.0.1"
-		entry.get_node("TabContainer/Join/JoinPortEdit").text = str(_connect_port if _connect_port > 0 else _port)
-		_click("TabContainer/Join/JoinButton")
-		_quit_with_server()
 	if not await _wait_scene("Lobby"):
 		return
 	await get_tree().process_frame
@@ -236,6 +240,27 @@ func _menu_flow() -> void:
 	await get_tree().process_frame
 	_click("StartButton")
 
+# Title -> MPEntry -> HOST (port) or JOIN (tab, IP, port) by real clicks.
+func _menu_connect() -> bool:
+	if not await _wait_scene("TitleScreen"):
+		return false
+	_click("MultiplayerButton")
+	if not await _wait_scene("MPEntry"):
+		return false
+	var entry := get_tree().current_scene
+	if _role == "server":
+		entry.get_node("TabContainer/Host/PortEdit").text = str(_port)
+		_click("TabContainer/Host/HostButton")
+	else:
+		(entry.get_node("TabContainer") as TabContainer).current_tab = 1
+		await get_tree().process_frame  # tab switch -> Join page laid out
+		entry.get_node("TabContainer/Join/IPEdit").text = "127.0.0.1"
+		entry.get_node("TabContainer/Join/JoinPortEdit").text = str(_connect_port if _connect_port > 0 else _port)
+		_click("TabContainer/Join/JoinButton")
+		if not _rejoining:
+			_quit_with_server()
+	return _menu_failed == ""
+
 func _menu_pick_squad(squad: Array) -> bool:
 	_click("SquadBtn")
 	await get_tree().process_frame
@@ -261,6 +286,7 @@ func _menu_pick_squad(squad: Array) -> bool:
 	return _menu_failed == ""
 
 var _menu_failed: String = ""
+var _rejoining: bool = false
 
 func _menu_fail(why: String) -> void:
 	if _menu_failed != "":
@@ -473,6 +499,14 @@ func _run_action(a: Dictionary) -> void:
 			# = pause menu QUIT (PauseMenu -> Arena._on_pause_quit)
 			get_tree().current_scene.call("_on_pause_quit")
 			_quit_frame = Engine.get_physics_frames()
+		"kill_client":
+			# T153: SIGKILL -- no ENet goodbye; the server only learns via its peer timeout
+			OS.kill(OS.get_process_id())
+		"rejoin":
+			# T153: a player who quit joins again mid-match through the real menus
+			# (expected: server kicks it on connect -> back at the title; server_lost_check rejoin=true)
+			_rejoining = true
+			_menu_connect()
 		"return_to_lobby":
 			# = match end -> lobby: Game.server_change_scene, the V40/T159 coordinated
 			# change that Game._do_return_to_lobby (T121) uses, mid-stream (T146/T159)
