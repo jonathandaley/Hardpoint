@@ -12,9 +12,6 @@
     "spawn_join",
     "team_assignment"
   ],
-  "expect_fail": [
-    "bot_takeover"
-  ],
   "actions": [
     {
       "tick": 60,
@@ -22,7 +19,7 @@
       "action": "kill_client"
     }
   ],
-  "_comment": "T153 repro (fix: T167): client_1 is SIGKILLed at tick 60 (crash / pulled cable: no ENet goodbye). The server must notice and hand its mech to the bot within takeover_kill_window (900 ticks = 15 s). Measured: ENet's own peer timeout took ~26 s in one run and never fired in 40 s in another, so the dead player's mech stands on its last input. bot_takeover strict-xfail until T167. crash_scan allows -9 for the killed peer only.",
+  "_comment": "T153 repro, fixed T167: client_1 is SIGKILLed at tick 60 (crash / pulled cable: no ENet goodbye). The server must hand its mech to the bot within takeover_kill_window (900 ticks = 15 s). Before T167 ENet's peer timeout took ~26 s or never fired (40 s run); now Arena._check_input_silence takes over after 5 s without input (ENet itself, capped at Game.PEER_TIMEOUT_MS, needs ~20 s). crash_scan allows -9 for the killed peer only.",
   "peers": {
     "server": {
       "input": {

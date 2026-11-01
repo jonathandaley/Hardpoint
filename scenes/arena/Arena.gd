@@ -3262,8 +3262,8 @@ func _build_mp_stats() -> Array:
 func _on_peer_disconnected_in_match(id: int) -> void:
 	if not multiplayer.is_server():
 		return
-	if _match_over:
-		return
+	if _match_over or _disconnected_peers.has(id):
+		return  # T167: the silence check may have taken over already
 	for team in range(2):
 		for mech in _team_mechs[team]:
 			if not is_instance_valid(mech) or mech.get("is_dead"):
@@ -3302,6 +3302,30 @@ func _on_mp_match_ended(winner_team: int, stats: Array) -> void:
 	hud.hide_squad_picker_mp()
 	hud.show_result_mp(winner_team, stats)
 	print("[Arena] MP match over. Team %d wins." % winner_team)
+
+# T167 (B59): a client that crashes or loses its link stops streaming input (every 2nd
+# tick, V47). ENet needs ~20 s to time it out (Game.PEER_TIMEOUT_MS notes why it can't be
+# cut further); after this much silence the bot takes the mech (T123); ENet drops the
+# dead peer itself later. Outages shorter than this (outage_recovery: 1.5 s) ride through.
+# ponytail: no kick (disconnect_peer on a dead peer floods 'Unable to send packet' until
+# ENet gives up); a client that merely froze 5 s keeps watching its bot -- kick + reason
+# message if that ever matters.
+const INPUT_SILENCE_MS := 5000
+
+func _check_input_silence() -> void:
+	if _match_over:
+		return
+	var now := Time.get_ticks_msec()
+	for team in range(2):
+		for m in _team_mechs[team]:
+			if not is_instance_valid(m) or m.get("is_dead"):
+				continue
+			var pid: int = m.owner_peer_id
+			var last: int = m.last_input_ms
+			if pid < 2 or last == 0 or _disconnected_peers.has(pid) or now - last < INPUT_SILENCE_MS:
+				continue
+			print("[Arena] peer %d silent for %d ms: bot takes over" % [pid, now - last])
+			_on_peer_disconnected_in_match(pid)
 
 # T127: show squad picker when local mech dies and lives remain.
 func _on_local_mech_died_mp() -> void:
@@ -3531,6 +3555,7 @@ func _start_snapshot_timer() -> void:
 func _snapshot_tick() -> void:
 	if not Game.mp_live:
 		return  # T159/V52: a client hasn't loaded Arena yet, or everyone is leaving
+	_check_input_silence()
 	var snapshots: Array = []
 	var st := Time.get_ticks_msec() * 0.001  # T150: server send time, the interpolation timeline
 	for team in range(2):

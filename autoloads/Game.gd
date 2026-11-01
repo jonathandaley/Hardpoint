@@ -376,7 +376,19 @@ func _clear_mp_session() -> void:
 	mp_lobby["peers"].clear()
 	mp_active_match["roster"] = []
 
+# T167 (B59): ENet's default peer timeout (max 30 s; a SIGKILLed client went undetected
+# 26 s .. >40 s) left a dead player's mech frozen on its last input and a crashed host's
+# clients in limbo. Both sides cap it here. Floor: ENet's retry wait doubles (~0.4 s on a
+# lossy link: 0.4, 0.8 .. 12.8 s); a cap below the 6th wait drops LIVE peers after 5
+# losses of one reliable packet (6 s did, on the `bad` profile). 12 s keeps the default's
+# 6-loss margin. ponytail: dead peer seen in ~16 s; an input-silence (5 s) takeover on the
+# server is the upgrade if that ghost time matters.
+const PEER_TIMEOUT_MS := 12000
+
 func _on_mp_peer_connected(id: int) -> void:
+	var enet := multiplayer.multiplayer_peer as ENetMultiplayerPeer
+	if enet != null and (multiplayer.is_server() or id == 1):  # other clients are relayed, not ENet peers here
+		enet.get_peer(id).set_timeout(32, 5000, PEER_TIMEOUT_MS)
 	if multiplayer.is_server() and not mp_active_match["roster"].is_empty():
 		# T153: no joins mid-match (roster set = Arena, until Lobby._ready clears it). Kick
 		# before any RPC reaches it; the joiner's server_disconnected sends it to the title.
