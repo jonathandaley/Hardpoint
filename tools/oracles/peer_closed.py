@@ -39,6 +39,13 @@ def run(ctx):
                            % (role, m.group(2), m.group(1)))
         if "[Harness] action rejoin" in text and "rejoin=true" not in text:
             bad.append("%s: mid-match rejoin was not refused (never kicked back to the title)" % role)
+    # T167: host SIGKILLed -> every client must notice (peer timeout) and print its server_lost_check
+    srv = os.path.join(ctx.get("run_dir") or "", "server.log")
+    if os.path.exists(srv) and "[Harness] action kill_client" in open(srv, errors="replace").read():
+        for path in logs:
+            if os.path.basename(path).startswith("client") and "server_lost_check" not in open(path, errors="replace").read():
+                quits += 1
+                bad.append("%s never noticed the host died" % os.path.basename(path)[: -len(".log")])
     if not quits:
         return base.verdict(NAME, base.SKIP, note="no lifecycle quit in run")
     if bad:

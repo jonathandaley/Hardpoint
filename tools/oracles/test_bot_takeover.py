@@ -18,11 +18,11 @@ def _v(xs, hp=100.0, left=True):
 
 
 def main():
-    assert _v([0.0] * 100 + [0.05 * t for t in range(600)]) == base.PASS, "bot walks off"
-    assert _v([0.0] * 700) == base.FAIL, "mech frozen after its pilot left"
-    assert _v([0.0] * 700, hp=0.0) == base.PASS, "dead mech needs no bot"
-    assert _v([0.0] * 50) == base.FAIL, "server stopped logging the mech"
-    assert _v([0.0] * 700, left=False) == base.SKIP
+    assert _v([0.0] * 100 + [0.05 * t for t in range(700)]) == base.PASS, "bot walks off"
+    assert _v([0.0] * 800) == base.FAIL, "mech frozen after its pilot left"
+    assert _v([0.0] * 800, hp=0.0) == base.PASS, "dead mech needs no bot"
+    assert _v([0.0] * 650) == base.PASS, "left 550 ticks before the run ended: end-of-run leaver, not judged"
+    assert _v([0.0] * 800, left=False) == base.SKIP
     # killed client: no disconnect line; its log ends at tick 100 (T167)
     d = tempfile.mkdtemp()
     open(os.path.join(d, "server.log"), "w").close()

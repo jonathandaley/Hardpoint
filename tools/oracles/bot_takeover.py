@@ -43,9 +43,12 @@ def run(ctx):
                                      % (role, t0, mid, moved, th["takeover_kill_window"]))
     if not gone and not killed:
         return base.verdict(NAME, base.SKIP, note="no client left mid-match")
+    end = server.ticks[-1] if server.ticks else 0
     for pid, t0 in gone:
         if not any(s.get("owner") == pid for s in server.snaps):
             continue  # never flew a mech (e.g. a refused mid-match joiner)
+        if t0 + th["takeover_window"] > end:
+            continue  # left at the end of the run (its deadline); no window left to judge
         mine = [s for s in server.snaps if s.get("owner") == pid and t0 <= s["tick"] <= t0 + th["takeover_window"]]
         if not mine:
             return base.verdict(NAME, base.FAIL, first_tick=t0,
