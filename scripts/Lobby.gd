@@ -68,6 +68,12 @@ func _ready() -> void:
 	# the connected peers must NOT be wiped (only a fresh host session starts empty).
 	Game.mp_active_match["roster"] = []
 	if multiplayer.is_server() and not Game.mp_lobby["peers"].is_empty():
+		# B62: the match just changed everyone's ELO/level; the lobby copy (match stats'
+		# pre_elo, peer list) was from join time. Refresh own entry, re-ask every client.
+		var me: Dictionary = Game.mp_lobby["peers"].get(multiplayer.get_unique_id(), {})
+		me["elo"] = Game.profile.get("elo", 1000)
+		me["level"] = Game.profile.get("level", 1)
+		Game._rpc_request_meta.rpc()
 		Game.broadcast_lobby()
 	elif multiplayer.is_server():
 		Game.mp_lobby = {
