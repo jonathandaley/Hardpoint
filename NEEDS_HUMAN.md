@@ -16,6 +16,24 @@ Delete an entry once you've answered it (or answer inline and the agent will act
 - **Decision:** keep 42 deg, or lower the cap? e.g. `clampf(..., 1.0, 3.0)` = 21 deg max.
   Tell the agent a number and it will change the constant; how it feels is your call.
 
+## 2026-11-01 | T156 | screenshot review: 3 things for your eye
+
+Rendered client screenshots (half size): [spawn](docs/review/T156/spawn.jpg),
+[firing](docs/review/T156/firing.jpg), [damaged](docs/review/T156/damaged.jpg),
+[dead](docs/review/T156/dead.jpg), [match end](docs/review/T156/match_end.jpg).
+Everything on the checklist (`tools/scenarios/screenshot_tour.json` `_checklist`) is present and correct.
+These are judgment calls, not bugs:
+
+1. **Result table "DAMAGE" is damage *taken*, by your current mech only** (`Arena._build_mp_stats` uses
+   `mech.damage_taken_total`). A reader takes "DAMAGE" as dealt; the single-player result screen shows
+   DEALT and TAKEN separately. Cheapest: rename the column "DMG TAKEN". Or: track damage dealt per player.
+2. **Result table "ELO" shows the rating from before the match**, not the new one or the +/- change.
+3. **Low contrast on bright snow:** the weapon slot numbers (1 2 3 above the icons) almost vanish at spawn,
+   and the thin white crosshair disappears against white walls (firing shot). A dark outline/shadow on both
+   would fix it.
+
+Say which you want and the loop will do it.
+
 ## 2026-10-31 | T153 | refused mid-match join gives no reason
 
 - **What:** joining a game that is already in a match now fails cleanly (B58): the host kicks the
