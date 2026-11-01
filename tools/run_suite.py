@@ -88,6 +88,11 @@ def _run_scenarios(args, scenarios, net, label, results):
             continue
         rc = sh(cmp_args)
         results.append((name + ("@" + net if label else ""), "PASS" if rc == 0 else "FAIL"))
+        # T163: match 2+ of a multi-match scenario, judged on its own logs (Game writes run1/match<n>/)
+        for n in range(2, int(scen.get("matches", 1)) + 1):
+            mdir = os.path.join(out, "run1", "match%d" % n)
+            ok = os.path.exists(os.path.join(mdir, "server.jsonl")) and sh(cmp_args[:2] + [mdir]) == 0
+            results.append((name + "#m%d" % n + ("@" + net if label else ""), "PASS" if ok else "FAIL"))
 
 
 def _run_probes(args, results):

@@ -12,12 +12,23 @@ from . import base
 NAME = "fair_start"
 
 
+def live_tick(run_dir):
+    """N-th `live at` line of server.log; match N >= 2 of a session is judged in
+    <run>/match<N>/ with the process logs one level up (T163)."""
+    run_dir = (run_dir or "").rstrip("/")
+    m = re.fullmatch(r"match(\d+)", os.path.basename(run_dir))
+    path = os.path.join(os.path.dirname(run_dir) if m else run_dir, "server.log")
+    if not os.path.exists(path):
+        return None
+    ticks = re.findall(r"\[Harness\] live at sync tick (\d+)", open(path, errors="replace").read())
+    n = int(m.group(1)) if m else 1
+    return int(ticks[n - 1]) if len(ticks) >= n else None
+
+
 def run(ctx):
-    path = os.path.join(ctx.get("run_dir") or "", "server.log")
-    m = re.search(r"\[Harness\] live at sync tick (\d+)", open(path, errors="replace").read()) if os.path.exists(path) else None
-    if m is None:
+    live = live_tick(ctx.get("run_dir"))
+    if live is None:
         return base.verdict(NAME, base.SKIP, note="no live tick logged")
-    live = int(m.group(1))
     server = ctx["primary"]["server"]
     first = {}
     for s in server.snaps:

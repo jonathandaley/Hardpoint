@@ -172,6 +172,24 @@ func _open_sync_files() -> void:
 	_sync_start_frame = Engine.get_physics_frames()
 	_sync_files_open = true
 
+# T163: match 2+ of one session logs to <sync-dir>/match<N>/ (fresh files, tick 0
+# at that match's first mech frame) so oracles judge each match on its own.
+var _sync_match: int = 0
+var _sync_root: String = ""
+
+func _sync_next_match() -> void:
+	_sync_match += 1
+	if _sync_match < 2 or not _sync_files_open:
+		return
+	for f in [_sync_snap_file, _sync_event_file, _sync_beacon_file]:
+		if f != null:
+			f.close()
+	_sync_files_open = false
+	if _sync_root == "":
+		_sync_root = _sync_dir.trim_suffix("/")
+	_sync_dir = _sync_root.path_join("match%d" % _sync_match)
+	DirAccess.make_dir_recursive_absolute(_sync_dir)
+
 func _physics_process(_delta: float) -> void:
 	if not prof_on:  # T165 profiling shim (harness sync logging is test-only cost)
 		_physics_process_impl(_delta)
@@ -757,6 +775,7 @@ func _rpc_match_start(map_path: String, roster: Array, match_seed: int) -> void:
 		# set up before any ack can arrive.
 		mp_live = false
 		server_await_clients(func() -> void: mp_live = true)
+	_sync_next_match()
 	mp_active_match = {
 		"map_path":   map_path,
 		"roster":     roster,

@@ -1,0 +1,55 @@
+{
+  "name": "two_matches",
+  "seed": 6363,
+  "port": 8926,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Slip.tres",
+  "weapons": ["res://scenes/weapons/MachineGunLight.tscn"],
+  "matches": 2,
+  "duration_ticks": 600,
+  "oracles": [
+    "ammo_desync",
+    "reload_desync",
+    "active_set_desync",
+    "input_delivery",
+    "aim_desync",
+    "transform_desync",
+    "spawn_join",
+    "team_assignment",
+    "lobby_roster",
+    "crash_scan",
+    "log_flood",
+    "rpc_integrity"
+  ],
+  "thresholds": {"ammo_settle_ticks": 120, "ammo_persist_ticks": 10},
+  "actions": [
+    {"tick": 330, "peer": "server", "action": "return_to_lobby", "match": 1}
+  ],
+  "_comment": "T163: two matches in one session, same peers. Match 1: both hose a machine gun, walk, start a reload (still running at tick 330) and the server returns everyone to the lobby mid-reload (V40). After lobby_check the harness starts match 2 from the lobby; every peer re-binds its scripted input to its new mech and match 2 logs land in run1/match2/, judged on their own (run_suite: two_matches#m2; fair_start = second handshake). Catches cross-match leaks: stale timers, await-ack state, roster, autoload state (B44 class).",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {"tick": 0, "move": [0, -1], "look": [0.0, 0.0]},
+          {"tick": 60, "fire_primary": true, "move": [0, 0]},
+          {"tick": 200, "fire_primary": false},
+          {"tick": 260, "look": [1.5, 0.0]},
+          {"tick": 300, "look": [0.0, 0.0]}
+        ],
+        "pulses": [{"tick": 220, "action": "reload"}, {"tick": 400, "action": "slot", "slot": 0}]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {"tick": 0, "move": [0, -1], "look": [0.0, 0.0]},
+          {"tick": 60, "fire_primary": true, "move": [0, 0]},
+          {"tick": 200, "fire_primary": false},
+          {"tick": 260, "look": [-1.5, 0.0]},
+          {"tick": 300, "look": [0.0, 0.0]}
+        ],
+        "pulses": [{"tick": 230, "action": "reload"}, {"tick": 420, "action": "slot", "slot": 0}]
+      }
+    }
+  }
+}

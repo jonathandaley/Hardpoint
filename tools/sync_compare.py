@@ -66,11 +66,14 @@ def _thresholds(scenario, run_dir):
     """Scenario thresholds, with T151 impaired-network windows underneath when
     the run went through a lossy/jittery proxy profile (meta.json "net")."""
     th = dict(scenario.get("thresholds", {}))
-    try:
-        with open(os.path.join(run_dir, "meta.json")) as f:
-            net = (json.load(f).get("net") or {}).get("profile")
-    except (OSError, ValueError):
-        net = None
+    net = None
+    for d in (run_dir, os.path.dirname(run_dir.rstrip("/"))):  # T163: match<n>/ uses the run's meta
+        try:
+            with open(os.path.join(d, "meta.json")) as f:
+                net = (json.load(f).get("net") or {}).get("profile")
+            break
+        except (OSError, ValueError):
+            pass
     if isinstance(net, str):
         sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "mp_harness"))
         import netem_proxy
