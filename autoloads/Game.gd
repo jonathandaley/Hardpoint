@@ -130,6 +130,8 @@ var _sync_files_open: bool = false
 var _sync_start_ms: int = 0
 var _sync_start_frame: int = 0
 var _sync_rpc_seq: int = 0
+var _sync_cli: bool = false  # --sync-log given (harness / manual run): it owns the log dir
+var _sync_base: String = ""   # T157: file base of this peer's logs (server / client_<id>)
 
 func _parse_sync_log_args() -> void:
 	var args: PackedStringArray = OS.get_cmdline_args()
@@ -141,6 +143,7 @@ func _parse_sync_log_args() -> void:
 			_sync_role_override = a.get_slice("=", 1)
 		elif a.begins_with("--sync-dir="):
 			_sync_dir = a.get_slice("=", 1)
+	_sync_cli = sync_logging_enabled
 
 func _sync_role() -> String:
 	if _sync_role_override != "":
@@ -157,6 +160,7 @@ func _open_sync_files() -> void:
 	# A given --sync-role is used verbatim as the filename base so two runs line
 	# up (ENet assigns a fresh unique_id each run, so peer id is not stable).
 	var base := _sync_role_override if _sync_role_override != "" else ("%s_%d" % [role, peer] if role == "client" else role)
+	_sync_base = base
 	var dir := _sync_dir.trim_suffix("/")
 	_sync_snap_file = FileAccess.open("%s/%s.jsonl" % [dir, base], FileAccess.WRITE)
 	_sync_event_file = FileAccess.open("%s/%s.events.jsonl" % [dir, base], FileAccess.WRITE)
@@ -171,6 +175,75 @@ func _open_sync_files() -> void:
 	# number of frames, so only a relative tick lines up in the self-test.
 	_sync_start_frame = Engine.get_physics_frames()
 	_sync_files_open = true
+
+# ---- T157: session recorder ----
+# A real MP session (no --sync-log, i.e. not a harness run) records the same logs to
+# user://sessions/<date_time>/ plus a half-size JPG every 10 s on a rendered peer, so
+# "it was weird at minute 3" can go through the oracles (tools/session_window.py,
+# then sync_compare.py tools/sessions/real_session.json; docs/SESSION_RECORDING.md).
+# ponytail: full 60 Hz like the harness (~15 MB/min per peer, ~1 ms/frame on a 7-mech
+# host); keep the newest SESSIONS_KEEP; add a tick stride if size or cost ever shows.
+const SESSIONS_DIR := "user://sessions"
+const SESSIONS_KEEP := 3
+const SESSION_SHOT_TICKS := 600
+var _recording: bool = false
+
+func _session_start() -> void:
+	if _sync_cli:
+		return
+	_session_stop()
+	DirAccess.make_dir_recursive_absolute(SESSIONS_DIR)
+	var old := Array(DirAccess.get_directories_at(SESSIONS_DIR))
+	old.sort()
+	while old.size() >= SESSIONS_KEEP:
+		_rm_tree(SESSIONS_DIR.path_join(old.pop_front()))
+	var stamp := Time.get_datetime_string_from_system(false, true).replace(":", "").replace(" ", "_")
+	_sync_dir = SESSIONS_DIR.path_join(stamp)
+	DirAccess.make_dir_recursive_absolute(_sync_dir)
+	_sync_root = ""
+	_sync_match = 0
+	sync_logging_enabled = true
+	_recording = true
+	set_physics_process(true)
+
+func _session_stop() -> void:
+	if not _recording:
+		return
+	_recording = false
+	_wait_shot()
+	sync_logging_enabled = false
+	for f in [_sync_snap_file, _sync_event_file, _sync_beacon_file]:
+		if f != null:
+			f.close()
+	_sync_files_open = false
+	set_physics_process(false)
+
+func _rm_tree(path: String) -> void:
+	for f in DirAccess.get_files_at(path):
+		DirAccess.remove_absolute(path.path_join(f))
+	for d in DirAccess.get_directories_at(path):
+		_rm_tree(path.path_join(d))
+	DirAccess.remove_absolute(path)
+
+func _session_shot(tick: int) -> void:
+	var img := get_viewport().get_texture().get_image()
+	var path := ProjectSettings.globalize_path(_sync_dir.path_join("%s_%06d.jpg" % [_sync_base, tick]))
+	_wait_shot()
+	_shot_task = WorkerThreadPool.add_task(func() -> void:  # encode off the main thread: no hitch
+		img.resize(img.get_width() / 2, img.get_height() / 2)
+		img.save_jpg(path, 0.7))
+
+# Every WorkerThreadPool task must be waited for (Godot docs); an unwaited one crashed
+# the engine at exit (SIGSEGV in shutdown, T157 e2e run).
+var _shot_task: int = -1
+
+func _wait_shot() -> void:
+	if _shot_task >= 0:
+		WorkerThreadPool.wait_for_task_completion(_shot_task)
+		_shot_task = -1
+
+func _exit_tree() -> void:
+	_wait_shot()
 
 # T163: match 2+ of one session logs to <sync-dir>/match<N>/ (fresh files, tick 0
 # at that match's first mech frame) so oracles judge each match on its own.
@@ -216,6 +289,8 @@ func _physics_process_impl(_delta: float) -> void:
 	var peer := multiplayer.get_unique_id() if multiplayer.has_multiplayer_peer() else 1
 	for m in mechs:
 		_sync_snap_file.store_line(JSON.stringify(_mech_snapshot(m, tick, wall, role, peer)))
+	if _recording and tick % SESSION_SHOT_TICKS == 0 and DisplayServer.get_name() != "headless":
+		_session_shot(tick)
 	# M2.1: per-tick beacon state stream (own file so mech oracles stay untouched).
 	# Server fields are authoritative; client fields arrive via Beacon._sync_progress
 	# and _sync_state RPCs (T105), which is exactly the seam beacon_desync checks.
@@ -358,6 +433,7 @@ func host(port: int = 8910) -> void:
 		return
 	_clear_mp_session()
 	multiplayer.multiplayer_peer = peer
+	_session_start()
 
 func join(ip: String, port: int = 8910) -> void:
 	var peer := ENetMultiplayerPeer.new()
@@ -367,12 +443,14 @@ func join(ip: String, port: int = 8910) -> void:
 		mp_join_failed.emit()
 		return
 	multiplayer.multiplayer_peer = peer
+	_session_start()
 
 func disconnect_mp() -> void:
 	if multiplayer.multiplayer_peer != null:
 		multiplayer.multiplayer_peer.close()
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
 	_clear_mp_session()
+	_session_stop()
 
 # B44: called wherever an MP session starts or ends. No stale lobby peers (a new
 # host must start fresh) and no stale roster (Arena._ready treats a non-empty
@@ -442,11 +520,13 @@ func _on_mp_peer_disconnected(id: int) -> void:
 func _on_mp_connection_failed() -> void:
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
 	_clear_mp_session()
+	_session_stop()
 	mp_join_failed.emit()
 
 func _on_mp_server_disconnected() -> void:
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
 	_clear_mp_session()
+	_session_stop()
 	mp_server_lost.emit()
 	# T153 (V40 exception): host gone -> back to the title, not an offline zombie Arena/Lobby
 	get_tree().change_scene_to_file.call_deferred("res://scenes/ui/TitleScreen.tscn")
