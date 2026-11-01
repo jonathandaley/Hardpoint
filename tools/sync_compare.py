@@ -24,7 +24,7 @@ from oracles import (  # noqa: E402
     crash_scan, rpc_integrity, event_sidefx, ammo_desync, beacon_desync, spawn_join,
     friendly_fire, prediction_recon, hit_confirm, active_set_desync, reload_desync,
     aim_desync, input_delivery, beam_aim, log_flood, peer_closed, scene_routes, lobby_roster,
-    hud_layout, world_invariants, interp_smoothness, latency_recovery, rpc_modes, fair_start, soak, menu_flow, bot_takeover, peer_drop,
+    hud_layout, world_invariants, interp_smoothness, latency_recovery, rpc_modes, fair_start, soak, menu_flow, bot_takeover, peer_drop, profile_parity,
 )
 
 # Registry of oracle modules. Add modules here as they land.
@@ -62,6 +62,7 @@ ORACLES = {
     menu_flow.NAME: menu_flow,
     bot_takeover.NAME: bot_takeover,
     peer_drop.NAME: peer_drop,
+    profile_parity.NAME: profile_parity,
 }
 
 
