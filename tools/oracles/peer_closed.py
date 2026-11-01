@@ -1,4 +1,4 @@
-"""peer_closed oracle (T144, B-g): after a peer leaves the match through a
+"""peer_closed oracle (T144, B-g; T153 server loss + rejoin): after a peer leaves the match through a
 harness lifecycle action (pause_quit = the real pause-menu quit; quit_to_hangar = its pre-T145 name), its
 multiplayer peer must be closed. Harness prints `[Harness] peer_check <slot>:
 connected=<bool>` 60 ticks after the action. B-g: quitting just changed scene,
@@ -28,6 +28,17 @@ def run(ctx):
             bad.append("%s: no peer_check after quit (process ended too soon?)" % role)
         elif m.group(1) != "false":
             bad.append("%s: still connected 60 ticks after quitting" % role)
+    # T153 (V40 exception): server gone -> peer torn down, back at the title
+    for path in logs:
+        role = os.path.basename(path)[: -len(".log")]
+        text = open(path, errors="replace").read()
+        for m in re.finditer(r"\[Harness\] server_lost_check \S*: connected=(\w+) scene=(\S+) rejoin=(\w+)", text):
+            quits += 1
+            if m.group(1) != "false" or m.group(2) != "TitleScreen":
+                bad.append("%s: %s 90 frames after losing the server (connected=%s), not the title"
+                           % (role, m.group(2), m.group(1)))
+        if "[Harness] action rejoin" in text and "rejoin=true" not in text:
+            bad.append("%s: mid-match rejoin was not refused (never kicked back to the title)" % role)
     if not quits:
         return base.verdict(NAME, base.SKIP, note="no lifecycle quit in run")
     if bad:

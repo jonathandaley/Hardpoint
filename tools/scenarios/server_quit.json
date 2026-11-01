@@ -1,0 +1,23 @@
+{
+  "name": "server_quit",
+  "seed": 5454,
+  "port": 8929,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Hippogriff.tres",
+  "duration_ticks": 600,
+  "oracles": [
+    "peer_closed",
+    "crash_scan",
+    "log_flood",
+    "rpc_integrity",
+    "spawn_join"
+  ],
+  "actions": [
+    {"tick": 200, "peer": "server", "action": "pause_quit"}
+  ],
+  "_comment": "T153: the host quits through the pause menu mid-match. Client must tear its peer down and land on the title (V40 exception) instead of playing on in an offline Arena; peer_closed reads server_lost_check (90 frames after server_disconnected) and the host's own peer_check.",
+  "peers": {
+    "server": {"input": {"keyframes": [{"tick": 0, "move": [0, -1], "look": [0.0, 0.0]}]}},
+    "client_1": {"input": {"keyframes": [{"tick": 0, "move": [0, -1], "look": [1.0, 0.0]}]}}
+  }
+}

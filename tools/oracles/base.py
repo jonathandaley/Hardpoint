@@ -28,10 +28,14 @@ SKIP = "SKIP"
 def load_jsonl(path):
     out = []
     with open(path) as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                out.append(json.loads(line))
+        lines = [l.strip() for l in f if l.strip()]
+    for i, line in enumerate(lines):
+        try:
+            out.append(json.loads(line))
+        except ValueError:
+            if i != len(lines) - 1:
+                raise
+            # T153: a SIGKILLed peer can leave its last line half-written; mid-file corruption still raises
     return out
 
 

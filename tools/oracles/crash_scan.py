@@ -61,6 +61,9 @@ def run(ctx):
                 return base.verdict(NAME, base.FAIL, peer=role, pattern="sudden_jump",
                                     note="%s timed out (hang / no clean quit)" % role)
             rc = info.get("exit_code")
+            log = os.path.join(run_dir, role + ".log")
+            if rc == -9 and os.path.exists(log) and "[Harness] action kill_client" in open(log, errors="replace").read():
+                continue  # T153: the scenario SIGKILLed this peer on purpose
             if rc not in (0, None):
                 return base.verdict(NAME, base.FAIL, peer=role, pattern="sudden_jump",
                                     note="%s exited nonzero (code %s)" % (role, rc))
