@@ -389,6 +389,9 @@ func _process(_delta: float) -> void:
 			_deadline_frame = Engine.get_physics_frames()  # soak = exactly one match
 	while not _actions.is_empty() and int(_actions[0].get("tick", 0)) <= t:
 		_run_action(_actions.pop_front())
+	if not _shot_damaged and is_instance_valid(_mine) and float(_mine.get("health")) < float(_mine.get("max_health")):
+		_shot_damaged = true
+		_shot_later("damaged", 10)
 	while not _hud_ticks.is_empty() and int(_hud_ticks[0]) <= t:
 		_dump_hud(int(_hud_ticks.pop_front()))
 	if _quit_frame >= 0 and not _peer_checked and Engine.get_physics_frames() - _quit_frame >= 60:
@@ -483,6 +486,7 @@ func _finish_override(key: String, mine: Node) -> void:
 			_actions.append(a)
 	_actions.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return int(a.get("tick", 0)) < int(b.get("tick", 0)))
+	_arm_shots(mine)
 	_hud_ticks = _scenario.get("hud_dump_ticks", []).duplicate()
 	_hud_ticks.sort()
 	_deadline_frame = Engine.get_physics_frames() + int(_scenario.get("duration_ticks", 600))
@@ -526,7 +530,7 @@ func _run_action(a: Dictionary) -> void:
 				if (pid == 1 and a.get("slot") == "server") or (pid > 1 and a.get("slot") == "client_%d" % nth):
 					for m in get_tree().get_nodes_in_group("mechs"):
 						if int(m.get("owner_peer_id")) == pid and not m.get("is_dead"):
-							m.take_damage(float(m.get("health")) + 1000.0)
+							m.take_damage(float(a.get("amount", float(m.get("health")) + 1000.0)))
 		"lobby_after_match":
 			# T154: the real post-match return (all ready / 30 s timeout -> Game._do_return_to_lobby)
 			Game._do_return_to_lobby()
@@ -541,7 +545,7 @@ func _run_action(a: Dictionary) -> void:
 
 # T147: one JSON line per visible HUD Control: path, class, global rect, text.
 # Headless still computes Control layout (offsets/anchors -> rects).
-func _dump_hud(tick: int) -> void:
+func _dump_hud(tick: int, tag: String = "") -> void:
 	var hud: Node = get_tree().current_scene.get_node_or_null("HUD") if get_tree().current_scene else null
 	if hud == null:
 		return
@@ -561,12 +565,12 @@ func _dump_hud(tick: int) -> void:
 	var f := FileAccess.open(path, FileAccess.READ_WRITE if _hud_file_started else FileAccess.WRITE)
 	_hud_file_started = true
 	f.seek_end()
-	f.store_line(JSON.stringify({"tick": tick, "slot": _key, "viewport": [vp.x, vp.y], "controls": rows}))
+	f.store_line(JSON.stringify({"tick": tick, "tag": tag, "slot": _key, "viewport": [vp.x, vp.y], "controls": rows}))
 	f.close()
 	if DisplayServer.get_name() != "headless":  # rendered run (Xvfb): save what the player sees
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png(
-			String(Game.get("_sync_dir")).path_join("%s.hud_%d.png" % [_sync_role(), tick]))
+			String(Game.get("_sync_dir")).path_join("%s.hud_%s.png" % [_sync_role(), tag if tag != "" else str(tick)]))
 
 # T154: each peer's profile after it applied the match result (profile_parity oracle)
 func _on_match_ended_mp(_winner: int, _stats: Array) -> void:
@@ -578,6 +582,27 @@ func _on_match_ended_mp(_winner: int, _stats: Array) -> void:
 	var p: Dictionary = Game.profile
 	print("[Harness] profile_after match=%d team=%d elo=%d xp=%d coins=%d level=%d" % [_match_n, team,
 		int(p.get("elo", 0)), int(p.get("xp", 0)), int(p.get("coins", 0)), int(p.get("level", 0))])
+
+# T156: event-driven screenshots ("shots": ["spawn", "damaged", "dead", "match_end"]) --
+# a rendered peer runs ~4x slower than the server, so tick-scheduled shots would miss
+# server-driven moments. PNG only on a rendered peer (_dump_hud), JSON layout everywhere.
+var _shot_damaged: bool = false
+
+func _arm_shots(mine: Node) -> void:
+	var shots: Array = _scenario.get("shots", [])
+	_shot_damaged = not shots.has("damaged")
+	if shots.has("spawn"):
+		_shot_later("spawn", 30)
+	if shots.has("dead"):
+		mine.died.connect(func() -> void: _shot_later("dead", 45), CONNECT_ONE_SHOT)
+	if shots.has("match_end"):
+		Game.match_ended_mp.connect(func(_w: int, _s: Array) -> void: _shot_later("match_end", 45), CONNECT_ONE_SHOT)
+
+func _shot_later(tag: String, ticks: int) -> void:
+	for _i in ticks:  # physics ticks: a slow rendered peer runs up to 8 per drawn frame
+		await get_tree().physics_frame
+	_dump_hud(Engine.get_physics_frames() - _override_frame, tag)
+	print("[Harness] shot %s" % tag)
 
 func _sync_role() -> String:
 	for a in OS.get_cmdline_args() + OS.get_cmdline_user_args():
