@@ -92,7 +92,9 @@ func _ready() -> void:
 	print("[Harness] role=%s port=%d expected_clients=%d" % [_role, _port, _expected_clients])
 	# T138: run_scenario.py checks this path is inside the run folder (own user://).
 	print("[Harness] user_data_dir=%s" % OS.get_user_data_dir())
-	if _role == "server":
+	if _scenario.get("menu", false):
+		_menu_flow()
+	elif _role == "server":
 		_start_server()
 	else:
 		_start_client()
@@ -172,11 +174,154 @@ func _roster_entry(slot_idx: int, peer_id: int, team: int, mech_path: String) ->
 
 func _start_client() -> void:
 	Game.join("127.0.0.1", _connect_port if _connect_port > 0 else _port)
+	_quit_with_server()
+
+func _quit_with_server() -> void:
 	# T152: a client whose server is gone ends its run -- otherwise it keeps playing an
 	# offline match and pollutes the logs (and the wall-clock tick alignment).
 	multiplayer.server_disconnected.connect(func() -> void:
 		print("[Harness] server gone, quitting (%s)" % _role)
 		get_tree().quit(0))
+
+# T164: "menu": true -> reach the match through the real UI, as a player does:
+# TitleScreen -> MPEntry (host / join) -> Lobby (squad picker, ready, start).
+# Buttons get real mouse clicks at their on-screen centre (a hidden, covered or
+# disabled button fails the step); OptionButton items are chosen by text via
+# select()+item_selected (ponytail: popup clicks skipped). Per-peer "squad":
+# [{"mech": "Slip", "weapons": ["MG LT"]}, ...] keyed by process role (client_1 ...):
+# ponytail: process role, not roster slot -- fine for one client; two clients
+# whose ENet ids sort opposite to their process names swap pick vs input spec.
+# A stuck step prints "[Harness] MENU FAIL ..." and exits 3 (crash_scan, menu_flow).
+func _menu_flow() -> void:
+	if not await _wait_scene("TitleScreen"):
+		return
+	_click("MultiplayerButton")
+	if not await _wait_scene("MPEntry"):
+		return
+	var entry := get_tree().current_scene
+	if _role == "server":
+		entry.get_node("TabContainer/Host/PortEdit").text = str(_port)
+		_click("TabContainer/Host/HostButton")
+	else:
+		(entry.get_node("TabContainer") as TabContainer).current_tab = 1
+		await get_tree().process_frame  # tab switch -> Join page laid out
+		entry.get_node("TabContainer/Join/IPEdit").text = "127.0.0.1"
+		entry.get_node("TabContainer/Join/JoinPortEdit").text = str(_connect_port if _connect_port > 0 else _port)
+		_click("TabContainer/Join/JoinButton")
+		_quit_with_server()
+	if not await _wait_scene("Lobby"):
+		return
+	await get_tree().process_frame
+	var squad: Array = _scenario.get("peers", {}).get(_sync_role(), {}).get("squad", [])
+	if not squad.is_empty() and not await _menu_pick_squad(squad):
+		return
+	if _role != "server":
+		_click("ReadyBtn")
+		return  # the server's START loads Arena here; _process binds input as usual
+	var map_opt: OptionButton = get_tree().current_scene.get_node("HostControls/MapRow/MapOption")
+	var lobby_maps: Array = get_tree().current_scene.get("_MAP_OPTIONS")
+	for i in lobby_maps.size():
+		if lobby_maps[i]["path"] == _scenario.get("map_path", lobby_maps[0]["path"]):
+			_choose(map_opt, lobby_maps[i]["name"])
+	var all_ready := func() -> bool:
+		var peers: Dictionary = Game.mp_lobby["peers"]
+		if peers.size() < _expected_clients + 1:
+			return false
+		for pid in peers:
+			if pid != 1 and not peers[pid].get("ready", false):
+				return false
+		return true
+	if not await _wait_until(all_ready, "every client in the lobby and ready"):
+		return
+	await get_tree().process_frame
+	_click("StartButton")
+
+func _menu_pick_squad(squad: Array) -> bool:
+	_click("SquadBtn")
+	await get_tree().process_frame
+	var lobby := get_tree().current_scene
+	var rows: Array = lobby.get_node("SquadPicker/PickerPanel/SlotRows").get_children()
+	var catalog: Array = lobby.get("WEAPON_CATALOG")
+	for i in mini(squad.size(), rows.size()):
+		_choose(rows[i].get_child(1), String(squad[i].get("mech", "")))
+		await get_tree().process_frame  # weapon OptionButtons rebuilt for the new mech
+		var wnames: Array = squad[i].get("weapons", [])
+		var wpaths: Array = []
+		for w in wnames.size():
+			_choose(rows[i].get_child(2).get_child(w), String(wnames[w]))
+			for c in catalog:
+				if c["name"] == wnames[w]:
+					wpaths.append(c["path"])
+		if i == 0:  # slot 0 spawns first (menu_flow oracle checks it on every peer)
+			var mech_path := "res://resources/mechs/%s.tres" % squad[0].get("mech", "")
+			var md = load(mech_path)
+			print("[Harness] menu_pick peer=%d max_hp=%d weapons=%s mech=%s" % [multiplayer.get_unique_id(),
+				int(md.max_health) if md != null else -1, JSON.stringify(wpaths), mech_path])
+	_click("SquadPicker/PickerPanel/PickerButtonRow/ConfirmBtn")
+	return _menu_failed == ""
+
+var _menu_failed: String = ""
+
+func _menu_fail(why: String) -> void:
+	if _menu_failed != "":
+		return
+	_menu_failed = why
+	print("[Harness] MENU FAIL (%s): %s" % [_role, why])
+	push_error("[Harness] MENU FAIL: " + why)
+	get_tree().quit(3)
+
+func _click(path: String) -> void:
+	var b := get_tree().current_scene.get_node_or_null(path) as BaseButton
+	if b == null or not b.is_visible_in_tree() or b.disabled:
+		_menu_fail("%s not clickable (%s)" % [path, "missing" if b == null else
+			"visible=%s disabled=%s" % [b.is_visible_in_tree(), b.disabled]])
+		return
+	var hits := [0]
+	var count := func() -> void: hits[0] += 1
+	b.pressed.connect(count)
+	var at := b.get_global_rect().get_center()
+	# headless: the OS never reports the mouse entering the window, and a Button only
+	# takes a mouse press while hovered -> say so, then move onto it first
+	get_viewport().notification(Node.NOTIFICATION_VP_MOUSE_ENTER)
+	var mv := InputEventMouseMotion.new()
+	mv.position = at
+	mv.global_position = at
+	get_viewport().push_input(mv, true)  # canvas coords (viewport is stretched 640x360 -> window)
+	for down in [true, false]:
+		var ev := InputEventMouseButton.new()
+		ev.button_index = MOUSE_BUTTON_LEFT
+		ev.pressed = down
+		ev.position = at
+		ev.global_position = at
+		get_viewport().push_input(ev, true)
+	if is_instance_valid(b):
+		b.pressed.disconnect(count)
+	print("[Harness] menu click %s" % path)
+	if hits[0] != 1:  # something else is on top of it, or it ignores mouse input
+		_menu_fail("click on %s at %s did not press it" % [path, at])
+
+func _choose(opt: OptionButton, text: String) -> void:
+	for i in opt.item_count:
+		if opt.get_item_text(i) == text:
+			opt.select(i)
+			opt.item_selected.emit(i)
+			return
+	_menu_fail("no item '%s' in %s" % [text, opt.get_path()])
+
+func _wait_scene(scene_name: String) -> bool:
+	var there := func() -> bool:
+		return get_tree().current_scene != null and get_tree().current_scene.name == scene_name
+	return await _wait_until(there, "scene " + scene_name)
+
+func _wait_until(cond: Callable, what: String) -> bool:
+	for _i in 600:  # 10 s at 60 fps
+		if _menu_failed != "":
+			return false
+		if cond.call():
+			return true
+		await get_tree().process_frame
+	_menu_fail("timed out waiting for " + what)
+	return false
 	# Arena loads automatically when the server's _rpc_match_start (call_local)
 	# reaches us; _process polls for our local mech and then overrides input.
 
@@ -310,6 +455,13 @@ func _finish_override(key: String, mine: Node) -> void:
 	_hud_ticks.sort()
 	_deadline_frame = Engine.get_physics_frames() + int(_scenario.get("duration_ticks", 600))
 	print("[Harness] input override done for %s (mech %s, match %d); deadline frame %d" % [_role, mine.name, _match_n, _deadline_frame])
+	if _scenario.get("menu", false):  # T164: what actually spawned, for the menu_flow oracle
+		for m in get_tree().get_nodes_in_group("mechs"):
+			var wp: Array = []
+			for w in m.get("_weapons"):
+				wp.append(w.scene_file_path)
+			print("[Harness] spawned owner=%d max_hp=%d weapons=%s mech=%s" % [int(m.get("owner_peer_id")),
+				int(m.get("max_health")), JSON.stringify(wp), m.name])
 
 # T144: lifecycle actions go through the game's real code paths, never a
 # harness shortcut, so a fix in the game is what turns the oracles green.

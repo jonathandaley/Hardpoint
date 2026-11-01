@@ -1,0 +1,37 @@
+{
+  "name": "menu_flow",
+  "menu": true,
+  "seed": 0,
+  "port": 8927,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "duration_ticks": 300,
+  "hud_dump_ticks": [120],
+  "oracles": [
+    "menu_flow",
+    "hud_layout",
+    "spawn_join",
+    "team_assignment",
+    "transform_desync",
+    "aim_desync",
+    "crash_scan",
+    "log_flood",
+    "rpc_integrity"
+  ],
+  "_comment": "T164: both peers reach the match through the real UI -- TitleScreen MULTIPLAYER -> MPEntry Host (port) / Join (tab, IP, port) -> Lobby squad picker (per-slot mech + weapons by item text) -> client READY -> host START (real mouse clicks at button centres; hidden/covered/disabled = MENU FAIL). Lobby builds the roster and seed (randi). menu_flow: each peer's slot-0 pick spawned as chosen on every peer (V39). hud_layout: in-match HUD of the lobby-picked loadouts (B-d path).",
+  "peers": {
+    "server": {
+      "squad": [
+        {"mech": "Hippogriff", "weapons": ["RIFLE LT", "LASER LT", "MISSILE LT"]},
+        {"mech": "Everest", "weapons": ["MG HV", "ROCKET HV"]}
+      ],
+      "input": {"keyframes": [{"tick": 0, "move": [0, -1], "look": [0.0, 0.0]}, {"tick": 150, "move": [0, 0], "look": [1.0, 0.0]}]}
+    },
+    "client_1": {
+      "squad": [
+        {"mech": "Kestrel", "weapons": ["ARC LT", "SHOTGUN LT"]},
+        {"mech": "Slip", "weapons": ["MG LT"]}
+      ],
+      "input": {"keyframes": [{"tick": 0, "move": [0, -1], "look": [0.0, 0.0]}, {"tick": 150, "move": [1, 0], "look": [-1.0, 0.0]}]}
+    }
+  }
+}

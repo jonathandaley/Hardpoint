@@ -5,7 +5,8 @@ Control layout, so no rendering is needed. FAILs on:
   - weapon icons (WeaponHUD/Icon<N>) overlapping each other or shrunk below
     90% of the 36x22 slot,
   - the client's weapon icon rects differing from the server's at the same dump
-    (every harness peer flies the same loadout).
+    (same weapon count = same loadout shape); with different loadouts (T164 lobby
+    picks) the icon row's y and icon sizes must still match.
 B-d (client icons 'squashed together at the bottom') never reproduced in the
 harness (headless, rendered under Xvfb, 4 loadouts); this guards the class.
 """
@@ -28,6 +29,14 @@ def _overlap(a, b):
 
 def _icons(dump):
     return sorted((c["path"], c["rect"]) for c in dump["controls"] if c["path"].startswith("WeaponHUD/Icon"))
+
+
+def _differs(a, b):
+    """Icon rect lists of two peers: exact match for the same weapon count, else
+    the same row y + icon sizes (different loadouts, T164)."""
+    if len(a) == len(b):
+        return a != b
+    return {(round(r[1]), round(r[2]), round(r[3])) for r in a} != {(round(r[1]), round(r[2]), round(r[3])) for r in b}
 
 
 def check_dump(role, dump):
@@ -68,7 +77,7 @@ def run(ctx):
             continue
         for d in ds:
             s = server.get(d["tick"])
-            if s is not None and [r for _, r in _icons(s)] != [r for _, r in _icons(d)]:
+            if s is not None and _differs([r for _, r in _icons(s)], [r for _, r in _icons(d)]):
                 return base.verdict(NAME, base.FAIL, peer=role, first_tick=d["tick"],
                                     note="%s tick %d: weapon icons %s != server %s" % (
                                         role, d["tick"], [[round(v) for v in r] for _, r in _icons(d)],
