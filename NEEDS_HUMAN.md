@@ -16,6 +16,14 @@ Delete an entry once you've answered it (or answer inline and the agent will act
 - **Decision:** keep 42 deg, or lower the cap? e.g. `clampf(..., 1.0, 3.0)` = 21 deg max.
   Tell the agent a number and it will change the constant; how it feels is your call.
 
+## 2026-10-31 | T153 | refused mid-match join gives no reason
+
+- **What:** joining a game that is already in a match now fails cleanly (B58): the host kicks the
+  joiner, who lands back on the title screen. There is no "match in progress, try after it ends" message.
+- **Where:** `autoloads/Game.gd` `_on_mp_peer_connected` (kick) and `_on_mp_server_disconnected` (route).
+- **Why you:** wording/flow is a UX call. Cheapest option: the host sends a one-line reason RPC
+  before kicking and MPEntry shows it in its error label. Say the word and the loop will add it.
+
 ## 2026-10-31 | T147 | B-d -- RESOLVED in T166 (B54), no action needed
 
 Root cause: fresh-import icon size (116x68 PNG forced TextureRect min size); your host had a stale import cache. Fixed. Original note kept below for history.
