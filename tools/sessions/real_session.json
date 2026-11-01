@@ -1,0 +1,6 @@
+{
+  "name": "real_session",
+  "oracles": ["transform_desync", "health_desync", "ammo_desync", "reload_desync", "active_set_desync",
+              "lock_target", "team_assignment", "beacon_desync", "loop_audio", "aim_desync"],
+  "_comment": "T157: oracle set for a recorded real session or a session_window.py cut of one (no harness stdout logs, no scripted inputs, trimmed event streams: so no crash_scan / rpc_integrity / spawn_join / input_delivery). world_invariants + interp_smoothness are auto-added."
+}
