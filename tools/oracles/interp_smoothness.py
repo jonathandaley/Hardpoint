@@ -10,23 +10,25 @@ Starvation under loss (buffer ran dry -> hold) also shows up as stalls.
 """
 import math
 
-from . import base
+from . import base, fair_start
 
 NAME = "interp_smoothness"
 
 DEFAULTS = {"interp_min_move": 0.02, "interp_max_stall": 0.15, "interp_min_samples": 30, "interp_warmup_ticks": 30}
 
 
-def stall_ratios(server, client, min_move, warmup=30):
+def stall_ratios(server, client, min_move, warmup=30, live=None):
     """{mech_id: (moving_ticks, stalled_ticks)} for one client. The first
-    `warmup` ticks of each mech's series are skipped: the interpolation buffer
-    starts empty when streaming begins (T162: mechs start moving right then)."""
+    `warmup` ticks after streaming begins are skipped: the interpolation buffer
+    starts empty then (T162: mechs start moving right then). Streaming begins at
+    the later of the mech's first client tick and the server's `live` tick (V52;
+    B56: a client that loads early idles un-streamed until live)."""
     out = {}
     for mid in client.mech_ids:
         moving = stalled = 0
         first = next((t for t in client.ticks if client.at(t, mid) is not None), None)
         for t in client.ticks:
-            if first is None or t < first + warmup:
+            if first is None or t < max(first, live or first) + warmup:
                 continue
             a, b = client.at(t, mid), client.at(t + 1, mid)
             sa, sb = server.at(t, mid), server.at(t + 1, mid)
@@ -46,7 +48,8 @@ def run(ctx):
     worst, checked = None, 0
     for role in base.client_roles(primary):
         for mid, (moving, stalled) in stall_ratios(primary["server"], primary[role], float(th["interp_min_move"]),
-                                                   int(th["interp_warmup_ticks"])).items():
+                                                   int(th["interp_warmup_ticks"]),
+                                                   fair_start.live_tick(ctx.get("run_dir"))).items():
             if moving < int(th["interp_min_samples"]):
                 continue
             checked += 1
