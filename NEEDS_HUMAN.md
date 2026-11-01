@@ -16,7 +16,11 @@ Delete an entry once you've answered it (or answer inline and the agent will act
 - **Decision:** keep 42 deg, or lower the cap? e.g. `clampf(..., 1.0, 3.0)` = 21 deg max.
   Tell the agent a number and it will change the constant; how it feels is your call.
 
-## 2026-10-31 | T147 | B-d (client weapon icons squashed) did not reproduce
+## 2026-10-31 | T147 | B-d -- RESOLVED in T166 (B54), no action needed
+
+Root cause: fresh-import icon size (116x68 PNG forced TextureRect min size); your host had a stale import cache. Fixed. Original note kept below for history.
+
+### (history) B-d (client weapon icons squashed) did not reproduce
 
 - **What:** the client's weapon HUD matched the server's to the pixel in every harness run: headless,
   rendered on a virtual display (screenshot: `build/suite_runs/T147_render/client_1.hud_60.png`), and with
