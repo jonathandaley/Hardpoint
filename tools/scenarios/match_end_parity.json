@@ -1,0 +1,83 @@
+{
+  "name": "match_end_parity",
+  "seed": 7171,
+  "port": 8932,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Hippogriff.tres",
+  "matches": 2,
+  "duration_ticks": 300,
+  "oracles": [
+    "profile_parity",
+    "lobby_roster",
+    "crash_scan",
+    "log_flood",
+    "rpc_integrity",
+    "spawn_join",
+    "team_assignment"
+  ],
+  "actions": [
+    {
+      "tick": 120,
+      "peer": "server",
+      "action": "end_match",
+      "winner": 1,
+      "match": 1
+    },
+    {
+      "tick": 200,
+      "peer": "server",
+      "action": "lobby_after_match",
+      "match": 1
+    },
+    {
+      "tick": 120,
+      "peer": "server",
+      "action": "end_match",
+      "winner": 0,
+      "match": 2
+    }
+  ],
+  "_comment": "T154 (V36): two matches, seeded unequal profiles (host 1200, client 900). Match 1 ends with the underdog client team winning (Match.force_end, the team-wipe path), real post-match return (Game._do_return_to_lobby), match 2 ends with the host winning. profile_parity recomputes every peer's ELO/XP/coins per match from the pre-match values of all peers (match 2 starts from match 1's results) and checks profile.cfg holds the last.",
+  "peers": {
+    "server": {
+      "profile": {
+        "elo": 1200
+      },
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "profile": {
+        "elo": 900
+      },
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

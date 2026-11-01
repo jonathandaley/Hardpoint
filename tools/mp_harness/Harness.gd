@@ -92,6 +92,11 @@ func _ready() -> void:
 	print("[Harness] role=%s port=%d expected_clients=%d" % [_role, _port, _expected_clients])
 	# T138: run_scenario.py checks this path is inside the run folder (own user://).
 	print("[Harness] user_data_dir=%s" % OS.get_user_data_dir())
+	# T154: per-peer profile seed (process role; e.g. {"elo": 1200}) before any lobby meta goes out
+	var seed_profile: Dictionary = peers.get(_sync_role(), {}).get("profile", {})
+	for k in seed_profile:
+		Game.profile[k] = seed_profile[k]
+	Game.match_ended_mp.connect(_on_match_ended_mp)
 	if _scenario.get("menu", false):
 		_menu_flow()
 	elif _role == "server":
@@ -109,7 +114,8 @@ func _load_json(path: String) -> Dictionary:
 func _start_server() -> void:
 	Game.host(_port)
 	# Register the host like Lobby._ready does (B44 relies on a populated lobby).
-	Game.mp_lobby["peers"][1] = {"pilot_name": "Host", "elo": 1000, "level": 1, "squad": [], "ready": false}
+	Game.mp_lobby["peers"][1] = {"pilot_name": "Host", "elo": Game.profile.get("elo", 1000),  # as Lobby._local_peer_meta
+		"level": Game.profile.get("level", 1), "squad": [], "ready": false}
 	if _expected_clients <= 0:
 		_begin_match.call_deferred()
 		return
@@ -507,6 +513,13 @@ func _run_action(a: Dictionary) -> void:
 			# (expected: server kicks it on connect -> back at the title; server_lost_check rejoin=true)
 			_rejoining = true
 			_menu_connect()
+		"end_match":
+			# T154: the real match end (Match.force_end, as on a team wipe) -> Game._rpc_match_end
+			get_tree().current_scene.get("match_node").force_end(int(a.get("winner", 0)))
+		"lobby_after_match":
+			# T154: the real post-match return (all ready / 30 s timeout -> Game._do_return_to_lobby)
+			Game._do_return_to_lobby()
+			_lobby_wait = true
 		"return_to_lobby":
 			# = match end -> lobby: Game.server_change_scene, the V40/T159 coordinated
 			# change that Game._do_return_to_lobby (T121) uses, mid-stream (T146/T159)
@@ -543,6 +556,17 @@ func _dump_hud(tick: int) -> void:
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png(
 			String(Game.get("_sync_dir")).path_join("%s.hud_%d.png" % [_sync_role(), tick]))
+
+# T154: each peer's profile after it applied the match result (profile_parity oracle)
+func _on_match_ended_mp(_winner: int, _stats: Array) -> void:
+	await get_tree().process_frame  # Game._update_mp_profile runs right after the signal
+	var team := -1
+	for e in Game.mp_active_match.get("roster", []):
+		if int(e.get("peer_id", 0)) == multiplayer.get_unique_id():
+			team = int(e.get("team", -1))
+	var p: Dictionary = Game.profile
+	print("[Harness] profile_after match=%d team=%d elo=%d xp=%d coins=%d level=%d" % [_match_n, team,
+		int(p.get("elo", 0)), int(p.get("xp", 0)), int(p.get("coins", 0)), int(p.get("level", 0))])
 
 func _sync_role() -> String:
 	for a in OS.get_cmdline_args() + OS.get_cmdline_user_args():
