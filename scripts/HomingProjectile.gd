@@ -28,6 +28,14 @@ var _age: float = 0.0
 var _velocity_dir: Vector3 = Vector3.ZERO  # zero = uninit; set from transform on first frame
 
 func _physics_process(delta: float) -> void:
+	if not Game.prof_on:  # T165 profiling shim
+		_physics_process_impl(delta)
+		return
+	var t0 := Time.get_ticks_usec()
+	_physics_process_impl(delta)
+	Game.prof_add("homing", Time.get_ticks_usec() - t0)
+
+func _physics_process_impl(delta: float) -> void:
 	if _velocity_dir == Vector3.ZERO:
 		_velocity_dir = -global_transform.basis.z
 	_age += delta

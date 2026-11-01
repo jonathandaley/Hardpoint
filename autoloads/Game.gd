@@ -85,6 +85,33 @@ var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 func seed_rng(s: int) -> void:
 	rng.seed = s
 
+# T165: opt-in per-system frame-time accumulators (soak runs set prof_on); one bool
+# check per call when off. Harness perf lines report usec per system per window.
+var prof_on: bool = false
+var _prof_frame: Dictionary = {}   # this physics frame: key -> usec
+var _prof: Dictionary = {}         # window: key -> [sum_usec, max_frame_usec, frames]
+
+func prof_add(key: String, usec: int) -> void:
+	_prof_frame[key] = int(_prof_frame.get(key, 0)) + usec
+
+# Called once per physics frame (harness). "phys" = engine-reported total physics
+# time of the last frame, so per-frame maxima show whether spikes are in our scripts
+# or elsewhere (physics step, node churn).
+func prof_end_frame() -> void:
+	_prof_frame["phys"] = int(Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000000.0)
+	_prof_frame["nav"] = int(Performance.get_monitor(Performance.TIME_NAVIGATION_PROCESS) * 1000000.0)
+	_prof_frame["pairs"] = int(Performance.get_monitor(Performance.PHYSICS_3D_COLLISION_PAIRS)) * 1000  # count, shown as x1000
+	for k in _prof_frame:
+		var e: Array = _prof.get(k, [0, 0, 0])
+		var v: int = _prof_frame[k]
+		_prof[k] = [e[0] + v, maxi(e[1], v), e[2] + 1]
+	_prof_frame = {}
+
+func prof_take() -> Dictionary:
+	var d := _prof
+	_prof = {}
+	return d
+
 # ---- M0.2: sync snapshot logging (flag-gated, zero-cost when off) ----
 # Writes one JSONL line per physics tick per tracked mech plus an event stream,
 # for the MP autodebug determinism self-test and oracle tools. This is the one
@@ -146,6 +173,14 @@ func _open_sync_files() -> void:
 	_sync_files_open = true
 
 func _physics_process(_delta: float) -> void:
+	if not prof_on:  # T165 profiling shim (harness sync logging is test-only cost)
+		_physics_process_impl(_delta)
+		return
+	var t0 := Time.get_ticks_usec()
+	_physics_process_impl(_delta)
+	prof_add("synclog", Time.get_ticks_usec() - t0)
+
+func _physics_process_impl(_delta: float) -> void:
 	if not sync_logging_enabled:
 		return
 	var mechs := get_tree().get_nodes_in_group("mechs")
@@ -246,6 +281,7 @@ func _mech_snapshot(m: Node, tick: int, wall: int, role: String, peer: int) -> D
 func sync_log_event(type: String, mech_id: String, payload: Dictionary = {}) -> void:
 	if not sync_logging_enabled or not _sync_files_open:
 		return
+	var t0 := Time.get_ticks_usec() if prof_on else 0
 	var peer := multiplayer.get_unique_id() if multiplayer.has_multiplayer_peer() else 1
 	_sync_rpc_seq += 1
 	_sync_event_file.store_line(JSON.stringify({
@@ -256,6 +292,8 @@ func sync_log_event(type: String, mech_id: String, payload: Dictionary = {}) -> 
 		"payload": payload,
 		"rpc_seq": _sync_rpc_seq,
 	}))
+	if prof_on:
+		prof_add("synclog", Time.get_ticks_usec() - t0)
 
 # ---- Multiplayer transport (V5: no new autoload; stays in Game.gd) ----
 

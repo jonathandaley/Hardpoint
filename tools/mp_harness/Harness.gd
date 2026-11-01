@@ -182,6 +182,7 @@ func _process(_delta: float) -> void:
 		return
 	var t := Engine.get_physics_frames() - _override_frame
 	if _scenario.get("soak", false):
+		Game.prof_on = true  # T165
 		if _perf_next < 0 or Engine.get_physics_frames() >= _perf_next:
 			_perf_sample()
 			_perf_next = Engine.get_physics_frames() + 600
@@ -366,3 +367,14 @@ func _perf_sample() -> void:
 		Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
 		Performance.get_monitor(Performance.OBJECT_COUNT), Performance.get_monitor(Performance.OBJECT_NODE_COUNT),
 		Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT), Performance.get_monitor(Performance.MEMORY_STATIC)])
+	# T165: average ms per physics frame per instrumented system over the window
+	var prof: Dictionary = Game.prof_take()
+	var parts: Array = []
+	for k in prof:  # avg/max ms per physics frame over the window
+		var e: Array = prof[k]
+		parts.append("%s=%.2f/%.2f" % [k, float(e[0]) / 600.0 / 1000.0, float(e[1]) / 1000.0])
+	print("[Harness] prof tick=%d %s" % [tick, " ".join(parts)])
+
+func _physics_process(_delta: float) -> void:
+	if Game.prof_on:
+		Game.prof_end_frame()  # T165: per-frame boundary for the profiler

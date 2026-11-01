@@ -42,6 +42,14 @@ func _ready() -> void:
 # AI turn-speed #22). Subclasses that override _physics_process must call
 # super._physics_process(delta); purely visual/audio timers stay in their _process.
 func _physics_process(delta: float) -> void:
+	if not Game.prof_on:  # T165 profiling shim (base weapon tick; subclasses' super calls land here)
+		_physics_process_impl(delta)
+		return
+	var t0 := Time.get_ticks_usec()
+	_physics_process_impl(delta)
+	Game.prof_add("weapon_base", Time.get_ticks_usec() - t0)
+
+func _physics_process_impl(delta: float) -> void:
 	if _cooldown > 0.0:
 		_cooldown -= delta
 

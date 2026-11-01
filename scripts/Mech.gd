@@ -442,6 +442,14 @@ func _do_shield_flash() -> void:
 func _die() -> void:
 	if is_dead:
 		return
+	if Game.prof_on:  # T165: is a death the combat-frame spike?
+		var t0 := Time.get_ticks_usec()
+		_die_impl()
+		Game.prof_add("die", Time.get_ticks_usec() - t0)
+		return
+	_die_impl()
+
+func _die_impl() -> void:
 	is_dead = true
 	Game.ai_director_clear_intent(self)
 	print("[Mech] %s destroyed" % name)
@@ -521,6 +529,14 @@ const _STEP_RATE := 2.5    # m/s vertical lift speed while stepping up
 var _step_up_remaining: float = 0.0
 
 func _physics_process(delta: float) -> void:
+	if not Game.prof_on:  # T165 profiling shim
+		_physics_process_impl(delta)
+		return
+	var t0 := Time.get_ticks_usec()
+	_physics_process_impl(delta)
+	Game.prof_add("mech", Time.get_ticks_usec() - t0)
+
+func _physics_process_impl(delta: float) -> void:
 	# V38: non-server peers skip all local simulation; transforms driven by snapshot interp.
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
 		_apply_snapshot_interp()

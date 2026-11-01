@@ -210,6 +210,14 @@ func _nav_next(bot_mech: Node3D, goal_pos: Vector3) -> Vector3:
 # tick, so computing it here (with the fixed physics delta) keeps bot turn speed
 # independent of render frame rate. Also keeps per-tick RNG draws deterministic.
 func _physics_process(delta: float) -> void:
+	if not Game.prof_on:  # T165 profiling shim
+		_physics_process_impl(delta)
+		return
+	var t0 := Time.get_ticks_usec()
+	_physics_process_impl(delta)
+	Game.prof_add("ai", Time.get_ticks_usec() - t0)
+
+func _physics_process_impl(delta: float) -> void:
 	# T40: bots run server-only; clients receive mech state via replication, not AI.
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
 		return
