@@ -50,9 +50,9 @@ G20|.|Arena surface texture pass: Math Temple pixel-art stone/metal treatment|-
 G21|.|Environmental decals: scorch marks, wear marks per arena|-
 G22|.|Per-arena atmosphere tuning: fog color/density, point light review|-
 G23|.|Weapons + effects pass: pixel-art atlas, muzzle flash/trails tuned for bloom|G7
-G24|.|Mech geometry port: translate design/preview/brand-mech-render-*.html build() box lists into MechVisuals.gd per-mech funcs (negate Z, add rotation arg to _add_box, keep animated leg skeleton). Staged per weight class. Geometry only -- flat mats, no atlas|GV4
+G24|x|(T178) Mech geometry port: translate design/preview/brand-mech-render-*.html build() box lists into MechVisuals.gd per-mech funcs (negate Z, add rotation arg to _add_box, keep animated leg skeleton). Staged per weight class. Geometry only -- flat mats, no atlas|GV4
 G25|.|Mech material upgrade: move mech mats off SHADING_MODE_UNSHADED to lit flat-shading + WorldEnvironment key/ambient/rim (this is most of why the design renders read well)|G7,GV2
-G26|.|Mech palette recolor: pull per-mech armor/detail/emissive hex from design/preview/brand-mech-palette.html + legend swatches into MechVisuals.gd flat colors|G0
+G26|x|(T178) Mech palette recolor: pull per-mech armor/detail/emissive hex from design/preview/brand-mech-palette.html + legend swatches into MechVisuals.gd flat colors|G0
 G27|.|UI polish pass: interpret design/ui_kits/game/*.jsx into HUD/menu changes; reconcile design/colors_and_type.css tokens against scattered inline Color() in HUD.gd|-
 
 ## Design system reference
