@@ -34,10 +34,13 @@ static func _cyl(mi: MeshInstance3D, tr: float, br: float, h: float, segs: int =
 
 # ---- material helpers ----
 
+# T179 (G25): lit, so box faces shade differently and forms read (unshaded mechs were
+# flat silhouettes; the kit renders are Lambert-lit). Matte: no specular sheen.
 static func _mat(col: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	m.albedo_color = col
+	m.roughness = 1.0
+	m.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
 	return m
 
 # T178: unshaded draws albedo only, so a black albedo left every glow part black;
