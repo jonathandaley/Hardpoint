@@ -522,6 +522,9 @@ func _update_mech_panel() -> void:
 func _build_weapon_picker(md) -> void:
 	var existing := mech_panel.get_node_or_null("WeaponPicker")
 	if existing:
+		# T173: detach first. queue_free alone kept the name taken until frame end, so the
+		# rebuilt picker got an auto-name and _show_squad_screen never found it to hide.
+		mech_panel.remove_child(existing)
 		existing.queue_free()
 
 	var slots: Array = md.weapon_slots
