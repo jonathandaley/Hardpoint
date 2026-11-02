@@ -3,7 +3,8 @@ harness lifecycle action (pause_quit = the real pause-menu quit; quit_to_hangar 
 multiplayer peer must be closed. Harness prints `[Harness] peer_check <slot>:
 connected=<bool>` 60 ticks after the action. B-g: quitting just changed scene,
 the client stayed connected, and the server kept streaming RPCs into an Arena
-the client no longer had (log flood).
+the client no longer had (log flood). T170: a refused rejoin must leave no
+'Unable to send packet' on the host (B64).
 """
 import glob
 import os
@@ -34,7 +35,7 @@ def run(ctx):
         text = open(path, errors="replace").read()
         for m in re.finditer(r"\[Harness\] server_lost_check \S*: connected=(\w+) scene=(\S+) rejoin=(\w+)", text):
             quits += 1
-            # T168: a refused rejoin lands on MPEntry (it got the reason RPC); host loss on the title
+            # T168/T170: a refused rejoin lands on MPEntry (reason sent during auth); host loss on the title
             want = "MPEntry" if m.group(3) == "true" else "TitleScreen"
             if m.group(1) != "false" or m.group(2) != want:
                 bad.append("%s: %s 90 frames after losing the server (connected=%s), not %s"
@@ -48,6 +49,13 @@ def run(ctx):
             if os.path.basename(path).startswith("client") and "server_lost_check" not in open(path, errors="replace").read():
                 quits += 1
                 bad.append("%s never noticed the host died" % os.path.basename(path)[: -len(".log")])
+    # T170 (B64): a refused rejoiner is turned away during auth and never joins the connected
+    # set, so no broadcast can hit it. Each 'Unable to send packet' on the host = a send to a
+    # half-closed peer (the pre-T170 kick logged 2-21 per run on `bad`).
+    if os.path.exists(srv) and any("rejoin=true" in open(p, errors="replace").read() for p in logs):
+        n = open(srv, errors="replace").read().count("Unable to send packet")
+        if n:
+            bad.append("server sent %d packet(s) to a half-closed peer around the refused rejoin (B64)" % n)
     if not quits:
         return base.verdict(NAME, base.SKIP, note="no lifecycle quit in run")
     if bad:
