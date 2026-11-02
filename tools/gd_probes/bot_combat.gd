@@ -1,6 +1,7 @@
 extends Node
 # T169 probe: bot combat behaviour in a single-player Arena.
-#  1. bots get varied loadouts (not all rifles) and heavy slots get heavy weapons;
+#  1. bots get varied loadouts (not all rifles), heavy slots get heavy weapons, and
+#     each bot carries ONE weapon family in every slot (T171);
 #  2. a bot shot by someone other than its target turns on the attacker, unless its
 #     current target is nearly dead; a second shooter can't flip it straight back;
 #  3. a bot carrying a lock weapon acquires a lock through the shared lock system (V15).
@@ -26,15 +27,23 @@ func _ready() -> void:
 	for m in get_tree().get_nodes_in_group("mechs"):
 		(team0 if m.team == 0 else team1).append(m)
 		if m.name != "PlayerMech":
+			var fams := {}
 			for w in m.get_weapons():
 				paths[w.scene_file_path] = true
-	# 1. loadouts: 5 bots x 3 light slots from 8 light weapons -> all-rifle odds ~1e-14
+				fams[w.scene_file_path.get_file().trim_suffix(".tscn").trim_suffix("Light").trim_suffix("Heavy")] = true
+			if fams.size() != 1:
+				_fail("%s has a patchwork loadout %s" % [m.name, fams.keys()])
+	# 1. loadouts: 5 bots, one of 8 light families each -> all-rifle odds 8^-5 ~ 3e-5
 	if paths.keys() == ["res://scenes/weapons/RifleLight.tscn"]:
 		_fail("every bot still carries only rifles")
 	var rng := RandomNumberGenerator.new()
-	for p in Lobby.bot_weapon_paths(load("res://resources/mechs/Vesuvius.tres"), rng):
-		if not String(p).ends_with("Heavy.tscn"):
-			_fail("heavy slot got a non-heavy weapon: %s" % p)
+	for i in 20:
+		var vp: Array = Lobby.bot_weapon_paths(load("res://resources/mechs/Vesuvius.tres"), rng)
+		for p in vp:
+			if not String(p).ends_with("Heavy.tscn"):
+				_fail("heavy slot got a non-heavy weapon: %s" % p)
+		if vp.any(func(p): return p != vp[0]):
+			_fail("Vesuvius got a patchwork loadout %s" % [vp])
 
 	# 1b. every bot has its own RNG seed (one shared stream = one role for all bots)
 	var ids := {}
