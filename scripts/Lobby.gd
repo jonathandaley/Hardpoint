@@ -460,13 +460,23 @@ func _default_bot_squad(bot_id: int) -> Array:
 		result.append({"mech": mech_path, "weapons": bot_weapon_paths(mech_def, rng)})
 	return result
 
-## T169: random bot loadout -- one catalog weapon per slot of `mech_def`, matching slot size.
+## T171: random bot loadout -- ONE weapon family (RIFLE, MG, ...) in every slot of
+## `mech_def`, sized per slot; mixed loadouts fight worse (ranges, lead, lock all differ).
+## Only families that exist in every slot size the mech has (AERIAL/PATIENCE: heavy only).
+## ponytail: uniform random family; weight by mech (speed, HP, slot size) when it matters.
 static func bot_weapon_paths(mech_def: Resource, rng: RandomNumberGenerator) -> Array:
-	var out: Array = []
-	for slot in mech_def.weapon_slots:
-		var pool := WEAPON_CATALOG.filter(func(w: Dictionary) -> bool: return w["slot_size"] == slot.slot_size)
-		out.append(pool[rng.randi() % pool.size()]["path"] if not pool.is_empty() else "")
-	return out
+	var fams := {}  # "RIFLE" -> {slot_size: path}
+	for w in WEAPON_CATALOG:
+		var f: String = w["name"].get_slice(" ", 0)
+		if not fams.has(f):
+			fams[f] = {}
+		fams[f][w["slot_size"]] = w["path"]
+	var fits: Array = fams.keys().filter(func(f: String) -> bool:
+		return mech_def.weapon_slots.all(func(sl) -> bool: return fams[f].has(sl.slot_size)))
+	if fits.is_empty():
+		return mech_def.weapon_slots.map(func(_sl) -> String: return "")
+	var fam: Dictionary = fams[fits[rng.randi() % fits.size()]]
+	return mech_def.weapon_slots.map(func(sl) -> String: return fam[sl.slot_size])
 
 func _on_back_pressed() -> void:
 	Game.disconnect_mp()
