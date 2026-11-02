@@ -17,7 +17,7 @@
     "log_flood",
     "rpc_integrity"
   ],
-  "_comment": "T164: both peers reach the match through the real UI -- TitleScreen MULTIPLAYER -> MPEntry Host (port) / Join (tab, IP, port) -> Lobby squad picker (per-slot mech + weapons by item text) -> client READY -> host START (real mouse clicks at button centres; hidden/covered/disabled = MENU FAIL). Lobby builds the roster and seed (randi). menu_flow: each peer's slot-0 pick spawned as chosen on every peer (V39). hud_layout: in-match HUD of the lobby-picked loadouts (B-d path).",
+  "_comment": "T164: both peers reach the match through the real UI -- T176: TitleScreen PLAY -> SignIn CONFIRM -> Hangar squad (slot -> roster mech -> weapon '>' until the row shows the pick, BACK) -> FIND MATCH -> HOST / JOIN -> MPEntry (port / IP) -> Lobby -> client READY -> host START (real mouse clicks at button centres; hidden/covered/disabled = MENU FAIL). Lobby builds the roster and seed (randi). menu_flow: each peer's slot-0 hangar pick spawned as chosen on every peer (V39). hud_layout: in-match HUD of the picked loadouts (B-d path). Weapon names are the lobby catalog's; the harness maps them to the hangar's labels.",
   "peers": {
     "server": {
       "squad": [

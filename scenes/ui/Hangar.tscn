@@ -223,8 +223,59 @@ offset_bottom = 348.0
 theme_override_font_sizes/font_size = 16
 text = "MENU"
 
+[node name="FindMatchPanel" type="Control" parent="."]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Dim" type="ColorRect" parent="FindMatchPanel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.7)
+
+[node name="Choices" type="VBoxContainer" parent="FindMatchPanel"]
+offset_left = 220.0
+offset_top = 92.0
+offset_right = 420.0
+offset_bottom = 268.0
+theme_override_constants/separation = 6
+
+[node name="Heading" type="Label" parent="FindMatchPanel/Choices"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 1
+text = "FIND MATCH"
+
+[node name="SinglePlayerBtn" type="Button" parent="FindMatchPanel/Choices"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 30)
+theme_override_font_sizes/font_size = 16
+text = "SINGLE PLAYER"
+
+[node name="HostBtn" type="Button" parent="FindMatchPanel/Choices"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 30)
+theme_override_font_sizes/font_size = 16
+text = "HOST GAME"
+
+[node name="JoinBtn" type="Button" parent="FindMatchPanel/Choices"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 30)
+theme_override_font_sizes/font_size = 16
+text = "JOIN GAME"
+
+[node name="CancelBtn" type="Button" parent="FindMatchPanel/Choices"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 26)
+theme_override_font_sizes/font_size = 14
+text = "CANCEL"
+
 [connection signal="pressed" from="Tabs/MechTab" to="." method="_on_mech_tab_pressed"]
 [connection signal="pressed" from="Tabs/PilotTab" to="." method="_on_pilot_tab_pressed"]
 [connection signal="pressed" from="MatchmakingButton" to="." method="_on_matchmaking_pressed"]
 [connection signal="pressed" from="SettingsButton" to="." method="_on_settings_pressed"]
 [connection signal="pressed" from="TitleButton" to="." method="_on_title_pressed"]
+[connection signal="pressed" from="FindMatchPanel/Choices/SinglePlayerBtn" to="." method="_on_find_sp_pressed"]
+[connection signal="pressed" from="FindMatchPanel/Choices/HostBtn" to="." method="_on_find_host_pressed"]
+[connection signal="pressed" from="FindMatchPanel/Choices/JoinBtn" to="." method="_on_find_join_pressed"]
+[connection signal="pressed" from="FindMatchPanel/Choices/CancelBtn" to="." method="_on_find_cancel_pressed"]

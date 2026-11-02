@@ -124,6 +124,7 @@ func _ready() -> void:
 	_init_map_selection()
 	_build_pilot_extras()
 	_show_tab(0)
+	move_child($FindMatchPanel, -1)  # T176: above the controls built in code above
 
 func _load_squad() -> void:
 	var saved: Array = Game.loadout.get("squad", [])
@@ -142,6 +143,7 @@ func _load_squad() -> void:
 
 func _build_back_btn() -> void:
 	_back_btn = Button.new()
+	_back_btn.name = "BackBtn"
 	_back_btn.text = "< BACK"
 	_back_btn.offset_left   = 4.0
 	_back_btn.offset_top    = 316.0
@@ -242,6 +244,7 @@ func _setup_lineup_viewport() -> void:
 		btn.add_theme_stylebox_override("hover",   style_hover)
 		btn.add_theme_stylebox_override("pressed", style_pressed)
 		btn.pressed.connect(_on_slot_btn_pressed.bind(i))
+		btn.name = "SlotBtn%d" % i  # T176: harness picks the squad by path
 		mech_panel.add_child(btn)
 		_slot_btns.append(btn)
 
@@ -280,6 +283,7 @@ func _refresh_lineup_mechs() -> void:
 		m.position = Vector3(start_x + float(i) * spacing, 0.0, 0.0)
 		_lineup_viewport.add_child(m)
 		m.set_physics_process(false)
+		m.remove_from_group("mechs")  # T176: a display prop, not a combatant (sync log, AI scans)
 		_squad_nodes.append(m)
 
 func _refresh_slot_btn_labels() -> void:
@@ -476,6 +480,7 @@ func _build_roster_buttons() -> void:
 		btn.custom_minimum_size = Vector2(160, 44)
 		btn.add_theme_font_size_override("font_size", 14)
 		btn.pressed.connect(_on_roster_selected.bind(i))
+		btn.name = "Roster_" + md.resource_path.get_file().get_basename()  # T176: harness path
 		roster_list.add_child(btn)
 	_highlight_selected()
 
@@ -548,6 +553,7 @@ func _build_weapon_picker(md) -> void:
 		var size_str: String = "HEAVY" if s_size == 1 else "LIGHT"
 
 		var row := HBoxContainer.new()
+		row.name = "Slot%d" % i  # T176: Slot<i>/Prev, Slot<i>/Weapon, Slot<i>/Next
 		row.custom_minimum_size = Vector2(0, row_h - 2.0)
 		row.add_theme_constant_override("separation", 4)
 		picker.add_child(row)
@@ -560,6 +566,7 @@ func _build_weapon_picker(md) -> void:
 		row.add_child(slot_lbl)
 
 		var prev_btn := Button.new()
+		prev_btn.name = "Prev"
 		prev_btn.text = "<"
 		prev_btn.custom_minimum_size = Vector2(22, 0)
 		prev_btn.add_theme_font_size_override("font_size", 13)
@@ -570,6 +577,7 @@ func _build_weapon_picker(md) -> void:
 		var wep_name: String = WEAPON_CATALOG[cat_idx]["name"] if cat_idx >= 0 else "NONE"
 
 		var wep_lbl := Label.new()
+		wep_lbl.name = "Weapon"
 		wep_lbl.text = wep_name
 		wep_lbl.add_theme_font_size_override("font_size", 13)
 		wep_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -579,6 +587,7 @@ func _build_weapon_picker(md) -> void:
 		_weapon_name_labels.append(wep_lbl)
 
 		var next_btn := Button.new()
+		next_btn.name = "Next"
 		next_btn.text = ">"
 		next_btn.custom_minimum_size = Vector2(22, 0)
 		next_btn.add_theme_font_size_override("font_size", 13)
@@ -760,6 +769,7 @@ func _refresh_diorama_mech() -> void:
 	MechVisuals.apply(m, md.display_name)
 	_diorama_spin.add_child(m)
 	m.set_physics_process(false)
+	m.remove_from_group("mechs")  # T176: a display prop, not a combatant
 	_diorama_mech_node = m
 
 func _show_tab(idx: int) -> void:
@@ -776,9 +786,30 @@ func _on_pilot_tab_pressed() -> void:
 	SoundManager.play_sfx_2d("ui_click")
 	_show_tab(1)
 
+# T176: FIND MATCH comes after the squad is set up; then pick the kind of game.
 func _on_matchmaking_pressed() -> void:
 	SoundManager.play_sfx_2d("ui_click")
+	$FindMatchPanel.visible = true
+
+func _on_find_sp_pressed() -> void:
+	SoundManager.play_sfx_2d("ui_click")
 	get_tree().change_scene_to_file("res://scenes/arena/Arena.tscn")
+
+func _on_find_host_pressed() -> void:
+	_open_mp_entry(0)
+
+func _on_find_join_pressed() -> void:
+	_open_mp_entry(1)
+
+func _open_mp_entry(tab: int) -> void:
+	SoundManager.play_sfx_2d("ui_click")
+	Game.save_loadout()  # the lobby reads this squad (Lobby._build_squad_data)
+	Game.mp_entry_tab = tab
+	get_tree().change_scene_to_file("res://scenes/ui/MPEntry.tscn")
+
+func _on_find_cancel_pressed() -> void:
+	SoundManager.play_sfx_2d("ui_click")
+	$FindMatchPanel.visible = false
 
 func _on_settings_pressed() -> void:
 	SoundManager.play_sfx_2d("ui_click")

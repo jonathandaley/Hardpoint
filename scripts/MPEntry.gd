@@ -10,6 +10,7 @@ func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	Game.mp_peer_connected.connect(_on_mp_connected)
 	Game.mp_join_failed.connect(_on_mp_join_failed)
+	($TabContainer as TabContainer).current_tab = Game.mp_entry_tab  # T176
 	if Game.mp_refused_reason != "":  # T168
 		_show_error(Game.mp_refused_reason)
 		Game.mp_refused_reason = ""
@@ -42,4 +43,4 @@ func _show_error(msg: String) -> void:
 
 func _on_back_pressed() -> void:
 	Game.disconnect_mp()
-	get_tree().change_scene_to_file("res://scenes/ui/TitleScreen.tscn")
+	get_tree().change_scene_to_file("res://scenes/ui/Hangar.tscn")  # T176: came from FIND MATCH
