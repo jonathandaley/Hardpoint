@@ -1,10 +1,10 @@
 extends Control
 
-const GAP_POS      := 1.0  # down, right
-const GAP_NEG      := 2.0  # up, left
+const GAP          := 2.0  # between the centre dot and each arm (canvas px, symmetric)
 const LINE_LEN     := 3.0
 const LINE_WIDTH   := 1.0
 const COLOR        := Color(1.0, 1.0, 1.0, 0.9)
+const OUTLINE      := Color(0.0, 0.0, 0.0, 0.6)  # T168: dark rim so it reads on white walls/snow
 
 const HIT_GAP      := 4.5
 const HIT_LEN      := 6.0
@@ -36,12 +36,22 @@ func _process(delta: float) -> void:
 		queue_redraw()
 
 func _draw() -> void:
-	var c := (size * 0.5).round()
-	draw_rect(Rect2(c - Vector2(LINE_WIDTH * 0.5, LINE_WIDTH * 0.5), Vector2(LINE_WIDTH, LINE_WIDTH)), COLOR)
-	draw_line(c + Vector2(0, -(GAP_NEG + LINE_LEN)), c + Vector2(0, -GAP_NEG),            COLOR, LINE_WIDTH)
-	draw_line(c + Vector2(0,  GAP_POS),              c + Vector2(0,  GAP_POS + LINE_LEN), COLOR, LINE_WIDTH)
-	draw_line(c + Vector2(-(GAP_NEG + LINE_LEN), 0), c + Vector2(-GAP_NEG, 0),            COLOR, LINE_WIDTH)
-	draw_line(c + Vector2( GAP_POS, 0),              c + Vector2( GAP_POS + LINE_LEN, 0), COLOR, LINE_WIDTH)
+	# T168: pixel-aligned + symmetric. The old version centred 1-px marks on a pixel
+	# corner (blurry dot) and offset the gaps 2/1 px, so the cross looked shifted.
+	var w := LINE_WIDTH
+	var p := (size * 0.5 - Vector2(w, w) * 0.5).floor()  # top-left of the centre dot
+	var c := p + Vector2(w, w) * 0.5                    # geometric centre (brackets, hit X)
+	var marks: Array[Rect2] = [
+		Rect2(p.x, p.y, w, w),                          # centre dot
+		Rect2(p.x, p.y - GAP - LINE_LEN, w, LINE_LEN),  # up
+		Rect2(p.x, p.y + w + GAP, w, LINE_LEN),         # down
+		Rect2(p.x - GAP - LINE_LEN, p.y, LINE_LEN, w),  # left
+		Rect2(p.x + w + GAP, p.y, LINE_LEN, w),         # right
+	]
+	for r in marks:
+		draw_rect(r.grow(1.0), OUTLINE)
+	for r in marks:
+		draw_rect(r, COLOR)
 
 	if _lock_progress > 0.0:
 		var dist := lerpf(LOCK_DIST_FAR, LOCK_DIST_NEAR, _lock_progress)

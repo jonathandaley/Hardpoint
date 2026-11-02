@@ -30,6 +30,8 @@ signal mark_requested(pos: Vector3)
 var owner_peer_id: int = 0
 var health: float = 0.0
 var damage_taken_total: float = 0.0
+var damage_dealt_total: float = 0.0  # T168: to enemies, credited on the authoritative peer
+var roster_idx: int = -1  # T168: MP roster entry this mech belongs to (squad respawns share it)
 var is_stealthy: bool = false
 var invincible: bool = false
 var _modifiers: Dictionary = {}
@@ -297,6 +299,12 @@ func _take_damage_rpc(amount: float, src_path: NodePath) -> void:
 			source = n
 	request_damage(amount, source)
 
+## Mech that owns `n` (a weapon / projectile source), or null if freed or unowned.
+static func _owning_mech(n: Node) -> Node:
+	while n != null and is_instance_valid(n) and not n.is_in_group("mechs"):
+		n = n.get_parent()
+	return n if n != null and is_instance_valid(n) else null
+
 # T96: damage chokepoint; T103 will add server-side validation here.
 func request_damage(amount: float, source: Node3D = null) -> void:
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server() and source != null:
@@ -326,6 +334,9 @@ func _apply_damage(amount: float, source: Node3D = null) -> void:
 	health -= actual
 	_no_damage_timer = 0.0
 	damage_taken_total += actual
+	var src_mech := _owning_mech(source)
+	if src_mech != null and src_mech.get("team") != team:
+		src_mech.damage_dealt_total += actual
 	damaged.emit()
 	SoundManager.play_sfx("damage_hit", global_position)
 	print("[Mech] %s  %.0f / %.0f HP" % [name, health, max_health])
@@ -337,13 +348,9 @@ func _apply_damage(amount: float, source: Node3D = null) -> void:
 	# (source freed, or SP paths that pass null).
 	var src_name := ""
 	var src_team: int = -1
-	if Game.sync_logging_enabled and source != null and is_instance_valid(source):
-		var p: Node = source
-		while p != null and not p.is_in_group("mechs"):
-			p = p.get_parent()
-		if p != null:
-			src_name = p.name
-			src_team = p.get("team")
+	if src_mech != null:
+		src_name = src_mech.name
+		src_team = src_mech.get("team")
 	Game.sync_log_event("hit", name, {"amount": snappedf(actual, 0.01), "hp": snappedf(health, 0.01), "src": src_name, "src_team": src_team})
 	if health <= 0.0:
 		health = 0.0
@@ -784,8 +791,20 @@ func _handle_reload() -> void:
 		if is_instance_valid(weapon) and weapon.has_method("try_reload"):
 			weapon.try_reload()
 
-const _LOCK_CONE_COS := 0.99619  # cos(5 degrees) - acquisition angle
-const _LOCK_RANGE    := 200.0
+# T168: lock tolerance is a world-space radius around the target's centre, not an angle,
+# so the cone widens naturally as the target gets closer (B22) and stays tight far away.
+# Metres per unit of target body scale (capsule is 1 m wide x 2 m tall at scale 1).
+const _LOCK_ACQ_M  := 2.5   # acquire: crosshair ray passes within this of the target centre
+const _LOCK_HOLD_M := 5.0   # hold once locked (hysteresis)
+const _LOCK_RANGE  := 200.0
+
+## Crosshair-ray miss distance to target's centre in target-scale units; INF if behind camera.
+func _lock_miss(target: Node3D, cam_pos: Vector3, cam_fwd: Vector3) -> float:
+	var to := target.to_global(Vector3.UP) - cam_pos  # capsule centre (CollisionShape3D at y=1)
+	var along := to.dot(cam_fwd)
+	if along <= 0.0:
+		return INF
+	return (to - cam_fwd * along).length() / target.global_transform.basis.get_scale().x
 
 func _update_lock(delta: float) -> void:
 	var cam_pos := camera.global_position
@@ -810,15 +829,11 @@ func _update_lock(delta: float) -> void:
 	if _lock_candidate != null and candidate != _lock_candidate \
 			and is_instance_valid(_lock_candidate) \
 			and not _lock_candidate.get("is_dead") and not _lock_candidate.get("is_stealthy"):
-		var to_cur := (_lock_candidate as Node3D).global_position - cam_pos
-		var cur_dist := to_cur.length()
-		if cur_dist > 0.001:
-			var hold_cos := cos(deg_to_rad(7.0) * clampf(_LOCK_RANGE / cur_dist, 1.0, 6.0))
-			if cam_fwd.dot(to_cur / cur_dist) >= hold_cos:
-				candidate = _lock_candidate
+		if _lock_miss(_lock_candidate as Node3D, cam_pos, cam_fwd) <= _LOCK_HOLD_M:
+			candidate = _lock_candidate
 
 	if candidate == null:
-		var best_cos := _LOCK_CONE_COS
+		var best_cos := -1.0
 		for mech: Node in get_tree().get_nodes_in_group("mechs"):
 			if mech == self:
 				continue
@@ -831,6 +846,8 @@ func _update_lock(delta: float) -> void:
 			var to_mech := mech3d.global_position - cam_pos
 			var dist := to_mech.length()
 			if dist > _LOCK_RANGE or dist < 0.001:
+				continue
+			if _lock_miss(mech3d, cam_pos, cam_fwd) > _LOCK_ACQ_M:
 				continue
 			var dot := cam_fwd.dot(to_mech / dist)
 			if dot < best_cos:

@@ -10,6 +10,9 @@ func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	Game.mp_peer_connected.connect(_on_mp_connected)
 	Game.mp_join_failed.connect(_on_mp_join_failed)
+	if Game.mp_refused_reason != "":  # T168
+		_show_error(Game.mp_refused_reason)
+		Game.mp_refused_reason = ""
 
 func _on_host_pressed() -> void:
 	var port := int(_port_edit.text) if _port_edit.text.is_valid_int() else 8910
