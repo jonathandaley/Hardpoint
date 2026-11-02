@@ -44,6 +44,8 @@ func _build_slot(weapon: Node, number: int, x: float) -> Array:
 	var num_lbl := Label.new()
 	num_lbl.text = str(number)
 	num_lbl.add_theme_font_size_override("font_size", 8)
+	num_lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))  # T168: readable on snow
+	num_lbl.add_theme_constant_override("outline_size", 3)
 	num_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	num_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	num_lbl.offset_left   = x

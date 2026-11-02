@@ -34,9 +34,11 @@ def run(ctx):
         text = open(path, errors="replace").read()
         for m in re.finditer(r"\[Harness\] server_lost_check \S*: connected=(\w+) scene=(\S+) rejoin=(\w+)", text):
             quits += 1
-            if m.group(1) != "false" or m.group(2) != "TitleScreen":
-                bad.append("%s: %s 90 frames after losing the server (connected=%s), not the title"
-                           % (role, m.group(2), m.group(1)))
+            # T168: a refused rejoin lands on MPEntry (it got the reason RPC); host loss on the title
+            want = "MPEntry" if m.group(3) == "true" else "TitleScreen"
+            if m.group(1) != "false" or m.group(2) != want:
+                bad.append("%s: %s 90 frames after losing the server (connected=%s), not %s"
+                           % (role, m.group(2), m.group(1), want))
         if "[Harness] action rejoin" in text and "rejoin=true" not in text:
             bad.append("%s: mid-match rejoin was not refused (never kicked back to the title)" % role)
     # T167: host SIGKILLed -> every client must notice (peer timeout) and print its server_lost_check

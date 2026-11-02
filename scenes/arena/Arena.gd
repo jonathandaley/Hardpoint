@@ -2603,7 +2603,8 @@ func _spawn_mechs_mp() -> void:
 		if t == 0 or t == 1:
 			team_counts[t] += 1
 	var team_idx := [0, 0]
-	for entry in roster:
+	for ri in roster.size():
+		var entry: Dictionary = roster[ri]
 		var t: int = entry["team"]
 		if t < 0 or t >= 2:
 			continue
@@ -2619,6 +2620,7 @@ func _spawn_mechs_mp() -> void:
 		var wpn_paths: Array = squad[0].get("weapons", [])
 		var m: CharacterBody3D = _spawn_one_mech(mech_def, false, t, team_idx[t], team_counts[t], wpn_paths)
 		m.owner_peer_id = entry["peer_id"]
+		m.roster_idx = ri
 		if entry["peer_id"] != 0 and entry["peer_id"] == multiplayer.get_unique_id() and player_mech == null:
 			player_mech = m
 		if entry["peer_id"] != 0:
@@ -3240,21 +3242,26 @@ func _on_match_ended(winning_team: int) -> void:
 func _build_mp_stats() -> Array:
 	var stats: Array = []
 	var roster: Array = Game.mp_active_match["roster"]
-	var team_idx := [0, 0]
-	for entry in roster:
+	for ri in roster.size():
+		var entry: Dictionary = roster[ri]
 		var peer_id: int = entry.get("peer_id", 0)
 		var t: int = entry.get("team", 0)
-		var i: int = team_idx[t]
-		team_idx[t] += 1
-		var mech = _team_mechs[t][i] if i < _team_mechs[t].size() else null
-		var damage: float = mech.damage_taken_total if is_instance_valid(mech) else 0.0
+		# T168: whole squad's totals (dead mechs stay in _team_mechs, hidden).
+		var dealt := 0.0
+		var taken := 0.0
+		for m in _team_mechs[t]:
+			if is_instance_valid(m) and m.roster_idx == ri:
+				dealt += m.damage_dealt_total
+				taken += m.damage_taken_total
 		var pre_elo: int = 0
 		if peer_id != 0 and Game.mp_lobby["peers"].has(peer_id):
 			pre_elo = Game.mp_lobby["peers"][peer_id].get("elo", 0)
 		stats.append({
 			"peer_id":      peer_id,
 			"kills":        0,
-			"damage":       damage,
+			"team":         t,
+			"dealt":        dealt,
+			"taken":        taken,
 			"captures":     _beacons_captured[t] if t >= 0 and t < _beacons_captured.size() else 0,
 			"pre_elo":      pre_elo,
 			"disconnected": _disconnected_peers.has(peer_id),
@@ -3393,11 +3400,14 @@ func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int) -> void:
 	var roster: Array = Game.mp_active_match["roster"]
 	var squad: Array = []
 	var team_size: int = 0
-	for entry in roster:
+	var roster_idx := -1
+	for ri in roster.size():
+		var entry: Dictionary = roster[ri]
 		if entry.get("team", -1) == team:
 			team_size += 1
 		if entry.get("peer_id", 0) == peer_id:
 			squad = entry["squad"]
+			roster_idx = ri
 	if squad.is_empty() or slot_idx >= squad.size():
 		return
 	var mech_path: String = squad[slot_idx].get("mech", "")
@@ -3410,6 +3420,7 @@ func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int) -> void:
 	var wpn_paths: Array = squad[slot_idx].get("weapons", [])
 	var new_mech: CharacterBody3D = _spawn_one_mech(mech_def, false, team, slot_idx, team_size, wpn_paths)
 	new_mech.owner_peer_id = peer_id
+	new_mech.roster_idx = roster_idx
 	var my_id := multiplayer.get_unique_id()
 	if peer_id == my_id:
 		player_mech = new_mech

@@ -443,6 +443,7 @@ func join(ip: String, port: int = 8910) -> void:
 		mp_join_failed.emit()
 		return
 	multiplayer.multiplayer_peer = peer
+	_mp_admitted = false
 	_session_start()
 
 func disconnect_mp() -> void:
@@ -476,6 +477,7 @@ func _on_mp_peer_connected(id: int) -> void:
 		# T153: no joins mid-match (roster set = Arena, until Lobby._ready clears it). Kick
 		# before any RPC reaches it; the joiner's server_disconnected sends it to the title.
 		# (refuse_new_connections would silently reset it: client thinks it joined, times out.)
+		# T168: the joiner infers the refusal (dropped before _rpc_request_meta) and says why.
 		multiplayer.multiplayer_peer.disconnect_peer(id)
 		return
 	mp_peer_connected.emit(id)
@@ -484,9 +486,17 @@ func _on_mp_peer_connected(id: int) -> void:
 	if multiplayer.is_server():
 		_rpc_request_meta.rpc_id(id)
 
+## T168: why the host refused us; read (and cleared) by MPEntry after the kick.
+var mp_refused_reason := ""
+## T168: client got the host's first lobby RPC. Dropped before it = refused join.
+## ponytail: mid-match is the host's only refusal; if it gains others, send the reason
+## through SceneMultiplayer.auth_callback (a reason RPC + kick loses the RPC: B58 notes).
+var _mp_admitted := false
+
 # Server -> client: asks client to send its profile metadata (V36).
 @rpc("authority", "call_remote", "reliable")
 func _rpc_request_meta() -> void:
+	_mp_admitted = true
 	var meta := {
 		"pilot_name": profile.get("pilot_name", "Pilot"),
 		"elo":        profile.get("elo", 1000),
@@ -524,12 +534,17 @@ func _on_mp_connection_failed() -> void:
 	mp_join_failed.emit()
 
 func _on_mp_server_disconnected() -> void:
+	if not _mp_admitted:
+		mp_refused_reason = "Match in progress - try again after it ends"
+	_mp_admitted = false
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
 	_clear_mp_session()
 	_session_stop()
 	mp_server_lost.emit()
 	# T153 (V40 exception): host gone -> back to the title, not an offline zombie Arena/Lobby
-	get_tree().change_scene_to_file.call_deferred("res://scenes/ui/TitleScreen.tscn")
+	# T168: refused join -> the join screen, which shows the reason
+	var to := "res://scenes/ui/MPEntry.tscn" if mp_refused_reason != "" else "res://scenes/ui/TitleScreen.tscn"
+	get_tree().change_scene_to_file.call_deferred(to)
 
 func _load_profile() -> void:
 	var cfg := ConfigFile.new()
@@ -940,21 +955,11 @@ func _rpc_match_end(winner_team: int, stats: Array) -> void:
 	match_ended_mp.emit(winner_team, stats)
 	_update_mp_profile(winner_team, stats)
 
-# V36: each peer locally recomputes own ELO/XP/coins from broadcast match result.
-func _update_mp_profile(winner_team: int, stats: Array) -> void:
-	var my_peer_id := multiplayer.get_unique_id()
+## Human opponents' pre-match ELOs for a player on `my_team`; bot ELO if none (V36).
+## ponytail: bot fallback reads THIS peer's bot_difficulty, so the result table's
+## guess for another peer's all-bot match can differ from what that peer applies.
+func mp_opp_elos(my_team: int, stats: Array) -> Array:
 	var roster: Array = mp_active_match["roster"]
-	# Find own team from roster.
-	var my_team := -1
-	for entry in roster:
-		if entry.get("peer_id", 0) == my_peer_id:
-			my_team = entry.get("team", -1)
-			break
-	if my_team == -1:
-		return
-	var won: bool = winner_team == my_team
-	var my_elo: int = profile.get("elo", 1000)
-	# Gather human opponent pre-ELOs; fall back to bot ELO if none present.
 	var opp_elos: Array = []
 	for stat in stats:
 		var sid: int = stat.get("peer_id", 0)
@@ -971,14 +976,34 @@ func _update_mp_profile(winner_team: int, stats: Array) -> void:
 				opp_elos.append(pe)
 	if opp_elos.is_empty():
 		opp_elos.append(get_bot_elo())
-	# ELO: average delta across each opponent (standard K=32 formula).
+	return opp_elos
+
+## ELO change: average K=32 delta across opponents, floor 100. Shared by the profile
+## update and the MP result table (T168) so the shown change is the applied one.
+func mp_elo_delta(my_elo: int, opp_elos: Array, won: bool) -> int:
 	var result_val: float = 1.0 if won else 0.0
-	var elo_delta: float = 0.0
+	var d: float = 0.0
 	for opp_elo in opp_elos:
 		var expected: float = 1.0 / (1.0 + pow(10.0, float(opp_elo - my_elo) / 400.0))
-		elo_delta += float(_ELO_K) * (result_val - expected)
-	elo_delta /= float(opp_elos.size())
-	profile["elo"] = maxi(100, my_elo + roundi(elo_delta))
+		d += float(_ELO_K) * (result_val - expected)
+	return maxi(100, my_elo + roundi(d / float(opp_elos.size()))) - my_elo
+
+# V36: each peer locally recomputes own ELO/XP/coins from broadcast match result.
+func _update_mp_profile(winner_team: int, stats: Array) -> void:
+	var my_peer_id := multiplayer.get_unique_id()
+	var roster: Array = mp_active_match["roster"]
+	# Find own team from roster.
+	var my_team := -1
+	for entry in roster:
+		if entry.get("peer_id", 0) == my_peer_id:
+			my_team = entry.get("team", -1)
+			break
+	if my_team == -1:
+		return
+	var won: bool = winner_team == my_team
+	var my_elo: int = profile.get("elo", 1000)
+	var opp_elos := mp_opp_elos(my_team, stats)
+	profile["elo"] = my_elo + mp_elo_delta(my_elo, opp_elos, won)
 	# XP with avg opponent ELO.
 	var avg_opp_elo: int = 0
 	for e in opp_elos:

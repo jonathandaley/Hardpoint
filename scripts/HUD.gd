@@ -328,7 +328,7 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 	vbox.add_child(HSeparator.new())
 
 	var col_hdr := HBoxContainer.new()
-	for col_text: String in ["PLAYER", "ELO", "DAMAGE", "CAPS"]:
+	for col_text: String in ["PLAYER", "ELO", "DEALT", "TAKEN", "CAPS"]:
 		var lbl := Label.new()
 		lbl.text = col_text
 		lbl.add_theme_font_size_override("font_size", 13)
@@ -344,20 +344,22 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 		if peer_id == 0:
 			pilot_name = "[BOT]"
 			elo_str = "-"
-		elif Game.mp_lobby["peers"].has(peer_id):
-			var pdata: Dictionary = Game.mp_lobby["peers"][peer_id]
-			pilot_name = pdata.get("pilot_name", "Peer %d" % peer_id)
-			elo_str = "%d" % entry.get("pre_elo", pdata.get("elo", 0))
 		else:
-			pilot_name = "Peer %d" % peer_id
-			elo_str = "%d" % entry.get("pre_elo", 0)
+			var pdata: Dictionary = Game.mp_lobby["peers"].get(peer_id, {})
+			pilot_name = pdata.get("pilot_name", "Peer %d" % peer_id)
+			# T168: new rating + change, same math as Game._update_mp_profile.
+			var pre: int = entry.get("pre_elo", 0)
+			var t: int = entry.get("team", -1)
+			var d := Game.mp_elo_delta(pre, Game.mp_opp_elos(t, stats), winner_team == t)
+			elo_str = "%d (%+d)" % [pre + d, d] if pre > 0 else "-"
 		if entry.get("disconnected", false):
 			pilot_name = "[DC] " + pilot_name
 		var row := HBoxContainer.new()
 		for cell_text: String in [
 			pilot_name,
 			elo_str,
-			"%.0f" % entry.get("damage", 0.0),
+			"%.0f" % entry.get("dealt", 0.0),
+			"%.0f" % entry.get("taken", 0.0),
 			"%d" % entry.get("captures", 0),
 		]:
 			var lbl := Label.new()
