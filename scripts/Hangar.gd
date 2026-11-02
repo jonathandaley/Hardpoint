@@ -125,6 +125,7 @@ func _ready() -> void:
 	_build_pilot_extras()
 	_show_tab(0)
 	move_child($FindMatchPanel, -1)  # T176: above the controls built in code above
+	move_child($PresetPanel, -1)  # T177
 
 func _load_squad() -> void:
 	var saved: Array = Game.loadout.get("squad", [])
@@ -326,6 +327,7 @@ func _show_squad_screen() -> void:
 	$MatchmakingButton.visible = true
 	$SettingsButton.visible = true
 	$TitleButton.visible = true
+	$PresetsButton.visible = true
 	if _team_size_container != null:
 		_team_size_container.visible = true
 	_back_btn.visible = false
@@ -354,6 +356,7 @@ func _show_detail_screen(slot: int) -> void:
 	$MatchmakingButton.visible = false
 	$SettingsButton.visible = false
 	$TitleButton.visible = false
+	$PresetsButton.visible = false
 	if _team_size_container != null:
 		_team_size_container.visible = false
 	_back_btn.visible = true
@@ -775,6 +778,7 @@ func _refresh_diorama_mech() -> void:
 func _show_tab(idx: int) -> void:
 	mech_panel.visible = idx == 0
 	pilot_panel.visible = idx == 1
+	$PresetsButton.visible = idx == 0  # T177: squad screen only (re-shown by _show_squad_screen)
 	if idx == 0:
 		_show_squad_screen()
 
@@ -806,6 +810,71 @@ func _open_mp_entry(tab: int) -> void:
 	Game.save_loadout()  # the lobby reads this squad (Lobby._build_squad_data)
 	Game.mp_entry_tab = tab
 	get_tree().change_scene_to_file("res://scenes/ui/MPEntry.tscn")
+
+# ---- T177: squad presets (whole squad + its weapon choices, by name; Game.save_preset) ----
+
+func _on_presets_pressed() -> void:
+	SoundManager.play_sfx_2d("ui_click")
+	_rebuild_preset_list()
+	$PresetPanel.visible = true
+
+func _on_preset_close_pressed() -> void:
+	SoundManager.play_sfx_2d("ui_click")
+	$PresetPanel.visible = false
+
+func _on_preset_name_submitted(_text: String) -> void:
+	_on_preset_save_pressed()
+
+func _on_preset_save_pressed() -> void:
+	var edit: LineEdit = $PresetPanel/Box/SaveRow/NameEdit
+	var pname := edit.text.strip_edges()
+	if pname.is_empty():
+		return
+	SoundManager.play_sfx_2d("ui_click")
+	Game.save_preset(pname)
+	edit.text = ""
+	_rebuild_preset_list()
+
+func _rebuild_preset_list() -> void:
+	var list: VBoxContainer = $PresetPanel/Box/Scroll/List
+	for c in list.get_children():
+		list.remove_child(c)  # B72: free the row names now
+		c.queue_free()
+	var names: Array = Game.loadout.get("presets", {}).keys()
+	names.sort()
+	for i in names.size():
+		var row := HBoxContainer.new()
+		row.name = "Preset%d" % i
+		var lbl := Label.new()
+		lbl.name = "Name"
+		lbl.text = names[i]
+		lbl.clip_text = true
+		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lbl.add_theme_font_size_override("font_size", 14)
+		row.add_child(lbl)
+		for b in [["Load", "LOAD", _on_preset_load], ["Delete", "DELETE", _on_preset_delete]]:
+			var btn := Button.new()
+			btn.name = b[0]
+			btn.text = b[1]
+			btn.add_theme_font_size_override("font_size", 12)
+			btn.pressed.connect((b[2] as Callable).bind(names[i]))
+			row.add_child(btn)
+		list.add_child(row)
+	$PresetPanel/Box/Empty.visible = names.is_empty()
+
+func _on_preset_load(pname: String) -> void:
+	SoundManager.play_sfx_2d("ui_click")
+	if not Game.load_preset(pname):
+		return
+	_load_squad()
+	_refresh_lineup_mechs()
+	_refresh_slot_btn_labels()
+	$PresetPanel.visible = false
+
+func _on_preset_delete(pname: String) -> void:
+	SoundManager.play_sfx_2d("ui_click")
+	Game.delete_preset(pname)
+	_rebuild_preset_list()
 
 func _on_find_cancel_pressed() -> void:
 	SoundManager.play_sfx_2d("ui_click")

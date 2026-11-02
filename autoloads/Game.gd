@@ -66,6 +66,7 @@ var loadout: Dictionary = {
 	"mech_weapon_choices": {},     # {mech_resource_path: [weapon_scene_path, ...]}
 	"team_size": 1,                # mechs per team (1 = 1v1, 5 = 5v5)
 	"squad": [],                   # Array of 5 mech resource paths (slot 0 = player mech)
+	"presets": {},                 # T177: {name: {"squad": [mech paths], "weapons": {mech path: [weapon paths]}}}
 	"map_def": null,               # MapDef resource; null = Math Temple (default)
 }
 
@@ -747,6 +748,7 @@ func _load_loadout() -> void:
 	loadout["team_size"] = cfg.get_value("loadout", "team_size", 1)
 	var squad_paths: Array = cfg.get_value("loadout", "squad", [])
 	loadout["squad"] = squad_paths
+	loadout["presets"] = cfg.get_value("loadout", "presets", {})
 	var map_path: String = cfg.get_value("loadout", "map_path", "")
 	if map_path != "":
 		var mpd = load(map_path)
@@ -763,9 +765,44 @@ func save_loadout() -> void:
 	cfg.set_value("loadout", "bot_path", bot_def.resource_path if bot_def != null else "")
 	cfg.set_value("loadout", "team_size", loadout.get("team_size", 1))
 	cfg.set_value("loadout", "squad", loadout.get("squad", []))
+	cfg.set_value("loadout", "presets", loadout.get("presets", {}))
 	var map_def = loadout.get("map_def")
 	cfg.set_value("loadout", "map_path", map_def.resource_path if map_def != null else "")
 	cfg.save(_SAVE_PATH)
+
+## T177: hangar squad presets -- the whole squad (5 mech paths) plus the weapon choices
+## of the mechs in it, under a typed name. Same name = overwrite.
+func save_preset(pname: String) -> void:
+	var choices: Dictionary = loadout.get("mech_weapon_choices", {})
+	var weapons := {}
+	for path in loadout.get("squad", []):
+		if choices.has(path):
+			weapons[path] = (choices[path] as Array).duplicate()
+	var presets: Dictionary = loadout.get("presets", {})
+	presets[pname] = {"squad": (loadout.get("squad", []) as Array).duplicate(), "weapons": weapons}
+	loadout["presets"] = presets
+	save_loadout()
+
+## Makes preset `pname` the current squad (its weapon choices win for its mechs). False if unknown.
+func load_preset(pname: String) -> bool:
+	var p: Dictionary = loadout.get("presets", {}).get(pname, {})
+	if p.is_empty():
+		return false
+	loadout["squad"] = (p["squad"] as Array).duplicate()
+	var choices: Dictionary = loadout.get("mech_weapon_choices", {})
+	for path in p["weapons"]:
+		choices[path] = (p["weapons"][path] as Array).duplicate()
+	loadout["mech_weapon_choices"] = choices
+	if not loadout["squad"].is_empty():
+		var md = load(loadout["squad"][0])
+		if md != null:
+			loadout["mech_def"] = md
+	save_loadout()
+	return true
+
+func delete_preset(pname: String) -> void:
+	loadout.get("presets", {}).erase(pname)
+	save_loadout()
 
 func save_settings() -> void:
 	var cfg := ConfigFile.new()
