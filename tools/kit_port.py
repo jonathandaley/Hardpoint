@@ -1,0 +1,171 @@
+#!/usr/bin/env python3
+"""T178 (GRAPHICS_PLAN G24 + G26): port the design kit's box-model mechs into the game.
+
+Runs each design/preview/brand-mech-render-<mech>.html `build(M)` under node with a
+recording stub of the kit's M API (mech-engine.js), converts kit space (faces +Z) to
+Godot (faces -Z: a 180 deg yaw, (x, y, z) -> (-x, y, -z); a plain Z flip would mirror),
+reads armor / detail / emissive from brand-mech-palette.html, and writes
+scripts/MechKit.gd (data only; MechVisuals builds the meshes). With --slots it also
+moves each mech's weapon slots (resources/mechs/<Mech>.tres) onto the kit's mount
+boxes (nearest mount per slot) so weapons sit on the model.
+
+Kit legs are always: pelvis box, then per side a hip box, three M.between spans
+(thigh, shin, pastern) and a toe pad. The game keeps its animated 3-segment leg rig
+(BipedLegs gait math), so only span thickness/depth, hip block, toe pad, pelvis and
+the hip x spacing are taken.
+
+  python3 tools/kit_port.py [--slots]
+"""
+import glob, json, os, re, subprocess, sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PREVIEW = os.path.join(ROOT, "design", "preview")
+OUT = os.path.join(ROOT, "scripts", "MechKit.gd")
+
+JS = r"""
+const fs = require('fs');
+const src = fs.readFileSync(process.argv[1], 'utf8');
+const i = src.indexOf('build: function (M)');
+let j = src.indexOf('{', i), depth = 0, k = j;
+for (; k < src.length; k++) { if (src[k] === '{') depth++; else if (src[k] === '}' && --depth === 0) break; }
+const body = src.slice(j + 1, k);
+const calls = [];
+const M = {
+  armor: 'A', detail: 'D', mount: 'MO', socket: 'SO', emis: 'E', g: null,
+  box: (sx, sy, sz, px, py, pz, mat, rx, ry, rz) => calls.push({k: 'box', s: [sx, sy, sz], p: [px, py, pz], r: [rx || 0, ry || 0, rz || 0], m: mat}),
+  between: (a, b, thick, depth, mat) => calls.push({k: 'span', a, b, t: thick, d: depth, m: mat}),
+  glow: () => {},
+};
+new Function('M', body)(M);
+console.log(JSON.stringify(calls));
+"""
+
+
+def hexcol(h):
+    h = h.lstrip("#")
+    return "Color(%.3f, %.3f, %.3f)" % tuple(int(h[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
+
+
+def palette():
+    html = open(os.path.join(PREVIEW, "brand-mech-palette.html")).read()
+    out = {}
+    for m in re.finditer(r'class="armor" style="background:(#\w+)".*?class="det" style="background:(#\w+)"'
+                         r'.*?class="emit(?: none)?"(?: style="background:(#\w+))?.*?class="nm">(\w+)<.*?class="nrg">([^<]*)<', html):
+        armor, det, emit, name, nrg = m.groups()
+        e = re.match(r"e([\d.]+)", nrg)
+        out[name.capitalize()] = (armor, det, emit, float(e.group(1)) if e else 0.0)
+    return out
+
+
+def g(v):  # kit -> Godot position
+    return [-v[0], v[1], -v[2]]
+
+
+def classify(calls):
+    """torso / pelvis (+ pelvis extras) / one side's leg: hip, 3 spans, toe pad, extras.
+    Leg extras (knee glow, calf vent, toe seam) attach to the nearest game joint."""
+    spans = [i for i, c in enumerate(calls) if c["k"] == "span"]
+    hx, hy = abs(calls[spans[0]]["a"][0]), calls[spans[0]]["a"][1]
+    is_hip = lambda c: c["k"] == "box" and abs(abs(c["p"][0]) - hx) < 0.01 and abs(c["p"][1] - hy) < 0.01
+    hips = [i for i, c in enumerate(calls) if is_hip(c)]
+    pelvis_idx = max(i for i in range(hips[0]) if calls[i]["k"] == "box" and abs(calls[i]["p"][0]) < 0.01 and calls[i]["m"] != "E")
+    torso = [c for c in calls[:pelvis_idx] if c["k"] == "box"]
+    pelvis_extra = [c for c in calls[pelvis_idx + 1:hips[0]] if c["k"] == "box"]
+    side = calls[hips[0]:hips[1]]  # first side: hip box ... up to the second hip box
+    sp = [c for c in side if c["k"] == "span"]
+    last_span = max(i for i, c in enumerate(side) if c["k"] == "span")
+    toe = side[last_span + 1]
+    joints = {"knee1": sp[0]["b"], "knee2": sp[1]["b"], "foot": toe["p"]}
+    extra = []
+    for c in side[1:]:
+        if c["k"] != "box" or c is toe:
+            continue
+        j = min(joints, key=lambda n: sum((x - y) ** 2 for x, y in zip(c["p"], joints[n])))
+        off = [c["p"][i] - toe["p"][i] for i in range(3)] if j == "foot" else [0.0, 0.0, 0.0]
+        extra.append((j, c, [0.0, off[1], -off[2]]))  # same x as the toe pad on both sides
+    return torso, calls[pelvis_idx], pelvis_extra, calls[hips[0]], sp, toe, extra
+
+
+def f(x):
+    return ("%.3f" % x).rstrip("0").rstrip(".") if x != 0 else "0"
+
+
+def main():
+    pal = palette()
+    mechs = {}
+    for path in sorted(glob.glob(os.path.join(PREVIEW, "brand-mech-render-*.html"))):
+        name = re.search(r"render-(\w+)\.html", path).group(1).capitalize()
+        calls = json.loads(subprocess.run(["node", "-e", JS, path], capture_output=True, text=True, check=True).stdout)
+        torso, pelvis, pelvis_extra, hip, segs, toe, extra = classify(calls)
+        mechs[name] = dict(torso=torso, pelvis=pelvis, pelvis_extra=pelvis_extra, hip=hip, segs=segs,
+                           toe=toe, extra=extra, pal=pal[name])
+    lines = ["# GENERATED by tools/kit_port.py from design/preview (brand-mech-render-*.html build()",
+             "# + brand-mech-palette.html). Do not edit: change the kit or the tool and regenerate.",
+             "# Godot space (faces -Z). torso box = [sx, sy, sz, px, py, pz, rx, ry, rz, mat];",
+             "# mat: A armor, D detail, MO mount, SO socket, E emissive. legs: see MechVisuals._kit.",
+             "", "const DATA := {"]
+    for name, m in mechs.items():
+        armor, det, emit, nrg = m["pal"]
+        lines.append('\t"%s": {' % name)
+        lines.append('\t\t"armor": %s, "detail": %s, "emis": %s, "energy": %s,' % (
+            hexcol(armor), hexcol(det), hexcol(emit) if emit else "Color(0, 0, 0)", f(nrg)))
+        lines.append('\t\t"torso": [')
+        for b in m["torso"]:
+            p, r = g(b["p"]), [-b["r"][0], b["r"][1], -b["r"][2]]
+            lines.append("\t\t\t[%s, \"%s\"]," % (", ".join(f(x) for x in b["s"] + p + r), b["m"]))
+        lines.append("\t\t],")
+        pv = m["pelvis"]
+        lines.append('\t\t"pelvis": [%s, "%s"],' % (", ".join(f(x) for x in pv["s"] + g(pv["p"])), pv["m"]))
+        lines.append('\t\t"pelvis_extra": [%s],' % ", ".join('[%s, "%s"]' % (", ".join(f(x) for x in c["s"] + g(c["p"])), c["m"])
+                                                          for c in m["pelvis_extra"]))
+        hp = m["hip"]
+        lines.append('\t\t"hip_x": %s, "hip": [%s, "%s"],' % (f(abs(hp["p"][0])), ", ".join(f(x) for x in hp["s"]), hp["m"]))
+        lines.append('\t\t"segs": [%s],' % ", ".join('[%s, %s, "%s"]' % (f(s["t"]), f(s["d"]), s["m"]) for s in m["segs"]))
+        tp = m["toe"]
+        lines.append('\t\t"toe": [%s, "%s"],' % (", ".join(f(x) for x in tp["s"]), tp["m"]))
+        lines.append('\t\t"leg_extra": [%s],' % ", ".join('["%s", %s, "%s"]' % (j, ", ".join(f(x) for x in c["s"] + off), c["m"])
+                                                       for j, c, off in m["extra"]))
+        mounts = hardpoints(m)
+        lines.append('\t\t"mounts": [%s],' % ", ".join("Vector3(%s)" % ", ".join(f(x) for x in v) for v in mounts))
+        lines.append("\t},")
+    lines.append("}")
+    open(OUT, "w").write("\n".join(lines) + "\n")
+    print("wrote %s (%d mechs)" % (os.path.relpath(OUT, ROOT), len(mechs)))
+    for name, m in mechs.items():
+        print("  %-10s torso=%2d boxes  hardpoints=%d" % (name, len(m["torso"]), len(hardpoints(m))))
+    if "--slots" in sys.argv:
+        move_slots(mechs)
+
+
+def hardpoints(m):
+    """Kit mounts (Godot space) grouped into hardpoints: MO boxes within 0.4 m of each
+    other are one mount (the kit builds a heavy mount from 2 boxes); centroid each."""
+    groups = []
+    for v in [g(b["p"]) for b in m["torso"] if b["m"] == "MO"]:
+        hit = next((gr for gr in groups if any(sum((a - b) ** 2 for a, b in zip(v, w)) < 0.16 for w in gr)), None)
+        (hit.append(v) if hit else groups.append([v]))
+    return [[sum(w[i] for w in gr) / len(gr) for i in range(3)] for gr in groups]
+
+
+def move_slots(mechs):
+    for name, m in mechs.items():
+        path = os.path.join(ROOT, "resources", "mechs", name + ".tres")
+        src = open(path).read()
+        slots = list(re.finditer(r"position = Vector3\(([^)]*)\)", src))
+        mounts = hardpoints(m)
+        if len(slots) != len(mounts):
+            print("  %-10s slots=%d mounts=%d -- slots left as they are" % (name, len(slots), len(mounts)))
+            continue
+        free = list(mounts)
+        new = src
+        for s in slots:
+            cur = [float(x) for x in s.group(1).split(",")]
+            best = min(free, key=lambda v: sum((a - b) ** 2 for a, b in zip(v, cur)))
+            free.remove(best)
+            new = new.replace(s.group(0), "position = Vector3(%s)" % ", ".join(f(x) for x in best), 1)
+        open(path, "w").write(new)
+        print("  %-10s %d slots -> kit mounts" % (name, len(slots)))
+
+
+if __name__ == "__main__":
+    main()
