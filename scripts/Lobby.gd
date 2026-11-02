@@ -452,10 +452,21 @@ func _build_roster() -> Array:
 
 func _default_bot_squad(bot_id: int) -> Array:
 	var mech_path: String = ROSTER[bot_id % ROSTER.size()]
+	var mech_def: Resource = load(mech_path)
+	var rng := RandomNumberGenerator.new()
+	rng.randomize()  # roster is broadcast, so peers never re-derive it (no determinism needed)
 	var result: Array = []
 	for _i in 5:
-		result.append({"mech": mech_path, "weapons": []})
+		result.append({"mech": mech_path, "weapons": bot_weapon_paths(mech_def, rng)})
 	return result
+
+## T169: random bot loadout -- one catalog weapon per slot of `mech_def`, matching slot size.
+static func bot_weapon_paths(mech_def: Resource, rng: RandomNumberGenerator) -> Array:
+	var out: Array = []
+	for slot in mech_def.weapon_slots:
+		var pool := WEAPON_CATALOG.filter(func(w: Dictionary) -> bool: return w["slot_size"] == slot.slot_size)
+		out.append(pool[rng.randi() % pool.size()]["path"] if not pool.is_empty() else "")
+	return out
 
 func _on_back_pressed() -> void:
 	Game.disconnect_mp()

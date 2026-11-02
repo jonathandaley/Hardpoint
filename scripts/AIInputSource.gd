@@ -14,6 +14,10 @@ const ESCAPE_TIME_MAX := 4.0   # maximum escape time for repeatedly stuck bots
 const AVOID_ZONE_TIME := 40.0  # seconds to avoid the stuck zone
 const AVOID_RADIUS    := 18.0  # radius (m) around stuck position to avoid beacons
 const LOS_INTERVAL  := 0.12  # seconds between line-of-sight raycasts
+const THREAT_MEMORY := 4.0   # T169: seconds an attacker stays a priority target
+const THREAT_BONUS  := 8.0   # T169: score bonus for the recent attacker (~ 2/3 of a dying target)
+const RETALIATE_CD  := 3.0   # T169: min seconds between damage-driven switches (no ping-pong)
+const FINISH_HP     := 0.25  # T169: keep the current target below this HP fraction
 
 # [aim_jitter_radians, turn_speed_scale]
 const DIFFICULTY_PRESETS: Array = [
@@ -30,7 +34,9 @@ const DIFFICULTY_PRESETS: Array = [
 var role: String = "attacker"
 
 var _target: Node3D = null
-var _enemy_mechs: Array = []   # all enemy mechs found at spawn time
+var _threat: Node3D = null       # T169: who shot us last
+var _threat_timer: float = 0.0
+var _retaliate_cd: float = 0.0
 var _beacons: Array = []
 var _own_team: int = 1
 var _claimed_beacon: Node = null   # beacon we told AIDirector we're heading to
@@ -76,9 +82,6 @@ func _notification(what: int) -> void:
 
 func _find_targets() -> void:
 	_own_team = get_parent().get("team") if get_parent() != null else 1
-	for mech in get_tree().get_nodes_in_group("mechs"):
-		if mech.get("team") != _own_team:
-			_enemy_mechs.append(mech)
 	_beacons = get_tree().get_nodes_in_group("beacons")
 	# Randomly assign a role with a 2:1:1 split among bots on the same team.
 	var r := _rng.randf()
@@ -93,25 +96,48 @@ func _find_targets() -> void:
 	if pawn != null and pawn.has_signal("damaged"):
 		pawn.damaged.connect(_on_pawn_damaged)
 
+# T169: shot by someone other than our target -> turn on them now, unless we're about
+# to finish the current target. Either way the attacker scores a bonus for a while.
 func _on_pawn_damaged() -> void:
-	_target_refresh = 0.0
+	var pawn: Node = get_parent().get("pawn")
+	var atk = pawn.get("last_attacker") if pawn != null else null  # untyped: may be freed
+	if not _is_live_enemy(atk):
+		_target_refresh = 0.0
+		return
+	_threat = atk
+	_threat_timer = THREAT_MEMORY
+	if atk == _target or _retaliate_cd > 0.0:
+		return
+	if _is_live_enemy(_target) and _hp_pct(_target) < FINISH_HP and _has_clear_shot:
+		return
+	_target = atk
+	_target_refresh = 2.0
+	_retaliate_cd = RETALIATE_CD
+	_los_blocked_time = 0.0
 
-# Picks the best target by blending distance and target health.
-# Prefers enemies that are already damaged (focus-fire) without completely
-# ignoring closer threats.
+func _is_live_enemy(m) -> bool:
+	return m != null and is_instance_valid(m) and m.visible and not m.get("is_dead") \
+		and not m.get("is_stealthy") and m.get("team") != _own_team
+
+func _hp_pct(m: Node) -> float:
+	return clampf(m.health / maxf(float(m.get("max_health") if m.get("max_health") != null else 1.0), 1.0), 0.0, 1.0)
+
+# High score = close + low HP (HP weight 12 vs distance 0.1) + recent attacker (T169).
+func _score(from: Node3D, em: Node3D) -> float:
+	var score := (1.0 - _hp_pct(em)) * 12.0 - from.global_position.distance_to(em.global_position) * 0.1
+	if em == _threat and _threat_timer > 0.0:
+		score += THREAT_BONUS
+	return score
+
+# Picks the best target. Scans the live group, not a spawn-time list (T169: squad
+# respawns and late bot takeovers were invisible to bots spawned earlier).
 func _pick_best_target(from: Node3D) -> Node3D:
 	var best: Node3D = null
 	var best_score := -INF
-	for em in _enemy_mechs:
-		if not is_instance_valid(em) or not em.visible:
+	for em in get_tree().get_nodes_in_group("mechs"):
+		if not _is_live_enemy(em):
 			continue
-		if em.get("is_stealthy"):
-			continue
-		var d: float = from.global_position.distance_to(em.global_position)
-		var max_hp: float = maxf(em.get("max_health") if em.get("max_health") != null else 1.0, 1.0)
-		var hp_pct: float = clampf(em.health / max_hp, 0.0, 1.0)
-		# High score = close + low HP.  HP weight 12 vs distance weight 0.1.
-		var score := (1.0 - hp_pct) * 12.0 - d * 0.1
+		var score := _score(from, em)
 		if score > best_score:
 			best_score = score
 			best = em
@@ -217,6 +243,14 @@ func _physics_process(delta: float) -> void:
 	_physics_process_impl(delta)
 	Game.prof_add("ai", Time.get_ticks_usec() - t0)
 
+## T169: fire out to half the longest weapon's range (snipers/rockets reach), never under the old 50 m.
+func _fire_range(bot_mech: Node) -> float:
+	var r := ENGAGE_DIST + 15.0
+	for w in bot_mech.get_weapons():
+		if is_instance_valid(w) and "range" in w:
+			r = maxf(r, float(w.range) * 0.5)
+	return r
+
 func _physics_process_impl(delta: float) -> void:
 	# T40: bots run server-only; clients receive mech state via replication, not AI.
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
@@ -228,19 +262,17 @@ func _physics_process_impl(delta: float) -> void:
 		_firing     = false
 		return
 
+	_threat_timer -= delta
+	_retaliate_cd -= delta
 	# Refresh target periodically or when current target is no longer valid.
 	_target_refresh -= delta
 	if _target_refresh <= 0.0 or not is_instance_valid(_target) or not _target.visible:
 		_target_refresh = 2.0
 		var new_target := _pick_best_target(bot_mech)
-		if new_target != _target and is_instance_valid(_target) and _target.visible:
-			var cur_d: float = bot_mech.global_position.distance_to(_target.global_position)
-			var cur_hp_pct: float = clampf(_target.health / maxf(float(_target.get("max_health") if _target.get("max_health") != null else 1.0), 1.0), 0.0, 1.0)
-			var cur_score: float = (1.0 - cur_hp_pct) * 12.0 - cur_d * 0.1
-			var new_d: float = bot_mech.global_position.distance_to(new_target.global_position)
-			var new_hp_pct: float = clampf(new_target.health / maxf(float(new_target.get("max_health") if new_target.get("max_health") != null else 1.0), 1.0), 0.0, 1.0)
-			var new_score: float = (1.0 - new_hp_pct) * 12.0 - new_d * 0.1
-			if new_score <= cur_score * 1.25:
+		if new_target != null and new_target != _target and _is_live_enemy(_target):
+			# Hysteresis: switch only for a clearly better target (+2 score; the old
+			# `* 1.25` made switching easier, not harder, for the usual negative scores).
+			if _score(bot_mech, new_target) <= _score(bot_mech, _target) + 2.0:
 				new_target = _target
 		_target = new_target
 
@@ -399,7 +431,7 @@ func _physics_process_impl(delta: float) -> void:
 			_burst_timer = BURST_FIRE if _in_burst else BURST_PAUSE
 
 		# Fire when aimed closely enough, in range, in burst window, and LOS is clear.
-		_firing = _in_burst and abs(angle_h) < AIM_THRESHOLD and dist < ENGAGE_DIST + 15.0 and _has_clear_shot
+		_firing = _in_burst and abs(angle_h) < AIM_THRESHOLD and dist < _fire_range(bot_mech) and _has_clear_shot
 
 func get_move_direction() -> Vector2:
 	return _move_dir
