@@ -1,0 +1,28 @@
+{
+  "name": "bot_lock",
+  "seed": 4747,
+  "port": 8947,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Hippogriff.tres",
+  "weapons": [
+    "res://scenes/weapons/RocketLauncherLight.tscn",
+    "res://scenes/weapons/ArcWeaponLight.tscn",
+    "res://scenes/weapons/RifleLight.tscn"
+  ],
+  "duration_ticks": 3600,
+  "bots_per_team": 2,
+  "thresholds": {"min_lock_mechs": 2},
+  "oracles": [
+    "lock_target",
+    "health_desync",
+    "world_invariants",
+    "friendly_fire",
+    "rpc_integrity",
+    "crash_scan", "log_flood"
+  ],
+  "_comment": "T169: bots lock through the shared lock system (V15). Every mech (2 filler bots per team + bot-driven server/client players) carries rocket + arc (requires_lock) + rifle; before T169 _update_lock ran only for human input, so bot rockets/arc never fired. lock_target: client lock state agrees with the server for bot mechs too (bots broadcast like players) and >= 2 mechs lock at some point.",
+  "peers": {
+    "server": {"bot": true},
+    "client_1": {"bot": true}
+  }
+}

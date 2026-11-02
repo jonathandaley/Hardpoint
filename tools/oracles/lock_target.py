@@ -15,7 +15,7 @@ from . import base
 
 NAME = "lock_target"
 
-DEFAULTS = {"lock_persist_ticks": 8}
+DEFAULTS = {"lock_persist_ticks": 8, "min_lock_mechs": 0}  # T169: bot_lock wants >= N mechs to lock
 
 
 def run(ctx):
@@ -29,12 +29,14 @@ def run(ctx):
     # Check 1: dead/absent lock on the authoritative stream. Use a tick index to
     # avoid the O(ticks*snaps) rescan inside _dead_lock_scan's inner loop.
     bt = base.by_tick(server)
+    lockers = set()
     for tick in server.ticks:
         snaps = bt[tick]
         for mid, s in snaps.items():
             tgt = s.get("lock_target")
             if tgt is None:
                 continue
+            lockers.add(mid)
             tsnap = snaps.get(tgt)
             if tsnap is None:
                 return base.verdict(NAME, base.FAIL, mech_id=mid, first_tick=tick,
@@ -67,4 +69,8 @@ def run(ctx):
                     worst = (onset, v)
     if worst is not None:
         return worst[1]
-    return base.verdict(NAME, base.PASS, note="no dead-locks; client locks agree with server")
+    if len(lockers) < int(th["min_lock_mechs"]):
+        return base.verdict(NAME, base.FAIL, note="only %d mech(s) ever locked (%s), want >= %d"
+                            % (len(lockers), sorted(lockers), int(th["min_lock_mechs"])))
+    return base.verdict(NAME, base.PASS, note="no dead-locks; client locks agree with server; %d mech(s) locked"
+                        % len(lockers))

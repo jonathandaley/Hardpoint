@@ -2583,17 +2583,21 @@ func _spawn_mechs() -> void:
 		bot_def = load("res://resources/mechs/Hippogriff.tres")
 	var team_size: int = clampi(Game.loadout.get("team_size", 1), 1, 6)
 
+	var bot_rng := RandomNumberGenerator.new()
+	bot_rng.randomize()  # T169: varied bot loadouts each match
+	var Lobby := preload("res://scripts/Lobby.gd")
+
 	# Team 0: 1 human mech + (team_size - 1) ally bot mechs
 	player_mech = _spawn_one_mech(mech_def, true, 0, 0, team_size)
 	for i in range(1, team_size):
-		_spawn_one_mech(bot_def, false, 0, i, team_size)
+		_spawn_one_mech(bot_def, false, 0, i, team_size, Lobby.bot_weapon_paths(bot_def, bot_rng))
 
 	if DEBUG_NO_BOT:
 		return
 
 	# Team 1: team_size enemy bot mechs
 	for i in range(team_size):
-		_spawn_one_mech(bot_def, false, 1, i, team_size)
+		_spawn_one_mech(bot_def, false, 1, i, team_size, Lobby.bot_weapon_paths(bot_def, bot_rng))
 
 func _spawn_mechs_mp() -> void:
 	var roster: Array = Game.mp_active_match["roster"]
@@ -3043,6 +3047,9 @@ func _spawn_bot_player(mech: CharacterBody3D, team: int, idx: int) -> void:
 	add_child(p)
 	var ai_input := Node.new()
 	ai_input.set_script(load("res://scripts/AIInputSource.gd"))
+	# T169: unique per bot. Unset, every bot seeded 0 ^ match_seed -> one shared RNG
+	# stream -> the same role for all (all defenders ~1 match in 4: bots camp own beacons).
+	ai_input.bot_id = 1 + team * 100 + idx  # set before add_child: _ready seeds from it
 	p.add_child(ai_input)
 	p.set("input_source", ai_input)
 	p.call("possess", mech)

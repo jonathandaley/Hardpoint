@@ -32,6 +32,7 @@ var health: float = 0.0
 var damage_taken_total: float = 0.0
 var damage_dealt_total: float = 0.0  # T168: to enemies, credited on the authoritative peer
 var roster_idx: int = -1  # T168: MP roster entry this mech belongs to (squad respawns share it)
+var last_attacker: Node = null  # T169: enemy mech that last hurt us (bots retaliate); server-side
 var is_stealthy: bool = false
 var invincible: bool = false
 var _modifiers: Dictionary = {}
@@ -337,6 +338,7 @@ func _apply_damage(amount: float, source: Node3D = null) -> void:
 	var src_mech := _owning_mech(source)
 	if src_mech != null and src_mech.get("team") != team:
 		src_mech.damage_dealt_total += actual
+		last_attacker = src_mech
 	damaged.emit()
 	SoundManager.play_sfx("damage_hit", global_position)
 	print("[Mech] %s  %.0f / %.0f HP" % [name, health, max_health])
@@ -577,6 +579,8 @@ func _physics_process_impl(delta: float) -> void:
 			_update_lock(delta)
 			if _input_source.is_mark_pressed():
 				mark_requested.emit(global_position)
+		elif has_lock_weapon():
+			_update_lock(delta)  # T169: bots lock through the same system (V15) so rockets/arc fire
 
 	if multiplayer.has_multiplayer_peer():
 		_broadcast_ammo_changes()
