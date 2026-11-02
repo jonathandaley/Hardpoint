@@ -48,3 +48,4 @@ date|task|outcome|commit|finding|suite
 2026-11-02|T180|DONE|see git log (T180)|kit weapon models: kit_port runs weapon-builders.js -> WeaponKit.gd; WeaponVisuals swaps placeholders (light x0.5 / heavy x0.8), merged per material + cached; tools/art/weapon_rack review|36/36
 2026-11-02|T181|DONE|see git log (T181)|Lynx + Warhog authored in the kit's box language (tools/kit_mechs/*.js, read by kit_port.py); all 11 mechs kit-built, hand-made builders deleted; slots on new mounts|36/36
 2026-11-02|queue empty|-|-|all §T rows from T138 on done (T170, T173-T181 this run); remaining open rows are pre-loop backlog (T29-T82) + deferred T130-T132 = user decisions; loop stopped|-
+2026-11-02|T182|DONE|see git log (T182)|kit pixel tiles on mechs (box-local triplanar, 1.16 m/tile) + weapons (baked per-face UVs); Lynx/Warhog tiles derived from Cesh's noise; tools/kit_tiles.gd|36/36

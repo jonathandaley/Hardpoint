@@ -11,9 +11,11 @@ extends RefCounted
 const WeaponKit := preload("res://scripts/WeaponKit.gd")
 const LIGHT_SCALE := 0.5   # kit rifle 1.96 m -> ~1 m, the old light placeholder length
 const HEAVY_SCALE := 0.8   # heavy placeholders ran ~1.6x the light ones
+const _TEX := {  # T182: kit weapon tiles, same texel size as the mechs
+	"A": "res://assets/hardpoint/textures/weapon-steel-armor.png",
+	"D": "res://assets/hardpoint/textures/weapon-steel-detail.png",
+}
 const _COLORS := {
-	"A": Color(0.216, 0.231, 0.267),   # weapon-steel-armor.png average (#373b44)
-	"D": Color(0.122, 0.133, 0.165),   # weapon-steel-detail.png average (#1f222a)
 	"MI": Color(0.184, 0.200, 0.231),  # kit matMid 0x2f333b
 	"K": Color(0.090, 0.094, 0.114),   # kit matDark 0x17181d
 	"MO": Color(0.169, 0.169, 0.204),  # kit NEUTRAL_MOUNT
@@ -50,27 +52,51 @@ static func _parts(key: String, s: float) -> Array:
 	if _meshes.has(ck):
 		return _meshes[ck]
 	var tools := {}
-	for b in WeaponKit.DATA[key]:
+	for i in WeaponKit.DATA[key].size():
+		var b: Array = WeaponKit.DATA[key][i]
 		var st: SurfaceTool = tools.get(b[10])
 		if st == null:
 			st = SurfaceTool.new()
 			st.begin(Mesh.PRIMITIVE_TRIANGLES)
 			tools[b[10]] = st
-		var bm := BoxMesh.new()
-		bm.size = Vector3(b[0], b[1], b[2]) * s
-		st.append_from(bm, 0, Transform3D(Basis(Quaternion(b[6], b[7], b[8], b[9])), Vector3(b[3], b[4], b[5]) * s))
+		# golden-ratio offsets: neighbouring boxes don't show the same texel pattern (kit randomises)
+		var off := Vector2(fposmod(i * 0.618, 1.0), fposmod(i * 0.382, 1.0))
+		st.append_from(_box(Vector3(b[0], b[1], b[2]) * s, off), 0, Transform3D(Basis(Quaternion(b[6], b[7], b[8], b[9])), Vector3(b[3], b[4], b[5]) * s))
 	var parts: Array = []
 	for mk in tools:
 		parts.append([(tools[mk] as SurfaceTool).commit(), _material(mk)])
 	_meshes[ck] = parts
 	return parts
 
+# T182: merged boxes can't use box-local triplanar, so bake each face's planar UVs
+# (metres / TEX_M, the kit's constant texel size) before the box is transformed.
+static func _box(size: Vector3, off: Vector2) -> ArrayMesh:
+	var bm := BoxMesh.new()
+	bm.size = size
+	var a := bm.get_mesh_arrays()
+	var vs: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+	var ns: PackedVector3Array = a[Mesh.ARRAY_NORMAL]
+	var uv := PackedVector2Array()
+	for j in vs.size():
+		var v := vs[j]
+		var n := ns[j].abs()
+		var p := Vector2(v.z, v.y) if n.x > 0.5 else (Vector2(v.x, v.z) if n.y > 0.5 else Vector2(v.x, v.y))
+		uv.append(p / MechVisuals.TEX_M + off)
+	a[Mesh.ARRAY_TEX_UV] = uv
+	var am := ArrayMesh.new()
+	am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a)
+	return am
+
 static func _material(mk: String) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	if mk.begins_with("E#"):  # energy tells: full-bright, like mech glow parts
 		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		m.albedo_color = Color.html(mk.substr(2))
+	elif _TEX.has(mk):
+		m.albedo_texture = load(_TEX[mk])
+		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+		m.roughness = 0.7
 	else:
-		m.albedo_color = _COLORS.get(mk, _COLORS["A"])
+		m.albedo_color = _COLORS[mk]
 		m.roughness = 0.7
 	return m

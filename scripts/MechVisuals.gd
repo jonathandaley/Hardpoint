@@ -5,7 +5,7 @@ class_name MechVisuals
 static func apply(mech: Node3D, display_name: String) -> void:
 	# T178/T181: every mech is a design-kit box model (tools/kit_port.py -> MechKit.gd)
 	if MechKit.DATA.has(display_name):
-		_kit(mech, MechKit.DATA[display_name])
+		_kit(mech, MechKit.DATA[display_name], display_name.to_lower())
 
 
 # ---- mesh setters ----
@@ -26,6 +26,18 @@ static func _mat(col: Color) -> StandardMaterial3D:
 	m.albedo_color = col
 	m.roughness = 1.0
 	m.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
+	return m
+
+# T182: the kit's pixel tile (armor/detail, see tools/kit_tiles.gd) at the kit's constant
+# texel size, TEX_REF 1.16 m per tile. Triplanar in the box's own space is a planar
+# projection per face, so the BoxMeshes need no UVs.
+const TEX_M := 1.16
+static func _mat_tex(path: String) -> StandardMaterial3D:
+	var m := _mat(Color.WHITE)
+	m.albedo_texture = load(path)
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+	m.uv1_triplanar = true
+	m.uv1_scale = Vector3.ONE / TEX_M
 	return m
 
 # T178: unshaded draws albedo only, so a black albedo left every glow part black;
@@ -67,10 +79,12 @@ const _REST_HIP   := 0.524  # BipedLegs.REST_HIP: the shin end sits at this pitc
 # Torso boxes as authored. Legs keep the game's animated rig (BipedLegs gait needs its
 # 0.55 m segments): kit span thickness/depth, hip blocks at the kit's hip spacing, the
 # pelvis, a level toe pad at each shin end, and leg lights on the nearest joint.
-static func _kit(mech: Node3D, k: Dictionary) -> void:
+static func _kit(mech: Node3D, k: Dictionary, tex: String) -> void:
+	var detail := _mat_tex("res://assets/hardpoint/textures/%s-detail.png" % tex)
 	var mats := {
-		"A": _mat(k["armor"]), "D": _mat(k["detail"]), "MO": _mat(_KIT_MOUNT), "SO": _mat(_KIT_SOCKET),
-		"E": _mat_e(k["emis"], k["energy"]) if k["energy"] > 0.0 else _mat(k["detail"]),
+		"A": _mat_tex("res://assets/hardpoint/textures/%s-armor.png" % tex), "D": detail,
+		"MO": _mat(_KIT_MOUNT), "SO": _mat(_KIT_SOCKET),
+		"E": _mat_e(k["emis"], k["energy"]) if k["energy"] > 0.0 else detail,
 	}
 	var t := mech.get_node_or_null("Torso") as Node3D
 	if t:
