@@ -649,7 +649,17 @@ func _check_step_dir(dir: Vector3, space: PhysicsDirectSpaceState3D, ex: Array, 
 	return true
 
 func _update_legs(delta: float) -> void:
-	legs.call("update_gait", velocity, global_transform.basis, leg_rotation_speed, walk_speed, delta)
+	# T174: airborne legs tuck. Simulating peers ask physics; an MP client runs no physics
+	# for any mech (snapshot interp, V38), so it probes for ground under the feet.
+	var airborne: bool
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		var q := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 0.3,
+			global_position + Vector3.DOWN * 0.4)
+		q.exclude = get_exclude_rids()
+		airborne = get_world_3d().direct_space_state.intersect_ray(q).is_empty()
+	else:
+		airborne = not is_on_floor() and _step_up_remaining <= 0.0
+	legs.call("update_gait", velocity, global_transform.basis, leg_rotation_speed, walk_speed, delta, airborne)
 
 # T150 (B48) / V37: render remote AND own mechs INTERP_DELAY behind the newest
 # server state, interpolating between the two buffered snapshots around that

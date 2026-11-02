@@ -7,7 +7,7 @@ extends Node3D
 #   2. Drive the walk-cycle animation by rotating hip and knee pivots.
 #
 # Called by Mech._update_legs() each physics tick via:
-#   legs.call("update_gait", velocity, mech_basis, leg_rotation_speed, delta)
+#   legs.call("update_gait", velocity, mech_basis, leg_rotation_speed, walk_speed, delta, airborne)
 #
 # For a four-legged mech, create QuadLegs.gd with the same update_gait()
 # signature and attach it to that mech's Legs node instead.
@@ -38,12 +38,26 @@ const STANCE_FLEX := 0.08   # rad  - slight knee bend at mid-stance
 @onready var right_knee1: Node3D = get_node("RightHip/RightKnee1")
 @onready var right_knee2: Node3D = get_node("RightHip/RightKnee1/RightKnee2")
 
+# T174: airborne -> the walk cycle freezes and the legs ease into a staggered tuck (a
+# jump_heal launches at 3.75x walk speed, so the cycle used to spin ~6x/s mid-air).
+# Drops shorter than AIR_DELAY (stairs) never start the tuck.
+const AIR_DELAY   := 0.12   # s airborne before tucking
+const AIR_BLEND   := 6.0    # tuck blend per second, in and out
+const TUCK_HIP_L  := 0.55   # rad forward of rest; left leg leads (a jump, not a sit)
+const TUCK_HIP_R  := 0.30
+const TUCK_KNEE   := 0.70   # rad extra knee flex
+
 var _torso: Node3D = null
 var _phase: float = 0.0
+var _air_time: float = 0.0
+var _air: float = 0.0  # 0 = walking .. 1 = tucked
 
-func update_gait(velocity: Vector3, mech_basis: Basis, rot_speed: float, walk_speed: float, delta: float) -> void:
+func update_gait(velocity: Vector3, mech_basis: Basis, rot_speed: float, walk_speed: float, delta: float,
+		airborne: bool = false) -> void:
 	if _torso == null:
 		_torso = get_parent().get_node_or_null("Torso") as Node3D
+	_air_time = _air_time + delta if airborne else 0.0
+	_air = move_toward(_air, 1.0 if _air_time > AIR_DELAY else 0.0, AIR_BLEND * delta)
 	_face_velocity(velocity, mech_basis, rot_speed, walk_speed, delta)
 	_animate_walk(velocity, delta)
 
@@ -51,7 +65,8 @@ func _animate_walk(velocity: Vector3, delta: float) -> void:
 	var horiz := Vector3(velocity.x, 0.0, velocity.z)
 	var speed  := horiz.length()
 	var no_slide_rate := 1.0 / (_J * maxf(hip_sweep_amount, 0.01))
-	_phase = fposmod(_phase + speed * no_slide_rate * cycle_rate * delta, TAU)
+	if _air_time <= AIR_DELAY:  # T174: no stepping on thin air
+		_phase = fposmod(_phase + speed * no_slide_rate * cycle_rate * delta, TAU)
 
 	# Blend amplitude 0->1 over the first 1 m/s so joints return to rest when idle.
 	var t  := clampf(speed, 0.0, 1.0)
@@ -60,12 +75,12 @@ func _animate_walk(velocity: Vector3, delta: float) -> void:
 
 	# Body bob - torso dips at transition points (inverted-pendulum walk).
 	if _torso != null:
-		_torso.position.y = -bob_magnitude * abs(sl) * t
+		_torso.position.y = -bob_magnitude * abs(sl) * t * (1.0 - _air)
 
 	# Hip drive: -cos separates fore/aft sweep from the lift.
 	# phase=0: back(liftoff)  phase=PI/2: neutral  phase=PI: forward(heel-strike)
-	left_hip.rotation.x  = REST_HIP - cos(_phase)      * hip_sweep_amount * t
-	right_hip.rotation.x = REST_HIP - cos(_phase + PI) * hip_sweep_amount * t
+	left_hip.rotation.x  = lerpf(REST_HIP - cos(_phase) * hip_sweep_amount * t, REST_HIP + TUCK_HIP_L, _air)
+	right_hip.rotation.x = lerpf(REST_HIP - cos(_phase + PI) * hip_sweep_amount * t, REST_HIP + TUCK_HIP_R, _air)
 
 	# Swing lift: sin arch peaks at mid-swing when hip is at neutral.
 	# Foot is at apex while leg is mid-arc, plants at max extension.
@@ -76,8 +91,8 @@ func _animate_walk(velocity: Vector3, delta: float) -> void:
 	var stance_l: float = maxf(0.0, -sl) * STANCE_FLEX * t
 	var stance_r: float = maxf(0.0, -sr) * STANCE_FLEX * t
 
-	var flex_l: float = swing_l * KNEE_LIFT + stance_l
-	var flex_r: float = swing_r * KNEE_LIFT + stance_r
+	var flex_l: float = lerpf(swing_l * KNEE_LIFT + stance_l, TUCK_KNEE, _air)
+	var flex_r: float = lerpf(swing_r * KNEE_LIFT + stance_r, TUCK_KNEE, _air)
 
 	left_knee1.rotation.x  = REST_KNEE1 - flex_l
 	right_knee1.rotation.x = REST_KNEE1 - flex_r
