@@ -47,14 +47,6 @@ const WEAPON_CATALOG: Array = [
 @onready var _start_button: Button = $StartButton
 @onready var _status_label: Label = $StatusLabel
 @onready var _ready_btn: Button = $ReadyBtn
-@onready var _squad_picker: Control = $SquadPicker
-@onready var _slot_rows: VBoxContainer = $SquadPicker/PickerPanel/SlotRows
-
-# Squad picker state: parallel arrays indexed by squad slot (0-4).
-var _sq_mech_opts: Array = []    # OptionButton per slot
-var _sq_wpn_rows: Array = []     # HBoxContainer per slot (weapon OptionButtons inside)
-var _sq_wpn_opts: Array = []     # Array[Array[OptionButton]] - weapon opts per slot
-var _sq_mds: Array = []          # loaded MechDef per slot (or null)
 
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -258,149 +250,6 @@ func _on_ready_btn_pressed() -> void:
 	else:
 		Game._rpc_set_ready.rpc_id(1, new_ready)
 
-func _on_squad_btn_pressed() -> void:
-	_open_squad_picker()
-
-func _open_squad_picker() -> void:
-	_build_slot_rows()
-	_squad_picker.visible = true
-
-func _build_slot_rows() -> void:
-	for child in _slot_rows.get_children():
-		child.queue_free()
-	_sq_mech_opts.clear()
-	_sq_wpn_rows.clear()
-	_sq_wpn_opts.clear()
-	_sq_mds.clear()
-
-	var my_id := multiplayer.get_unique_id()
-	var my_entry: Dictionary = Game.mp_lobby.get("peers", {}).get(my_id, {})
-	var saved_squad: Array = my_entry.get("squad", _build_squad_data())
-
-	for i in 5:
-		var saved: Dictionary = saved_squad[i] if i < saved_squad.size() else {}
-		_build_slot_row(i, saved)
-
-func _build_slot_row(slot_idx: int, saved: Dictionary) -> void:
-	var row := HBoxContainer.new()
-
-	var slot_lbl := Label.new()
-	slot_lbl.text = "%d:" % (slot_idx + 1)
-	slot_lbl.custom_minimum_size.x = 22
-	slot_lbl.add_theme_font_size_override("font_size", 13)
-
-	var mech_opt := OptionButton.new()
-	mech_opt.custom_minimum_size.x = 130
-	mech_opt.add_theme_font_size_override("font_size", 12)
-	for path in ROSTER:
-		mech_opt.add_item(_mech_short_name(path))
-	var saved_mech: String = str(saved.get("mech", ""))
-	var mech_idx: int = ROSTER.find(saved_mech)
-	if mech_idx < 0:
-		mech_idx = slot_idx % ROSTER.size()
-	mech_opt.select(mech_idx)
-
-	var wpn_row := HBoxContainer.new()
-	wpn_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-
-	row.add_child(slot_lbl)
-	row.add_child(mech_opt)
-	row.add_child(wpn_row)
-	_slot_rows.add_child(row)
-
-	_sq_mech_opts.append(mech_opt)
-	_sq_wpn_rows.append(wpn_row)
-	_sq_wpn_opts.append([])
-	_sq_mds.append(null)
-
-	# Load MechDef and build weapon options.
-	_refresh_weapon_opts(slot_idx, ROSTER[mech_idx], saved.get("weapons", []))
-
-	# Bind mech change to refresh weapon options.
-	mech_opt.item_selected.connect(func(idx: int) -> void:
-		_refresh_weapon_opts(slot_idx, ROSTER[idx], [])
-	)
-
-func _refresh_weapon_opts(slot_idx: int, mech_path: String, saved_weapons: Array) -> void:
-	var wpn_row: HBoxContainer = _sq_wpn_rows[slot_idx]
-	for child in wpn_row.get_children():
-		child.queue_free()
-	_sq_wpn_opts[slot_idx] = []
-
-	if not ResourceLoader.exists(mech_path):
-		return
-	var md = ResourceLoader.load(mech_path)
-	if md == null or not "weapon_slots" in md:
-		return
-	_sq_mds[slot_idx] = md
-
-	var slots: Array = md.weapon_slots
-	for s_i in slots.size():
-		var slot = slots[s_i]
-		var s_size: int = slot.slot_size if "slot_size" in slot else 0
-
-		var opt := OptionButton.new()
-		opt.custom_minimum_size.x = 100
-		opt.add_theme_font_size_override("font_size", 11)
-
-		var saved_path: String = str(saved_weapons[s_i]) if s_i < saved_weapons.size() else ""
-		var select_idx := 0
-		var item_idx := 0
-		for cat in WEAPON_CATALOG:
-			if cat["slot_size"] == s_size:
-				opt.add_item(cat["name"])
-				if cat["path"] == saved_path:
-					select_idx = item_idx
-				item_idx += 1
-		opt.select(select_idx)
-		wpn_row.add_child(opt)
-		_sq_wpn_opts[slot_idx].append(opt)
-
-func _collect_squad() -> Array:
-	var result: Array = []
-	for i in 5:
-		var mech_path: String = ROSTER[_sq_mech_opts[i].get_selected_id()] \
-			if _sq_mech_opts[i].get_selected_id() >= 0 else ROSTER[i % ROSTER.size()]
-		var md = _sq_mds[i]
-		var weapons: Array = []
-		if md != null and "weapon_slots" in md:
-			var slots: Array = md.weapon_slots
-			var wpn_opts: Array = _sq_wpn_opts[i]
-			for s_i in slots.size():
-				if s_i >= wpn_opts.size():
-					weapons.append("")
-					continue
-				var slot = slots[s_i]
-				var s_size: int = slot.slot_size if "slot_size" in slot else 0
-				var opt: OptionButton = wpn_opts[s_i]
-				var chosen_idx := 0
-				var item_i := 0
-				for cat in WEAPON_CATALOG:
-					if cat["slot_size"] == s_size:
-						if item_i == opt.selected:
-							chosen_idx = WEAPON_CATALOG.find(cat)
-							break
-						item_i += 1
-				weapons.append(WEAPON_CATALOG[chosen_idx]["path"] if chosen_idx >= 0 else "")
-		result.append({"mech": mech_path, "weapons": weapons})
-	return result
-
-func _submit_squad(squad: Array) -> void:
-	if multiplayer.is_server():
-		Game._apply_squad(multiplayer.get_unique_id(), squad)
-	else:
-		Game._rpc_set_squad.rpc_id(1, squad)
-
-func _on_squad_confirm() -> void:
-	var squad := _collect_squad()
-	_submit_squad(squad)
-	_squad_picker.visible = false
-
-func _on_squad_cancel() -> void:
-	_squad_picker.visible = false
-
-# ---- Match start / back ----
-
 func _on_start_pressed() -> void:
 	var roster := _build_roster()
 	var match_seed := randi()
@@ -480,4 +329,4 @@ static func bot_weapon_paths(mech_def: Resource, rng: RandomNumberGenerator) -> 
 
 func _on_back_pressed() -> void:
 	Game.disconnect_mp()
-	get_tree().change_scene_to_file("res://scenes/ui/TitleScreen.tscn")
+	get_tree().change_scene_to_file("res://scenes/ui/Hangar.tscn")  # T176: squads are set up there

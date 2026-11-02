@@ -60,21 +60,12 @@ theme_override_colors/font_color = Color(0.478, 0.478, 0.522, 1)
 theme_override_font_sizes/font_size = 8
 text = "THIRD-PERSON MECH ARENA · BEACON DRAIN"
 
-[node name="SinglePlayerButton" type="Button" parent="."]
+[node name="PlayButton" type="Button" parent="."]
 offset_left = 220.0
-offset_top = 265.0
+offset_top = 270.0
 offset_right = 420.0
-offset_bottom = 295.0
-theme_override_font_sizes/font_size = 16
-text = "SINGLEPLAYER"
+offset_bottom = 304.0
+theme_override_font_sizes/font_size = 18
+text = "PLAY"
 
-[node name="MultiplayerButton" type="Button" parent="."]
-offset_left = 220.0
-offset_top = 305.0
-offset_right = 420.0
-offset_bottom = 335.0
-theme_override_font_sizes/font_size = 16
-text = "MULTIPLAYER"
-
-[connection signal="pressed" from="SinglePlayerButton" to="." method="_on_singleplayer_pressed"]
-[connection signal="pressed" from="MultiplayerButton" to="." method="_on_multiplayer_pressed"]
+[connection signal="pressed" from="PlayButton" to="." method="_on_play_pressed"]

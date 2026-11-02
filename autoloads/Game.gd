@@ -492,6 +492,8 @@ func _on_mp_peer_connected(id: int) -> void:
 
 ## T168: why the host refused us; read (and cleared) by MPEntry.
 var mp_refused_reason := ""
+## T176: FIND MATCH -> HOST (0) or JOIN (1) opens MPEntry on that tab.
+var mp_entry_tab := 0
 
 ## T170 (B64): join handshake. A mid-match joiner used to be kicked after it had
 ## connected: SceneMultiplayer kept it in the connected set until the disconnect landed,

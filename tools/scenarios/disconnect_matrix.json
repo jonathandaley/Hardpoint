@@ -26,7 +26,7 @@
       "action": "rejoin"
     }
   ],
-  "_comment": "T153: client_1 quits through the pause menu (graceful ENet disconnect) and at tick 400 tries to rejoin through Title -> MPEntry -> Join while the match runs (expected: server kicks it on connect, back at the title, no RPC leak). bot_takeover: the server hands the leaver's live mech to the bot AI (T123; the script stands still, so movement = bot). peer_closed: quitter disconnected; refused rejoiner routed to the title (V40 exception). Crash/kill path: client_crash.",
+  "_comment": "T153: client_1 quits through the pause menu (graceful ENet disconnect) and at tick 400 tries to rejoin through Title -> Hangar -> FIND MATCH -> JOIN -> MPEntry while the match runs (expected: refused during auth (T170), back on MPEntry with the reason, no RPC leak). bot_takeover: the server hands the leaver's live mech to the bot AI (T123; the script stands still, so movement = bot). peer_closed: quitter disconnected; refused rejoiner routed to MPEntry. Crash/kill path: client_crash.",
   "peers": {
     "server": {
       "input": {

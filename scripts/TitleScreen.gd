@@ -3,8 +3,7 @@ extends Control
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
-func _on_singleplayer_pressed() -> void:
+# T176: one way in -- sign in, set the squad up in the hangar, then FIND MATCH picks
+# single player / host / join.
+func _on_play_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/ui/SignIn.tscn")
-
-func _on_multiplayer_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/ui/MPEntry.tscn")

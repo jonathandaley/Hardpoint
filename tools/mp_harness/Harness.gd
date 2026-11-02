@@ -209,8 +209,9 @@ func _mp_connected() -> bool:
 	return mp != null and not (mp is OfflineMultiplayerPeer) \
 		and mp.get_connection_status() != MultiplayerPeer.CONNECTION_DISCONNECTED
 
-# T164: "menu": true -> reach the match through the real UI, as a player does:
-# TitleScreen -> MPEntry (host / join) -> Lobby (squad picker, ready, start).
+# T164/T176: "menu": true -> reach the match through the real UI, as a player does:
+# Title PLAY -> SignIn CONFIRM -> Hangar (squad: slot -> roster mech -> weapon arrows,
+# BACK) -> FIND MATCH -> HOST / JOIN -> MPEntry (port / IP) -> Lobby (ready, start).
 # Buttons get real mouse clicks at their on-screen centre (a hidden, covered or
 # disabled button fails the step); OptionButton items are chosen by text via
 # select()+item_selected (ponytail: popup clicks skipped). Per-peer "squad":
@@ -219,14 +220,15 @@ func _mp_connected() -> bool:
 # whose ENet ids sort opposite to their process names swap pick vs input spec.
 # A stuck step prints "[Harness] MENU FAIL ..." and exits 3 (crash_scan, menu_flow).
 func _menu_flow() -> void:
-	if not await _menu_connect():
+	var squad: Array = _scenario.get("peers", {}).get(_sync_role(), {}).get("squad", [])
+	if not await _menu_connect(squad):
 		return
 	if not await _wait_scene("Lobby"):
 		return
 	await get_tree().process_frame
-	var squad: Array = _scenario.get("peers", {}).get(_sync_role(), {}).get("squad", [])
-	if not squad.is_empty() and not await _menu_pick_squad(squad):
-		return
+	if not _menu_pick.is_empty():  # picked offline in the hangar; the real peer id exists now
+		print("[Harness] menu_pick peer=%d max_hp=%d weapons=%s mech=%s" % [multiplayer.get_unique_id(),
+			_menu_pick[0], _menu_pick[1], _menu_pick[2]])
 	if _role != "server":
 		_click("ReadyBtn")
 		return  # the server's START loads Arena here; _process binds input as usual
@@ -248,20 +250,30 @@ func _menu_flow() -> void:
 	await get_tree().process_frame
 	_click("StartButton")
 
-# Title -> MPEntry -> HOST (port) or JOIN (tab, IP, port) by real clicks.
-func _menu_connect() -> bool:
+# Title -> SignIn -> Hangar (optional squad) -> FIND MATCH -> HOST or JOIN -> MPEntry by real clicks.
+func _menu_connect(squad: Array = []) -> bool:
 	if not await _wait_scene("TitleScreen"):
 		return false
-	_click("MultiplayerButton")
+	_click("PlayButton")
+	if not await _wait_scene("SignIn"):
+		return false
+	_click("ConfirmButton")
+	if not await _wait_scene("Hangar"):
+		return false
+	await get_tree().process_frame
+	if not squad.is_empty() and not await _menu_pick_squad(squad):
+		return false
+	_click("MatchmakingButton")
+	await get_tree().process_frame
+	_click("FindMatchPanel/Choices/" + ("HostBtn" if _role == "server" else "JoinBtn"))
 	if not await _wait_scene("MPEntry"):
 		return false
+	await get_tree().process_frame  # MPEntry opened on the HOST / JOIN tab (T176)
 	var entry := get_tree().current_scene
 	if _role == "server":
 		entry.get_node("TabContainer/Host/PortEdit").text = str(_port)
 		_click("TabContainer/Host/HostButton")
 	else:
-		(entry.get_node("TabContainer") as TabContainer).current_tab = 1
-		await get_tree().process_frame  # tab switch -> Join page laid out
 		entry.get_node("TabContainer/Join/IPEdit").text = "127.0.0.1"
 		entry.get_node("TabContainer/Join/JoinPortEdit").text = str(_connect_port if _connect_port > 0 else _port)
 		_click("TabContainer/Join/JoinButton")
@@ -269,31 +281,57 @@ func _menu_connect() -> bool:
 			_quit_with_server()
 	return _menu_failed == ""
 
+# T176: squads are set up in the hangar (the lobby picker is gone): per squad slot,
+# click the slot, the roster mech (scrolled into view, as a player would), then each
+# weapon row's ">" until it shows the wanted weapon, then BACK.
 func _menu_pick_squad(squad: Array) -> bool:
-	_click("SquadBtn")
-	await get_tree().process_frame
-	var lobby := get_tree().current_scene
-	var rows: Array = lobby.get_node("SquadPicker/PickerPanel/SlotRows").get_children()
-	var catalog: Array = lobby.get("WEAPON_CATALOG")
-	for i in mini(squad.size(), rows.size()):
-		_choose(rows[i].get_child(1), String(squad[i].get("mech", "")))
-		await get_tree().process_frame  # weapon OptionButtons rebuilt for the new mech
+	var hangar := get_tree().current_scene
+	# scenarios name weapons as the lobby catalog does ("RIFLE LT"); the hangar shows its
+	# own labels ("RIFLE LIGHT") -- translate through the scene path
+	var catalog: Array = preload("res://scripts/Lobby.gd").WEAPON_CATALOG
+	var hangar_name := {}
+	for c in hangar.get("WEAPON_CATALOG"):
+		hangar_name[c["path"]] = c["name"]
+	var roster := "Content/MechPanel/RosterPanel/RosterScroll/RosterList/Roster_"
+	for i in squad.size():
+		_click("Content/MechPanel/SlotBtn%d" % i)
+		await get_tree().process_frame
+		var mech := String(squad[i].get("mech", ""))
+		var rb := hangar.get_node_or_null(roster + mech) as Control
+		if rb != null:
+			(hangar.get_node("Content/MechPanel/RosterPanel/RosterScroll") as ScrollContainer).ensure_control_visible(rb)
+			await get_tree().process_frame
+		_click(roster + mech)
+		await get_tree().process_frame  # weapon picker rebuilt for the new mech
 		var wnames: Array = squad[i].get("weapons", [])
 		var wpaths: Array = []
 		for w in wnames.size():
-			_choose(rows[i].get_child(2).get_child(w), String(wnames[w]))
+			var path := ""
 			for c in catalog:
 				if c["name"] == wnames[w]:
-					wpaths.append(c["path"])
+					path = c["path"]
+			var want: String = hangar_name.get(path, "?" + String(wnames[w]))
+			var row := "Content/MechPanel/WeaponPicker/Slot%d" % w
+			for _n in catalog.size():  # at most one lap of the catalog
+				var lbl := hangar.get_node_or_null(row + "/Weapon") as Label
+				if _menu_failed != "" or lbl == null or lbl.text == want:
+					break
+				_click(row + "/Next")
+			var shown := hangar.get_node_or_null(row + "/Weapon") as Label
+			if shown == null or shown.text != want:
+				_menu_fail("hangar slot %d weapon row %d never showed %s" % [i, w, want])
+				return false
+			wpaths.append(path)
 		if i == 0:  # slot 0 spawns first (menu_flow oracle checks it on every peer)
-			var mech_path := "res://resources/mechs/%s.tres" % squad[0].get("mech", "")
+			var mech_path := "res://resources/mechs/%s.tres" % mech
 			var md = load(mech_path)
-			print("[Harness] menu_pick peer=%d max_hp=%d weapons=%s mech=%s" % [multiplayer.get_unique_id(),
-				int(md.max_health) if md != null else -1, JSON.stringify(wpaths), mech_path])
-	_click("SquadPicker/PickerPanel/PickerButtonRow/ConfirmBtn")
+			_menu_pick = [int(md.max_health) if md != null else -1, JSON.stringify(wpaths), mech_path]
+		_click("BackBtn")
+		await get_tree().process_frame
 	return _menu_failed == ""
 
 var _menu_failed: String = ""
+var _menu_pick: Array = []  # T176: [max_hp, weapons json, mech path] of squad slot 0
 var _rejoining: bool = false
 
 func _menu_fail(why: String) -> void:
