@@ -59,6 +59,7 @@ var _snap_buf: Array = []          # V37: last 2 server snapshots [{time,pos,qua
 @onready var _energy_shield: Node = $EnergyShield
 
 var is_dead: bool = false
+const _WeaponVisuals := preload("res://scripts/WeaponVisuals.gd")
 var _body_meshes: Array = []
 var _flash_mat: StandardMaterial3D = null
 var _flash_timer_es: float = 0.0
@@ -177,6 +178,7 @@ func configure_weapons(slots: Array) -> void:
 		if scene == null:
 			continue
 		var weapon: Node = scene.instantiate()
+		_WeaponVisuals.apply(weapon)  # T180: kit model replaces the placeholder meshes
 		var s_size: int = int(slot.get("slot_size")) if "slot_size" in slot else 0
 		var w_size: int = int(weapon.get("slot_size")) if "slot_size" in weapon else 0
 		if s_size != w_size:
