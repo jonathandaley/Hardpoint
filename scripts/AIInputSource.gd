@@ -18,22 +18,38 @@ const THREAT_MEMORY := 4.0   # T169: seconds an attacker stays a priority target
 const THREAT_BONUS  := 8.0   # T169: score bonus for the recent attacker (~ 2/3 of a dying target)
 const RETALIATE_CD  := 3.0   # T169: min seconds between damage-driven switches (no ping-pong)
 const FINISH_HP     := 0.25  # T169: keep the current target below this HP fraction
+const HELP_RADIUS   := 60.0  # T172: teammates this close hear who is shooting us
+const FOCUS_BONUS   := 5.0   # T172: score per teammate already on that target (max 3)
+const VISIBLE_BONUS := 6.0   # T172: candidate in line of sight
+const REGROUP_DIST  := 25.0  # T172: this far ahead of the pack -> wait for it
+const CHASE_DIST    := 80.0  # T172: follow a target that broke line of sight
 
-# [aim_jitter_radians, turn_speed_scale]
+# T172. aim_jitter = radians of slow aim drift; turn_scale x TURN_SPEED = max turn rate;
+# lead = fraction of the target's motion aimed ahead (projectile flight time);
+# reaction = seconds before the first shot at a new target; pause = BURST_PAUSE scale
+# (0 = hold the trigger); tactics = fight movement (keep weapon range + strafe), fire
+# only on a hit-worthy aim / full charge / lock, abilities, chase, reload in lulls;
+# team = focus fire, help calls, attackers share one objective beacon + regroup;
+# juke = reverse the strafe the moment we're hit (beats an opponent leading the shot).
 const DIFFICULTY_PRESETS: Array = [
-	{"aim_jitter": 0.18,  "turn_scale": 0.55},  # Easy
-	{"aim_jitter": 0.055, "turn_scale": 1.00},  # Normal
-	{"aim_jitter": 0.015, "turn_scale": 1.50},  # Medium
-	{"aim_jitter": 0.005, "turn_scale": 1.85},  # Hard
-	{"aim_jitter": 0.0,   "turn_scale": 2.20},  # Elite
+	{"aim_jitter": 0.18,  "turn_scale": 0.55, "lead": 0.0, "reaction": 0.70, "pause": 1.0,  "tactics": false, "team": false},  # Easy
+	{"aim_jitter": 0.055, "turn_scale": 1.00, "lead": 0.5, "reaction": 0.45, "pause": 1.0,  "tactics": false, "team": false},  # Normal
+	{"aim_jitter": 0.015, "turn_scale": 1.50, "lead": 0.8, "reaction": 0.30, "pause": 0.6,  "tactics": false, "team": true},   # Medium
+	{"aim_jitter": 0.02,  "turn_scale": 1.85, "lead": 0.85, "reaction": 0.25, "pause": 0.4, "tactics": true,  "team": true, "juke": false},  # Hard
+	{"aim_jitter": 0.0,   "turn_scale": 4.00, "lead": 1.0, "reaction": 0.08, "pause": 0.0,  "tactics": true,  "team": true, "juke": true},   # Elite
 ]
+# T172: roles by team slot (Arena: bot_id = 1 + team*100 + slot), not RNG: a random
+# 2:1:1 roll could make a whole team defenders. Team presets drop the idle defender.
+const ROLES_SOLO: Array = ["attacker", "attacker", "flanker", "defender"]
+const ROLES_TEAM: Array = ["attacker", "attacker", "flanker", "attacker"]
 
 # Role: "attacker" pushes enemy beacons, "defender" guards own beacons,
 # "flanker" prioritises neutral beacons and approaches from the side.
-# Assigned randomly at spawn with a sensible distribution (2:1:1 ratio).
 var role: String = "attacker"
 
 var _target: Node3D = null
+var _prev_target: Node3D = null  # T172: change detector for the reaction delay
+var _react_timer: float = 0.0
 var _threat: Node3D = null       # T169: who shot us last
 var _threat_timer: float = 0.0
 var _retaliate_cd: float = 0.0
@@ -43,6 +59,8 @@ var _claimed_beacon: Node = null   # beacon we told AIDirector we're heading to
 var _look_delta: Vector2 = Vector2.ZERO
 var _move_dir: Vector2 = Vector2.ZERO
 var _firing: bool = false
+var _ability_press: bool = false
+var _reload_press: bool = false
 var _strafe_timer: float = 0.0
 var _strafe_sign: float = 1.0
 var _burst_timer: float = BURST_FIRE
@@ -62,6 +80,7 @@ var _los_timer: float = 0.0
 var _los_blocked_time: float = 0.0  # seconds target has been LoS-blocked; drops target at 1s
 var _rng: RandomNumberGenerator  # T98: seeded per-bot RNG; MP seed set by T104
 var bot_id: int = 0  # T104: unique bot id set by Arena at spawn; used for seed derivation
+var difficulty: int = -1  # T172: per-bot override (bot_eval); -1 = Game.settings bot_difficulty
 
 func _ready() -> void:
 	_rng = RandomNumberGenerator.new()
@@ -80,17 +99,15 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_PREDELETE:
 		Game.ai_director_clear_intent(get_parent())
 
+func _preset() -> Dictionary:
+	var i: int = difficulty if difficulty >= 0 else Game.settings.get("bot_difficulty", 1)
+	return DIFFICULTY_PRESETS[clampi(i, 0, DIFFICULTY_PRESETS.size() - 1)]
+
 func _find_targets() -> void:
 	_own_team = get_parent().get("team") if get_parent() != null else 1
 	_beacons = get_tree().get_nodes_in_group("beacons")
-	# Randomly assign a role with a 2:1:1 split among bots on the same team.
-	var r := _rng.randf()
-	if r < 0.50:
-		role = "attacker"
-	elif r < 0.75:
-		role = "defender"
-	else:
-		role = "flanker"
+	var roles: Array = ROLES_TEAM if _preset()["team"] else ROLES_SOLO
+	role = roles[posmod(bot_id - 1, 100) % roles.size()]
 	# Re-evaluate target immediately when this bot takes damage (B26).
 	var pawn := get_parent().get("pawn") as Node
 	if pawn != null and pawn.has_signal("damaged"):
@@ -98,14 +115,26 @@ func _find_targets() -> void:
 
 # T169: shot by someone other than our target -> turn on them now, unless we're about
 # to finish the current target. Either way the attacker scores a bonus for a while.
+# T172 (team presets): nearby teammates hear about the attacker too.
 func _on_pawn_damaged() -> void:
 	var pawn: Node = get_parent().get("pawn")
 	var atk = pawn.get("last_attacker") if pawn != null else null  # untyped: may be freed
 	if not _is_live_enemy(atk):
 		_target_refresh = 0.0
 		return
+	if _preset()["team"] and pawn is Node3D:
+		for ai in get_tree().get_nodes_in_group("ai_input_sources"):
+			if ai == self or ai.get("_own_team") != _own_team or not ai.has_method("hear_threat"):
+				continue
+			var mate = ai.get_parent().get("pawn")
+			if mate is Node3D and is_instance_valid(mate) \
+					and (mate as Node3D).global_position.distance_to((pawn as Node3D).global_position) < HELP_RADIUS:
+				ai.hear_threat(atk)
 	_threat = atk
 	_threat_timer = THREAT_MEMORY
+	if _preset().get("juke", false) and _strafe_timer > 0.25:
+		_strafe_sign = -_strafe_sign
+		_strafe_timer = _rng.randf_range(0.4, 0.9)
 	if atk == _target or _retaliate_cd > 0.0:
 		return
 	if _is_live_enemy(_target) and _hp_pct(_target) < FINISH_HP and _has_clear_shot:
@@ -115,6 +144,16 @@ func _on_pawn_damaged() -> void:
 	_retaliate_cd = RETALIATE_CD
 	_los_blocked_time = 0.0
 
+## T172: a teammate within HELP_RADIUS is being shot by `atk`. Bonus it; re-pick now
+## unless we're already trading shots with someone.
+func hear_threat(atk) -> void:
+	if not _is_live_enemy(atk):
+		return
+	_threat = atk
+	_threat_timer = THREAT_MEMORY
+	if not (_is_live_enemy(_target) and _has_clear_shot):
+		_target_refresh = 0.0
+
 func _is_live_enemy(m) -> bool:
 	return m != null and is_instance_valid(m) and m.visible and not m.get("is_dead") \
 		and not m.get("is_stealthy") and m.get("team") != _own_team
@@ -123,11 +162,23 @@ func _hp_pct(m: Node) -> float:
 	return clampf(m.health / maxf(float(m.get("max_health") if m.get("max_health") != null else 1.0), 1.0), 0.0, 1.0)
 
 # High score = close + low HP (HP weight 12 vs distance 0.1) + recent attacker (T169).
+# T172 team presets: + in sight, + teammates already shooting it (focus fire).
 func _score(from: Node3D, em: Node3D) -> float:
 	var score := (1.0 - _hp_pct(em)) * 12.0 - from.global_position.distance_to(em.global_position) * 0.1
 	if em == _threat and _threat_timer > 0.0:
 		score += THREAT_BONUS
+	if _preset()["team"]:
+		if _los_to(from, em):
+			score += VISIBLE_BONUS
+		score += FOCUS_BONUS * mini(_mates_on(em), 3)
 	return score
+
+func _mates_on(em: Node) -> int:
+	var n := 0
+	for ai in get_tree().get_nodes_in_group("ai_input_sources"):
+		if ai != self and ai.get("_own_team") == _own_team and ai.get("_target") == em:
+			n += 1
+	return n
 
 # Picks the best target. Scans the live group, not a spawn-time list (T169: squad
 # respawns and late bot takeovers were invisible to bots spawned earlier).
@@ -143,9 +194,34 @@ func _pick_best_target(from: Node3D) -> Node3D:
 			best = em
 	return best
 
+## T172: mean position of live teammate BOTS' mechs (self included or not); INF x if
+## none. Humans don't count: a player hanging back must not pull Elite allies back.
+func _team_centroid(bot_mech: Node3D, with_self: bool) -> Vector3:
+	var sum := Vector3.ZERO
+	var n := 0
+	for m in get_tree().get_nodes_in_group("mechs"):
+		if m.get("team") != _own_team or m.get("is_dead") or not (m as Node3D).visible:
+			continue
+		var src = m.get("_input_source")
+		if src == null or not src.has_method("set_mp_seed"):  # not bot-driven
+			continue
+		if m == bot_mech and not with_self:
+			continue
+		sum += (m as Node3D).global_position
+		n += 1
+	return sum / n if n > 0 else Vector3(INF, 0.0, INF)
+
 func _pick_target_beacon(bot_mech: Node3D) -> Node:
 	var best: Node = null
 	var best_score := -INF
+	# T172 team presets: attackers score beacons from the team's centre with no crowd
+	# penalty, so they all pick the same one and arrive together.
+	var shared: bool = _preset()["team"] and role == "attacker"
+	var from: Vector3 = bot_mech.global_position
+	if shared:
+		var c := _team_centroid(bot_mech, true)
+		if c.x != INF:
+			from = c
 	for b in _beacons:
 		if not is_instance_valid(b):
 			continue
@@ -154,7 +230,7 @@ func _pick_target_beacon(bot_mech: Node3D) -> Node:
 				Vector2(b.global_position.x - _avoid_zone.x, b.global_position.z - _avoid_zone.z).length() < AVOID_RADIUS:
 			continue
 		var owner: int = b.get("owner_team") if b.get("owner_team") != null else -1
-		var dist: float = bot_mech.global_position.distance_to(b.global_position)
+		var dist: float = from.distance_to(b.global_position)
 		var priority: float
 		match role:
 			"defender":
@@ -175,8 +251,10 @@ func _pick_target_beacon(bot_mech: Node3D) -> Node:
 				if owner == _own_team:
 					continue
 				priority = 10.0 if owner == -1 else 5.0
-		var already: int = Game.ai_director_intent_count(b, _own_team)
-		var crowd_penalty: float = maxf(0.0, float(already - 1)) * 5.0
+		var crowd_penalty := 0.0
+		if not shared:
+			var already: int = Game.ai_director_intent_count(b, _own_team)
+			crowd_penalty = maxf(0.0, float(already - 1)) * 5.0
 		var score: float = priority - dist * 0.05 - crowd_penalty
 		if score > best_score:
 			best_score = score
@@ -193,26 +271,33 @@ func _claim_beacon(beacon: Node) -> void:
 	else:
 		Game.ai_director_clear_intent(get_parent())
 
-# Returns true when no collideable geometry lies between the bot's eye and the
-# target's centre.  Uses the same PhysicsRayQueryParameters3D pattern as the
-# weapon scripts so it respects the same collision layers.
+## True when no collideable geometry lies between `from`'s eye and `em`'s centre.
+## Same PhysicsRayQueryParameters3D pattern as the weapon scripts.
+func _los_to(from: Node3D, em: Node3D) -> bool:
+	var eye: Vector3 = from.global_position + Vector3(0, 2.0, 0)
+	var tgt: Vector3 = em.global_position + Vector3(0, 1.5, 0)
+	var query := PhysicsRayQueryParameters3D.create(eye, tgt)
+	query.exclude = from.get_exclude_rids()
+	var result := from.get_world_3d().direct_space_state.intersect_ray(query)
+	if result.is_empty():
+		return true
+	# T172: the target's own parts count (its PhysicalShield is a child StaticBody3D;
+	# shields read as walls, so shielded mechs were "unseen" point-blank)
+	var col = result.get("collider")
+	return col == em or (col is Node and em.is_ancestor_of(col))
+
 func _check_los(bot_mech: Node3D) -> void:
 	if _target == null or not is_instance_valid(_target) or not _target.visible:
 		_has_clear_shot = false
 		_los_blocked_time = 0.0
 		return
-	var eye: Vector3 = bot_mech.global_position + Vector3(0, 2.0, 0)
-	var tgt: Vector3 = _target.global_position + Vector3(0, 1.5, 0)
-	var space := bot_mech.get_world_3d().direct_space_state
-	var query := PhysicsRayQueryParameters3D.create(eye, tgt)
-	query.exclude = bot_mech.get_exclude_rids()
-	var result := space.intersect_ray(query)
-	_has_clear_shot = result.is_empty() or result.get("collider") == _target
+	_has_clear_shot = _los_to(bot_mech, _target)
 	if _has_clear_shot:
 		_los_blocked_time = 0.0
 	else:
 		_los_blocked_time += LOS_INTERVAL
-		if _los_blocked_time >= 1.0:
+		# T172 tactics: hold the target 3 s (we chase it) instead of 1 s
+		if _los_blocked_time >= (3.0 if _preset()["tactics"] else 1.0):
 			_target = null
 			_target_refresh = 0.0
 			_los_blocked_time = 0.0
@@ -232,6 +317,28 @@ func _nav_next(bot_mech: Node3D, goal_pos: Vector3) -> Vector3:
 		return Vector3.ZERO
 	return next
 
+## World-space direction -> move input relative to the mech's aim basis.
+func _to_move(bot_mech: Node3D, dir: Vector3) -> Vector2:
+	dir.y = 0.0
+	if dir.length_squared() < 0.0001:
+		return Vector2.ZERO
+	var aim_basis: Basis = bot_mech.call("get_aim_basis")
+	return Vector2(dir.dot(aim_basis.x), -dir.dot(-aim_basis.z)).normalized()
+
+## Move input toward goal_pos along the nav path (direct steering until the navmesh is ready).
+## T172: "arrived" = near the GOAL in plan view. A waypoint straight below/above (step
+## riser) is < 1.5 m flat but > path_desired_distance in 3D, so the agent never advanced
+## past it and the old `steer.length() > 1.5` check stood the bot still for good.
+func _steer_to(bot_mech: Node3D, goal_pos: Vector3) -> Vector2:
+	var to_goal := goal_pos - bot_mech.global_position
+	to_goal.y = 0.0
+	if to_goal.length() <= 1.5:
+		return Vector2.ZERO
+	var next := _nav_next(bot_mech, goal_pos)
+	var steer: Vector3 = (next if next != Vector3.ZERO else goal_pos) - bot_mech.global_position
+	steer.y = 0.0
+	return _to_move(bot_mech, steer if steer.length() > 0.3 else to_goal)
+
 # Runs at physics rate: Mech._handle_look consumes _look_delta once per physics
 # tick, so computing it here (with the fixed physics delta) keeps bot turn speed
 # independent of render frame rate. Also keeps per-tick RNG draws deterministic.
@@ -243,13 +350,43 @@ func _physics_process(delta: float) -> void:
 	_physics_process_impl(delta)
 	Game.prof_add("ai", Time.get_ticks_usec() - t0)
 
+func _primary(bot_mech: Node) -> Node:
+	for w in bot_mech.get_weapons():
+		if is_instance_valid(w):
+			return w
+	return null
+
 ## T169: fire out to half the longest weapon's range (snipers/rockets reach), never under the old 50 m.
+## T172 tactics: the weapon's real reach (projectiles expire at range).
 func _fire_range(bot_mech: Node) -> float:
-	var r := ENGAGE_DIST + 15.0
+	var tactics: bool = _preset()["tactics"]
+	var r := 0.0 if tactics else ENGAGE_DIST + 15.0
 	for w in bot_mech.get_weapons():
 		if is_instance_valid(w) and "range" in w:
-			r = maxf(r, float(w.range) * 0.5)
+			r = maxf(r, float(w.range) * (0.95 if tactics else 0.5))
 	return r
+
+## T172: distance a bot with this weapon fights from (shotgun close, sniper far).
+func _pref_range(w: Node) -> float:
+	if w == null:
+		return 30.0
+	if "pellet_count" in w:
+		return 9.0
+	return clampf(float(w.range) * 0.45, 10.0, 60.0)
+
+## T172: where to aim -- target centre plus `lead` x its motion over the shot's flight time.
+## Homing (lock) weapons and beams don't lead.
+func _aim_point(bot_mech: Node3D, w: Node, lead: float) -> Vector3:
+	var c: Vector3 = _target.to_global(Vector3.UP)
+	if lead <= 0.0 or w == null or not ("projectile_speed" in w) or w.requires_lock:
+		return c
+	var spd: float = maxf(float(w.projectile_speed), 1.0)
+	var v: Vector3 = _target.get("velocity") if _target.get("velocity") != null else Vector3.ZERO
+	var muzzle: Vector3 = bot_mech.global_position + Vector3.UP * 2.0
+	var p := c
+	for i in 2:
+		p = c + v * (muzzle.distance_to(p) / spd) * lead
+	return p
 
 func _physics_process_impl(delta: float) -> void:
 	# T40: bots run server-only; clients receive mech state via replication, not AI.
@@ -262,8 +399,11 @@ func _physics_process_impl(delta: float) -> void:
 		_firing     = false
 		return
 
+	var preset: Dictionary = _preset()
+	var tactics: bool = preset["tactics"]
 	_threat_timer -= delta
 	_retaliate_cd -= delta
+	_react_timer -= delta
 	# Refresh target periodically or when current target is no longer valid.
 	_target_refresh -= delta
 	if _target_refresh <= 0.0 or not is_instance_valid(_target) or not _target.visible:
@@ -283,18 +423,27 @@ func _physics_process_impl(delta: float) -> void:
 		_check_los(bot_mech)
 
 	var has_target: bool = _target != null and is_instance_valid(_target) and _target.visible and not _target.get("is_stealthy")
+	if not has_target:
+		_target = null
+	# T172: a new target costs a reaction delay before the first shot.
+	if _target != _prev_target:
+		_prev_target = _target
+		if _target != null:
+			_react_timer = float(preset["reaction"]) * (1.0 + 0.5 * _rng.randf())
 	var sens: float = Game.settings.get("mouse_sensitivity", 0.003)
-	var diff_idx: int = clampi(Game.settings.get("bot_difficulty", 1), 0, 4)
-	var preset: Dictionary = DIFFICULTY_PRESETS[diff_idx]
-	var aim_jitter: float = preset.get("aim_jitter", 0.055)
-	var eff_turn: float = TURN_SPEED * preset.get("turn_scale", 1.0)
+	var aim_jitter: float = preset["aim_jitter"]
+	var eff_turn: float = TURN_SPEED * preset["turn_scale"]
+	var weapon := _primary(bot_mech)
+	var fire_range := _fire_range(bot_mech)
 
 	var angle_h := 0.0
 	var dist := INF
+	var aim_p := Vector3.ZERO
 
 	if has_target:
-		var to_target := _target.global_position - bot_mech.global_position
-		dist = to_target.length()
+		dist = (_target.global_position - bot_mech.global_position).length()
+		aim_p = _aim_point(bot_mech, weapon, preset["lead"])
+		var to_target := aim_p - bot_mech.global_position
 
 		# Horizontal aim
 		var to_flat := Vector3(to_target.x, 0.0, to_target.z)
@@ -311,8 +460,7 @@ func _physics_process_impl(delta: float) -> void:
 		var cam_arm := bot_mech.get_node_or_null("Torso/CameraArm") as SpringArm3D
 		var cam     := bot_mech.get_node_or_null("Torso/CameraArm/Camera3D") as Camera3D
 		if cam_arm and cam:
-			var target_centre := _target.global_position + Vector3(0, 1.0, 0)
-			var cam_to_target := target_centre - cam.global_position
+			var cam_to_target := aim_p - cam.global_position
 			var cam_h_dist: float = Vector2(cam_to_target.x, cam_to_target.z).length()
 			var desired_pitch: float = atan2(cam_to_target.y, maxf(cam_h_dist, 0.01))
 			var pitch_diff: float    = desired_pitch - cam_arm.rotation.x + _jitter.y
@@ -322,60 +470,12 @@ func _physics_process_impl(delta: float) -> void:
 		_look_delta = Vector2.ZERO
 		_firing = false
 
-	# Movement - retreat takes priority; otherwise navigate to beacon/enemy.
 	var own_max_hp: float = maxf(bot_mech.get("max_health") if bot_mech.get("max_health") != null else 1.0, 1.0)
 	var own_hp_pct: float = clampf(bot_mech.health / own_max_hp, 0.0, 1.0)
-	var role_retreat_dist := RETREAT_DIST * (1.5 if role == "defender" else 1.0)
-	if own_hp_pct < 0.20 and has_target:
-		var away := (bot_mech.global_position - _target.global_position)
-		away.y = 0.0
-		if away.length_squared() > 0.01:
-			away = away.normalized()
-			var aim_basis: Basis = bot_mech.call("get_aim_basis")
-			_move_dir = Vector2(away.dot(aim_basis.x), -away.dot(-aim_basis.z)).normalized()
-		_firing = false
-	elif has_target and dist < role_retreat_dist:
-		_move_dir = Vector2(0.0, 1.0)
-		_claim_beacon(null)
+	if tactics:
+		_move_dir = _tactical_move(bot_mech, has_target, dist, fire_range, weapon, own_hp_pct, delta)
 	else:
-		var beacon := _pick_target_beacon(bot_mech)
-		_claim_beacon(beacon)
-		var goal_pos: Vector3 = Vector3.ZERO
-		if beacon != null:
-			goal_pos = beacon.global_position
-		elif has_target:
-			goal_pos = _target.global_position
-
-		if goal_pos != Vector3.ZERO:
-			var aim_basis: Basis = bot_mech.call("get_aim_basis")
-			var fwd:   Vector3 = -aim_basis.z
-			var right: Vector3 = aim_basis.x
-			# Try nav-agent path first; fall back to direct steering if not ready.
-			var next := _nav_next(bot_mech, goal_pos)
-			var steer: Vector3
-			if next != Vector3.ZERO:
-				steer = next - bot_mech.global_position
-			else:
-				steer = goal_pos - bot_mech.global_position
-			steer.y = 0.0
-			var sd := steer.length()
-			if sd > 1.5:
-				steer = steer / sd
-				_move_dir = Vector2(steer.dot(right), -steer.dot(fwd)).normalized()
-			else:
-				_move_dir = Vector2.ZERO
-		elif has_target:
-			# All beacons owned - circle-strafe and fight.
-			_strafe_timer -= delta
-			if _strafe_timer <= 0.0:
-				_strafe_timer = _rng.randf_range(1.5, 3.0)
-				_strafe_sign  = 1.0 if _rng.randf() > 0.5 else -1.0
-			if dist > ENGAGE_DIST:
-				_move_dir = Vector2(0.0, -1.0)
-			else:
-				_move_dir = Vector2(_strafe_sign, -0.3).normalized()
-		else:
-			_move_dir = Vector2.ZERO
+		_move_dir = _legacy_move(bot_mech, has_target, dist, own_hp_pct, delta)
 
 	# Decay stuck-zone avoidance cooldown.
 	if _avoid_timer > 0.0:
@@ -388,8 +488,11 @@ func _physics_process_impl(delta: float) -> void:
 	_stuck_timer -= delta
 	if _stuck_timer <= 0.0:
 		_stuck_timer = STUCK_CHECK
+		# T172: a third of the distance this mech should cover; the flat 0.5 m read every
+		# mech under 1 m/s (Warhog 0.9, Everest 0.75) as permanently stuck.
+		var stuck_dist: float = minf(STUCK_DIST, float(bot_mech.get("walk_speed")) * STUCK_CHECK * 0.35)
 		if _move_dir != Vector2.ZERO and \
-				bot_mech.global_position.distance_to(_last_pos) < STUCK_DIST:
+				bot_mech.global_position.distance_to(_last_pos) < stuck_dist:
 			_stuck_count += 1
 			_escape_timer = minf(ESCAPE_TIME * _stuck_count, ESCAPE_TIME_MAX)
 			var side := 1.0 if _rng.randf() > 0.5 else -1.0
@@ -417,6 +520,8 @@ func _physics_process_impl(delta: float) -> void:
 		_escape_timer -= delta
 		_move_dir = _escape_vec
 
+	_ability_press = false
+	_reload_press = false
 	if has_target:
 		# Aim jitter - slow random drift that makes the bot miss occasionally
 		_jitter_timer -= delta
@@ -424,14 +529,135 @@ func _physics_process_impl(delta: float) -> void:
 			_jitter_timer = _rng.randf_range(0.08, 0.18)
 			_jitter = Vector2(_rng.randf_range(-aim_jitter, aim_jitter),
 							  _rng.randf_range(-aim_jitter, aim_jitter))
-		# Burst fire - shoot for BURST_FIRE seconds, pause for BURST_PAUSE seconds
-		_burst_timer -= delta
-		if _burst_timer <= 0.0:
-			_in_burst = not _in_burst
-			_burst_timer = BURST_FIRE if _in_burst else BURST_PAUSE
+		# Burst fire - shoot for BURST_FIRE seconds, pause for BURST_PAUSE x preset pause
+		var pause: float = BURST_PAUSE * float(preset["pause"])
+		if pause <= 0.0:
+			_in_burst = true
+		else:
+			_burst_timer -= delta
+			if _burst_timer <= 0.0:
+				_in_burst = not _in_burst
+				_burst_timer = BURST_FIRE if _in_burst else pause
+		var ready: bool = _in_burst and dist < fire_range and _has_clear_shot and _react_timer <= 0.0
+		if tactics:
+			_firing = ready and _shot_worth_taking(bot_mech, weapon, aim_p)
+		else:
+			# Fire when aimed closely enough, in range, in burst window, and LOS is clear.
+			_firing = ready and abs(angle_h) < AIM_THRESHOLD
+	if tactics:
+		_use_abilities(bot_mech, has_target and dist < fire_range, own_hp_pct)
+		if not has_target:
+			_reload_press = _wants_reload(bot_mech)
 
-		# Fire when aimed closely enough, in range, in burst window, and LOS is clear.
-		_firing = _in_burst and abs(angle_h) < AIM_THRESHOLD and dist < _fire_range(bot_mech) and _has_clear_shot
+## Pre-T172 movement (Easy..Medium): beacon routing, back off when crowded, flee when low.
+func _legacy_move(bot_mech: Node3D, has_target: bool, dist: float, own_hp_pct: float, delta: float) -> Vector2:
+	var role_retreat_dist := RETREAT_DIST * (1.5 if role == "defender" else 1.0)
+	if own_hp_pct < 0.20 and has_target:
+		return _to_move(bot_mech, bot_mech.global_position - _target.global_position)
+	if has_target and dist < role_retreat_dist:
+		_claim_beacon(null)
+		return Vector2(0.0, 1.0)
+	var beacon := _pick_target_beacon(bot_mech)
+	_claim_beacon(beacon)
+	if beacon != null:
+		return _steer_to(bot_mech, beacon.global_position)
+	if has_target:
+		# All beacons owned - circle-strafe and fight.
+		_strafe_timer -= delta
+		if _strafe_timer <= 0.0:
+			_strafe_timer = _rng.randf_range(1.5, 3.0)
+			_strafe_sign  = 1.0 if _rng.randf() > 0.5 else -1.0
+		if dist > ENGAGE_DIST:
+			return Vector2(0.0, -1.0)
+		return Vector2(_strafe_sign, -0.3).normalized()
+	return Vector2.ZERO
+
+## T172 (Hard, Elite). In a fight: hold the weapon's preferred range and strafe (slow
+## projectiles miss a sidestepping mech), keep capturing a contested objective underfoot,
+## back off when hurt. Target out of sight: chase it. Otherwise: objective beacon, with
+## the pack (wait when far ahead), or hunt the nearest enemy once every beacon is ours.
+func _tactical_move(bot_mech: Node3D, has_target: bool, dist: float, fire_range: float,
+		weapon: Node, own_hp_pct: float, delta: float) -> Vector2:
+	var beacon := _pick_target_beacon(bot_mech)
+	_claim_beacon(beacon)
+	var pos := bot_mech.global_position
+	if has_target and _has_clear_shot and dist < fire_range * 1.1:
+		_strafe_timer -= delta
+		if _strafe_timer <= 0.0:
+			_strafe_timer = _rng.randf_range(0.5, 1.4)
+			_strafe_sign = 1.0 if _rng.randf() > 0.5 else -1.0
+		var to_t := _target.global_position - pos
+		to_t.y = 0.0
+		to_t = to_t.normalized()
+		var side := Vector3(-to_t.z, 0.0, to_t.x) * _strafe_sign
+		if beacon != null and beacon.get("owner_team") != _own_team:
+			var to_b: Vector3 = beacon.global_position - pos
+			to_b.y = 0.0
+			if to_b.length() < 10.0:  # capture while fighting: stay on the circle
+				return _to_move(bot_mech, to_b.normalized() + side * 0.6) if to_b.length() > 2.0 else _to_move(bot_mech, side)
+		var pref := _pref_range(weapon)
+		var radial := 0.0
+		if own_hp_pct < 0.3 or dist < pref * 0.7:
+			radial = -1.0
+		elif dist > pref * 1.15:
+			radial = 1.0
+		return _to_move(bot_mech, to_t * radial + side * 0.9)
+	if has_target and not _has_clear_shot and dist < CHASE_DIST:
+		return _steer_to(bot_mech, _target.global_position)
+	var goal: Vector3 = beacon.global_position if beacon != null else Vector3(INF, 0.0, INF)
+	if beacon == null:
+		var near: Node3D = null
+		for em in get_tree().get_nodes_in_group("mechs"):
+			if _is_live_enemy(em) and (near == null or pos.distance_to(em.global_position) < pos.distance_to(near.global_position)):
+				near = em
+		if near == null:
+			return Vector2.ZERO
+		goal = near.global_position
+	var pack := _team_centroid(bot_mech, false)
+	if pack.x != INF and pos.distance_to(pack) > REGROUP_DIST and pos.distance_to(goal) < pack.distance_to(goal):
+		return _steer_to(bot_mech, pack)
+	return _steer_to(bot_mech, goal)
+
+## T172 tactics: only pull the trigger when the shot can land -- aim within a body
+## width of the (led) target, a lock for lock weapons, a full Patience charge.
+func _shot_worth_taking(bot_mech: Node3D, w: Node, aim_p: Vector3) -> bool:
+	if w == null:
+		return false
+	if w.requires_lock:
+		var lt = bot_mech.get("locked_target")
+		return lt != null and is_instance_valid(lt)
+	if w.has_method("get_charge_progress") and w.get_charge_progress() < 0.9:
+		return false
+	var cam: Camera3D = bot_mech.get("camera")
+	if cam == null:
+		return true
+	var to_p := aim_p - cam.global_position
+	var miss := sin((-cam.global_transform.basis.z).angle_to(to_p)) * to_p.length()
+	var scale: float = _target.global_transform.basis.get_scale().x
+	return miss < 0.9 * scale + to_p.length() * 0.01
+
+## T172 tactics: jump-heal when it heals in full (or when hurt in a fight), cloak to
+## ambush or escape. Presses only off cooldown (each press is a sync-log event).
+func _use_abilities(bot_mech: Node3D, fighting: bool, own_hp_pct: float) -> void:
+	var cds: Dictionary = bot_mech.get("_ability_cooldowns")
+	var active: Dictionary = bot_mech.get("_ability_active_timers")
+	for ab in bot_mech.get("_abilities"):
+		var key: String = ab.effect_key
+		if cds.get(key, 0.0) > 0.0 or active.get(key, 0.0) > 0.0:
+			continue
+		match key:
+			"jump_heal":
+				_ability_press = bot_mech.health <= bot_mech.max_health - 80.0 or (fighting and own_hp_pct < 0.6)
+			"stealth":
+				_ability_press = fighting or own_hp_pct < 0.4
+
+## T172 tactics: top up a fixed magazine below half while nothing is in sight.
+func _wants_reload(bot_mech: Node) -> bool:
+	for w in bot_mech.get_weapons():
+		if is_instance_valid(w) and w.max_ammo > 0 and w.magazine_type == 0 \
+				and not w.is_reloading() and w.ammo < w.max_ammo * 0.5:
+			return true
+	return false
 
 func get_move_direction() -> Vector2:
 	return _move_dir
@@ -445,3 +671,9 @@ func get_look_delta() -> Vector2:
 
 func is_firing_primary() -> bool:
 	return _firing
+
+func is_ability_pressed() -> bool:
+	return _ability_press
+
+func is_reload_pressed() -> bool:
+	return _reload_press

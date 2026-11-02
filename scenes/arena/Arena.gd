@@ -2387,7 +2387,8 @@ func _ready() -> void:
 			if weapon.has_signal("hit_confirmed"):
 				weapon.hit_confirmed.connect(hud.register_hit)
 		player_mech.damaged.connect(hud.show_damage)
-	_create_nav_region()
+	if multiplayer.is_server():  # bots (the only nav users) run server-side (T40); SP = offline server
+		_create_nav_region()
 	match_node.match_ended.connect(_on_match_ended)
 	match_node.start()
 	# ponytail: MovementLogger records a CSV + prints a stuck-% analysis on EVERY
@@ -3548,15 +3549,22 @@ func _create_nav_region() -> void:
 	var nav_mesh := NavigationMesh.new()
 	# Agent dimensions: mechs are ~3m tall and 2m wide; keep radius snug so
 	# bots fit through Penrose wall gaps.
-	nav_mesh.agent_radius     = 0.8
-	nav_mesh.agent_height     = 4.0
-	# Allow climbing bowl step risers (2.1m per step) so bots can navigate
-	# from spawn level down to the center beacons.
-	nav_mesh.agent_max_climb  = 2.2
+	nav_mesh.agent_radius     = 0.75  # whole cells: Godot ceils to cell_size (0.8 -> 1.5 m)
+	nav_mesh.agent_height     = 3.9   # 13 x cell_height
+	# B67: a mech steps up at most Mech._MAX_STEP (0.37 m); the old 2.2 m climb let paths
+	# run up ledges no mech can climb. 0.6 m (2 cells) still reaches every beacon by stairs.
+	nav_mesh.agent_max_climb  = 0.6
 	nav_mesh.agent_max_slope  = 60.0
 	# 0.75m cells give good wall-gap resolution without blowing up bake time.
 	nav_mesh.cell_size        = 0.75
 	nav_mesh.cell_height      = 0.3
+	# B67: the default source is the region's own children (none) -> 0 polygons, every
+	# bot path came back empty and bots steered straight into walls. Bake from the
+	# arena's static colliders instead (mechs are CharacterBody3D, not parsed).
+	nav_mesh.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
+	nav_mesh.geometry_source_geometry_mode = NavigationMesh.SOURCE_GEOMETRY_GROUPS_WITH_CHILDREN
+	nav_mesh.geometry_source_group_name = &"nav_source"
+	add_to_group(&"nav_source")
 	_nav_region.navigation_mesh = nav_mesh
 	add_child(_nav_region)
 	# Bake on a background thread so the first frame isn't blocked.
