@@ -177,8 +177,14 @@ def f(x):
 def main():
     pal = palette()
     mechs = {}
-    for path in sorted(glob.glob(os.path.join(PREVIEW, "brand-mech-render-*.html"))):
-        name = re.search(r"render-(\w+)\.html", path).group(1).capitalize()
+    # T181: mechs the kit lacks, authored in its language (tools/kit_mechs/<mech>.js,
+    # palette on a "// palette:" comment line)
+    extra = sorted(glob.glob(os.path.join(ROOT, "tools", "kit_mechs", "*.js")))
+    for path in extra:
+        m = re.search(r"palette: armor (#\w+), detail (#\w+), emissive (?:(#\w+) e([\d.]+)|none)", open(path).read())
+        pal[os.path.basename(path)[:-3].capitalize()] = (m.group(1), m.group(2), m.group(3), float(m.group(4) or 0))
+    for path in sorted(glob.glob(os.path.join(PREVIEW, "brand-mech-render-*.html"))) + extra:
+        name = re.search(r"(?:render-)?(\w+)\.(?:html|js)$", os.path.basename(path)).group(1).capitalize()
         calls = json.loads(subprocess.run(["node", "-e", JS, path], capture_output=True, text=True, check=True).stdout)
         torso, pelvis, pelvis_extra, hip, segs, toe, extra = classify(calls)
         mechs[name] = dict(torso=torso, pelvis=pelvis, pelvis_extra=pelvis_extra, hip=hip, segs=segs,
