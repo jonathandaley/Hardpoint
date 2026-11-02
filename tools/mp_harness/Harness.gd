@@ -193,7 +193,9 @@ func _quit_with_server() -> void:
 	# offline match and pollutes the logs (and the wall-clock tick alignment).
 	# T153: first give the game 90 frames to route itself (V40 exception: peer torn
 	# down, back to the title) and print where it went (peer_closed oracle).
-	multiplayer.server_disconnected.connect(func() -> void:
+	# T170: Game.mp_server_lost = host lost OR join refused during auth (a refused peer
+	# never connects, so multiplayer.server_disconnected never fires for it)
+	Game.mp_server_lost.connect(func() -> void:
 		print("[Harness] server gone, quitting (%s)" % _role)
 		for _i in 90:
 			await get_tree().process_frame

@@ -408,6 +408,12 @@ func _ready() -> void:
 	multiplayer.peer_disconnected.connect(_on_mp_peer_disconnected)
 	multiplayer.connection_failed.connect(_on_mp_connection_failed)
 	multiplayer.server_disconnected.connect(_on_mp_server_disconnected)
+	# T170 (B64): every connection passes an auth step first; the host refuses mid-match
+	# joiners there, so they never enter the connected set (see _on_mp_peer_authenticating).
+	var smp := multiplayer as SceneMultiplayer
+	smp.auth_callback = _on_mp_auth
+	smp.auth_timeout = AUTH_TIMEOUT_S
+	smp.peer_authenticating.connect(_on_mp_peer_authenticating)
 	set_process(false)
 	_parse_sync_log_args()
 	set_physics_process(sync_logging_enabled)  # M0.2: zero-cost when flag off
@@ -443,7 +449,6 @@ func join(ip: String, port: int = 8910) -> void:
 		mp_join_failed.emit()
 		return
 	multiplayer.multiplayer_peer = peer
-	_mp_admitted = false
 	_session_start()
 
 func disconnect_mp() -> void:
@@ -474,10 +479,9 @@ func _on_mp_peer_connected(id: int) -> void:
 	if enet != null and (multiplayer.is_server() or id == 1):  # other clients are relayed, not ENet peers here
 		enet.get_peer(id).set_timeout(32, 5000, PEER_TIMEOUT_MS)
 	if multiplayer.is_server() and not mp_active_match["roster"].is_empty():
-		# T153: no joins mid-match (roster set = Arena, until Lobby._ready clears it). Kick
-		# before any RPC reaches it; the joiner's server_disconnected sends it to the title.
-		# (refuse_new_connections would silently reset it: client thinks it joined, times out.)
-		# T168: the joiner infers the refusal (dropped before _rpc_request_meta) and says why.
+		# T153 backstop: auth admitted it in the lobby, but the match started before the
+		# handshake finished. Kick before any RPC reaches it (T170 refuses the usual case
+		# during auth, with a reason).
 		multiplayer.multiplayer_peer.disconnect_peer(id)
 		return
 	mp_peer_connected.emit(id)
@@ -486,17 +490,43 @@ func _on_mp_peer_connected(id: int) -> void:
 	if multiplayer.is_server():
 		_rpc_request_meta.rpc_id(id)
 
-## T168: why the host refused us; read (and cleared) by MPEntry after the kick.
+## T168: why the host refused us; read (and cleared) by MPEntry.
 var mp_refused_reason := ""
-## T168: client got the host's first lobby RPC. Dropped before it = refused join.
-## ponytail: mid-match is the host's only refusal; if it gains others, send the reason
-## through SceneMultiplayer.auth_callback (a reason RPC + kick loses the RPC: B58 notes).
-var _mp_admitted := false
+
+## T170 (B64): join handshake. A mid-match joiner used to be kicked after it had
+## connected: SceneMultiplayer kept it in the connected set until the disconnect landed,
+## so every broadcast to the half-closed peer logged 'Unable to send packet' (a flood on
+## a lossy link). Now the host answers during SceneMultiplayer auth -- AUTH_OK + complete,
+## or the refusal text and never complete -- and a refused peer is never "connected".
+const AUTH_OK := "ok"
+const REFUSED_MID_MATCH := "Match in progress - try again after it ends"
+## Both sides must complete within this; generous for the `bad` net profile. A refused
+## joiner leaves on its own as soon as the reason arrives; this only reaps silent ones.
+const AUTH_TIMEOUT_S := 15.0
+
+func _on_mp_peer_authenticating(id: int) -> void:
+	if not multiplayer.is_server():
+		return  # client: wait for the host's verdict in _on_mp_auth
+	var smp := multiplayer as SceneMultiplayer
+	if not mp_active_match["roster"].is_empty():  # roster set = Arena (T153)
+		smp.send_auth(id, REFUSED_MID_MATCH.to_utf8_buffer())
+		return
+	smp.send_auth(id, AUTH_OK.to_utf8_buffer())
+	smp.complete_auth(id)
+
+func _on_mp_auth(id: int, data: PackedByteArray) -> void:
+	if multiplayer.is_server():
+		return  # clients send no auth data
+	var msg := data.get_string_from_utf8()
+	if msg == AUTH_OK:
+		(multiplayer as SceneMultiplayer).complete_auth(id)
+		return
+	mp_refused_reason = msg
+	_leave_server.call_deferred()  # not from inside the multiplayer poll
 
 # Server -> client: asks client to send its profile metadata (V36).
 @rpc("authority", "call_remote", "reliable")
 func _rpc_request_meta() -> void:
-	_mp_admitted = true
 	var meta := {
 		"pilot_name": profile.get("pilot_name", "Pilot"),
 		"elo":        profile.get("elo", 1000),
@@ -534,9 +564,14 @@ func _on_mp_connection_failed() -> void:
 	mp_join_failed.emit()
 
 func _on_mp_server_disconnected() -> void:
-	if not _mp_admitted:
-		mp_refused_reason = "Match in progress - try again after it ends"
-	_mp_admitted = false
+	_leave_server()
+
+## Host lost (server_disconnected) or refused us (T170 auth): tear the peer down, then
+## the title, or the join screen when there is a reason to show.
+func _leave_server() -> void:
+	var mp := multiplayer.multiplayer_peer
+	if mp != null and mp.get_connection_status() != MultiplayerPeer.CONNECTION_DISCONNECTED:
+		mp.close()  # refused (still mid-handshake); a lost host's peer is already down
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
 	_clear_mp_session()
 	_session_stop()
