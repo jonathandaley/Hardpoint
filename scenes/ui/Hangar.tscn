@@ -223,6 +223,74 @@ offset_bottom = 348.0
 theme_override_font_sizes/font_size = 16
 text = "MENU"
 
+[node name="PresetsButton" type="Button" parent="."]
+offset_left = 520.0
+offset_top = 34.0
+offset_right = 636.0
+offset_bottom = 56.0
+theme_override_font_sizes/font_size = 16
+text = "PRESETS"
+
+[node name="PresetPanel" type="Control" parent="."]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Dim" type="ColorRect" parent="PresetPanel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.8)
+
+[node name="Box" type="VBoxContainer" parent="PresetPanel"]
+offset_left = 160.0
+offset_top = 40.0
+offset_right = 480.0
+offset_bottom = 330.0
+theme_override_constants/separation = 6
+
+[node name="Heading" type="Label" parent="PresetPanel/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 1
+text = "SQUAD PRESETS"
+
+[node name="SaveRow" type="HBoxContainer" parent="PresetPanel/Box"]
+layout_mode = 2
+
+[node name="NameEdit" type="LineEdit" parent="PresetPanel/Box/SaveRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 14
+placeholder_text = "NAME THIS SQUAD"
+max_length = 24
+
+[node name="SaveBtn" type="Button" parent="PresetPanel/Box/SaveRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(70, 0)
+theme_override_font_sizes/font_size = 14
+text = "SAVE"
+
+[node name="Empty" type="Label" parent="PresetPanel/Box"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.5, 0.55, 1)
+theme_override_font_sizes/font_size = 12
+horizontal_alignment = 1
+text = "NO PRESETS YET"
+
+[node name="Scroll" type="ScrollContainer" parent="PresetPanel/Box"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="List" type="VBoxContainer" parent="PresetPanel/Box/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CloseBtn" type="Button" parent="PresetPanel/Box"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 26)
+theme_override_font_sizes/font_size = 14
+text = "CLOSE"
+
 [node name="FindMatchPanel" type="Control" parent="."]
 visible = false
 anchor_right = 1.0
@@ -279,3 +347,7 @@ text = "CANCEL"
 [connection signal="pressed" from="FindMatchPanel/Choices/HostBtn" to="." method="_on_find_host_pressed"]
 [connection signal="pressed" from="FindMatchPanel/Choices/JoinBtn" to="." method="_on_find_join_pressed"]
 [connection signal="pressed" from="FindMatchPanel/Choices/CancelBtn" to="." method="_on_find_cancel_pressed"]
+[connection signal="pressed" from="PresetsButton" to="." method="_on_presets_pressed"]
+[connection signal="pressed" from="PresetPanel/Box/SaveRow/SaveBtn" to="." method="_on_preset_save_pressed"]
+[connection signal="text_submitted" from="PresetPanel/Box/SaveRow/NameEdit" to="." method="_on_preset_name_submitted"]
+[connection signal="pressed" from="PresetPanel/Box/CloseBtn" to="." method="_on_preset_close_pressed"]
