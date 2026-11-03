@@ -22,6 +22,7 @@ enum MagazineType { FIXED, REFILLING }
 @export var reload_start_sound_key: String = ""
 @export var reload_done_sound_key: String = ""
 @export var muzzle_flash_enabled: bool = true
+var visual_scale := 1.0  # T191: set by WeaponVisuals (mech weapon_scale); flash at the barrel end
 @export var impact_sound_enabled: bool = true
 @export var muzzle_color: Color = Color(1.0, 0.80, 0.30)
 
@@ -94,7 +95,7 @@ func fire() -> void:
 	if fire_sound_key != "":
 		SoundManager.play_sfx(fire_sound_key, global_position, _bc)
 	if muzzle_flash_enabled:
-		VFX.muzzle_flash(global_position - global_transform.basis.z * 0.4, muzzle_color, _bc)
+		VFX.muzzle_flash(global_position - global_transform.basis.z * 0.4 * visual_scale, muzzle_color, _bc)
 	if shake_magnitude > 0.0 and owner_mech != null and owner_mech.has_method("apply_camera_shake"):
 		owner_mech.apply_camera_shake(shake_magnitude)
 	if max_ammo >= 0:

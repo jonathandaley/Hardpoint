@@ -32,7 +32,7 @@ static func kit_name(scene_path: String) -> String:
 		return "MissileH" if base.ends_with("Heavy") else "MissileL"
 	return fam
 
-static func apply(weapon: Node3D) -> void:
+static func apply(weapon: Node3D, mult := 1.0) -> void:
 	var key := kit_name(weapon.scene_file_path)
 	if not WeaponKit.DATA.has(key):
 		return
@@ -41,11 +41,13 @@ static func apply(weapon: Node3D) -> void:
 			weapon.remove_child(c)
 			c.free()
 	var heavy: bool = int(weapon.get("slot_size")) == 1
-	for part in _parts(key, HEAVY_SCALE if heavy else LIGHT_SCALE):
+	for part in _parts(key, (HEAVY_SCALE if heavy else LIGHT_SCALE) * mult):  # T191: per-mech size
 		var mi := MeshInstance3D.new()
 		mi.mesh = part[0]
 		mi.set_surface_override_material(0, part[1])
 		weapon.add_child(mi)
+	if "visual_scale" in weapon:
+		weapon.set("visual_scale", mult)  # muzzle flash at the bigger barrel's end
 
 static func _parts(key: String, s: float) -> Array:
 	var ck := "%s@%s" % [key, s]
