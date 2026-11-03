@@ -3056,14 +3056,13 @@ func _on_pause_quit() -> void:
 		_movement_logger.stop_and_analyze()
 	get_tree().paused = false
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	if not (multiplayer.multiplayer_peer is OfflineMultiplayerPeer):
+	if multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
+		Game._clear_mp_session()  # T184: SP match state (roster/lobby) ends with the match
+	else:
 		# V40 exception (B-g/B-f): a local quit from an MP match closes the peer FIRST
-		# (else the server keeps streaming RPCs into an Arena we no longer have), then
-		# returns to the title, where MPEntry is reachable again.
+		# (else the server keeps streaming RPCs into an Arena we no longer have).
 		Game.disconnect_mp()
-		get_tree().change_scene_to_file("res://scenes/ui/TitleScreen.tscn")
-		return
-	Game._clear_mp_session()  # T184: SP match state (roster/lobby) ends with the match
+	# T186: the hangar for MP too -- FIND MATCH there reaches HOST / JOIN again (T176)
 	get_tree().change_scene_to_file("res://scenes/ui/Hangar.tscn")
 
 func on_player_eliminated(p: Node) -> void:

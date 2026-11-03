@@ -24,11 +24,13 @@ def run(ctx):
         if not re.search(r"\[Harness\] action (pause_quit|quit_to_hangar)", text):
             continue
         quits += 1
-        m = re.search(r"\[Harness\] peer_check \S+: connected=(\w+)", text)
+        m = re.search(r"\[Harness\] peer_check \S+: connected=(\w+) scene=(\S+)", text)
         if m is None:
             bad.append("%s: no peer_check after quit (process ended too soon?)" % role)
         elif m.group(1) != "false":
             bad.append("%s: still connected 60 ticks after quitting" % role)
+        elif m.group(2) != "Hangar":  # T186: 'quit to hangar' means the hangar, MP too
+            bad.append("%s: on %s after quitting a match, not the Hangar" % (role, m.group(2)))
     # T153 (V40 exception): server gone -> peer torn down, back at the title
     for path in logs:
         role = os.path.basename(path)[: -len(".log")]
