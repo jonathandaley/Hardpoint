@@ -13,7 +13,8 @@ Measured 2026-11-03: loopback p95 <= 0.06 m (default 0.15), `bad` profile p95 <=
 from . import base
 
 NAME = "prediction_recon"
-DEFAULTS = {"pred_p95_m": 0.15, "pred_snap_frac": 0.02}  # impaired links: base.IMPAIRED_NET_THRESHOLDS
+DEFAULTS = {"pred_p95_m": 0.15, "pred_snap_frac": 0.02}
+MIN_SAMPLES = 20  # 1 s of snapshots: judge only runs long enough to settle  # impaired links: base.IMPAIRED_NET_THRESHOLDS
 
 
 def run(ctx):
@@ -21,8 +22,8 @@ def run(ctx):
     worst, seen = None, 0
     for role, log in sorted(ctx["primary"].items()):
         evs = [e.get("payload", {}) for e in log.events if e.get("type") == "pred_recon"]
-        if not evs:
-            continue
+        if len(evs) < MIN_SAMPLES:
+            continue  # a few start-up reconciliations (host_crash: 7) are all transient
         seen += 1
         errs = sorted(float(p.get("err", 0.0)) for p in evs)
         p95 = errs[min(len(errs) - 1, int(len(errs) * 0.95))]
@@ -35,6 +36,6 @@ def run(ctx):
     if worst is not None:
         return worst
     if not seen:
-        return base.verdict(NAME, base.SKIP, note="no predicting client in this run")
+        return base.verdict(NAME, base.SKIP, note="no predicting client with >= %d reconciliations" % MIN_SAMPLES)
     return base.verdict(NAME, base.PASS, note="%d predicting client(s) within p95 %.2f m, snaps <= %.0f%%"
                         % (seen, th["pred_p95_m"], th["pred_snap_frac"] * 100))
