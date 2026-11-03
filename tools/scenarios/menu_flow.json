@@ -22,7 +22,7 @@
     "server": {
       "squad": [
         {"mech": "Hippogriff", "weapons": ["RIFLE LT", "LASER LT", "MISSILE LT"]},
-        {"mech": "Everest", "weapons": ["MG HV", "ROCKET HV"]}
+        {"mech": "Everest", "weapons": ["MG HV", "AERIAL HV"]}
       ],
       "input": {"keyframes": [{"tick": 0, "move": [0, -1], "look": [0.0, 0.0]}, {"tick": 150, "move": [0, 0], "look": [1.0, 0.0]}]}
     },

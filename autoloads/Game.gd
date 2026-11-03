@@ -728,7 +728,7 @@ func _load_loadout() -> void:
 		var md = load(mech_path)
 		if md != null:
 			loadout["mech_def"] = md
-	loadout["mech_weapon_choices"] = cfg.get_value("loadout", "mech_weapon_choices", {})
+	loadout["mech_weapon_choices"] = _migrate_weapons(cfg.get_value("loadout", "mech_weapon_choices", {}))
 	var bot_path: String = cfg.get_value("loadout", "bot_path", "")
 	if bot_path != "":
 		var bd = load(bot_path)
@@ -737,12 +737,28 @@ func _load_loadout() -> void:
 	loadout["team_size"] = cfg.get_value("loadout", "team_size", 1)
 	var squad_paths: Array = cfg.get_value("loadout", "squad", [])
 	loadout["squad"] = squad_paths
-	loadout["presets"] = cfg.get_value("loadout", "presets", {})
+	loadout["presets"] = _migrate_weapons(cfg.get_value("loadout", "presets", {}))
 	var map_path: String = cfg.get_value("loadout", "map_path", "")
 	if map_path != "":
 		var mpd = load(map_path)
 		if mpd != null:
 			loadout["map_def"] = mpd
+
+# T194: the heavy rocket launcher was cut (rockets are light-only; AERIAL HV is the heavy
+# pick). Saved choices and presets from before load with the replacement.
+const _CUT_WEAPONS := {"res://scenes/weapons/RocketLauncherHeavy.tscn": "res://scenes/weapons/AerialStrikeHeavy.tscn"}
+
+static func _migrate_weapons(v: Variant) -> Variant:
+	if v is String:
+		return _CUT_WEAPONS.get(v, v)
+	if v is Array:
+		return (v as Array).map(func(x: Variant) -> Variant: return _migrate_weapons(x))
+	if v is Dictionary:
+		var out := {}
+		for k in v:
+			out[k] = _migrate_weapons(v[k])
+		return out
+	return v
 
 func save_loadout() -> void:
 	var cfg := ConfigFile.new()
