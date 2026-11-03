@@ -5,6 +5,7 @@ extends Resource
 # Arena reads this to vary column color, density, and lighting per map.
 
 @export var map_name: String = "Math Temple"
+@export var scene_path: String = "res://scenes/maps/MathTemple.tscn"  # T210: the map's own scene
 @export var theme: String = "penrose"        # human-readable theme label
 @export var cover_seed: int = 0              # seed for RandomNumberGenerator column filter
 @export var cover_density: float = 1.0      # 0.0-1.0 fraction of columns kept per seed roll
