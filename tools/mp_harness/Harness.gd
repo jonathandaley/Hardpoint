@@ -223,6 +223,9 @@ func _mp_connected() -> bool:
 # whose ENet ids sort opposite to their process names swap pick vs input spec.
 # A stuck step prints "[Harness] MENU FAIL ..." and exits 3 (crash_scan, menu_flow).
 func _menu_flow() -> void:
+	var acct: Dictionary = _scenario.get("peers", {}).get(_sync_role(), {}).get("account", {})
+	if not acct.is_empty() and not await _account_signup(acct):
+		return
 	var squad: Array = _scenario.get("peers", {}).get(_sync_role(), {}).get("squad", [])
 	if not await _menu_connect(squad):
 		return
@@ -252,6 +255,20 @@ func _menu_flow() -> void:
 		return
 	await get_tree().process_frame
 	_click("StartButton")
+
+# T207: sign up on the server's account endpoint the way the Account screen does
+# (Game.account_request + Game.sign_in); the menus then run signed in.
+func _account_signup(acct: Dictionary) -> bool:
+	var req := {"op": "signup", "email": acct["email"], "password": acct["password"], "callsign": acct.get("callsign", "Pilot")}
+	var reply: Dictionary = await Game.account_request("127.0.0.1", _port, req)
+	if not reply.get("ok", false):
+		_menu_fail("account signup: %s" % reply.get("error", "?"))
+		return false
+	Game.sign_in("127.0.0.1", _port, String(acct["email"]).to_lower(), reply)
+	print("[Harness] account signed in: %s" % Game.account["email"])
+	Game.account_profile_updated.connect(func() -> void:
+		print("[Harness] account_profile elo=%d" % int(Game.profile.get("elo", 0))))
+	return true
 
 # Title -> SignIn -> Hangar (optional squad) -> FIND MATCH -> HOST or JOIN -> MPEntry by real clicks.
 func _menu_connect(squad: Array = []) -> bool:
@@ -472,6 +489,10 @@ func _process(_delta: float) -> void:
 			scene.name if scene != null else "<none>"])
 	if _deadline_frame >= 0 and Engine.get_physics_frames() >= _deadline_frame:
 		print("[Harness] duration reached, quitting (%s)" % _role)
+		if not Game.account.is_empty():  # T207: account results must not land in the local file
+			var cfg := ConfigFile.new()
+			cfg.load("user://profile.cfg")
+			print("[Harness] local_profile elo=%s" % str(cfg.get_value("profile", "elo", "none")))
 		Game.disconnect_mp()
 		get_tree().quit(0)
 

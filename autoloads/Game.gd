@@ -482,6 +482,10 @@ func start_dedicated(port: int, opts: Dictionary = {}) -> void:
 		"map_path":   String(opts.get("map_path", "res://resources/maps/MathTemple.tres")),
 		"match_seed": 0,
 	}
+	account_server = load("res://scripts/AccountServer.gd").new()  # T207: accounts on port + 1
+	account_server.name = "AccountServer"
+	add_child(account_server)
+	account_server.start(port + 1)
 	print("[Server] dedicated on port %d: team size %d, bots %s, map %s, min players %d" % [port,
 		mp_lobby["team_size"], mp_lobby["bot_fill"], mp_lobby["map_path"], _min_players])
 	get_tree().change_scene_to_file("res://scenes/ui/Lobby.tscn")
@@ -511,6 +515,59 @@ func _dedicated_lobby_changed() -> void:
 		mp_lobby["match_seed"] = randi()
 		print("[Server] match start: %d players, %d mechs" % [peers.size(), roster.size()])
 		_rpc_match_start.rpc(mp_lobby["map_path"], roster, mp_lobby["match_seed"]))
+
+# ---- T207: online accounts (client) ----
+# Signed in = `account` holds {host, port, email, session, profile}; Game.profile is the
+# account's (from the server) and never written to the local profile.cfg (save_profile).
+# Passwords only ever go to the account endpoint (TLS, game port + 1); the game connection
+# carries the session token (auth handshake). Sessions last for this run of the game.
+var account: Dictionary = {}
+var account_server: Node = null  # server: AccountServer when dedicated
+var account_mode := "login"      # Account screen: "login" | "signup"
+
+## One request to a server's account endpoint -> its reply ({"ok": false, "error"} on failure).
+func account_request(host_addr: String, port: int, req: Dictionary) -> Dictionary:
+	var tcp := StreamPeerTCP.new()
+	if tcp.connect_to_host(host_addr, port + 1) != OK:
+		return {"ok": false, "error": "cannot reach the server"}
+	var tls := StreamPeerTLS.new()
+	var t0 := Time.get_ticks_msec()
+	while tcp.get_status() == StreamPeerTCP.STATUS_CONNECTING and Time.get_ticks_msec() - t0 < 5000:
+		tcp.poll()
+		await get_tree().process_frame
+	if tcp.get_status() != StreamPeerTCP.STATUS_CONNECTED:
+		return {"ok": false, "error": "cannot reach the server"}
+	# ponytail: no certificate check (self-signed, AccountServer notes); encrypted only
+	if tls.connect_to_stream(tcp, "hardpoint", TLSOptions.client_unsafe()) != OK:
+		return {"ok": false, "error": "secure connection failed"}
+	var sent := false
+	var buf := PackedByteArray()
+	while Time.get_ticks_msec() - t0 < 10000:
+		tls.poll()
+		var st := tls.get_status()
+		if st == StreamPeerTLS.STATUS_CONNECTED:
+			if not sent:
+				tls.put_data((JSON.stringify(req) + "\n").to_utf8_buffer())
+				sent = true
+			if tls.get_available_bytes() > 0:
+				buf.append_array(tls.get_data(tls.get_available_bytes())[1])
+				if buf.find(10) >= 0:
+					break
+		elif st != StreamPeerTLS.STATUS_HANDSHAKING:
+			break
+		await get_tree().process_frame
+	tls.disconnect_from_stream()
+	var reply = JSON.parse_string(buf.get_string_from_utf8().get_slice("\n", 0)) if buf.find(10) >= 0 else null
+	return reply if reply is Dictionary else {"ok": false, "error": "no answer from the server"}
+
+func sign_in(host_addr: String, port: int, email: String, reply: Dictionary) -> void:
+	account = {"host": host_addr, "port": port, "email": email, "session": reply["session"], "profile": reply["profile"]}
+	profile = (reply["profile"] as Dictionary).duplicate(true)
+
+func sign_out() -> void:
+	account = {}
+	profile = {"pilot_name": "Pilot", "wins": 0, "losses": 0, "elo": 1000, "xp": 0, "level": 1, "coins": 0, "skills": {}}
+	_load_profile()
 
 func host(port: int = 8910) -> void:
 	var peer := ENetMultiplayerPeer.new()
@@ -611,19 +668,24 @@ const AUTH_READY := "ready"
 const AUTH_GO := "go"
 var late_join = null  # client: the late-join state until Arena applies it
 var _late_tokens: Dictionary = {}  # server: joining peer id -> token
+var _peer_sessions: Dictionary = {}  # server: peer id -> account session token (T207)
 
 func _on_mp_peer_authenticating(id: int) -> void:
 	if multiplayer.is_server():
 		return  # wait for the joiner's token (_on_mp_auth)
-	(multiplayer as SceneMultiplayer).send_auth(id, ("token:" + player_token()).to_utf8_buffer())
+	var hello := "token:" + player_token()
+	if not account.is_empty():
+		hello += "|" + String(account["session"])  # T207: tie this peer to the account
+	(multiplayer as SceneMultiplayer).send_auth(id, hello.to_utf8_buffer())
 
 func _on_mp_auth(id: int, data: PackedByteArray) -> void:
 	var smp := multiplayer as SceneMultiplayer
 	if multiplayer.is_server():  # V41: client bytes are only ever read as text
 		var msg := data.get_string_from_utf8()
 		if msg.begins_with("token:"):
-			var token := msg.substr(6, 64)
+			var token := msg.substr(6).get_slice("|", 0).left(64)
 			_late_tokens[id] = token
+			_peer_sessions[id] = msg.substr(6).get_slice("|", 1).left(64)  # T207 ("" = guest)
 			var arena := get_tree().current_scene
 			if mp_active_match["roster"].is_empty() or arena == null or not arena.has_method("late_state"):
 				smp.send_auth(id, AUTH_OK.to_utf8_buffer())
@@ -691,6 +753,10 @@ func _rpc_send_meta(meta: Dictionary) -> void:
 		return
 	var entry: Dictionary = mp_lobby["peers"][sender]
 	entry["token"] = _late_tokens.get(sender, "")  # T206: the auth token, not a claim in meta
+	var email: String = account_server.email_for(_peer_sessions.get(sender, "")) if account_server != null else ""
+	if email != "":  # T207: a signed-in player's name / ELO / level come from its account
+		entry["account"] = email
+		meta = account_server.profile(email)
 	entry["pilot_name"] = str(meta.get("pilot_name", "Pilot"))
 	entry["elo"]        = int(meta.get("elo", 1000))
 	entry["level"]      = int(meta.get("level", 1))
@@ -748,6 +814,8 @@ func _load_profile() -> void:
 	profile["skills"] = cfg.get_value("profile", "skills", {})
 
 func save_profile() -> void:
+	if not account.is_empty():
+		return  # T207: an account's profile lives on its server
 	var cfg := ConfigFile.new()
 	cfg.load(_SAVE_PATH)
 	cfg.set_value("profile", "pilot_name",  profile.get("pilot_name",  "Pilot"))
@@ -823,6 +891,8 @@ func can_upgrade(key: String) -> bool:
 	return profile.get("coins", 0) >= _SKILL_FIB_COSTS[lv - 1]
 
 func unlock_skill(key: String) -> bool:
+	if not account.is_empty():
+		return false  # T207 -> T213: an account's skills change on its server (not yet)
 	if not can_unlock(key):
 		return false
 	var skills: Dictionary = profile.get("skills", {})
@@ -832,6 +902,8 @@ func unlock_skill(key: String) -> bool:
 	return true
 
 func upgrade_skill(key: String) -> bool:
+	if not account.is_empty():
+		return false  # T207 -> T213: an account's skills change on its server (not yet)
 	if not can_upgrade(key):
 		return false
 	var lv: int = skill_level(key)
@@ -1193,6 +1265,31 @@ func _rpc_match_end(winner_team: int, stats: Array) -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	match_ended_mp.emit(winner_team, stats)
 	_update_mp_profile(winner_team, stats)
+	if multiplayer.is_server() and account_server != null:
+		_update_account_profiles(winner_team, stats)
+
+# T207: server -- each signed-in player's result goes to its account, then back to it.
+func _update_account_profiles(winner_team: int, stats: Array) -> void:
+	for entry in mp_active_match["roster"]:
+		var pid: int = int(entry.get("peer_id", 0))
+		var email: String = mp_lobby["peers"].get(pid, {}).get("account", "")
+		if pid < 2 or email == "":
+			continue
+		var before: Dictionary = account_server.profile(email)
+		var after := _apply_match_to(before, int(entry.get("team", -1)), winner_team, stats)
+		account_server.save_profile(email, after)
+		print("[Server] account %s: elo %d -> %d" % [email, int(before.get("elo", 0)), int(after.get("elo", 0))])
+		_rpc_account_profile.rpc_id(pid, after)
+
+signal account_profile_updated
+
+@rpc("authority", "reliable")
+func _rpc_account_profile(prof: Dictionary) -> void:
+	if account.is_empty():
+		return
+	account["profile"] = prof
+	profile = prof.duplicate(true)
+	account_profile_updated.emit()
 
 ## Human opponents' pre-match ELOs for a player on `my_team`; bot ELO if none (V36).
 ## ponytail: bot fallback reads THIS peer's bot_difficulty, so the result table's
@@ -1237,8 +1334,22 @@ func _update_mp_profile(winner_team: int, stats: Array) -> void:
 		if entry.get("peer_id", 0) == my_peer_id:
 			my_team = entry.get("team", -1)
 			break
-	if my_team == -1:
-		return
+	if my_team == -1 or not account.is_empty():
+		return  # T207: a signed-in player's result is applied on the server (_rpc_account_profile)
+	_apply_match(my_team, winner_team, stats)
+	save_profile()
+
+# T207: the same result math on an account's profile (server side).
+# ponytail: borrows `profile` for the call, so the skill/level helpers need no profile arg.
+func _apply_match_to(prof: Dictionary, my_team: int, winner_team: int, stats: Array) -> Dictionary:
+	var keep := profile
+	profile = prof.duplicate(true)
+	_apply_match(my_team, winner_team, stats)
+	var out := profile
+	profile = keep
+	return out
+
+func _apply_match(my_team: int, winner_team: int, stats: Array) -> void:
 	var won: bool = winner_team == my_team
 	var wl := "wins" if won else "losses"
 	profile[wl] = profile.get(wl, 0) + 1
@@ -1261,7 +1372,6 @@ func _update_mp_profile(winner_team: int, stats: Array) -> void:
 	# Coins.
 	var base_coins: int = 75 if won else 20
 	profile["coins"] = profile.get("coins", 0) + apply_coin_pickup_bonus(base_coins)
-	save_profile()
 
 @rpc("any_peer", "call_remote", "reliable")
 func _rpc_ready_for_next() -> void:
