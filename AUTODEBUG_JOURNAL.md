@@ -58,3 +58,4 @@ date|task|outcome|commit|finding|suite
 2026-11-02|T186|DONE|see git log (T186)|B79: MP pause QUIT went to the title (pre-T176 route); now the hangar; peer_closed checks the post-quit scene (red before)|39/39; net 54/54
 2026-11-02|T187|DONE|see git log (T187)|first-mech picker at match start (SP pauses, MP 10 s keeps slot 0; swap retires the slot-0 mech without a death); B80 client slot bookkeeping; probes keep slot 0 via the UI; probe first_pick|40/40; net 54/54
 2026-11-03|T188|DONE|see git log (T188)|hangar lineup + diorama mechs carry their saved weapon picks (configure_weapons, props); re-armed on weapon cycle; probe hangar_weapons|41/41
+2026-11-03|T189|DONE|see git log (T189)|B81: bots spread over beacons (crowd penalty for all, self excluded, sticky claim), fight while drifting to own objective via navmesh, regroup only when clearly outnumbered; bot_spread probe; Elite vs T169 AI 10-2 before and after|42/42 + selftest

@@ -21,7 +21,8 @@ const FINISH_HP     := 0.25  # T169: keep the current target below this HP fract
 const HELP_RADIUS   := 60.0  # T172: teammates this close hear who is shooting us
 const FOCUS_BONUS   := 5.0   # T172: score per teammate already on that target (max 3)
 const VISIBLE_BONUS := 6.0   # T172: candidate in line of sight
-const REGROUP_DIST  := 25.0  # T172: this far ahead of the pack -> wait for it
+const OUTNUMBER_RADIUS := 30.0  # T189: friends vs foes this close decide push or fall back
+const CLAIM_STICKY := 3.0       # T189: score bonus for the beacon we already head for
 const CHASE_DIST    := 80.0  # T172: follow a target that broke line of sight
 
 # T172. aim_jitter = radians of slow aim drift; turn_scale x TURN_SPEED = max turn rate;
@@ -194,34 +195,32 @@ func _pick_best_target(from: Node3D) -> Node3D:
 			best = em
 	return best
 
-## T172: mean position of live teammate BOTS' mechs (self included or not); INF x if
-## none. Humans don't count: a player hanging back must not pull Elite allies back.
-func _team_centroid(bot_mech: Node3D, with_self: bool) -> Vector3:
-	var sum := Vector3.ZERO
-	var n := 0
+## T189: nearest live teammate (bot or human) when the fight here is clearly lost on
+## numbers -- 2+ more enemies than friends (self included) within OUTNUMBER_RADIUS; else
+## null. A plain majority made the smaller team fall back all match and ball up.
+func _fallback_ally(bot_mech: Node3D) -> Node3D:
+	var pos := bot_mech.global_position
+	var foes := 0
+	var friends := 1
+	var nearest: Node3D = null
 	for m in get_tree().get_nodes_in_group("mechs"):
-		if m.get("team") != _own_team or m.get("is_dead") or not (m as Node3D).visible:
+		if m == bot_mech or m.get("is_dead") or not (m as Node3D).visible:
 			continue
-		var src = m.get("_input_source")
-		if src == null or not src.has_method("set_mp_seed"):  # not bot-driven
-			continue
-		if m == bot_mech and not with_self:
-			continue
-		sum += (m as Node3D).global_position
-		n += 1
-	return sum / n if n > 0 else Vector3(INF, 0.0, INF)
+		var d: float = pos.distance_to((m as Node3D).global_position)
+		if m.get("team") == _own_team:
+			friends += int(d < OUTNUMBER_RADIUS)
+			if nearest == null or d < pos.distance_to(nearest.global_position):
+				nearest = m
+		elif d < OUTNUMBER_RADIUS:
+			foes += 1
+	return nearest if foes >= friends + 2 else null
 
 func _pick_target_beacon(bot_mech: Node3D) -> Node:
 	var best: Node = null
 	var best_score := -INF
-	# T172 team presets: attackers score beacons from the team's centre with no crowd
-	# penalty, so they all pick the same one and arrive together.
-	var shared: bool = _preset()["team"] and role == "attacker"
+	# T189: every role pays the crowd penalty (2 bots per beacon free), so a team spreads
+	# over the beacons instead of rushing one together (T172's shared attacker objective).
 	var from: Vector3 = bot_mech.global_position
-	if shared:
-		var c := _team_centroid(bot_mech, true)
-		if c.x != INF:
-			from = c
 	for b in _beacons:
 		if not is_instance_valid(b):
 			continue
@@ -251,11 +250,11 @@ func _pick_target_beacon(bot_mech: Node3D) -> Node:
 				if owner == _own_team:
 					continue
 				priority = 10.0 if owner == -1 else 5.0
-		var crowd_penalty := 0.0
-		if not shared:
-			var already: int = Game.ai_director_intent_count(b, _own_team)
-			crowd_penalty = maxf(0.0, float(already - 1)) * 5.0
-		var score: float = priority - dist * 0.05 - crowd_penalty
+		# T189: count the OTHER bots on it -- our own claim used to count against us, so a
+		# bot flip-flopped between beacons; a small bonus keeps a claim unless clearly beaten.
+		var others: int = Game.ai_director_intent_count(b, _own_team) - int(b == _claimed_beacon)
+		var crowd_penalty := maxf(0.0, float(others - 1)) * 5.0
+		var score: float = priority - dist * 0.05 - crowd_penalty + (CLAIM_STICKY if b == _claimed_beacon else 0.0)
 		if score > best_score:
 			best_score = score
 			best = b
@@ -581,6 +580,7 @@ func _tactical_move(bot_mech: Node3D, has_target: bool, dist: float, fire_range:
 	var beacon := _pick_target_beacon(bot_mech)
 	_claim_beacon(beacon)
 	var pos := bot_mech.global_position
+	var ally: Node3D = _fallback_ally(bot_mech) if _preset()["team"] else null
 	if has_target and _has_clear_shot and dist < fire_range * 1.1:
 		_strafe_timer -= delta
 		if _strafe_timer <= 0.0:
@@ -597,11 +597,22 @@ func _tactical_move(bot_mech: Node3D, has_target: bool, dist: float, fire_range:
 				return _to_move(bot_mech, to_b.normalized() + side * 0.6) if to_b.length() > 2.0 else _to_move(bot_mech, side)
 		var pref := _pref_range(weapon)
 		var radial := 0.0
-		if own_hp_pct < 0.3 or dist < pref * 0.7:
+		var retreat := own_hp_pct < 0.3 or ally != null  # T189: outnumbered -> give ground too
+		if retreat:
 			radial = -1.0
-		elif dist > pref * 1.15:
+		elif dist < pref * 0.7:
+			radial = -0.6
+		elif dist > pref * 1.15 and beacon == null:
 			radial = 1.0
-		return _to_move(bot_mech, to_t * radial + side * 0.9)
+		var move := to_t * radial + side * 0.9
+		# T189: fight on the way to your own objective. Everyone shares the focus target, so
+		# range-keeping on it alone pulled the whole team into one clump.
+		if not retreat and beacon != null and beacon.get("owner_team") != _own_team:
+			var nxt := _nav_next(bot_mech, beacon.global_position)  # around walls, not into them
+			var to_obj: Vector3 = (nxt if nxt != Vector3.ZERO else beacon.global_position) - pos
+			to_obj.y = 0.0
+			move += to_obj.normalized()
+		return _to_move(bot_mech, move)
 	if has_target and not _has_clear_shot and dist < CHASE_DIST:
 		return _steer_to(bot_mech, _target.global_position)
 	var goal: Vector3 = beacon.global_position if beacon != null else Vector3(INF, 0.0, INF)
@@ -613,9 +624,8 @@ func _tactical_move(bot_mech: Node3D, has_target: bool, dist: float, fire_range:
 		if near == null:
 			return Vector2.ZERO
 		goal = near.global_position
-	var pack := _team_centroid(bot_mech, false)
-	if pack.x != INF and pos.distance_to(pack) > REGROUP_DIST and pos.distance_to(goal) < pack.distance_to(goal):
-		return _steer_to(bot_mech, pack)
+	if ally != null and pos.distance_to(ally.global_position) > 15.0:
+		return _steer_to(bot_mech, ally.global_position)  # T189: regroup only when outnumbered
 	return _steer_to(bot_mech, goal)
 
 ## T172 tactics: only pull the trigger when the shot can land -- aim within a body
