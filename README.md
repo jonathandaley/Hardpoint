@@ -33,6 +33,11 @@ fill both teams up to `--team-size` (default 5; `--no-bots` turns that off). Aft
 match, everyone returns to the lobby. Other flags: `--map=res://resources/maps/<Map>.tres`
 and `--min-players=N` (default 1). Open the UDP port in the firewall.
 
+Accounts: the server also runs a TLS account endpoint on the next port up (TCP, e.g. 8911).
+Title → SIGN UP / LOG IN with the server's address; signed-in players' ELO, XP and coins
+are kept on that server (`user://accounts.cfg`, salted PBKDF2 password hashes) and
+updated there after each match. Guests keep their local profile. Open that TCP port too.
+
 ---
 
 ## Controls

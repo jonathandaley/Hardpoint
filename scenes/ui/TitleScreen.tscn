@@ -91,3 +91,5 @@ text = "ACCOUNTS COMING SOON"
 horizontal_alignment = 1
 
 [connection signal="pressed" from="PlayButton" to="." method="_on_play_pressed"]
+[connection signal="pressed" from="LoginButton" to="." method="_on_login_pressed"]
+[connection signal="pressed" from="SignupButton" to="." method="_on_signup_pressed"]

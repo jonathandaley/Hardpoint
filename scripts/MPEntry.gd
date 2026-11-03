@@ -11,6 +11,9 @@ func _ready() -> void:
 	Game.mp_peer_connected.connect(_on_mp_connected)
 	Game.mp_join_failed.connect(_on_mp_join_failed)
 	($TabContainer as TabContainer).current_tab = Game.mp_entry_tab  # T176
+	if not Game.account.is_empty():  # T207: join the server you signed in to
+		_ip_edit.text = Game.account["host"]
+		_join_port_edit.text = str(Game.account["port"])
 	if Game.mp_refused_reason != "":  # T168
 		_show_error(Game.mp_refused_reason)
 		Game.mp_refused_reason = ""
