@@ -385,6 +385,7 @@ func _cycle_spectator() -> void:
 	_switch_spectator(alive[(idx + 1) % alive.size()])
 
 func _process(_delta: float) -> void:
+	_check_host_silence()  # T214
 	if _spec_pivot == null or _spectated_mech == null or not is_instance_valid(_spectated_mech):
 		return
 	# Position pivot at the mech's camera-arm world position for a stable anchor.
@@ -699,6 +700,7 @@ func _rpc_reassign(old: int, new: int) -> void:
 					ai.queue_free()
 
 func _on_mp_match_ended(winner_team: int, stats: Array) -> void:
+	_last_snapshot_ms = 0  # T214: the stream stops at match end by design
 	# T205/T206: the server froze every mech (_on_match_ended); a predicting client stops too
 	if not multiplayer.is_server() and is_instance_valid(player_mech):
 		player_mech.set_deferred("process_mode", Node.PROCESS_MODE_DISABLED)
@@ -1187,8 +1189,25 @@ func _snapshot_tick() -> void:
 # the interpolation timeline. Relaxes upward slowly so clock drift can't strand it.
 var _snap_clock_offset: float = INF
 
+# T214 (B90): a client notices a dead or unreachable server by silence: the server streams
+# snapshots at 20 Hz all match long, so this long without one means it's gone (ENet's own
+# timeout is a 45 s backstop now, Game.PEER_TIMEOUT_MS). Armed by the first snapshot (a
+# client waits silently for live), off at match end (the stream stops by design).
+const HOST_SILENCE_MS := 6000
+var _last_snapshot_ms := 0
+
+func _check_host_silence() -> void:
+	if _last_snapshot_ms == 0 or _match_over or multiplayer.is_server() \
+			or not multiplayer.multiplayer_peer is ENetMultiplayerPeer:
+		return
+	if Time.get_ticks_msec() - _last_snapshot_ms > HOST_SILENCE_MS:
+		_last_snapshot_ms = 0
+		print("[Arena] no snapshot from the server for %.0f s: leaving" % (HOST_SILENCE_MS / 1000.0))
+		Game._leave_server()
+
 @rpc("authority", "unreliable_ordered")
 func _rpc_snapshot(snapshots: Array) -> void:
+	_last_snapshot_ms = Time.get_ticks_msec()  # T214
 	var now := Time.get_ticks_msec() * 0.001
 	var st: float = float(snapshots[0].get("st", now)) if not snapshots.is_empty() else now
 	_snap_clock_offset = minf(_snap_clock_offset + 0.0002, now - st)

@@ -16,6 +16,7 @@ processes exit cleanly and both snapshot logs are non-empty.
 import argparse
 import json
 import os
+import socket
 import subprocess
 import sys
 import time
@@ -27,6 +28,22 @@ PROXY = os.path.join(REPO, "tools", "mp_harness", "netem_proxy.py")
 
 def user_dir_root(out_dir, sync_role):
     return os.path.join(out_dir, "userdata", sync_role)
+
+
+# B91: 8910 is the game's default HOST port. A scenario on it could not bind while a
+# player hosted on this machine, and its client joined the player's game instead.
+GAME_DEFAULT_PORT = 8910
+
+
+def port_free(port):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.bind(("", port))
+        return True
+    except OSError:
+        return False
+    finally:
+        s.close()
 
 
 def launch(godot, role, sync_role, scenario_abs, out_dir, extra=(), rendered=False):
@@ -107,6 +124,12 @@ def main():
     meta = {"scenario": scenario.get("name"), "peers": {}}
     # T139: with a net profile, clients reach the server through netem_proxy.py.
     net = args.net if args.net is not None else scenario.get("net")
+    sport = int(scenario.get("port", 0))
+    busy = [p for p in ([sport] + ([sport + 1000] if net is not None else [])) if not port_free(p)]
+    if sport in (0, GAME_DEFAULT_PORT) or busy:  # B91: never share a port with a real game
+        print("[run_scenario] port %d unusable: %s" % (sport, "in use: %s" % busy if busy
+              else "scenarios need their own \"port\", not the game's default %d" % GAME_DEFAULT_PORT))
+        return 1
     proxy, client_extra = None, []
     if net is not None:
         port = int(scenario.get("port", 8910))

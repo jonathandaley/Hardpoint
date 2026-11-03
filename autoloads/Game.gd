@@ -604,14 +604,16 @@ func _clear_mp_session() -> void:
 	mp_lobby["peers"].clear()
 	mp_active_match["roster"] = []
 
-# T167 (B59): ENet's default peer timeout (max 30 s; a SIGKILLed client went undetected
-# 26 s .. >40 s) left a dead player's mech frozen on its last input and a crashed host's
-# clients in limbo. Both sides cap it here. Floor: ENet's retry wait doubles (~0.4 s on a
-# lossy link: 0.4, 0.8 .. 12.8 s); a cap below the 6th wait drops LIVE peers after 5
-# losses of one reliable packet (6 s did, on the `bad` profile). 12 s keeps the default's
-# 6-loss margin. ponytail: dead peer seen in ~16 s; an input-silence (5 s) takeover on the
-# server is the upgrade if that ghost time matters.
-const PEER_TIMEOUT_MS := 12000
+# T167 (B59) / T214 (B90): ENet's peer timeout is only the backstop. A dead peer is
+# noticed by silence at the game level -- the server takes a client's mech after 5 s
+# without input (Arena.INPUT_SILENCE_MS), a client leaves after HOST_SILENCE_MS without a
+# snapshot (Arena) -- so the cap can be generous. It must be: ENet drops a peer once one
+# reliable packet has gone unacknowledged for the cap, and its retry wait starts at
+# rtt + 4 x rtt variance and doubles. Measured on `bad` (80 +- 30 ms, 5% loss, reorder):
+# rtt 190-300 ms, variance up to 186 ms -> first wait ~1 s, so 12 s fitted only 4 tries
+# (0, 1, 3, 7 s): 4 losses in a row of one packet or its ack (~1e-4) dropped live
+# players (B90). 45 s fits 6 tries (0, 1, 3, 7, 15, 31 s): ~1e-6.
+const PEER_TIMEOUT_MS := 45000
 
 func _on_mp_peer_connected(id: int) -> void:
 	var enet := multiplayer.multiplayer_peer as ENetMultiplayerPeer

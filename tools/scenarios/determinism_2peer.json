@@ -1,7 +1,7 @@
 {
   "name": "determinism_2peer",
   "seed": 1337,
-  "port": 8910,
+  "port": 8952,
   "map_path": "res://resources/maps/MathTemple.tres",
   "mech": "res://resources/mechs/Hippogriff.tres",
   "duration_ticks": 400,
