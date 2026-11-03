@@ -2580,10 +2580,7 @@ func _setup_players_mp() -> void:
 			# T127: squad lives -- count valid slots and set lives; wire squad picker.
 			_player.set("lives", _squad_lives(entry))
 			mech.died.connect(_on_local_mech_died_mp)
-			if multiplayer.is_server():
-				hud.squad_slot_selected.connect(func(si): _process_pick_next_mech(my_id, si))
-			else:
-				hud.squad_slot_selected.connect(func(si): _rpc_pick_next_mech.rpc_id(1, si))
+			hud.squad_slot_selected.connect(_on_squad_slot_selected)
 		else:
 			var p := Node.new()
 			p.set_script(load("res://scripts/Player.gd"))
@@ -2616,6 +2613,7 @@ func _setup_players_mp() -> void:
 			if weapon.has_signal("hit_confirmed"):
 				weapon.hit_confirmed.connect(hud.register_hit)
 		player_mech.damaged.connect(hud.show_damage)
+		_open_start_pick.call_deferred()
 
 func _add_sun_marker() -> void:
 	var mat := StandardMaterial3D.new()
@@ -3031,7 +3029,7 @@ func _input(event: InputEvent) -> void:
 	if _spec_pivot != null and event is InputEventKey and event.pressed and event.keycode == KEY_TAB:
 		_cycle_spectator()
 		return
-	if event.is_action_pressed("ui_cancel") and not _match_over:
+	if event.is_action_pressed("ui_cancel") and not _match_over and not _start_pick_open:  # T187
 		get_viewport().set_input_as_handled()  # PauseMenu must not see this same Esc
 		_toggle_pause()
 
@@ -3270,6 +3268,8 @@ func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int) -> void:
 	if mech_def == null:
 		push_error("[Arena] _rpc_spawn_next_mech: cannot load '%s'" % mech_path)
 		return
+	if _peer_slot_used.has(peer_id) and slot_idx < _peer_slot_used[peer_id].size():
+		_peer_slot_used[peer_id][slot_idx] = true  # B80: clients' pickers read their own copy
 	var wpn_paths: Array = squad[slot_idx].get("weapons", [])
 	var new_mech: CharacterBody3D = _spawn_one_mech(mech_def, team, slot_idx, team_size, wpn_paths,
 		"Mech_r%d_s%d" % [roster_idx, slot_idx])
@@ -3317,6 +3317,107 @@ func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int) -> void:
 				new_mech.died.connect(Callable(p, "on_pawn_destroyed"))
 				break
 	_refresh_team_bars(team)
+
+# ---- T187: first mech pick ----
+# Everyone still spawns in squad slot 0 (harness, oracles and snapshot order rely on it);
+# the local player then gets the squad picker over the live start. Keeping slot 0 just
+# closes it; another slot retires the first mech (no death, no life lost, its slot back
+# in the pool) and spawns the pick through the normal respawn path. SP pauses until the
+# pick; MP closes the picker after START_PICK_S (keeps slot 0) so nobody stalls a match.
+const START_PICK_S := 10.0
+var _start_pick_open := false
+var _start_picked: Dictionary = {}  # server: peer_id -> true once its start pick is spent
+
+func _my_squad() -> Array:
+	for entry in Game.mp_active_match["roster"]:
+		if entry.get("peer_id", 0) == multiplayer.get_unique_id():
+			return entry["squad"]
+	return []
+
+func _open_start_pick() -> void:
+	var my_id := multiplayer.get_unique_id()
+	if _player == null or player_mech == null or not _peer_slot_used.has(my_id) or Game.has_node("MPHarness"):
+		return  # scripted runs drive slot 0 from tick 0 and check the HUD
+	var squad := _my_squad()
+	if squad.filter(func(sq) -> bool: return sq.get("mech", "") != "").size() < 2:
+		return
+	_start_pick_open = true
+	var used: Array = _peer_slot_used[my_id].duplicate()
+	used[0] = false  # the mech you're standing in is a choice too
+	hud.show_squad_picker_mp(squad, used, "SELECT FIRST MECH")
+	if multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
+		(hud.get("_squad_picker") as Node).process_mode = Node.PROCESS_MODE_ALWAYS
+		get_tree().paused = true
+	else:
+		get_tree().create_timer(START_PICK_S).timeout.connect(func() -> void:
+			if _start_pick_open:
+				_close_start_pick())
+
+func _close_start_pick() -> void:
+	_start_pick_open = false
+	hud.hide_squad_picker_mp()
+	if multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
+		get_tree().paused = false
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+func _on_squad_slot_selected(si: int) -> void:
+	var my_id := multiplayer.get_unique_id()
+	if _start_pick_open:
+		_close_start_pick()
+		if si == 0:
+			return  # keep the mech you're in
+		if multiplayer.is_server():
+			_process_start_pick(my_id, si)
+		else:
+			_rpc_start_pick.rpc_id(1, si)
+	elif multiplayer.is_server():
+		_process_pick_next_mech(my_id, si)
+	else:
+		_rpc_pick_next_mech.rpc_id(1, si)
+
+# Server: one swap per peer, only out of an untouched first mech, only early.
+func _process_start_pick(sender: int, slot: int) -> void:
+	if _match_over or _start_picked.has(sender) or not _peer_slot_used.has(sender):
+		return
+	_start_picked[sender] = true
+	var used: Array = _peer_slot_used[sender]
+	var squad: Array = []
+	var team := -1
+	for entry in Game.mp_active_match["roster"]:
+		if entry.get("peer_id", 0) == sender:
+			squad = entry["squad"]
+			team = entry.get("team", -1)
+	if team < 0 or slot <= 0 or slot >= used.size() or used[slot] or slot >= squad.size() \
+			or squad[slot].get("mech", "") == "" or match_node.elapsed > START_PICK_S + 2.0:
+		return
+	var first_idx := -1
+	for i in _team_mechs[team].size():
+		var m: Node = _team_mechs[team][i]
+		if is_instance_valid(m) and m.owner_peer_id == sender and not m.get("is_dead"):
+			first_idx = i
+	if first_idx < 0 or _team_mechs[team][first_idx].health < _team_mechs[team][first_idx].max_health:
+		return  # no swapping out of a fight
+	_rpc_retire_first_mech.rpc(sender, team, first_idx)
+	_rpc_spawn_next_mech.rpc(sender, slot, team)
+
+# Client -> server: start pick (V41: server validates).
+@rpc("any_peer", "reliable")
+func _rpc_start_pick(slot: int) -> void:
+	if multiplayer.is_server():
+		_process_start_pick(multiplayer.get_remote_sender_id(), slot)
+
+# Server -> all: the first mech leaves without a death (no life, no VFX); slot 0 is free again.
+@rpc("authority", "call_local", "reliable")
+func _rpc_retire_first_mech(peer_id: int, team: int, idx: int) -> void:
+	if idx < 0 or idx >= _team_mechs[team].size():
+		return
+	var m: Node = _team_mechs[team][idx]
+	m.is_dead = true  # out of snapshots, targeting and input-silence checks
+	m.visible = false
+	m.process_mode = Node.PROCESS_MODE_DISABLED
+	(m.get_node("CollisionShape3D") as CollisionShape3D).set_deferred("disabled", true)
+	if _peer_slot_used.has(peer_id):
+		_peer_slot_used[peer_id][0] = false
 
 func _refresh_team_bars(team: int) -> void:
 	if team == _local_team:
