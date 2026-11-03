@@ -4,6 +4,7 @@
 
 [resource]
 script = ExtResource("1")
+scene_path = "res://scenes/maps/Badlands.tscn"
 map_name = "Badlands"
 theme = "badlands"
 cover_seed = 137
