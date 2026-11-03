@@ -64,3 +64,4 @@ date|task|outcome|commit|finding|suite
 2026-11-03|T192|DONE|see git log (T192)|title = icon + HARDPOINT; guest: LOG IN/SIGN UP disabled + PLAY AS GUEST -> callsign; saved profile: PLAY -> hangar; harness takes either path|43/43
 2026-11-03|T193|DONE|see git log (T193)|blob shadows (BlobShadow.gd disc per mech, sun shadows off) by default; Settings SHADOWS: BLOB / FULL keeps the old look; probe blob_shadow|44/44
 2026-11-03|T194|DONE|see git log (T194)|rockets light-only: ROCKET HV removed (scene deleted), saves migrate to AERIAL HV, menu_flow updated|44/44
+2026-11-03|T195|DONE|see git log (T195)|damage overlay: isolated hits flash, hit streams (laser/MG) hold a steady tint; probe hud_damage|45/45
