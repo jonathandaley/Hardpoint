@@ -2,7 +2,6 @@
 
 [ext_resource type="Script" path="res://scenes/arena/Arena.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/BeaconMatch.gd" id="2"]
-[ext_resource type="PackedScene" path="res://scenes/beacon/Beacon.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="11"]
 [ext_resource type="PackedScene" path="res://scenes/ui/PauseMenu.tscn" id="12"]
 
@@ -63,21 +62,6 @@ omni_range = 90.0
 shadow_enabled = false
 
 [node name="LightmapGI" type="LightmapGI" parent="."]
-
-[node name="Beacon1" parent="." instance=ExtResource("4")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.1, 1.1, 11.2)
-
-[node name="Beacon2" parent="." instance=ExtResource("4")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.1, 1.1, 51.2)
-
-[node name="Beacon3" parent="." instance=ExtResource("4")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.1, 1.1, -28.8)
-
-[node name="Beacon4" parent="." instance=ExtResource("4")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.9, 1.1, 51.2)
-
-[node name="Beacon5" parent="." instance=ExtResource("4")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -24.9, 1.1, -28.8)
 
 [node name="HUD" parent="." instance=ExtResource("11")]
 
