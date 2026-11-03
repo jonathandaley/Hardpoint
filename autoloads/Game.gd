@@ -616,32 +616,6 @@ func get_bot_elo() -> int:
 	var diff: int = clampi(settings.get("bot_difficulty", 1), 0, 4)
 	return _BOT_ELO_BY_DIFFICULTY[diff]
 
-## Call once per match to update ELO, XP, coins, and level.
-func update_after_match(won: bool) -> void:
-	var my_elo: int  = profile.get("elo", 1000)
-	var opp_elo: int = get_bot_elo()
-
-	# ELO update (standard formula)
-	var expected: float = 1.0 / (1.0 + pow(10.0, float(opp_elo - my_elo) / 400.0))
-	var result_val: float = 1.0 if won else 0.0
-	profile["elo"] = maxi(100, my_elo + roundi(float(_ELO_K) * (result_val - expected)))
-
-	# XP (more XP for beating tougher opponents; xp_bonus skill scales gain)
-	var xp_gain: int
-	if won:
-		xp_gain = clampi(roundi(50.0 * float(opp_elo) / float(maxi(1, my_elo))), 25, 200)
-	else:
-		xp_gain = clampi(roundi(15.0 * float(opp_elo) / float(maxi(1, my_elo))), 5, 50)
-	xp_gain = roundi(float(xp_gain) * (1.0 + get_skill_effect("xp_bonus")))
-	profile["xp"] = profile.get("xp", 0) + xp_gain
-
-	# Level-up check
-	_check_level_up()
-
-	# Coins (coin_pickup skill scales award)
-	var base_coins: int = 75 if won else 20
-	profile["coins"] = profile.get("coins", 0) + apply_coin_pickup_bonus(base_coins)
-
 func apply_coin_pickup_bonus(base: int) -> int:
 	return roundi(float(base) * (1.0 + get_skill_effect("coin_pickup")))
 
@@ -967,6 +941,23 @@ var mp_active_match: Dictionary = {
 	"match_seed": 0,
 }
 
+## T184: single player = a local MP match: the hangar squad as peer 1 plus bot fill,
+## through the same roster / Arena / match-end path as MP, on the OfflineMultiplayerPeer
+## (no socket: a web build can't host ENet; V56). Fills mp_lobby + mp_active_match only;
+## start_sp_match() also loads the Arena. Tools/probes call this and edit the roster.
+func setup_sp_match() -> void:
+	var lobby := load("res://scripts/Lobby.gd")
+	var md: Resource = loadout.get("map_def")
+	var map_path: String = md.resource_path if md != null else "res://resources/maps/MathTemple.tres"
+	mp_lobby = {"peers": {1: lobby._local_peer_meta()}, "bot_fill": true,
+		"team_size": loadout.get("team_size", 1), "map_path": map_path, "match_seed": 0}
+	mp_active_match = {"map_path": map_path, "roster": lobby._build_roster(), "match_seed": 0}
+	loadout["map_def"] = load(map_path)
+
+func start_sp_match() -> void:
+	setup_sp_match()
+	get_tree().change_scene_to_file("res://scenes/arena/Arena.tscn")
+
 # Server broadcasts this; all peers store match data and change scene (V40).
 @rpc("authority", "call_local", "reliable")
 func _rpc_match_start(map_path: String, roster: Array, match_seed: int) -> void:
@@ -1075,6 +1066,8 @@ func _update_mp_profile(winner_team: int, stats: Array) -> void:
 	if my_team == -1:
 		return
 	var won: bool = winner_team == my_team
+	var wl := "wins" if won else "losses"
+	profile[wl] = profile.get(wl, 0) + 1
 	var my_elo: int = profile.get("elo", 1000)
 	var opp_elos := mp_opp_elos(my_team, stats)
 	profile["elo"] = my_elo + mp_elo_delta(my_elo, opp_elos, won)

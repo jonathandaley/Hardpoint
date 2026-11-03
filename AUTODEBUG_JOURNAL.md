@@ -50,3 +50,4 @@ date|task|outcome|commit|finding|suite
 2026-11-02|queue empty|-|-|all §T rows from T138 on done (T170, T173-T181 this run); remaining open rows are pre-loop backlog (T29-T82) + deferred T130-T132 = user decisions; loop stopped|-
 2026-11-02|T182|DONE|see git log (T182)|kit pixel tiles on mechs (box-local triplanar, 1.16 m/tile) + weapons (baked per-face UVs); Lynx/Warhog tiles derived from Cesh's noise; tools/kit_tiles.gd|36/36
 2026-11-02|T183|DONE|see git log (T183)|B74: SP match end took the MP branch (has_multiplayer_peer() is true on SP's OfflineMultiplayerPeer) -> no result screen + 30 s lobby deadline; probe sp_match_end|37/37
+2026-11-02|T184|DONE|see git log (T184)|SP = local MP match (Game.start_sp_match on OfflineMultiplayerPeer); SP-only Arena/HUD/Game paths deleted (archived at c53853f); B75 stealth on kit mechs; queued T198 bot squads|37/37 + selftest

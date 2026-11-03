@@ -6,8 +6,7 @@ extends Node
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS  # the probe itself must run while paused
-	Game.mp_active_match["roster"] = []      # SP path
-	Game.loadout["mech_def"] = load("res://resources/mechs/Hippogriff.tres")
+	Game.mp_active_match["roster"] = []      # Arena sets up SP from the loadout (T184)
 	var arena: Node = load("res://scenes/arena/Arena.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(arena)
 	for i in 180:  # let the match start and bots get moving

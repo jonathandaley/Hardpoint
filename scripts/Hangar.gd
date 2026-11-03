@@ -797,7 +797,8 @@ func _on_matchmaking_pressed() -> void:
 
 func _on_find_sp_pressed() -> void:
 	SoundManager.play_sfx_2d("ui_click")
-	get_tree().change_scene_to_file("res://scenes/arena/Arena.tscn")
+	Game.save_loadout()
+	Game.start_sp_match()  # T184: a local MP match with bot fill
 
 func _on_find_host_pressed() -> void:
 	_open_mp_entry(0)
