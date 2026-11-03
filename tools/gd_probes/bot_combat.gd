@@ -19,6 +19,10 @@ func _ready() -> void:
 	Game.loadout["team_size"] = 3
 	var arena: Node = load("res://scenes/arena/Arena.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(arena)
+	for i in 2:
+		await get_tree().process_frame
+	if arena.get("_start_pick_open"):  # T187: keep slot 0, as a player would
+		arena.get("hud").squad_slot_selected.emit(0)
 	for i in 30:
 		await get_tree().physics_frame
 

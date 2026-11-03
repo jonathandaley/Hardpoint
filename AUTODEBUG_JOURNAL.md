@@ -56,3 +56,4 @@ date|task|outcome|commit|finding|suite
 2026-11-02|T200|DONE|see git log (T200)|B78: ENet sender throttle decayed during the idle lobby on bad net -> periodic unreliable drops -> snapshot bursts; throttle deceleration 0 (V57); menu_flow@bad 4/4, stalls 0-2% (was 35-57%)|38/38; net 54/54
 2026-11-02|T198|DONE|see git log (T198)|bots respawn through their 5-mech squads (server, 3 s, _rpc_spawn_next_bot); respawn names Mech_r<ri>_s<slot>; probe bot_squad|39/39 + selftest; net 54/54
 2026-11-02|T186|DONE|see git log (T186)|B79: MP pause QUIT went to the title (pre-T176 route); now the hangar; peer_closed checks the post-quit scene (red before)|39/39; net 54/54
+2026-11-02|T187|DONE|see git log (T187)|first-mech picker at match start (SP pauses, MP 10 s keeps slot 0; swap retires the slot-0 mech without a death); B80 client slot bookkeeping; probes keep slot 0 via the UI; probe first_pick|40/40; net 54/54

@@ -322,7 +322,7 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 	vbox.add_child(btn)
 	btn.grab_focus.call_deferred()
 
-func show_squad_picker_mp(squad: Array, slot_used: Array) -> void:
+func show_squad_picker_mp(squad: Array, slot_used: Array, heading := "SELECT NEXT MECH") -> void:
 	hide_squad_picker_mp()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	var backdrop := ColorRect.new()
@@ -337,7 +337,7 @@ func show_squad_picker_mp(squad: Array, slot_used: Array) -> void:
 	vbox.add_theme_constant_override("separation", 12)
 	center.add_child(vbox)
 	var title := Label.new()
-	title.text = "SELECT NEXT MECH"
+	title.text = heading
 	title.add_theme_font_size_override("font_size", 24)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title)
