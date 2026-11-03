@@ -285,6 +285,7 @@ func _refresh_lineup_mechs() -> void:
 		_lineup_viewport.add_child(m)
 		m.set_physics_process(false)
 		m.remove_from_group("mechs")  # T176: a display prop, not a combatant (sync log, AI scans)
+		_arm_display(m, md)
 		_squad_nodes.append(m)
 
 func _refresh_slot_btn_labels() -> void:
@@ -641,6 +642,8 @@ func _on_weapon_cycle(slot_idx: int, direction: int) -> void:
 
 	if slot_idx < _weapon_name_labels.size() and is_instance_valid(_weapon_name_labels[slot_idx]):
 		_weapon_name_labels[slot_idx].text = WEAPON_CATALOG[_weapon_indices[slot_idx]]["name"]
+	_refresh_diorama_mech()  # T188: the shown mech carries the new pick
+	_refresh_lineup_mechs()
 
 func _build_team_size_picker() -> void:
 	# Placed bottom-left, leaving the existing FIND MATCH and SETTINGS buttons in place.
@@ -773,7 +776,25 @@ func _refresh_diorama_mech() -> void:
 	_diorama_spin.add_child(m)
 	m.set_physics_process(false)
 	m.remove_from_group("mechs")  # T176: a display prop, not a combatant
+	_arm_display(m, md)
 	_diorama_mech_node = m
+
+# T188: display mechs carry the weapons this mech will fight with (its saved choices,
+# as Lobby._build_squad_data sends them; default slots otherwise). Props: the weapon
+# nodes don't process (no reload / fire logic in the hangar).
+func _arm_display(m: Node, md: Resource) -> void:
+	var paths: Array = Game.loadout.get("mech_weapon_choices", {}).get(md.resource_path, [])
+	var slots: Array = []
+	for i in md.weapon_slots.size():
+		var sl: Resource = md.weapon_slots[i]
+		if i < paths.size() and paths[i] != "" and ResourceLoader.exists(paths[i]):
+			sl = sl.duplicate()
+			sl.weapon_scene = load(paths[i])
+		slots.append(sl)
+	m.configure_weapons(slots)
+	for c in m.get("torso").get_children():
+		if c.name.begins_with("Hardpoint"):
+			c.process_mode = Node.PROCESS_MODE_DISABLED
 
 func _show_tab(idx: int) -> void:
 	mech_panel.visible = idx == 0
