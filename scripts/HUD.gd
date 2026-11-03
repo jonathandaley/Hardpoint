@@ -194,8 +194,26 @@ func setup_beacon_bars(beacons: Array) -> void:
 		add_child(lbl)
 		_team_count_labels.append(lbl)
 
+# T195: an isolated hit (rifle, sniper, rocket) flashes; hits arriving within STREAM_GAP
+# of each other (laser, MG) are one continuous stream that holds a steady tint instead
+# (re-flashing every MG hit was a 0.45 -> 0.25 sawtooth flicker). Same-tick hits
+# (shotgun pellets) are one hit. Frame time, not the wall clock (headless runs).
+const FLASH_A := 0.45
+const TINT_A := 0.22
+const STREAM_GAP := 0.3
+var _since_hit := INF
+var _streaming := false
+var _last_hit_tick := -1
+
 func show_damage() -> void:
-	_damage_alpha = 0.45
+	var tick := Engine.get_physics_frames()
+	if tick == _last_hit_tick:
+		return
+	_last_hit_tick = tick
+	_streaming = _since_hit < STREAM_GAP
+	_since_hit = 0.0
+	if not _streaming:
+		_damage_alpha = FLASH_A
 
 func register_hit() -> void:
 	crosshair.register_hit()
@@ -368,9 +386,12 @@ func switch_player_mech(new_mech: Node) -> void:
 	weapon_hud.setup(new_mech)
 
 func _process(delta: float) -> void:
-	if _damage_alpha > 0.0:
+	_since_hit += delta
+	if _streaming and _since_hit < STREAM_GAP:
+		_damage_alpha = move_toward(_damage_alpha, TINT_A, delta * 2.0)  # ease into the steady tint
+	elif _damage_alpha > 0.0:
 		_damage_alpha = move_toward(_damage_alpha, 0.0, delta * 2.0)
-		damage_flash.modulate.a = _damage_alpha
+	damage_flash.modulate.a = _damage_alpha
 	if is_instance_valid(_player_mech):
 		var lp: float = _player_mech.get("lock_progress") if "lock_progress" in _player_mech else 0.0
 		crosshair.set_lock_progress(lp)
