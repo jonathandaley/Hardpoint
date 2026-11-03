@@ -93,7 +93,37 @@ func _ready() -> void:
 	_build_weapon_list()
 	_body_meshes = torso.find_children("*", "MeshInstance3D", true, false)
 
+# T196 (user 2026-11-02: over-the-shoulder): the camera arm sits beside the torso so the
+# mech is left of the crosshair instead of blocking it; V swaps sides (Game.shoulder).
+# Aim stays camera-based (rays from the camera), so the crosshair stays true. A sideways
+# probe pulls the arm in against a wall: a SpringArm whose origin is inside a wall can't
+# see it and puts the camera in it. Every human-owned mech runs this on every peer --
+# server-side weapons (laser, hitscan) aim from the server's copy of the camera, so the
+# server must offset it exactly like the owner's screen (B83): the side rides the input.
+const SHOULDER_X := 1.3
+var shoulder := 1.0  # this mech's side: the owner's Game.shoulder, sent with its input
+var _shoulder_x := 0.0
+
+func _update_shoulder(delta: float) -> void:
+	if owner_peer_id == multiplayer.get_unique_id():  # our own mech: V swaps
+		if camera.current and Input.is_action_just_pressed("swap_shoulder"):
+			Game.shoulder = -Game.shoulder
+		shoulder = Game.shoulder
+	var want := SHOULDER_X * shoulder
+	var y := camera_arm.position.y
+	var from := torso.global_transform * Vector3(0.0, y, 0.0)
+	var q := PhysicsRayQueryParameters3D.create(from, torso.global_transform * Vector3(want, y, 0.0), 1)
+	q.exclude = [get_rid()]
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	if not hit.is_empty():
+		var room := maxf(0.0, from.distance_to(hit.position) / maxf(scale.x, 0.01) - 0.3)
+		want = signf(want) * minf(absf(want), room)
+	_shoulder_x = move_toward(_shoulder_x, want, delta * 6.0)  # eased swap, ~0.4 s
+	camera_arm.position.x = _shoulder_x
+
 func _process(delta: float) -> void:
+	if owner_peer_id != 0:  # bots keep a centred camera
+		_update_shoulder(delta)
 	if _shake_timer > 0.0:
 		_shake_timer = maxf(0.0, _shake_timer - delta)
 		var frac := _shake_timer / _SHAKE_DURATION
@@ -728,6 +758,7 @@ func _maybe_forward_input() -> void:
 	var payload := {
 		"move": _input_source.get_move_direction(),
 		"aim": Vector2(torso.rotation.y, _camera_pitch),  # V47: absolute, latest wins
+		"shoulder": shoulder,  # T196/B83: the server offsets its copy of our camera the same
 		"fire_prim": _input_source.is_firing_primary(),
 		"fire_sec": _input_source.is_firing_secondary(),
 		"presses": _press_counts.duplicate(),
@@ -746,6 +777,7 @@ func _rpc_input(seq: int, payload: Dictionary) -> void:
 		push_error("[Mech] _rpc_input: sender %d doesn't own this mech (owner=%d)" % [sender, owner_peer_id])
 		return
 	last_input_ms = Time.get_ticks_msec()
+	shoulder = -1.0 if float(payload.get("shoulder", shoulder)) < 0.0 else 1.0  # V41: only ever +-1
 	var now := Time.get_ticks_msec() / 1000.0
 	while not _rpc_rate_times.is_empty() and now - float(_rpc_rate_times[0]) > 1.0:
 		_rpc_rate_times.pop_front()

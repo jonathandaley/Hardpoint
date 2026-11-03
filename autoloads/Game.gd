@@ -70,6 +70,9 @@ var loadout: Dictionary = {
 	"map_def": null,               # MapDef resource; null = Math Temple (default)
 }
 
+## T196: over-the-shoulder side of the local view, +1 right / -1 left (V swaps).
+var shoulder := 1.0
+
 var settings: Dictionary = {
 	"mouse_sensitivity": 0.003,
 	"bot_difficulty": 1,  # 0=Easy  1=Normal  2=Medium  3=Hard  4=Elite

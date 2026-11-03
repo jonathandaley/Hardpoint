@@ -3029,6 +3029,7 @@ func _process(_delta: float) -> void:
 		_spec_pitch  = clamp(_spec_pitch - look.y * sens, -1.2, 0.4)
 	_spec_pivot.rotation.y = _spec_yaw
 	_spec_arm.rotation.x   = _spec_pitch
+	_spec_arm.position.x = 1.3 * Game.shoulder  # T196: spectate over the same shoulder
 
 func _input(event: InputEvent) -> void:
 	if DEBUG_PENROSE and event is InputEventKey and event.pressed and event.keycode == KEY_F5:
