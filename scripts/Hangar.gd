@@ -791,6 +791,7 @@ func _arm_display(m: Node, md: Resource) -> void:
 			sl = sl.duplicate()
 			sl.weapon_scene = load(paths[i])
 		slots.append(sl)
+	m.weapon_scale = md.weapon_scale
 	m.configure_weapons(slots)
 	for c in m.get("torso").get_children():
 		if c.name.begins_with("Hardpoint"):

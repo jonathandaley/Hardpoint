@@ -3,6 +3,8 @@ extends Node
 # every squad lineup mech carries its slots' weapons, and the detail diorama mech re-arms
 # when a weapon is cycled (it shows the saved pick, not the default).
 
+const WeaponVisuals := preload("res://scripts/WeaponVisuals.gd")
+
 func _fail(msg: String) -> void:
 	push_error("[probe] hangar_weapons: " + msg)
 
@@ -38,6 +40,22 @@ func _ready() -> void:
 		_fail("diorama mech shows %s, saved pick is %s" % [after, saved])
 	elif before.size() > 0 and after[0] == before[0]:
 		_fail("cycling slot 1 did not change the shown weapon (%s)" % after[0])
-	print("[probe] hangar_weapons done (armed lineup mechs %d, slot 1: %s -> %s)" % [
-		armed, before[0].get_file() if before.size() > 0 else "-", after[0].get_file() if after.size() > 0 else "-"])
+	# T191: Seeker's weapon renders at its MechDef.weapon_scale (oversized on purpose)
+	var sk: Resource = load("res://resources/mechs/Seeker.tres")
+	var m: Node = sk.scene.instantiate()
+	MechVisuals.apply(m, "Seeker")
+	add_child(m)
+	h._arm_display(m, sk)
+	var w: Node = m.get("torso").get_node("Hardpoint0").get_child(0)
+	var seeker_len := 0.0
+	for mi in w.get_children():
+		if mi is MeshInstance3D:
+			seeker_len = maxf(seeker_len, (mi as MeshInstance3D).get_aabb().size.z)
+	var normal_len := 0.0
+	for part in WeaponVisuals._parts(WeaponVisuals.kit_name(w.scene_file_path), WeaponVisuals.HEAVY_SCALE):
+		normal_len = maxf(normal_len, (part[0] as Mesh).get_aabb().size.z)
+	if sk.weapon_scale < 1.5 or seeker_len < normal_len * sk.weapon_scale * 0.95:
+		_fail("Seeker weapon %.2f m long, a normal heavy one %.2f m (weapon_scale %.1f)" % [seeker_len, normal_len, sk.weapon_scale])
+	print("[probe] hangar_weapons done (armed lineup mechs %d, Seeker weapon %.2f m vs %.2f m, slot 1: %s -> %s)" % [
+		armed, seeker_len, normal_len, before[0].get_file() if before.size() > 0 else "-", after[0].get_file() if after.size() > 0 else "-"])
 	get_tree().quit(0)

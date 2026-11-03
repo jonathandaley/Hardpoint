@@ -9,6 +9,7 @@ extends Resource
 @export var class_tag: String = ""       # "Light" / "Medium" / "Heavy" - label only
 @export var max_health: float = 100.0
 @export var walk_speed: float = 5.25
+@export var weapon_scale: float = 1.0  # T191: visual size of this mech's weapons (Seeker: oversized on purpose)
 @export var has_shields: bool = false
 @export var shield_max_hp: float = 300.0
 @export var has_energy_shield: bool = false

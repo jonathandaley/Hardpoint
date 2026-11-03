@@ -166,6 +166,8 @@ func get_exclude_rids() -> Array:
 		rids.append(_shield.get_rid())
 	return rids
 
+var weapon_scale := 1.0  # T191: MechDef.weapon_scale, set before configure_weapons
+
 func configure_weapons(slots: Array) -> void:
 	if slots.is_empty():
 		return
@@ -178,7 +180,7 @@ func configure_weapons(slots: Array) -> void:
 		if scene == null:
 			continue
 		var weapon: Node = scene.instantiate()
-		_WeaponVisuals.apply(weapon)  # T180: kit model replaces the placeholder meshes
+		_WeaponVisuals.apply(weapon, weapon_scale)  # T180: kit model replaces the placeholder meshes
 		var s_size: int = int(slot.get("slot_size")) if "slot_size" in slot else 0
 		var w_size: int = int(weapon.get("slot_size")) if "slot_size" in weapon else 0
 		if s_size != w_size:

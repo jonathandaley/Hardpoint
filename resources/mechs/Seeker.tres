@@ -8,7 +8,7 @@
 [sub_resource type="Resource" id="1"]
 script = ExtResource("3")
 slot_size = 1
-position = Vector3(0, 2.137, -0.033)
+position = Vector3(0, 2.62, -0.1)
 weapon_scene = ExtResource("4")
 
 [resource]
@@ -18,6 +18,7 @@ description = "Compact light mech. Single heavy hardpoint punches above its weig
 class_tag = "Light"
 max_health = 175.0
 walk_speed = 2.75
+weapon_scale = 2.0
 turn_acceleration = 20.0
 leg_rotation_speed = 22.0
 leg_hip_sweep = 0.18

@@ -65,6 +65,7 @@ func _ready() -> void:
 	var e: Node = team1[0]
 	var ai: Node = e.get("_input_source")
 	var a: Node = arena.get("player_mech")
+	a.invincible = true  # 1 run in 16 the bots killed this idle player mech first -> no lock target
 	var others := team0.filter(func(m): return m != a)
 	var b: Node = others[0]
 	var c: Node = others[1]

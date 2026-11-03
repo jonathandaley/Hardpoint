@@ -2497,6 +2497,7 @@ func _spawn_one_mech(mech_def, team: int, idx: int, count: int, weapon_paths: Ar
 	m.configure_shield(mech_def.has_shields, mech_def.shield_max_hp)
 	m.configure_energy_shield(mech_def.has_energy_shield, mech_def.energy_shield_max_hp,
 		mech_def.energy_shield_regen_rate, mech_def.energy_shield_regen_delay)
+	m.weapon_scale = mech_def.weapon_scale
 	m.configure_weapons(_slots_with_weapon_paths(mech_def.weapon_slots, weapon_paths))
 	m.configure_abilities(mech_def.abilities)
 	m.invincible = mech_def.invincible
