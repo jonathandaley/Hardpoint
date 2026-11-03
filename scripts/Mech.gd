@@ -628,7 +628,14 @@ func _physics_process_impl(delta: float) -> void:
 	_try_step_up_from_collisions()
 	_update_legs(delta)
 
+# T197 (B84): no step-up while launching upward. The jump sets velocity.y in the same tick,
+# before this runs; a rise ahead (slope, step) passed the shin/clear ray test and the
+# step-up zeroed velocity.y -- the jump became a 0.37 m step.
+const _JUMPING_VY := 0.5
+
 func _try_step_up() -> void:
+	if velocity.y > _JUMPING_VY:
+		return
 	if not is_on_floor() and _step_up_remaining <= 0.0:
 		return
 	var horiz := Vector3(velocity.x, 0.0, velocity.z)
@@ -651,7 +658,7 @@ func _try_step_up() -> void:
 			return
 
 func _try_step_up_from_collisions() -> void:
-	if _step_up_remaining > 0.0:
+	if _step_up_remaining > 0.0 or velocity.y > _JUMPING_VY:
 		return
 	var space := get_world_3d().direct_space_state
 	var ex    := [get_rid()]
