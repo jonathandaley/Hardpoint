@@ -154,6 +154,8 @@ func _build_back_btn() -> void:
 	add_child(_back_btn)
 	_back_btn.visible = false
 
+var _bay: Node3D = null  # T208
+
 func _setup_lineup_viewport() -> void:
 	_lineup_container = SubViewportContainer.new()
 	_lineup_container.offset_left   = 0.0
@@ -172,17 +174,17 @@ func _setup_lineup_viewport() -> void:
 
 	var env := Environment.new()
 	env.background_mode       = Environment.BG_COLOR
-	env.background_color      = Color(0.05, 0.05, 0.07)
+	env.background_color      = Color("#0c0e13")  # T208: repair bay (design)
 	env.ambient_light_source  = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color   = Color(0.5, 0.5, 0.6)
-	env.ambient_light_energy  = 0.5
+	env.ambient_light_energy  = 0.35
 	var env_node := WorldEnvironment.new()
 	env_node.environment = env
 	_lineup_viewport.add_child(env_node)
 
 	var light := DirectionalLight3D.new()
 	light.rotation_degrees = Vector3(-45.0, 30.0, 0.0)
-	light.light_energy     = 1.2
+	light.light_energy     = 0.8  # T208: the gantry downlights carry the scene now
 	_lineup_viewport.add_child(light)
 
 	var cam := Camera3D.new()
@@ -192,19 +194,10 @@ func _setup_lineup_viewport() -> void:
 	cam.look_at_from_position(cam.position, Vector3(0.0, 1.2, 0.0))
 	_lineup_viewport.add_child(cam)
 
-	# Platform spanning all 5 mech positions.
-	var platform_mi   := MeshInstance3D.new()
-	var platform_mesh := CylinderMesh.new()
-	platform_mesh.top_radius    = 9.0
-	platform_mesh.bottom_radius = 9.0
-	platform_mesh.height        = 0.12
-	platform_mi.mesh = platform_mesh
-	var platform_mat := StandardMaterial3D.new()
-	platform_mat.albedo_color = Color(0.18, 0.18, 0.22)
-	platform_mat.roughness    = 0.6
-	platform_mi.set_surface_override_material(0, platform_mat)
-	platform_mi.position = Vector3(0.0, -0.06, 0.0)
-	_lineup_viewport.add_child(platform_mi)
+	# T208: the repair bay around the 5 mech positions (was a plain platform disc)
+	_bay = load("res://scripts/HangarBay.gd").new()
+	_bay.name = "HangarBay"
+	_lineup_viewport.add_child(_bay)
 
 	_refresh_lineup_mechs()
 
@@ -282,6 +275,8 @@ func _refresh_lineup_mechs() -> void:
 		MechVisuals.apply(m, md.display_name)
 		m.position = Vector3(start_x + float(i) * spacing, 0.0, 0.0)
 		_lineup_viewport.add_child(m)
+		if _bay != null:
+			_bay.set_bay_mech(i, String(md.display_name))
 		m.set_physics_process(false)
 		m.remove_from_group("mechs")  # T176: a display prop, not a combatant (sync log, AI scans)
 		_arm_display(m, md)
