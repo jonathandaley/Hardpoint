@@ -79,3 +79,4 @@ date|task|outcome|commit|finding|suite
 2026-11-03|T213|DONE|see git log (T213)|account pilot skills via the account endpoint (server applies the game's rules to the account profile, main thread); probe accounts extended|53/53
 2026-11-03|T208|DONE|see git log (T208)|hangar squad view = the Design repair bay (HangarBay.gd: gantry downlights + shafts, accent floor pools, cables, welder drones with sparks, conveyor, observation deck); render reviewed; art call -> NEEDS_HUMAN|53/53
 2026-11-03|T209|DONE|see git log (T209)|bot balance tester: tools/balance_eval.py (+ tools/balance/balance_match) -> build/balance/*.md, per mech + per weapon family win rates with 95% CIs; selftest; 4-match smoke run OK|n/a (tool only)
+2026-11-03|T209 baseline|-|-|32-match balance baseline: all mech/weapon win rates 38-58% with overlapping CIs; ARC + ROCKET very low damage per life (bot usage or weapon) -> NEEDS_HUMAN|n/a
