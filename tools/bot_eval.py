@@ -41,7 +41,7 @@ def main():
     ap.add_argument("--legacy", default="b", choices=["a", "b", "none"])
     ap.add_argument("--size", type=int, default=3)
     ap.add_argument("--size-b", type=int, help="side B team size (uneven teams; default --size)")
-    ap.add_argument("--mech", default="Hippogriff,Pegasus,Hornet,Kestrel,Warhog,Lynx")
+    ap.add_argument("--mech", default="Hippogriff,Pegasus,Hornet,Kestrel,Everest,Slip")
     ap.add_argument("-n", type=int, default=12)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) // 2))
     ap.add_argument("--max-s", type=int, default=600)
