@@ -74,6 +74,7 @@ var settings: Dictionary = {
 	"mouse_sensitivity": 0.003,
 	"bot_difficulty": 1,  # 0=Easy  1=Normal  2=Medium  3=Hard  4=Elite
 	"master_volume": 0.5,
+	"shadows": "blob",  # T193: "blob" (disc under each mech, no sun shadows) or "full"
 }
 
 # M0.1: central seeded RNG for all gameplay randomness (weapon spread, etc.).
@@ -715,6 +716,7 @@ func _load_settings() -> void:
 	settings["mouse_sensitivity"] = cfg.get_value("settings", "mouse_sensitivity", settings["mouse_sensitivity"])
 	settings["bot_difficulty"]    = cfg.get_value("settings", "bot_difficulty",    settings["bot_difficulty"])
 	settings["master_volume"]     = cfg.get_value("settings", "master_volume",     settings["master_volume"])
+	settings["shadows"]           = cfg.get_value("settings", "shadows",           settings["shadows"])
 	apply_volume(settings["master_volume"])
 
 func _load_loadout() -> void:
@@ -797,6 +799,7 @@ func save_settings() -> void:
 	cfg.set_value("settings", "mouse_sensitivity", settings.get("mouse_sensitivity", 0.003))
 	cfg.set_value("settings", "bot_difficulty",    settings.get("bot_difficulty",    1))
 	cfg.set_value("settings", "master_volume",     settings.get("master_volume",     0.5))
+	cfg.set_value("settings", "shadows",           settings.get("shadows",           "blob"))
 	cfg.save(_SETTINGS_PATH)
 
 func apply_volume(linear: float) -> void:
