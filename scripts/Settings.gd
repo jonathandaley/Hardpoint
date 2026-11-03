@@ -47,6 +47,7 @@ func _ready() -> void:
 		_diff_buttons.append(btn)
 	_highlight_diff(cur_diff)
 	_build_map_section()
+	_build_shadow_section()
 	_build_controls_section()
 
 func _build_map_section() -> void:
@@ -78,6 +79,45 @@ func _build_map_section() -> void:
 	if Game.loadout.get("map_def") == null and MAPS.size() > 0:
 		Game.loadout["map_def"] = load(MAPS[0])
 	_highlight_map(_selected_map_idx)
+
+# T193: BLOB (default) = a soft disc under each mech, no sun shadows; FULL = the
+# pre-T193 real-time sun shadows, kept in case the look is wanted back.
+const SHADOW_MODES := [["blob", "BLOB"], ["full", "FULL"]]
+var _shadow_buttons: Array = []
+
+func _build_shadow_section() -> void:
+	var content: VBoxContainer = $Scroll/Content
+	var section_lbl := Label.new()
+	section_lbl.text = "SHADOWS"
+	section_lbl.add_theme_font_size_override("font_size", 14)
+	content.add_child(section_lbl)
+	var row := HBoxContainer.new()
+	row.name = "ShadowRow"
+	row.add_theme_constant_override("separation", 8)
+	content.add_child(row)
+	for mode in SHADOW_MODES:
+		var btn := Button.new()
+		btn.name = "Shadow_" + mode[0]
+		btn.text = mode[1]
+		btn.custom_minimum_size = Vector2(80, 24)
+		btn.add_theme_font_size_override("font_size", 14)
+		btn.pressed.connect(_on_shadow_pressed.bind(mode[0]))
+		row.add_child(btn)
+		_shadow_buttons.append(btn)
+	_highlight_shadow()
+
+func _on_shadow_pressed(mode: String) -> void:
+	Game.settings["shadows"] = mode
+	Game.save_settings()
+	_highlight_shadow()
+
+func _highlight_shadow() -> void:
+	for i in _shadow_buttons.size():
+		var btn: Button = _shadow_buttons[i]
+		if SHADOW_MODES[i][0] == Game.settings.get("shadows", "blob"):
+			btn.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
+		else:
+			btn.remove_theme_color_override("font_color")
 
 func _on_map_pressed(idx: int) -> void:
 	_selected_map_idx = idx
