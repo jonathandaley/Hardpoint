@@ -23,6 +23,7 @@ func _ready() -> void:
 		await get_tree().process_frame
 	if arena.get("_start_pick_open"):
 		arena.get("hud").squad_slot_selected.emit(0)
+		arena.get("hud").spawn_selected.emit(0)
 	var pm: Node = arena.get("player_mech")
 	pm.invincible = true
 	pm.process_mode = Node.PROCESS_MODE_DISABLED  # parked: the bots alone decide the shape

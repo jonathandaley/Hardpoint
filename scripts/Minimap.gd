@@ -17,6 +17,7 @@ var center := Vector2.ZERO                # world XZ of the map centre
 var half := 100.0                         # metres from the centre to the map edge
 var outline := PackedVector2Array()       # world XZ boundary polygon
 var beacons: Array = []
+var bg_alpha := 0.55                      # the spawn picker darkens it (T203)
 var _t := 0.0
 
 func _ready() -> void:
@@ -54,7 +55,7 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var k: float = minf(size.x, size.y) / 100.0   # marker scale: 1 at corner size
-	draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, 0.55))
+	draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, bg_alpha))
 	if outline.size() > 1:
 		var pts := PackedVector2Array()
 		for w in outline:

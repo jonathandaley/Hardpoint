@@ -26,6 +26,7 @@ func _ready() -> void:
 		_fail("SP did not pause while the first mech is picked")
 	var first: Node = arena.get("player_mech")
 	hud.squad_slot_selected.emit(3)  # what the VESUVIUS button does
+	hud.spawn_selected.emit(0)
 	for i in 10:
 		await get_tree().physics_frame
 	var now: Node = arena.get("player_mech")
@@ -44,6 +45,7 @@ func _ready() -> void:
 	for i in 3:
 		await get_tree().process_frame
 	hud.squad_slot_selected.emit(0)
+	hud.spawn_selected.emit(0)
 	for i in 10:
 		await get_tree().physics_frame
 	var back: Node = arena.get("player_mech")

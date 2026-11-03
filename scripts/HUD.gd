@@ -57,18 +57,72 @@ func setup_minimap(arena: Node, team: int, center: Vector2, half: float,
 	if minimap == null:
 		minimap = load("res://scripts/Minimap.gd").new()
 		minimap.name = "Minimap"
+		minimap.process_mode = Node.PROCESS_MODE_ALWAYS  # the spawn picker runs while SP is paused
 		add_child(minimap)
-	minimap.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	minimap.offset_left = -MINIMAP_PX - 16.0
-	minimap.offset_right = -16.0
-	minimap.offset_top = 16.0
-	minimap.offset_bottom = 16.0 + MINIMAP_PX
+	_minimap_corner()
 	minimap.arena = arena
 	minimap.local_team = team
 	minimap.center = center
 	minimap.half = half
 	minimap.outline = outline
 	minimap.beacons = beacons
+
+func _minimap_corner() -> void:
+	minimap.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	minimap.offset_left = -MINIMAP_PX - 16.0
+	minimap.offset_right = -16.0
+	minimap.offset_top = 16.0
+	minimap.offset_bottom = 16.0 + MINIMAP_PX
+
+# T203: the minimap, full size in the middle, with a numbered button on each of the
+# team's spawn points (world positions). Emits spawn_selected(index).
+signal spawn_selected(idx: int)
+const SPAWN_MAP_PX := 280.0
+var _spawn_ui: Array = []
+
+func show_spawn_picker(points: Array) -> void:
+	hide_spawn_picker()
+	if minimap == null:
+		return
+	minimap.set_anchors_preset(Control.PRESET_CENTER)
+	minimap.offset_left = -SPAWN_MAP_PX * 0.5
+	minimap.offset_right = SPAWN_MAP_PX * 0.5
+	minimap.offset_top = -SPAWN_MAP_PX * 0.5 + 20.0
+	minimap.offset_bottom = SPAWN_MAP_PX * 0.5 + 20.0
+	minimap.bg_alpha = 0.85
+	var head := Label.new()
+	head.text = "SELECT SPAWN POINT"
+	head.position = Vector2(6, 2)
+	minimap.add_child(head)
+	_spawn_ui.append(head)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = minimap.ALLY
+	sb.set_border_width_all(2)
+	sb.border_color = Color(1, 1, 1)
+	sb.set_corner_radius_all(4)
+	var sb_hover := sb.duplicate() as StyleBoxFlat
+	sb_hover.bg_color = minimap.ALLY.lightened(0.35)
+	for i in points.size():
+		var b := Button.new()
+		b.name = "Spawn%d" % i
+		b.text = str(i + 1)
+		b.size = Vector2(26, 26)
+		b.add_theme_stylebox_override("normal", sb)
+		b.add_theme_stylebox_override("hover", sb_hover)
+		b.add_theme_stylebox_override("pressed", sb_hover)
+		b.position = minimap.to_map(points[i]) - b.size * 0.5
+		b.pressed.connect(func() -> void: spawn_selected.emit(i))
+		minimap.add_child(b)
+		_spawn_ui.append(b)
+
+func hide_spawn_picker() -> void:
+	for n in _spawn_ui:
+		if is_instance_valid(n):
+			n.queue_free()
+	_spawn_ui.clear()
+	if minimap != null:
+		minimap.bg_alpha = 0.55
+		_minimap_corner()
 
 func setup_bot_bars(mechs: Array) -> void:
 	# Free all dynamically created bars from a previous call.

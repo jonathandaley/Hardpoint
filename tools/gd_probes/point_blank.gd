@@ -15,6 +15,7 @@ func _ready() -> void:
 		await get_tree().process_frame
 	if arena.get("_start_pick_open"):
 		arena.get("hud").squad_slot_selected.emit(0)
+		arena.get("hud").spawn_selected.emit(0)
 	for i in 30:
 		await get_tree().physics_frame
 	var far: Node3D = arena.get("player_mech")  # parked at team 0's spawn, ~110 m off

@@ -2448,7 +2448,6 @@ func _toggle_overhead() -> void:
 	_overhead_cam.current = not _overhead_cam.current
 
 # Perpendicular to the SW-NE team axis; mechs fan out along this direction.
-const _SPAWN_PERP    := Vector3(0.70711, 0.0, 0.70711)
 const _SPAWN_SPACING := 8.0   # metres between mechs in a team line
 
 func _slots_with_weapon_paths(slots: Array, weapon_paths: Array) -> Array:
@@ -2468,24 +2467,33 @@ func _slots_with_weapon_paths(slots: Array, weapon_paths: Array) -> Array:
 			result.append(slots[i])
 	return result
 
-func _spawn_one_mech(mech_def, team: int, idx: int, count: int, weapon_paths: Array = [], mech_name := "") -> CharacterBody3D:
+# T203: spawn points per team, as angles (deg, atan2(z, x)) around the bowl centre at
+# _SPAWN_R. Spawn 0 = the pre-T203 corner (friendly_fire walks its diagonal); spawn 1
+# sits 60 deg round, near the side beacon the other team's corner is far from.
+# ponytail: Math Temple only; T210 moves spawn points into each map's scene.
+const _SPAWN_R := 56.57
+const _SPAWN_ANGLES: Array = [[135.0, 195.0], [315.0, 15.0]]
+
+func spawn_points(team: int) -> Array:
+	var out: Array = []
+	for a in _SPAWN_ANGLES[team]:
+		var x: float = BOWL_SUN_X + _SPAWN_R * cos(deg_to_rad(a))
+		var z: float = BOWL_SUN_Z + _SPAWN_R * sin(deg_to_rad(a))
+		out.append(Vector3(x, _bowl_height(x, z), z))
+	return out
+
+func _spawn_one_mech(mech_def, team: int, idx: int, count: int, weapon_paths: Array = [], mech_name := "",
+		spawn := 0) -> CharacterBody3D:
 	var perp_offset: float = (float(idx) - float(count - 1) * 0.5) * _SPAWN_SPACING
-	var bx: float
-	var bz: float
-	var facing_y: float
-	if team == 0:
-		bx = -40.0 + BOWL_SUN_X
-		bz = BOWL_SUN_Z + 40.0
-		facing_y = -45.0
-	else:
-		bx = 40.0 + BOWL_SUN_X
-		bz = BOWL_SUN_Z - 40.0
-		facing_y = 135.0
-	var sx: float = bx + _SPAWN_PERP.x * perp_offset
-	var sz: float = bz + _SPAWN_PERP.z * perp_offset
+	var base: Vector3 = spawn_points(team)[spawn]
+	var facing_y: float = 90.0 - _SPAWN_ANGLES[team][spawn]  # face the bowl centre
+	# the line runs across the facing; team 1 mirrored, which keeps the pre-T203 slot order
+	var perp := Basis(Vector3.UP, deg_to_rad(facing_y)).x * (1.0 if team == 0 else -1.0)
+	var sx: float = base.x + perp.x * perp_offset
+	var sz: float = base.z + perp.z * perp_offset
 	var m: CharacterBody3D = mech_def.scene.instantiate()
 	m.name = mech_name if mech_name != "" else "Mech_%d_%d" % [team, idx]
-	m.position = Vector3(sx, _bowl_height(sx, sz) + 1.0, sz)
+	m.position = Vector3(sx, _ground_y(sx, sz) + 1.0, sz)
 	m.rotation_degrees = Vector3(0, facing_y, 0)
 	m.team = team
 	m.scale = Vector3.ONE * mech_def.body_scale
@@ -2589,6 +2597,7 @@ func _setup_players_mp() -> void:
 			_player.set("lives", _squad_lives(entry))
 			mech.died.connect(_on_local_mech_died_mp)
 			hud.squad_slot_selected.connect(_on_squad_slot_selected)
+			hud.spawn_selected.connect(_on_spawn_selected)
 		else:
 			var p := Node.new()
 			p.set_script(load("res://scripts/Player.gd"))
@@ -3229,7 +3238,7 @@ func _on_local_mech_died_mp() -> void:
 	hud.show_squad_picker_mp(squad, _peer_slot_used[my_id])
 
 # Server-side validation and dispatch for squad slot selection (V35, V41).
-func _process_pick_next_mech(sender: int, slot_idx: int) -> void:
+func _process_pick_next_mech(sender: int, slot_idx: int, spawn: int) -> void:
 	if not _peer_slot_used.has(sender):
 		push_error("[Arena] _process_pick_next_mech: unknown sender %d" % sender)
 		return
@@ -3253,31 +3262,36 @@ func _process_pick_next_mech(sender: int, slot_idx: int) -> void:
 	if squad[slot_idx].get("mech", "") == "":
 		push_error("[Arena] _process_pick_next_mech: empty mech at slot %d for %d" % [slot_idx, sender])
 		return
+	if spawn < 0 or spawn >= _SPAWN_ANGLES[peer_team].size():
+		push_error("[Arena] _process_pick_next_mech: invalid spawn %d for %d" % [spawn, sender])
+		return
 	_peer_slot_used[sender][slot_idx] = true
-	_rpc_spawn_next_mech.rpc(sender, slot_idx, peer_team)
+	_rpc_spawn_next_mech.rpc(sender, slot_idx, peer_team, spawn)
 
 # Client -> server: request next squad mech (V41).
 @rpc("any_peer", "reliable")
-func _rpc_pick_next_mech(slot_idx: int) -> void:
+func _rpc_pick_next_mech(slot_idx: int, spawn: int) -> void:
 	if not multiplayer.is_server():
 		return
 	var sender := multiplayer.get_remote_sender_id()
-	_process_pick_next_mech(sender, slot_idx)
+	_process_pick_next_mech(sender, slot_idx, spawn)
 
 # Server -> all: spawn a peer's next squad mech (V35).
 @rpc("authority", "call_local", "reliable")
-func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int) -> void:
+func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int, spawn: int) -> void:
 	var roster: Array = Game.mp_active_match["roster"]
 	var squad: Array = []
 	var team_size: int = 0
 	var roster_idx := -1
+	var tidx := 0  # lane in the spawn line: the entry's place in its team (T203; was the slot)
 	for ri in roster.size():
 		var entry: Dictionary = roster[ri]
-		if entry.get("team", -1) == team:
-			team_size += 1
 		if entry.get("peer_id", 0) == peer_id:
 			squad = entry["squad"]
 			roster_idx = ri
+			tidx = team_size
+		if entry.get("team", -1) == team:
+			team_size += 1
 	if squad.is_empty() or slot_idx >= squad.size():
 		return
 	var mech_path: String = squad[slot_idx].get("mech", "")
@@ -3290,8 +3304,10 @@ func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int) -> void:
 	if _peer_slot_used.has(peer_id) and slot_idx < _peer_slot_used[peer_id].size():
 		_peer_slot_used[peer_id][slot_idx] = true  # B80: clients' pickers read their own copy
 	var wpn_paths: Array = squad[slot_idx].get("weapons", [])
-	var new_mech: CharacterBody3D = _spawn_one_mech(mech_def, team, slot_idx, team_size, wpn_paths,
-		"Mech_r%d_s%d" % [roster_idx, slot_idx])
+	if spawn < 0 or spawn >= _SPAWN_ANGLES[team].size():
+		spawn = 0
+	var new_mech: CharacterBody3D = _spawn_one_mech(mech_def, team, tidx, team_size, wpn_paths,
+		"Mech_r%d_s%d" % [roster_idx, slot_idx], spawn)
 	new_mech.owner_peer_id = peer_id
 	new_mech.roster_idx = roster_idx
 	var my_id := multiplayer.get_unique_id()
@@ -3369,33 +3385,53 @@ func _open_start_pick() -> void:
 		get_tree().paused = true
 	else:
 		get_tree().create_timer(START_PICK_S).timeout.connect(func() -> void:
-			if _start_pick_open:
-				_close_start_pick())
+			if _start_pick_open:  # a mech already chosen still goes in, at spawn 0
+				_send_pick(maxi(_pending_slot, 0), 0))
 
 func _close_start_pick() -> void:
 	_start_pick_open = false
+	_pending_slot = -1
 	hud.hide_squad_picker_mp()
+	hud.hide_spawn_picker()
 	if multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
 		get_tree().paused = false
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
+# T203: mech first, then where: the squad picker hands over to the spawn picker (the
+# minimap, full size), and the pair goes to the server together.
+var _pending_slot := -1
+
 func _on_squad_slot_selected(si: int) -> void:
+	_pending_slot = si
+	hud.hide_squad_picker_mp()
+	hud.show_spawn_picker(spawn_points(_local_team))
+
+func _on_spawn_selected(sp: int) -> void:
+	var si := _pending_slot
+	if si < 0:
+		return
+	_pending_slot = -1
+	hud.hide_spawn_picker()
+	_send_pick(si, sp)
+
+func _send_pick(si: int, sp: int) -> void:
 	var my_id := multiplayer.get_unique_id()
 	if _start_pick_open:
 		_close_start_pick()
-		if si == 0:
-			return  # keep the mech you're in
+		if si == 0 and sp == 0:
+			return  # keep the mech you're in, where it stands
 		if multiplayer.is_server():
-			_process_start_pick(my_id, si)
+			_process_start_pick(my_id, si, sp)
 		else:
-			_rpc_start_pick.rpc_id(1, si)
+			_rpc_start_pick.rpc_id(1, si, sp)
 	elif multiplayer.is_server():
-		_process_pick_next_mech(my_id, si)
+		_process_pick_next_mech(my_id, si, sp)
 	else:
-		_rpc_pick_next_mech.rpc_id(1, si)
+		_rpc_pick_next_mech.rpc_id(1, si, sp)
 
 # Server: one swap per peer, only out of an untouched first mech, only early.
-func _process_start_pick(sender: int, slot: int) -> void:
+# Slot 0 at another spawn = the same mech, moved (retire + respawn, no life lost).
+func _process_start_pick(sender: int, slot: int, spawn: int) -> void:
 	if _match_over or _start_picked.has(sender) or not _peer_slot_used.has(sender):
 		return
 	_start_picked[sender] = true
@@ -3406,8 +3442,9 @@ func _process_start_pick(sender: int, slot: int) -> void:
 		if entry.get("peer_id", 0) == sender:
 			squad = entry["squad"]
 			team = entry.get("team", -1)
-	if team < 0 or slot <= 0 or slot >= used.size() or used[slot] or slot >= squad.size() \
-			or squad[slot].get("mech", "") == "" or match_node.elapsed > START_PICK_S + 2.0:
+	if team < 0 or slot < 0 or slot >= used.size() or (slot > 0 and used[slot]) or slot >= squad.size() \
+			or squad[slot].get("mech", "") == "" or match_node.elapsed > START_PICK_S + 2.0 \
+			or spawn < 0 or spawn >= _SPAWN_ANGLES[team].size() or (slot == 0 and spawn == 0):
 		return
 	var first_idx := -1
 	for i in _team_mechs[team].size():
@@ -3417,13 +3454,13 @@ func _process_start_pick(sender: int, slot: int) -> void:
 	if first_idx < 0 or _team_mechs[team][first_idx].health < _team_mechs[team][first_idx].max_health:
 		return  # no swapping out of a fight
 	_rpc_retire_first_mech.rpc(sender, team, first_idx)
-	_rpc_spawn_next_mech.rpc(sender, slot, team)
+	_rpc_spawn_next_mech.rpc(sender, slot, team, spawn)
 
 # Client -> server: start pick (V41: server validates).
 @rpc("any_peer", "reliable")
-func _rpc_start_pick(slot: int) -> void:
+func _rpc_start_pick(slot: int, spawn: int) -> void:
 	if multiplayer.is_server():
-		_process_start_pick(multiplayer.get_remote_sender_id(), slot)
+		_process_start_pick(multiplayer.get_remote_sender_id(), slot, spawn)
 
 # Server -> all: the first mech leaves without a death (no life, no VFX); slot 0 is free again.
 @rpc("authority", "call_local", "reliable")
@@ -3474,12 +3511,34 @@ func _on_bot_mech_died(bp: Node, ri: int) -> void:
 	if slot >= squad.size():
 		return
 	_bot_slot_next[ri] = slot + 1
-	_rpc_spawn_next_bot.rpc(ri, slot)
+	_rpc_spawn_next_bot.rpc(ri, slot, bot_spawn(Game.mp_active_match["roster"][ri]["team"]))
+
+# T203: a bot spawns where its team is needed: near beacons the team doesn't hold
+# (neutral, enemy, contested), away from enemies already standing there. Server-only
+# (beacon state + positions are authoritative there), result rides the spawn RPC.
+const SPAWN_THREAT_R := 40.0
+func bot_spawn(team: int) -> int:
+	var best := 0
+	var best_s := -INF
+	var pts := spawn_points(team)
+	for i in pts.size():
+		var p: Vector3 = pts[i]
+		var s := 0.0
+		for b in get_tree().get_nodes_in_group("beacons"):
+			if b.get("state") != team + 1:
+				s += 30.0 / (30.0 + p.distance_to(b.global_position))
+		for m in _team_mechs[1 - team]:
+			if is_instance_valid(m) and not m.is_dead and p.distance_to(m.global_position) < SPAWN_THREAT_R:
+				s -= 0.5
+		if s > best_s:
+			best_s = s
+			best = i
+	return best
 
 # Server -> all: spawn a bot's next squad mech (same order on every peer: snapshots
 # address mechs by their index in _team_mechs).
 @rpc("authority", "call_local", "reliable")
-func _rpc_spawn_next_bot(ri: int, slot: int) -> void:
+func _rpc_spawn_next_bot(ri: int, slot: int, spawn: int) -> void:
 	var roster: Array = Game.mp_active_match["roster"]
 	if ri < 0 or ri >= roster.size() or slot >= roster[ri]["squad"].size():
 		return
@@ -3496,8 +3555,10 @@ func _rpc_spawn_next_bot(ri: int, slot: int) -> void:
 			if i == ri:
 				tidx = team_size
 			team_size += 1
-	var m: CharacterBody3D = _spawn_one_mech(mech_def, team, slot, team_size,
-		entry["squad"][slot].get("weapons", []), "Mech_r%d_s%d" % [ri, slot])
+	if spawn < 0 or spawn >= _SPAWN_ANGLES[team].size():
+		spawn = 0
+	var m: CharacterBody3D = _spawn_one_mech(mech_def, team, tidx, team_size,
+		entry["squad"][slot].get("weapons", []), "Mech_r%d_s%d" % [ri, slot], spawn)
 	m.owner_peer_id = 0
 	m.roster_idx = ri
 	var bp: Node = get_node_or_null("BotPlayer_%d_%d" % [team, tidx])
@@ -3508,6 +3569,21 @@ func _rpc_spawn_next_bot(ri: int, slot: int) -> void:
 		if multiplayer.is_server():
 			m.died.connect(_on_bot_mech_died.bind(bp, ri))
 	_refresh_team_bars(team)
+
+# T203: spawn height = the real floor under the spot. The Penrose terraces don't follow
+# _bowl_height's circles exactly: a lane near a riser spawned mechs inside the step above
+# (stuck, falling in place). The match-start spawn runs before the floor exists = formula.
+func _ground_y(x: float, z: float) -> float:
+	var y0 := _bowl_height(x, z)
+	if not is_inside_tree():
+		return y0
+	var q := PhysicsRayQueryParameters3D.create(Vector3(x, y0 + 4.5, z), Vector3(x, y0 - 4.0, z))
+	var ex: Array[RID] = []
+	for m in get_tree().get_nodes_in_group("mechs"):
+		ex.append((m as CollisionObject3D).get_rid())
+	q.exclude = ex
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	return hit.position.y if not hit.is_empty() else y0
 
 func _bowl_height(x: float, z: float) -> float:
 	var dx := x - BOWL_SUN_X

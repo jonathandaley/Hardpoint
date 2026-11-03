@@ -17,6 +17,7 @@ func _ready() -> void:
 		await get_tree().process_frame
 	if arena.get("_start_pick_open"):  # T187: keep slot 0, as a player would
 		arena.get("hud").squad_slot_selected.emit(0)
+		arena.get("hud").spawn_selected.emit(0)
 	for i in 60:
 		await get_tree().physics_frame
 	var hud: Node = arena.get("hud")
@@ -31,7 +32,7 @@ func _ready() -> void:
 			if not picker_up:
 				_fail("no picker after mech %d of %d" % [slot, lives0])
 				break
-			arena.call("_process_pick_next_mech", 1, slot)  # what the picker button does
+			arena.call("_process_pick_next_mech", 1, slot, 0)  # what the picker button does
 			for i in 10:
 				await get_tree().physics_frame
 		elif picker_up:
