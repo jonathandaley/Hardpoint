@@ -30,7 +30,6 @@ const WEAPON_CATALOG: Array = [
 	{"name": "MACHINE GUN HEAVY", "path": "res://scenes/weapons/MachineGunHeavy.tscn", "slot_size": 1},
 	{"name": "SHOTGUN HEAVY",        "path": "res://scenes/weapons/ShotgunHeavy.tscn",        "slot_size": 1},
 	{"name": "MISSILE LAUNCHER HV", "path": "res://scenes/weapons/MissileLauncherHeavy.tscn", "slot_size": 1},
-	{"name": "ROCKET LAUNCHER HV",  "path": "res://scenes/weapons/RocketLauncherHeavy.tscn",  "slot_size": 1},
 	{"name": "LASER CANNON HV",     "path": "res://scenes/weapons/LaserCannonHeavy.tscn",     "slot_size": 1},
 	{"name": "ARC WEAPON LT",       "path": "res://scenes/weapons/ArcWeaponLight.tscn",        "slot_size": 0},
 	{"name": "ARC WEAPON HV",       "path": "res://scenes/weapons/ArcWeaponHeavy.tscn",        "slot_size": 1},

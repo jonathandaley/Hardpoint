@@ -64,5 +64,13 @@ func _ready() -> void:
 	Game._load_loadout()
 	if not Game.loadout["presets"].is_empty() or h.get_node_or_null("PresetPanel/Box/Scroll/List/Preset0") != null:
 		_fail("delete left %s" % [Game.loadout["presets"].keys()])
+	# T194: rockets are light-only; saves holding the cut heavy rocket load as AERIAL HV
+	var heavy_rocket := "res://scenes/weapons/RocketLauncherHeavy.tscn"
+	var mig: Dictionary = Game._migrate_weapons({"p": {"choices": {"Everest": [heavy_rocket, ""]}}})
+	if mig["p"]["choices"]["Everest"][0] != "res://scenes/weapons/AerialStrikeHeavy.tscn":
+		push_error("[probe] preset_roundtrip: saved heavy rocket not migrated (%s)" % mig)
+	for c in preload("res://scripts/Lobby.gd").WEAPON_CATALOG + preload("res://scripts/Hangar.gd").WEAPON_CATALOG:
+		if c["path"] == heavy_rocket:
+			push_error("[probe] preset_roundtrip: heavy rocket launcher still in a weapon catalog")
 	print("[probe] preset_roundtrip done")
 	get_tree().quit(0)

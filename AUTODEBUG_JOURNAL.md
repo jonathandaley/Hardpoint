@@ -63,3 +63,4 @@ date|task|outcome|commit|finding|suite
 2026-11-03|T191|DONE|see git log (T191)|Seeker weapon_scale 2.0 (model + muzzle flash), turret shrunk to 0.7 in kit_port (MOUNT_SHRINK), slot on the turret top; render reviewed; hangar_weapons checks 2x|43/43 (first run 42/43: bot_combat flake 1 in 16 -- bots killed its idle lock target; probe hardened)
 2026-11-03|T192|DONE|see git log (T192)|title = icon + HARDPOINT; guest: LOG IN/SIGN UP disabled + PLAY AS GUEST -> callsign; saved profile: PLAY -> hangar; harness takes either path|43/43
 2026-11-03|T193|DONE|see git log (T193)|blob shadows (BlobShadow.gd disc per mech, sun shadows off) by default; Settings SHADOWS: BLOB / FULL keeps the old look; probe blob_shadow|44/44
+2026-11-03|T194|DONE|see git log (T194)|rockets light-only: ROCKET HV removed (scene deleted), saves migrate to AERIAL HV, menu_flow updated|44/44
