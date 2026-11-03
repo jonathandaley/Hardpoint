@@ -21,6 +21,8 @@ const FINISH_HP     := 0.25  # T169: keep the current target below this HP fract
 const HELP_RADIUS   := 60.0  # T172: teammates this close hear who is shooting us
 const FOCUS_BONUS   := 5.0   # T172: score per teammate already on that target (max 3)
 const VISIBLE_BONUS := 6.0   # T172: candidate in line of sight
+const CLOSE_RANGE   := 15.0  # T190: an enemy inside this takes priority over the focus target
+const CLOSE_BONUS   := 40.0  # T190: tapers to 0 at CLOSE_RANGE; inside ~10 m beats focus + sight
 const OUTNUMBER_RADIUS := 30.0  # T189: friends vs foes this close decide push or fall back
 const CLAIM_STICKY := 3.0       # T189: score bonus for the beacon we already head for
 const CHASE_DIST    := 80.0  # T172: follow a target that broke line of sight
@@ -165,7 +167,10 @@ func _hp_pct(m: Node) -> float:
 # High score = close + low HP (HP weight 12 vs distance 0.1) + recent attacker (T169).
 # T172 team presets: + in sight, + teammates already shooting it (focus fire).
 func _score(from: Node3D, em: Node3D) -> float:
-	var score := (1.0 - _hp_pct(em)) * 12.0 - from.global_position.distance_to(em.global_position) * 0.1
+	var d := from.global_position.distance_to(em.global_position)
+	var score := (1.0 - _hp_pct(em)) * 12.0 - d * 0.1
+	if d < CLOSE_RANGE:  # T190: whoever walked up to us is the threat, LOS or not
+		score += CLOSE_BONUS * (1.0 - d / CLOSE_RANGE)
 	if em == _threat and _threat_timer > 0.0:
 		score += THREAT_BONUS
 	if _preset()["team"]:
@@ -173,6 +178,17 @@ func _score(from: Node3D, em: Node3D) -> float:
 			score += VISIBLE_BONUS
 		score += FOCUS_BONUS * mini(_mates_on(em), 3)
 	return score
+
+var _close_check := 0.0
+var _close_seen: Node3D = null
+
+func _nearest_enemy(from: Node3D) -> Node3D:
+	var best: Node3D = null
+	for em in get_tree().get_nodes_in_group("mechs"):
+		if _is_live_enemy(em) and (best == null or from.global_position.distance_to(em.global_position) \
+				< from.global_position.distance_to(best.global_position)):
+			best = em
+	return best
 
 func _mates_on(em: Node) -> int:
 	var n := 0
@@ -403,6 +419,16 @@ func _physics_process_impl(delta: float) -> void:
 	_threat_timer -= delta
 	_retaliate_cd -= delta
 	_react_timer -= delta
+	# T190: an enemy stepping in close forces a re-pick now, not at the next 2 s refresh
+	_close_check -= delta
+	if _close_check <= 0.0:
+		_close_check = 0.25
+		var near := _nearest_enemy(bot_mech)
+		if near != null and bot_mech.global_position.distance_to(near.global_position) >= CLOSE_RANGE:
+			near = null
+		if near != null and near != _target and near != _close_seen:
+			_target_refresh = 0.0  # once per close arrival; hysteresis may still keep the old target
+		_close_seen = near
 	# Refresh target periodically or when current target is no longer valid.
 	_target_refresh -= delta
 	if _target_refresh <= 0.0 or not is_instance_valid(_target) or not _target.visible:
