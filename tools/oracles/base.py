@@ -173,6 +173,7 @@ IMPAIRED_NET_THRESHOLDS = {
     "persist_ticks": 30, "hp_persist_ticks": 180, "lock_persist_ticks": 180, "ammo_persist_ticks": 180,
     "active_set_persist_ticks": 180, "reload_persist_ticks": 180, "hit_confirm_max_delay_ticks": 180,
     "beacon_lag_ticks": 180, "interp_max_stall": 0.2,
+    "pred_p95_m": 0.6,  # T205: late or lost input packets (measured `bad` p95 <= 0.39 m)
 }
 
 

@@ -120,7 +120,8 @@ func _update_capture(delta: float) -> void:
 	var cap_delta: float = delta
 	if _player_team_in_zone() == team:
 		cap_delta *= 1.0 + Game.get_skill_effect("beacon_capture")
-	_capture_progress += cap_delta / capture_time
+	# B87: clamp -- the capturing tick overshot (1.002) and the stream sent that before the reset
+	_capture_progress = minf(_capture_progress + cap_delta / capture_time, 1.0)
 	if multiplayer.has_multiplayer_peer():
 		_progress_broadcast_timer -= delta
 		if _progress_broadcast_timer <= 0.0 and Game.mp_live:  # T159/V52 stream gate

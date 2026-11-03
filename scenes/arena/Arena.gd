@@ -3703,7 +3703,7 @@ func _snapshot_tick() -> void:
 			var m = _team_mechs[team][idx]
 			if not is_instance_valid(m) or m.get("is_dead"):
 				continue
-			snapshots.append({
+			var e := {
 				"st": st,
 				"team": team,
 				"idx": idx,
@@ -3711,7 +3711,11 @@ func _snapshot_tick() -> void:
 				"quat": m.global_transform.basis.get_rotation_quaternion(),
 				"vel": m.velocity,
 				"torso_y": m.torso.rotation.y,
-			})
+			}
+			if m.owner_peer_id > 1:  # T205: a client's mech -> its prediction's reference
+				e["ack"] = m.input_ack
+				e["ackt"] = m.input_ack_ticks
+			snapshots.append(e)
 	if snapshots.is_empty():
 		return
 	_rpc_snapshot.rpc(snapshots)

@@ -47,6 +47,8 @@ var _net_input_tick: int = 0       # increments every physics tick; used for 30H
 var _net_input_seq: int = 0        # monotonic send counter
 var _press_counts: Array = [0, 0, 0, 0, 0, 0]  # T158/V47: cumulative presses [reload, ability, slot0..3]
 var last_input_ms: int = 0           # T167: server, wall ms of the owner's last _rpc_input (Arena silence check)
+var input_ack: int = 0               # T205: server, newest input seq applied (rides the snapshot)
+var input_ack_ticks: int = 0         # T205: server, physics ticks run on that input so far
 var _rpc_rate_times: Array = []    # server-side sliding window of _rpc_input arrival times (1s)
 var _rpc_rate_warned: bool = false # true while peer is over 60Hz limit (suppress repeat warnings)
 var _snap_buf: Array = []          # V37: last 2 server snapshots [{time,pos,quat,vel}]; T120 reads for interp
@@ -465,6 +467,9 @@ func receive_snapshot(entry: Dictionary, local_t: float = -1.0) -> void:
 	# so the global_transform defaults below must only run inside the tree.)
 	if not is_inside_tree():
 		return
+	if _predicting():
+		_reconcile(entry)  # T205: own mech predicts; the snapshot corrects it
+		return
 	_snap_buf.append({
 		# T150: server send time mapped to the local clock (Arena._rpc_snapshot)
 		"time": local_t if local_t >= 0.0 else Time.get_ticks_msec() * 0.001,
@@ -587,7 +592,19 @@ func _physics_process(delta: float) -> void:
 
 func _physics_process_impl(delta: float) -> void:
 	# V38: non-server peers skip all local simulation; transforms driven by snapshot interp.
+	# T205: except the client's own mech, which predicts its movement (V37).
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		if _predicting():
+			_handle_look()
+			_maybe_forward_input()
+			if _pred_live:
+				if not is_on_floor() and _step_up_remaining <= 0.0:
+					velocity += get_gravity() * delta
+				_handle_movement(delta)
+				_slide(delta)
+				_pred_record()
+			_update_legs(delta)
+			return
 		_apply_snapshot_interp()
 		if _input_source != null and owner_peer_id == multiplayer.get_unique_id():
 			_handle_look()   # camera still tracks local mouse
@@ -619,6 +636,13 @@ func _physics_process_impl(delta: float) -> void:
 	if multiplayer.has_multiplayer_peer():
 		_broadcast_ammo_changes()
 
+	_slide(delta)
+	if owner_peer_id > 0 and owner_peer_id != multiplayer.get_unique_id():
+		input_ack_ticks += 1  # T205: ticks on the newest input, for the owner's reconciliation
+	_update_legs(delta)
+
+# Step-up + move_and_slide: the server's simulation and the owner's prediction (T205).
+func _slide(delta: float) -> void:
 	_try_step_up()
 	if _step_up_remaining > 0.0:
 		var lift := minf(_step_up_remaining, _STEP_RATE * delta)
@@ -626,7 +650,86 @@ func _physics_process_impl(delta: float) -> void:
 		_step_up_remaining -= lift
 	move_and_slide()
 	_try_step_up_from_collisions()
-	_update_legs(delta)
+
+# ---- T205: client-side prediction of the own mech ----
+# The owning client moves its mech from local input every tick (same code as the
+# server) and records where each tick left it, labelled (input seq, n-th tick on it).
+# Each snapshot carries the server's position after `ackt` ticks on input `ack`; the
+# client compares that with its own record for the same (seq, tick), then eases the
+# difference out (PRED_BLEND per snapshot) or snaps when it is over PRED_SNAP_M.
+# Matching the tick count matters: the server runs a packet for ~2 ticks, varying with
+# jitter, and comparing against the wrong tick reads as a constant pull backwards.
+# Fire, abilities, damage stay server-only (V38); the jump's launch is replayed here
+# when the server's activation arrives.
+const PRED_SNAP_M := 1.0      # calibration knob: snap instead of easing above this
+const PRED_BLEND := 0.2       # share of the error removed per snapshot (20 Hz)
+const PRED_DEADZONE := 0.02   # m: below this it's float noise, leave it
+const _PRED_HIST_MAX := 120   # 2 s of ticks
+var _pred_live := false       # first snapshot seen (the server holds mechs until live)
+var _pred_synced := false     # first record matched: timelines aligned
+var _pred_hist: Array = []    # [seq, n-th tick on it, position after the tick]
+
+func _predicting() -> bool:
+	return _input_source != null and owner_peer_id == multiplayer.get_unique_id() and not is_dead
+
+func _pred_record() -> void:
+	var n := 1
+	if not _pred_hist.is_empty() and int(_pred_hist[-1][0]) == _net_input_seq:
+		n = int(_pred_hist[-1][1]) + 1
+	_pred_hist.append([_net_input_seq, n, global_position])
+	if _pred_hist.size() > _PRED_HIST_MAX:
+		_pred_hist.pop_front()
+
+func _reconcile(entry: Dictionary) -> void:
+	var server_pos: Vector3 = entry.get("pos", global_position)
+	if not _pred_live:  # start from the server's word (mid-fall from the spawn height, too)
+		_pred_live = true
+		global_position = server_pos
+		velocity = entry.get("vel", velocity)
+		return
+	var ack: int = int(entry.get("ack", -1))
+	var ackt: int = int(entry.get("ackt", 0))
+	if ack <= 0 or ackt <= 0:
+		return
+	var i := -1
+	for k in range(_pred_hist.size() - 1, -1, -1):
+		var h: Array = _pred_hist[k]
+		if int(h[0]) == ack and (int(h[1]) <= ackt or i < 0):
+			i = k  # the record for tick ackt on input ack (or its last tick if the server ran longer)
+			if int(h[1]) <= ackt:
+				break
+		elif int(h[0]) < ack:
+			break
+	if i < 0:
+		return  # older than the history, or not sent yet
+	# a packet that lands a tick late makes the server run the previous input one tick
+	# longer (and this one a tick shorter): same total ticks, so a neighbour record is
+	# the true match -- take the closest of the three
+	for k in [i - 1, i + 1]:
+		if k >= 0 and k < _pred_hist.size() and server_pos.distance_to(_pred_hist[k][2]) \
+				< server_pos.distance_to(_pred_hist[i][2]):
+			i = k
+	var err: Vector3 = server_pos - (_pred_hist[i][2] as Vector3)
+	if not _pred_synced:
+		# The first snapshot (the starting point) was already up to a round trip old; the
+		# server kept moving meanwhile, so the first matched record trails it by about
+		# speed x latency. Take that whole difference once: it's alignment, not error.
+		_pred_synced = true
+		global_position += err
+		for k in range(i, _pred_hist.size()):
+			_pred_hist[k][2] = (_pred_hist[k][2] as Vector3) + err
+		_pred_hist = _pred_hist.slice(i)
+		return
+	var snap := err.length() > PRED_SNAP_M
+	var corr: Vector3 = err if snap else err * PRED_BLEND
+	if snap:
+		velocity = entry.get("vel", velocity)
+	if err.length() >= PRED_DEADZONE:  # on the error: a small steady offset still eases out
+		global_position += corr
+		for k in range(i, _pred_hist.size()):
+			_pred_hist[k][2] = (_pred_hist[k][2] as Vector3) + corr
+	_pred_hist = _pred_hist.slice(i)  # keep the match: the next snapshot's tick-early neighbour
+	Game.sync_log_event("pred_recon", name, {"err": snappedf(err.length(), 0.001), "snap": snap})
 
 # T197 (B84): no step-up while launching upward. The jump sets velocity.y in the same tick,
 # before this runs; a rise ahead (slope, step) passed the shin/clear ray test and the
@@ -797,6 +900,9 @@ func _rpc_input(seq: int, payload: Dictionary) -> void:
 	_rpc_rate_warned = false
 	if _input_source == null or not _input_source.has_method("push_input"):
 		return
+	if seq != input_ack:  # T205 (unreliable_ordered: newer only)
+		input_ack = seq
+		input_ack_ticks = 0
 	_input_source.push_input(payload)
 
 func _handle_look() -> void:
@@ -1057,11 +1163,7 @@ func _apply_stealth_visual(active: bool) -> void:
 func _activate_ability(ability: Resource) -> void:
 	match ability.effect_key:
 		"jump_heal":
-			velocity.y = 15.0
-			var launch_dir: Vector3 = _desired_move_dir if _desired_move_dir != Vector3.ZERO \
-				else -torso.global_transform.basis.z
-			velocity.x = launch_dir.x * walk_speed * 3.75
-			velocity.z = launch_dir.z * walk_speed * 3.75
+			_jump_launch()
 			health = minf(health + 80.0, max_health)
 		"stealth":
 			is_stealthy = true
@@ -1093,12 +1195,22 @@ func _deactivate_ability(key: String) -> void:
 				_rpc_ability_deactivated.rpc(_abilities.find(ability))
 			break
 
+func _jump_launch() -> void:
+	velocity.y = 15.0
+	var launch_dir: Vector3 = _desired_move_dir if _desired_move_dir != Vector3.ZERO \
+		else -torso.global_transform.basis.z
+	velocity.x = launch_dir.x * walk_speed * 3.75
+	velocity.z = launch_dir.z * walk_speed * 3.75
+
 @rpc("authority", "reliable")
 func _rpc_ability_activated(slot: int) -> void:
 	if slot < 0 or slot >= _abilities.size():
 		return
 	var ability: Resource = _abilities[slot]
 	match ability.effect_key:
+		"jump_heal":
+			if _predicting():
+				_jump_launch()  # T205: the owner's prediction flies too (one RTT/2 late)
 		"stealth":
 			is_stealthy = true
 			_apply_stealth_visual(true)
