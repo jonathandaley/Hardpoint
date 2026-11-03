@@ -479,6 +479,13 @@ func _on_mp_peer_connected(id: int) -> void:
 	var enet := multiplayer.multiplayer_peer as ENetMultiplayerPeer
 	if enet != null and (multiplayer.is_server() or id == 1):  # other clients are relayed, not ENet peers here
 		enet.get_peer(id).set_timeout(32, 5000, PEER_TIMEOUT_MS)
+		# T200 (B78): ENet's packet throttle drops UNRELIABLE sends on a counter cycle once
+		# it sees jittery RTTs, and recovers slowly while traffic is light: after an idle
+		# lobby on a jittery link the 20 Hz snapshots went out in bursts (client mechs stood
+		# still ~200 ms at a time). Deceleration 0 keeps it at its full-rate start value.
+		# ponytail: no back-off of unreliable traffic on a truly congested link (~2 KB/s of
+		# snapshots); set a bandwidth limit on the ENet host if that ever matters.
+		enet.get_peer(id).throttle_configure(5000, 2, 0)
 	if multiplayer.is_server() and not mp_active_match["roster"].is_empty():
 		# T153 backstop: auth admitted it in the lobby, but the match started before the
 		# handshake finished. Kick before any RPC reaches it (T170 refuses the usual case
