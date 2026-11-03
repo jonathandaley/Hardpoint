@@ -77,7 +77,13 @@ func _process(_delta: float) -> void:
 				_conns.erase(c)
 			continue
 		var nl: int = (c["buf"] as PackedByteArray).find(10)
-		if nl >= 0:
+		if nl >= 0 and _is_skill_op(c["buf"].slice(0, nl).get_string_from_utf8()):
+			# T213: skill ops borrow Game's rules (Game.profile) -> main thread; no hashing
+			tls.put_data((JSON.stringify(handle(c["buf"].slice(0, nl).get_string_from_utf8())) + "\n").to_utf8_buffer())
+			tls.poll()
+			tls.disconnect_from_stream()
+			_conns.erase(c)
+		elif nl >= 0:
 			var line: String = c["buf"].slice(0, nl).get_string_from_utf8()
 			var out := [null]
 			c["reply"] = out
@@ -87,11 +93,26 @@ func _process(_delta: float) -> void:
 			tls.disconnect_from_stream()
 			_conns.erase(c)
 
+const SKILL_OPS := ["unlock_skill", "upgrade_skill"]
+
+func _is_skill_op(line: String) -> bool:
+	var req = JSON.parse_string(line)
+	return req is Dictionary and String(req.get("op", "")) in SKILL_OPS
+
 # One request (a JSON line from an untrusted client) -> reply. Public for the probe.
 func handle(line: String) -> Dictionary:
 	var req = JSON.parse_string(line)
 	if not req is Dictionary:
 		return _err("bad request")
+	if String(req.get("op", "")) in SKILL_OPS:  # T213: {op, session, key}; main thread only
+		var who := email_for(String(req.get("session", "")))
+		if who == "":
+			return _err("sign in again")
+		var after: Dictionary = Game.skill_op_on(profile(who), String(req["op"]), String(req.get("key", "")))
+		if after.is_empty():
+			return _err("not enough points or coins")
+		save_profile(who, after)
+		return {"ok": true, "profile": after}
 	var email := String(req.get("email", "")).strip_edges().to_lower()
 	var password := String(req.get("password", ""))
 	if not _valid_email(email):

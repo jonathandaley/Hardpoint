@@ -64,5 +64,27 @@ func _ready() -> void:
 	var wrong: Dictionary = await Game.account_request("127.0.0.1", 8959, {"op": "login", "email": "bob@example.com", "password": "x" + pw})
 	if wrong.get("ok") or wrong.get("error", "") != "wrong email or password":
 		_fail("TLS wrong-password reply: %s" % wrong)
+	# T213: skills on the account, by the game's rules, over TLS
+	var own_skills: Dictionary = (Game.profile.get("skills", {}) as Dictionary).duplicate()
+	var sess: String = reply.get("session", "")
+	var key: String = Game.SKILL_TREE.keys()[0]
+	for k in Game.SKILL_TREE:
+		if (Game.SKILL_TREE[k] as Dictionary).get("parents", []).is_empty():
+			key = k
+			break
+	var u: Dictionary = await Game.account_request("127.0.0.1", 8959, {"op": "unlock_skill", "session": sess, "key": key})
+	if not u.get("ok") or int(u["profile"]["skills"].get(key, 0)) != 1 or int(srv.profile("bob@example.com")["skills"].get(key, 0)) != 1:
+		_fail("unlock_skill on the account failed: %s" % u)
+	var again: Dictionary = await Game.account_request("127.0.0.1", 8959, {"op": "unlock_skill", "session": sess, "key": key})
+	if again.get("ok"):
+		_fail("unlocked the same skill twice (level-1 account has 1 point)")
+	var up: Dictionary = await Game.account_request("127.0.0.1", 8959, {"op": "upgrade_skill", "session": sess, "key": key})
+	if up.get("ok"):
+		_fail("upgrade with 0 coins accepted")
+	var forged: Dictionary = await Game.account_request("127.0.0.1", 8959, {"op": "unlock_skill", "session": "0".repeat(64), "key": key})
+	if forged.get("ok"):
+		_fail("skill op accepted without a valid session")
+	if Game.profile.get("skills", {}) != own_skills:
+		_fail("the server's own profile picked up the account's skill (borrow not restored)")
 	print("[probe] accounts done")
 	get_tree().quit(0)

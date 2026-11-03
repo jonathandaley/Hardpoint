@@ -890,28 +890,57 @@ func can_upgrade(key: String) -> bool:
 		return false
 	return profile.get("coins", 0) >= _SKILL_FIB_COSTS[lv - 1]
 
+# T213: signed in, a skill changes on the account's server (account_skill); these are
+# the local (guest) path.
 func unlock_skill(key: String) -> bool:
-	if not account.is_empty():
-		return false  # T207 -> T213: an account's skills change on its server (not yet)
-	if not can_unlock(key):
+	if not account.is_empty() or not _skill_apply("unlock_skill", key):
 		return false
-	var skills: Dictionary = profile.get("skills", {})
-	skills[key] = 1
-	profile["skills"] = skills
 	save_profile()
 	return true
 
 func upgrade_skill(key: String) -> bool:
-	if not account.is_empty():
-		return false  # T207 -> T213: an account's skills change on its server (not yet)
-	if not can_upgrade(key):
+	if not account.is_empty() or not _skill_apply("upgrade_skill", key):
 		return false
-	var lv: int = skill_level(key)
-	profile["coins"] = profile.get("coins", 0) - _SKILL_FIB_COSTS[lv - 1]
-	var skills: Dictionary = profile.get("skills", {})
-	skills[key] = lv + 1
-	profile["skills"] = skills
 	save_profile()
+	return true
+
+# The rules-checked change to `profile` (no save): local skills and, borrowed, accounts.
+func _skill_apply(op: String, key: String) -> bool:
+	if op == "unlock_skill":
+		if not can_unlock(key):
+			return false
+		var skills: Dictionary = profile.get("skills", {})
+		skills[key] = 1
+		profile["skills"] = skills
+		return true
+	if op == "upgrade_skill":
+		if not can_upgrade(key):
+			return false
+		var lv: int = skill_level(key)
+		profile["coins"] = profile.get("coins", 0) - _SKILL_FIB_COSTS[lv - 1]
+		var skills: Dictionary = profile.get("skills", {})
+		skills[key] = lv + 1
+		profile["skills"] = skills
+		return true
+	return false
+
+## Server (AccountServer, main thread): the same rules on an account's profile; {} = refused.
+func skill_op_on(prof: Dictionary, op: String, key: String) -> Dictionary:
+	var keep := profile
+	profile = prof.duplicate(true)
+	var ok := _skill_apply(op, key)
+	var out := profile
+	profile = keep
+	return out if ok else {}
+
+## Client, signed in: ask the account's server; true + profile updated when it agreed.
+func account_skill(op: String, key: String) -> bool:
+	var reply: Dictionary = await account_request(account["host"], account["port"],
+		{"op": op, "session": account["session"], "key": key})
+	if not reply.get("ok", false) or account.is_empty():
+		return false
+	account["profile"] = reply["profile"]
+	profile = (reply["profile"] as Dictionary).duplicate(true)
 	return true
 
 func get_skill_effect(key: String) -> float:
