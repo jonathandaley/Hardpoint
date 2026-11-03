@@ -14,6 +14,7 @@ func _ready() -> void:
 		await get_tree().process_frame
 	if arena.get("_start_pick_open"):  # T187: keep slot 0, as a player would
 		arena.get("hud").squad_slot_selected.emit(0)
+		arena.get("hud").spawn_selected.emit(0)
 	for i in 120:
 		await get_tree().physics_frame
 	# T184: bots come from the MP roster (varied mechs), not one bot_def for all
