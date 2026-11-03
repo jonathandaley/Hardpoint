@@ -65,3 +65,4 @@ date|task|outcome|commit|finding|suite
 2026-11-03|T193|DONE|see git log (T193)|blob shadows (BlobShadow.gd disc per mech, sun shadows off) by default; Settings SHADOWS: BLOB / FULL keeps the old look; probe blob_shadow|44/44
 2026-11-03|T194|DONE|see git log (T194)|rockets light-only: ROCKET HV removed (scene deleted), saves migrate to AERIAL HV, menu_flow updated|44/44
 2026-11-03|T195|DONE|see git log (T195)|damage overlay: isolated hits flash, hit streams (laser/MG) hold a steady tint; probe hud_damage|45/45
+2026-11-03|T196|DONE|see git log (T196)|over-the-shoulder camera (arm 1.3 m right, V swaps, wall-aware); spectator follows; probe shoulder_cam + B83 (server camera copy centred -> laser 1.14 m off; side now rides the input)|46/46 + selftest; net 54/54
