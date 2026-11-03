@@ -17,6 +17,22 @@ chmod +x hardpoint_X.X.X.x86_64
 
 Linux x86_64 binary. No install. Godot editor not required to play.
 
+### Dedicated server
+
+```
+godot --headless --path <project dir> -- --server            # port 8910
+godot --headless --path <project dir> -- --server=9000 --team-size=3 --min-players=2
+```
+
+The release binary takes the same flags: `./hardpoint_X.X.X.x86_64 --headless -- --server`.
+
+No player on the server and no menus. Players use FIND MATCH → JOIN with the server's
+address and port. They ready up in the lobby, and the match starts 5 s after everyone
+is ready (a new player joining, or someone un-readying, cancels the countdown). Bots
+fill both teams up to `--team-size` (default 5; `--no-bots` turns that off). After a
+match, everyone returns to the lobby. Other flags: `--map=res://resources/maps/<Map>.tres`
+and `--min-players=N` (default 1). Open the UDP port in the firewall.
+
 ---
 
 ## Controls

@@ -25,6 +25,7 @@ from oracles import (  # noqa: E402
     friendly_fire, prediction_recon, hit_confirm, active_set_desync, reload_desync,
     aim_desync, input_delivery, beam_aim, log_flood, peer_closed, scene_routes, lobby_roster,
     hud_layout, world_invariants, interp_smoothness, latency_recovery, rpc_modes, fair_start, soak, menu_flow, bot_takeover, peer_drop, profile_parity, loop_audio,
+    dedicated,
 )
 
 # Registry of oracle modules. Add modules here as they land.
@@ -64,6 +65,7 @@ ORACLES = {
     peer_drop.NAME: peer_drop,
     profile_parity.NAME: profile_parity,
     loop_audio.NAME: loop_audio,
+    dedicated.NAME: dedicated,
 }
 
 
@@ -122,10 +124,11 @@ def run(scenario_path, run_dir, baseline_dir, override, want_json, quiet):
         "run_dir": os.path.abspath(run_dir),
     }
     names, unknown = select_oracles(scenario, override)
-    for n in unknown:
-        print("WARNING: unknown oracle %r (not in M1 registry), skipping" % n, file=sys.stderr)
-
     results = [ORACLES[n].run(ctx) for n in names]
+    # T204: a scenario naming an unregistered oracle (new module not added to ORACLES,
+    # or a typo) used to warn on stderr and skip -- the guard silently never ran
+    results += [base.verdict(n, base.FAIL, note="unknown oracle (not in the sync_compare registry)")
+                for n in unknown]
     # M2.2: strict xfail. A scenario lists known-open bugs in "expect_fail";
     # their FAIL becomes non-fatal XFAIL, and a PASS becomes fatal XPASS so the
     # marker gets removed the moment the bug is actually fixed.

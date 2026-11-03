@@ -66,6 +66,8 @@ func _ready() -> void:
 		me["level"] = Game.profile.get("level", 1)
 		Game._rpc_request_meta.rpc()
 		Game.broadcast_lobby()
+	elif multiplayer.is_server() and Game.dedicated:
+		pass  # T204: Game.start_dedicated set the lobby up; the server is not a player
 	elif multiplayer.is_server():
 		Game.mp_lobby = {
 			"peers":      {},
@@ -133,6 +135,7 @@ func _on_peer_disconnected(id: int) -> void:
 	Game.broadcast_lobby()
 
 func _on_lobby_updated() -> void:
+	_status_label.text = "MATCH STARTING..." if Game.mp_lobby.get("starting", false) else ""  # T204
 	_rebuild_peer_list()
 	_sync_host_controls_to_lobby()
 	_update_start_button()

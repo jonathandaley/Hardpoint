@@ -30,7 +30,12 @@ func _on_join_pressed() -> void:
 	_error_label.visible = false
 	Game.join(ip, port)
 
-func _on_mp_connected(_id: int) -> void:
+# B86: a joiner also hears about the clients already on the server (relayed
+# peer_connected), often in the same poll as the server itself; the first one changed
+# scene and the next ran on a node already out of the tree (get_tree() null).
+func _on_mp_connected(id: int) -> void:
+	if id != 1 or not is_inside_tree():
+		return
 	get_tree().change_scene_to_file("res://scenes/ui/Lobby.tscn")
 
 func _on_mp_join_failed() -> void:
