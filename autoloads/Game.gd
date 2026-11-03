@@ -869,7 +869,11 @@ func server_change_scene(path: String) -> void:
 	# on a jittery link a snapshot sent just before can land after it, once the client's
 	# Arena is gone ('Node not found: Arena'). Let in-flight streams drain first.
 	await get_tree().create_timer(STREAM_DRAIN_S).timeout
-	server_await_clients(func() -> void: get_tree().change_scene_to_file(path))
+	# B77: the other direction too -- a client's last unreliable input packets, sent just
+	# before its (reliable) ack, can land after it; let them drain into the live Arena.
+	server_await_clients(func() -> void:
+		get_tree().create_timer(STREAM_DRAIN_S).timeout.connect(func() -> void:
+			get_tree().change_scene_to_file(path)))
 	_rpc_change_scene.rpc(path)
 
 func broadcast_lobby() -> void:
