@@ -97,7 +97,10 @@ func _ready() -> void:
 	for k in seed_profile:
 		Game.profile[k] = seed_profile[k]
 	Game.match_ended_mp.connect(_on_match_ended_mp)
-	if _scenario.get("menu", false):
+	if _scenario.get("dedicated", false) and _role == "server":
+		# T204: the real --server mode (Game.start_dedicated); clients JOIN through the menus
+		Game.start_dedicated(_port, _scenario.get("server_opts", {}))
+	elif _scenario.get("menu", false):
 		_menu_flow()
 	elif _role == "server":
 		_start_server()
@@ -438,7 +441,7 @@ func _process(_delta: float) -> void:
 			_deadline_frame = Engine.get_physics_frames()  # soak = exactly one match
 	while not _actions.is_empty() and int(_actions[0].get("tick", 0)) <= t:
 		_run_action(_actions.pop_front())
-	if not _shot_damaged and is_instance_valid(_mine) and float(_mine.get("health")) < float(_mine.get("max_health")):
+	if not _shot_damaged and is_instance_valid(_mine) and _mine is CharacterBody3D and float(_mine.get("health")) < float(_mine.get("max_health")):
 		_shot_damaged = true
 		_shot_later("damaged", 10)
 	while not _hud_ticks.is_empty() and int(_hud_ticks[0]) <= t:
@@ -477,6 +480,9 @@ func _try_override_input() -> void:
 	# T162: the server's script starts when the match goes live (mechs are held
 	# until then), so choreography isn't eaten by the wait for clients.
 	if _role == "server" and _expected_clients > 0 and not Game.mp_live:
+		return
+	if Game.dedicated:
+		_dedicated_match_live()
 		return
 	var my_id := multiplayer.get_unique_id()
 	var mine: Node = null
@@ -522,6 +528,39 @@ func _try_override_input() -> void:
 	replay.load_spec(spec)
 	mine.set_input_source(replay)
 	_finish_override(key, mine)
+
+# T204: a dedicated server has no mech to bind; its clock (actions, deadline) starts
+# when each match goes live. _mine = the Arena, freed on the way back to the lobby,
+# which re-arms this for the next match (the _process match-2 check).
+func _dedicated_match_live() -> void:
+	var scn := get_tree().current_scene
+	if scn == null or scn.name != "Arena":
+		return
+	_override_done = true
+	_key = "server"
+	_mine = scn
+	_match_n += 1
+	_override_frame = Engine.get_physics_frames()
+	for a in _scenario.get("actions", []):
+		if String(a.get("peer", "")) == "server" and int(a.get("match", 1)) == _match_n:
+			_actions.append(a)
+	# the last match: outlive the clients, which log until their own deadline
+	_deadline_frame = _override_frame + int(_scenario.get("duration_ticks", 600)) + 180 \
+		if _match_n >= _matches else -1
+	print("[Harness] dedicated server: match %d live" % _match_n)
+
+# T204: a player after a match on a dedicated server: BACK TO LOBBY, then READY again.
+func _back_to_lobby_ready() -> void:
+	for i in 20:
+		await get_tree().process_frame  # the result panel is built on the same signal
+	var b := get_tree().current_scene.find_child("BackToLobbyBtn", true, false)
+	if b == null:
+		_menu_fail("no BACK TO LOBBY button after match %d" % _match_n)
+		return
+	_click(String(get_tree().current_scene.get_path_to(b)))
+	if await _wait_scene("Lobby"):
+		await get_tree().process_frame
+		_click("ReadyBtn")
 
 func _finish_override(key: String, mine: Node) -> void:
 	_override_done = true
@@ -631,6 +670,8 @@ func _on_match_ended_mp(_winner: int, _stats: Array) -> void:
 	var p: Dictionary = Game.profile
 	print("[Harness] profile_after match=%d team=%d elo=%d xp=%d coins=%d level=%d" % [_match_n, team,
 		int(p.get("elo", 0)), int(p.get("xp", 0)), int(p.get("coins", 0)), int(p.get("level", 0))])
+	if _scenario.get("dedicated", false) and _role != "server" and _match_n < _matches:
+		_back_to_lobby_ready()
 
 # T156: event-driven screenshots ("shots": ["spawn", "damaged", "dead", "match_end"]) --
 # a rendered peer runs ~4x slower than the server, so tick-scheduled shots would miss

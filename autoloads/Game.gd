@@ -423,6 +423,7 @@ func _ready() -> void:
 	_parse_sync_log_args()
 	set_physics_process(sync_logging_enabled)  # M0.2: zero-cost when flag off
 	_maybe_start_harness()  # M0.4: only when --mp-scenario= is present
+	_maybe_start_dedicated()  # T204: only when --server is present
 
 # M0.4: spin up the autodebug harness driver, isolated from the normal UI path.
 func _maybe_start_harness() -> void:
@@ -434,6 +435,82 @@ func _maybe_start_harness() -> void:
 			h.name = "MPHarness"
 			add_child.call_deferred(h)
 			return
+
+# ---- T204: dedicated server ----
+# `godot --headless --path <project> -- --server[=port] [--team-size=N] [--map=<res path>]
+#   [--min-players=N] [--no-bots]`: hosts with no local player and no menus. The lobby
+# lives on the server (Lobby scene, no own entry): players JOIN by address, ready up,
+# and the match starts LOBBY_COUNTDOWN_S after everyone is ready (a new joiner or an
+# unready cancels it); bots fill the teams. Match -> lobby loops with no human host.
+const LOBBY_COUNTDOWN_S := 5.0
+var dedicated := false
+var _min_players := 1
+var _countdown_id := 0  # bumps on every lobby change; a stale countdown does nothing
+
+func _maybe_start_dedicated() -> void:
+	var args: PackedStringArray = OS.get_cmdline_args()
+	args.append_array(OS.get_cmdline_user_args())
+	var port := -1
+	var opts := {}
+	for a in args:
+		if a == "--server" or a.begins_with("--server="):
+			port = int(a.get_slice("=", 1)) if a.contains("=") else 8910
+		elif a.begins_with("--team-size="):
+			opts["team_size"] = int(a.get_slice("=", 1))
+		elif a.begins_with("--map="):
+			opts["map_path"] = a.get_slice("=", 1)
+		elif a.begins_with("--min-players="):
+			opts["min_players"] = int(a.get_slice("=", 1))
+		elif a == "--no-bots":
+			opts["bot_fill"] = false
+	if port > 0 and not has_node("MPHarness"):
+		start_dedicated.call_deferred(port, opts)
+
+## Also the harness's entry for "dedicated" scenarios (the same code path as --server).
+func start_dedicated(port: int, opts: Dictionary = {}) -> void:
+	dedicated = true
+	_min_players = maxi(1, int(opts.get("min_players", 1)))
+	host(port)
+	if not multiplayer.multiplayer_peer is ENetMultiplayerPeer:  # offline also "is_server"
+		push_error("[Server] could not host on port %d" % port)
+		get_tree().quit(1)
+		return
+	mp_lobby = {
+		"peers":      {},
+		"bot_fill":   bool(opts.get("bot_fill", true)),
+		"team_size":  clampi(int(opts.get("team_size", 5)), 1, 6),
+		"map_path":   String(opts.get("map_path", "res://resources/maps/MathTemple.tres")),
+		"match_seed": 0,
+	}
+	print("[Server] dedicated on port %d: team size %d, bots %s, map %s, min players %d" % [port,
+		mp_lobby["team_size"], mp_lobby["bot_fill"], mp_lobby["map_path"], _min_players])
+	get_tree().change_scene_to_file("res://scenes/ui/Lobby.tscn")
+
+# Server: any lobby change re-arms (or cancels) the start countdown.
+func _dedicated_lobby_changed() -> void:
+	if not dedicated or not mp_active_match["roster"].is_empty():
+		return
+	_countdown_id += 1
+	var peers: Dictionary = mp_lobby["peers"]
+	var go := peers.size() >= _min_players
+	for pid in peers:
+		go = go and bool(peers[pid].get("ready", false))
+	if bool(mp_lobby.get("starting", false)) != go:
+		mp_lobby["starting"] = go
+		_rpc_sync_lobby.rpc(mp_lobby)
+	if not go:
+		return
+	var my_id := _countdown_id
+	print("[Server] all %d ready; match in %.0f s" % [peers.size(), LOBBY_COUNTDOWN_S])
+	get_tree().create_timer(LOBBY_COUNTDOWN_S).timeout.connect(func() -> void:
+		if my_id != _countdown_id or not mp_active_match["roster"].is_empty():
+			return
+		mp_lobby["starting"] = false
+		var lobby: Script = load("res://scripts/Lobby.gd")
+		var roster: Array = lobby.call("_build_roster")
+		mp_lobby["match_seed"] = randi()
+		print("[Server] match start: %d players, %d mechs" % [peers.size(), roster.size()])
+		_rpc_match_start.rpc(mp_lobby["map_path"], roster, mp_lobby["match_seed"]))
 
 func host(port: int = 8910) -> void:
 	var peer := ENetMultiplayerPeer.new()
@@ -915,6 +992,7 @@ func broadcast_lobby() -> void:
 	if not multiplayer.is_server():
 		return
 	_rpc_sync_lobby.rpc(mp_lobby)
+	_dedicated_lobby_changed()  # T204: every lobby change (join, leave, ready, squad)
 
 # ---- Squad RPC (T113) ----
 

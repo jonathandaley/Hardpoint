@@ -401,6 +401,7 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 	vbox.add_child(HSeparator.new())
 
 	var btn := Button.new()
+	btn.name = "BackToLobbyBtn"
 	btn.text = "BACK TO LOBBY"
 	btn.add_theme_font_size_override("font_size", 15)
 	if Game.multiplayer.multiplayer_peer is OfflineMultiplayerPeer:  # T184: SP -> hangar

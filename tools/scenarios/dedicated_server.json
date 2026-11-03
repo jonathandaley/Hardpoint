@@ -1,0 +1,32 @@
+{
+  "name": "dedicated_server",
+  "dedicated": true,
+  "menu": true,
+  "seed": 0,
+  "port": 8948,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "matches": 2,
+  "duration_ticks": 900,
+  "server_opts": {"team_size": 2, "min_players": 2},
+  "actions": [{"tick": 240, "peer": "server", "action": "end_match", "winner": 0, "match": 1}],
+  "oracles": [
+    "dedicated",
+    "menu_flow",
+    "spawn_join",
+    "team_assignment",
+    "transform_desync",
+    "crash_scan",
+    "log_flood",
+    "rpc_integrity"
+  ],
+  "_comment": "T204: the server runs the real --server mode (Game.start_dedicated: Lobby scene, no own entry, team size 2, waits for 2 players). Both clients reach it through the real menus (Title -> Hangar -> FIND MATCH -> JOIN -> Lobby -> READY); the server's lobby countdown starts match 1 (no host click), the server ends it at tick 240 (Match.force_end), both clients click BACK TO LOBBY + READY, and the countdown starts match 2. dedicated: dedicated start line, one countdown start per match, no peer-1 mech anywhere, both clients reach both matches.",
+  "peers": {
+    "server": {},
+    "client_1": {
+      "input": {"keyframes": [{"tick": 0, "move": [0, -1], "look": [0.0, 0.0]}, {"tick": 150, "move": [1, 0], "look": [0.5, 0.0]}]}
+    },
+    "client_2": {
+      "input": {"keyframes": [{"tick": 0, "move": [0, -1], "look": [0.0, 0.0]}, {"tick": 150, "move": [-1, 0], "look": [-0.5, 0.0]}]}
+    }
+  }
+}
