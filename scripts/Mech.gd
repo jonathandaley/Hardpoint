@@ -1000,7 +1000,9 @@ func _apply_stealth_visual(active: bool) -> void:
 			fb.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 			mat = fb
 		for mesh in all_meshes:
-			if mesh is MeshInstance3D:
+			# B75: T178 leaves the default Waist/Body/Head nodes mesh-less (kit boxes replace
+			# them); a surface override on an empty MeshInstance is an engine error.
+			if mesh is MeshInstance3D and mesh.mesh != null:
 				_stealth_saved_mats[mesh] = mesh.get_surface_override_material(0)
 				mesh.set_surface_override_material(0, mat)
 	else:

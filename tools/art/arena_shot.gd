@@ -5,12 +5,12 @@ extends Node
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	var md: Resource = load("res://resources/mechs/%s.tres" % args[1])
-	Game.mp_active_match["roster"] = []
-	Game.loadout["mech_def"] = md
-	Game.loadout["bot_def"] = md
 	Game.loadout["team_size"] = 3
 	if args.size() > 2:
 		Game.loadout["map_def"] = load(args[2])
+	Game.setup_sp_match()  # T184: then every slot runs <Mech>
+	for e in Game.mp_active_match["roster"]:
+		e["squad"] = [{"mech": md.resource_path, "weapons": []}]
 	var arena: Node = load("res://scenes/arena/Arena.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(arena)
 	for i in 20:

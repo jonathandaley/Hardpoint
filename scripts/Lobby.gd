@@ -93,7 +93,7 @@ func _ready() -> void:
 func _mech_short_name(path: String) -> String:
 	return path.get_file().get_basename()
 
-func _build_squad_data() -> Array:
+static func _build_squad_data() -> Array:
 	var squad_paths: Array = Game.loadout.get("squad", [])
 	var choices: Dictionary = Game.loadout.get("mech_weapon_choices", {})
 	var result: Array = []
@@ -104,7 +104,7 @@ func _build_squad_data() -> Array:
 		result.append({"mech": fallback, "weapons": []})
 	return result
 
-func _local_peer_meta() -> Dictionary:
+static func _local_peer_meta() -> Dictionary:
 	return {
 		"pilot_name": Game.profile.get("pilot_name", "Pilot"),
 		"elo":        Game.profile.get("elo", 1000),
@@ -257,7 +257,8 @@ func _on_start_pressed() -> void:
 	var map_path: String = Game.mp_lobby.get("map_path", "res://resources/maps/MathTemple.tres")
 	Game._rpc_match_start.rpc(map_path, roster, match_seed)
 
-func _build_roster() -> Array:
+# T184: static -- Game.setup_sp_match builds the SP roster with these too.
+static func _build_roster() -> Array:
 	var roster: Array = []
 	var slot_idx := 0
 	var bot_id := 0
@@ -299,7 +300,7 @@ func _build_roster() -> Array:
 
 	return roster
 
-func _default_bot_squad(bot_id: int) -> Array:
+static func _default_bot_squad(bot_id: int) -> Array:
 	var mech_path: String = ROSTER[bot_id % ROSTER.size()]
 	var mech_def: Resource = load(mech_path)
 	var rng := RandomNumberGenerator.new()

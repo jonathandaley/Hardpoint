@@ -8,7 +8,6 @@ const MechVisuals = preload("res://scripts/MechVisuals.gd")
 @onready var pause_menu: CanvasLayer = $PauseMenu
 
 const DEBUG_PENROSE := false
-const DEBUG_NO_BOT := false
 const BAKE_WALLS := true
 const BOWL_STEP_H := 2.1
 const BOWL_STEP_W := 20.0
@@ -2353,10 +2352,10 @@ func _ready() -> void:
 	pause_menu.quit_requested.connect(_on_pause_quit)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_apply_map_theme()
-	if Game.mp_active_match["roster"].size() > 0:
-		_spawn_mechs_mp()
-	else:
-		_spawn_mechs()
+	# T184: SP is a local MP match (Game.start_sp_match); opened directly (tools, F6) = SP defaults
+	if Game.mp_active_match["roster"].is_empty():
+		Game.setup_sp_match()
+	_spawn_mechs_mp()
 	_create_walls()
 	_create_wall_art()
 	_paint_wall_penrose()
@@ -2369,24 +2368,15 @@ func _ready() -> void:
 	if BAKE_WALLS:
 		_bake_wall_visuals()
 	_wire_beacons()
-	if Game.mp_active_match["roster"].size() > 0:
-		_setup_players_mp()
-		if multiplayer.is_server():
-			_start_snapshot_timer()
-		else:
-			Game._rpc_transition_ack.rpc_id(1)  # T159: Arena loaded, server may stream
-		Game.match_ended_mp.connect(_on_mp_match_ended)
-		Game.mp_peer_disconnected.connect(_on_peer_disconnected_in_match)
+	_setup_players_mp()
+	if multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
+		pass  # SP: no clients to stream snapshots to
+	elif multiplayer.is_server():
+		_start_snapshot_timer()
 	else:
-		_setup_players()
-		hud.setup(match_node, player_mech, 0)
-		hud.setup_bot_bars(_team_mechs[1])
-		hud.setup_ally_bars(_team_mechs[0].slice(1))
-		hud.setup_beacon_bars(get_tree().get_nodes_in_group("beacons"))
-		for weapon in player_mech.get_weapons():
-			if weapon.has_signal("hit_confirmed"):
-				weapon.hit_confirmed.connect(hud.register_hit)
-		player_mech.damaged.connect(hud.show_damage)
+		Game._rpc_transition_ack.rpc_id(1)  # T159: Arena loaded, server may stream
+	Game.match_ended_mp.connect(_on_mp_match_ended)
+	Game.mp_peer_disconnected.connect(_on_peer_disconnected_in_match)
 	if multiplayer.is_server():  # bots (the only nav users) run server-side (T40); SP = offline server
 		_create_nav_region()
 	match_node.match_ended.connect(_on_match_ended)
@@ -2455,57 +2445,6 @@ func _toggle_overhead() -> void:
 		add_child(_overhead_cam)
 	_overhead_cam.current = not _overhead_cam.current
 
-func _slots_with_overrides(slots: Array) -> Array:
-	var overrides: Array = Game.loadout.get("weapon_overrides", [])
-	if overrides.is_empty():
-		return slots
-	var result: Array = []
-	for i in slots.size():
-		if i < overrides.size() and overrides[i] != null:
-			var s = slots[i].duplicate()
-			s.weapon_scene = overrides[i]
-			result.append(s)
-		else:
-			result.append(slots[i])
-	return result
-
-func _spawn_player_only() -> void:
-	var mech_def = Game.loadout.get("mech_def")
-	if mech_def == null:
-		push_error("[Arena] No mech_def in loadout; falling back to Hippogriff")
-		mech_def = load("res://resources/mechs/Hippogriff.tres")
-	player_mech = mech_def.scene.instantiate()
-	player_mech.name = "PlayerMech"
-	player_mech.position = Vector3(0, 1.0, 0)
-	player_mech.scale = Vector3.ONE * mech_def.body_scale
-	player_mech.max_health = mech_def.max_health
-	player_mech.base_walk_speed = mech_def.walk_speed
-	player_mech.turn_acceleration = mech_def.turn_acceleration
-	player_mech.leg_rotation_speed = mech_def.leg_rotation_speed
-	MechVisuals.apply(player_mech, mech_def.display_name)
-	add_child(player_mech)
-	player_mech.configure_legs(mech_def.leg_hip_sweep, mech_def.leg_bob_magnitude, mech_def.leg_cycle_rate)
-	player_mech.configure_weapons(_slots_with_overrides(mech_def.weapon_slots))
-	player_mech.configure_abilities(mech_def.abilities)
-
-	_player = Node.new()
-	_player.set_script(load("res://scripts/Player.gd"))
-	_player.name = "Player"
-	_player.set("team", 0)
-	add_child(_player)
-	var input := Node.new()
-	input.set_script(load("res://scripts/PlayerInputSource.gd"))
-	_player.add_child(input)
-	_player.set("input_source", input)
-	var pilot := Node.new()
-	pilot.set_script(load("res://scripts/Pilot.gd"))
-	pilot.set("pilot_name", Game.profile.get("pilot_name", "Pilot"))
-	_player.add_child(pilot)
-	_player.set("pilot", pilot)
-	_player.call("possess", player_mech)
-	player_mech.died.connect(Callable(_player, "on_pawn_destroyed"))
-	player_mech.mark_requested.connect(_on_mark_requested)
-
 # Perpendicular to the SW-NE team axis; mechs fan out along this direction.
 const _SPAWN_PERP    := Vector3(0.70711, 0.0, 0.70711)
 const _SPAWN_SPACING := 8.0   # metres between mechs in a team line
@@ -2527,7 +2466,7 @@ func _slots_with_weapon_paths(slots: Array, weapon_paths: Array) -> Array:
 			result.append(slots[i])
 	return result
 
-func _spawn_one_mech(mech_def, is_player_mech: bool, team: int, idx: int, count: int, weapon_paths: Array = []) -> CharacterBody3D:
+func _spawn_one_mech(mech_def, team: int, idx: int, count: int, weapon_paths: Array = []) -> CharacterBody3D:
 	var perp_offset: float = (float(idx) - float(count - 1) * 0.5) * _SPAWN_SPACING
 	var bx: float
 	var bz: float
@@ -2543,7 +2482,7 @@ func _spawn_one_mech(mech_def, is_player_mech: bool, team: int, idx: int, count:
 	var sx: float = bx + _SPAWN_PERP.x * perp_offset
 	var sz: float = bz + _SPAWN_PERP.z * perp_offset
 	var m: CharacterBody3D = mech_def.scene.instantiate()
-	m.name = "PlayerMech" if is_player_mech else ("Mech_%d_%d" % [team, idx])
+	m.name = "Mech_%d_%d" % [team, idx]
 	m.position = Vector3(sx, _bowl_height(sx, sz) + 1.0, sz)
 	m.rotation_degrees = Vector3(0, facing_y, 0)
 	m.team = team
@@ -2558,47 +2497,11 @@ func _spawn_one_mech(mech_def, is_player_mech: bool, team: int, idx: int, count:
 	m.configure_shield(mech_def.has_shields, mech_def.shield_max_hp)
 	m.configure_energy_shield(mech_def.has_energy_shield, mech_def.energy_shield_max_hp,
 		mech_def.energy_shield_regen_rate, mech_def.energy_shield_regen_delay)
-	var slots: Array
-	if is_player_mech:
-		slots = _slots_with_overrides(mech_def.weapon_slots)
-	elif not weapon_paths.is_empty():
-		slots = _slots_with_weapon_paths(mech_def.weapon_slots, weapon_paths)
-	else:
-		slots = mech_def.weapon_slots
-	m.configure_weapons(slots)
+	m.configure_weapons(_slots_with_weapon_paths(mech_def.weapon_slots, weapon_paths))
 	m.configure_abilities(mech_def.abilities)
-	if is_player_mech:
-		m.apply_pilot_skills()
 	m.invincible = mech_def.invincible
 	_team_mechs[team].append(m)
 	return m
-
-func _spawn_mechs() -> void:
-	var mech_def = Game.loadout.get("mech_def")
-	if mech_def == null:
-		push_error("[Arena] No mech_def in loadout; falling back to Hippogriff")
-		mech_def = load("res://resources/mechs/Hippogriff.tres")
-	var bot_def = Game.loadout.get("bot_def")
-	if bot_def == null:
-		push_error("[Arena] No bot_def in loadout; falling back to Hippogriff")
-		bot_def = load("res://resources/mechs/Hippogriff.tres")
-	var team_size: int = clampi(Game.loadout.get("team_size", 1), 1, 6)
-
-	var bot_rng := RandomNumberGenerator.new()
-	bot_rng.randomize()  # T169: varied bot loadouts each match
-	var Lobby := preload("res://scripts/Lobby.gd")
-
-	# Team 0: 1 human mech + (team_size - 1) ally bot mechs
-	player_mech = _spawn_one_mech(mech_def, true, 0, 0, team_size)
-	for i in range(1, team_size):
-		_spawn_one_mech(bot_def, false, 0, i, team_size, Lobby.bot_weapon_paths(bot_def, bot_rng))
-
-	if DEBUG_NO_BOT:
-		return
-
-	# Team 1: team_size enemy bot mechs
-	for i in range(team_size):
-		_spawn_one_mech(bot_def, false, 1, i, team_size, Lobby.bot_weapon_paths(bot_def, bot_rng))
 
 func _spawn_mechs_mp() -> void:
 	var roster: Array = Game.mp_active_match["roster"]
@@ -2623,11 +2526,13 @@ func _spawn_mechs_mp() -> void:
 			push_error("[Arena] MP: cannot load mech_def '%s'" % mech_path)
 			continue
 		var wpn_paths: Array = squad[0].get("weapons", [])
-		var m: CharacterBody3D = _spawn_one_mech(mech_def, false, t, team_idx[t], team_counts[t], wpn_paths)
+		var m: CharacterBody3D = _spawn_one_mech(mech_def, t, team_idx[t], team_counts[t], wpn_paths)
 		m.owner_peer_id = entry["peer_id"]
 		m.roster_idx = ri
 		if entry["peer_id"] != 0 and entry["peer_id"] == multiplayer.get_unique_id() and player_mech == null:
 			player_mech = m
+			if multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
+				m.apply_pilot_skills()  # SP only, as before T184
 		if entry["peer_id"] != 0:
 			_peer_slot_used[entry["peer_id"]] = [true, false, false, false, false]
 		team_idx[t] += 1
@@ -3057,42 +2962,6 @@ func _spawn_bot_player(mech: CharacterBody3D, team: int, idx: int) -> void:
 	mech.died.connect(Callable(p, "on_pawn_destroyed"))
 	_players.append(p)
 
-func _setup_players() -> void:
-	# Human player (team 0, mech 0)
-	_player = Node.new()
-	_player.set_script(load("res://scripts/Player.gd"))
-	_player.name = "Player"
-	_player.set("team", 0)
-	add_child(_player)
-
-	var input := Node.new()
-	input.set_script(load("res://scripts/PlayerInputSource.gd"))
-	_player.add_child(input)
-	_player.set("input_source", input)
-
-	var pilot := Node.new()
-	pilot.set_script(load("res://scripts/Pilot.gd"))
-	pilot.set("pilot_name", Game.profile.get("pilot_name", "Pilot"))
-	_player.add_child(pilot)
-	_player.set("pilot", pilot)
-
-	_player.call("possess", player_mech)
-	player_mech.died.connect(Callable(_player, "on_pawn_destroyed"))
-	player_mech.mark_requested.connect(_on_mark_requested)
-	_players.append(_player)
-
-	# Ally bots (team 0, mechs 1..N-1)
-	for i in range(1, _team_mechs[0].size()):
-		_spawn_bot_player(_team_mechs[0][i], 0, i)
-
-	# Enemy bots (team 1)
-	for i in range(_team_mechs[1].size()):
-		_spawn_bot_player(_team_mechs[1][i], 1, i)
-
-	# Spectator chain - starts on the human mech; advances through alive allies on death.
-	_spectated_mech = player_mech
-	player_mech.died.connect(_on_spectated_mech_died)
-
 func _on_spectated_mech_died() -> void:
 	if _match_over:
 		return
@@ -3193,6 +3062,7 @@ func _on_pause_quit() -> void:
 		Game.disconnect_mp()
 		get_tree().change_scene_to_file("res://scenes/ui/TitleScreen.tscn")
 		return
+	Game._clear_mp_session()  # T184: SP match state (roster/lobby) ends with the match
 	get_tree().change_scene_to_file("res://scenes/ui/Hangar.tscn")
 
 func on_player_eliminated(p: Node) -> void:
@@ -3215,39 +3085,14 @@ func _on_match_ended(winning_team: int) -> void:
 		for m in team_mechs:
 			if is_instance_valid(m):
 				m.set_deferred("process_mode", Node.PROCESS_MODE_DISABLED)
-	# B74: SP runs on an OfflineMultiplayerPeer, so has_multiplayer_peer() is true there
-	# too; that check sent SP into this branch (no result screen, 30 s lobby deadline).
-	if not (multiplayer.multiplayer_peer is OfflineMultiplayerPeer):
-		if multiplayer.is_server():
-			var stats := _build_mp_stats()
+	if multiplayer.is_server():  # SP = offline server: same stats + result path (T184)
+		var stats := _build_mp_stats()
+		if not (multiplayer.multiplayer_peer is OfflineMultiplayerPeer):  # V56: MP only
 			Game._mp_return_confirmations.clear()
 			Game._mp_return_deadline = Time.get_ticks_msec() * 0.001 + 30.0
 			Game.set_process(true)
-			Game._rpc_match_end.rpc(winning_team, stats)
-		# Clients: _on_mp_match_ended fires via Game.match_ended_mp signal.
-		return
-	# SP path.
-	SoundManager.stop_music()
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	var player_team: int = _player.get("team") if _player != null else 0
-	var enemy_damage_total: float = 0.0
-	for m in _team_mechs[1]:
-		if is_instance_valid(m):
-			enemy_damage_total += m.damage_taken_total
-	var stats := {
-		"damage_dealt":       enemy_damage_total,
-		"damage_taken":       player_mech.damage_taken_total if is_instance_valid(player_mech) else 0.0,
-		"beacons_captured":   _beacons_captured[player_team],
-		"bot_beacons":        _beacons_captured[1 - player_team],
-	}
-	hud.show_result(winning_team, stats)
-	if winning_team == player_team:
-		Game.profile["wins"] = Game.profile.get("wins", 0) + 1
-	else:
-		Game.profile["losses"] = Game.profile.get("losses", 0) + 1
-	Game.update_after_match(winning_team == player_team)
-	Game.save_profile()
-	print("[Arena] Match over. Team %d wins." % winning_team)
+		Game._rpc_match_end.rpc(winning_team, stats)
+	# Clients: _on_mp_match_ended fires via Game.match_ended_mp signal.
 
 func _build_mp_stats() -> Array:
 	var stats: Array = []
@@ -3428,12 +3273,14 @@ func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int) -> void:
 		push_error("[Arena] _rpc_spawn_next_mech: cannot load '%s'" % mech_path)
 		return
 	var wpn_paths: Array = squad[slot_idx].get("weapons", [])
-	var new_mech: CharacterBody3D = _spawn_one_mech(mech_def, false, team, slot_idx, team_size, wpn_paths)
+	var new_mech: CharacterBody3D = _spawn_one_mech(mech_def, team, slot_idx, team_size, wpn_paths)
 	new_mech.owner_peer_id = peer_id
 	new_mech.roster_idx = roster_idx
 	var my_id := multiplayer.get_unique_id()
 	if peer_id == my_id:
 		player_mech = new_mech
+		if multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
+			new_mech.apply_pilot_skills()
 		_player.call("possess", new_mech)
 		new_mech.mark_requested.connect(_on_mark_requested)
 		new_mech.damaged.connect(hud.show_damage)

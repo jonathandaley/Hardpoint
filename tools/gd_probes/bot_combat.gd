@@ -15,9 +15,7 @@ func _fail(msg: String) -> void:
 	push_error("[probe] bot_combat: " + msg)
 
 func _ready() -> void:
-	Game.mp_active_match["roster"] = []  # SP path
-	Game.loadout["mech_def"] = load("res://resources/mechs/Hippogriff.tres")
-	Game.loadout["bot_def"] = load("res://resources/mechs/Hippogriff.tres")
+	Game.mp_active_match["roster"] = []  # Arena sets up SP from the loadout (T184)
 	Game.loadout["team_size"] = 3
 	var arena: Node = load("res://scenes/arena/Arena.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(arena)
@@ -29,7 +27,7 @@ func _ready() -> void:
 	var paths := {}
 	for m in get_tree().get_nodes_in_group("mechs"):
 		(team0 if m.team == 0 else team1).append(m)
-		if m.name != "PlayerMech":
+		if m != arena.get("player_mech"):
 			var fams := {}
 			for w in m.get_weapons():
 				paths[w.scene_file_path] = true

@@ -11,9 +11,8 @@ func _fail(msg: String) -> void:
 
 func _ready() -> void:
 	var peg: Resource = load("res://resources/mechs/Pegasus.tres")
-	Game.mp_active_match["roster"] = []
-	Game.loadout["mech_def"] = peg
-	Game.loadout["bot_def"] = peg
+	Game.mp_active_match["roster"] = []  # Arena sets up SP from the loadout (T184)
+	Game.loadout["squad"] = [peg.resource_path]
 	Game.loadout["team_size"] = 1
 	var arena: Node = load("res://scenes/arena/Arena.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(arena)

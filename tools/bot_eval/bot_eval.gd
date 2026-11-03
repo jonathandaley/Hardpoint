@@ -21,14 +21,14 @@ func _ready() -> void:
 	var md: Resource = load("res://resources/mechs/%s.tres" % _arg["mech"])
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
-	Game.mp_active_match["roster"] = []
-	Game.loadout["mech_def"] = md
-	Game.loadout["bot_def"] = md
 	var size_a := int(_arg.get("size_a", _arg["size"]))
 	var size_b := int(_arg.get("size_b", _arg["size"]))
 	Game.loadout["team_size"] = maxi(size_a, size_b)
-	# the "player" mech gets a bot-style loadout too (default slots otherwise)
-	Game.loadout["weapon_overrides"] = Lobby.bot_weapon_paths(md, rng).map(func(p): return load(p) if p != "" else null)
+	# T184: SP roster with every slot a bot (the human slot too) running <mech>, one family each
+	Game.setup_sp_match()
+	for e in Game.mp_active_match["roster"]:
+		e["peer_id"] = 0
+		e["squad"] = [{"mech": md.resource_path, "weapons": Lobby.bot_weapon_paths(md, rng)}]
 	var arena: Node = load("res://scenes/arena/Arena.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(arena)
 	await get_tree().physics_frame
