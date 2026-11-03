@@ -2,7 +2,7 @@
 mid-match unless the scenario made it leave. Server log: `[Harness]
 peer_disconnected id=N at sync tick T`. In a scenario without lifecycle actions
 (pause_quit, kill_client, rejoin, return_to_lobby), any drop before the end
-window (live tick + duration_ticks - `drop_end_slack`) FAILs: a live player
+window (match start + duration_ticks - `drop_end_slack`, B88) FAILs: a live player
 was timed out (T167: a 6 s ENet cap dropped one on the `bad` profile).
 """
 import os
@@ -23,7 +23,10 @@ def run(ctx):
     live = fair_start.live_tick(run_dir)
     if not os.path.exists(path) or live is None:
         return base.verdict(NAME, base.SKIP, note="no server.log / live tick")
-    end = live + int(scen.get("duration_ticks", 600)) - int(ctx.get("thresholds", {}).get("drop_end_slack", 120))
+    # B88: from match start, not live: a client starts its run clock when its own mech
+    # appears (before live), so on a slow `bad` handshake (live at tick 137) a scheduled
+    # quit landed inside a live-based window
+    end = int(scen.get("duration_ticks", 600)) - int(ctx.get("thresholds", {}).get("drop_end_slack", 120))
     for m in re.finditer(r"\[Harness\] peer_disconnected id=(\d+) at sync tick (-?\d+)", open(path, errors="replace").read()):
         if int(m.group(2)) < end:
             return base.verdict(NAME, base.FAIL, first_tick=int(m.group(2)),

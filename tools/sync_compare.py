@@ -98,7 +98,8 @@ def select_oracles(scenario, override):
     else:
         names = scenario.get("oracles") or list(ORACLES)
         # T149/T150: every scenario (SKIP if n/a); T156 review runs (a rendered peer runs ~4x slow) opt out
-        for auto in () if scenario.get("review") else ("world_invariants", "interp_smoothness", "fair_start", "peer_drop"):
+        for auto in () if scenario.get("review") else ("world_invariants", "interp_smoothness", "fair_start", "peer_drop",
+                                                       "prediction_recon"):  # T205
             if auto not in names:
                 names = list(names) + [auto]
     known, unknown = [], []

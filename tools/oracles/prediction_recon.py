@@ -1,15 +1,40 @@
-"""prediction_recon oracle: client-side prediction reconciliation quality.
+"""prediction_recon oracle (T205): the owning client's predicted mech stays close to
+the server's authoritative one.
 
-Deliberate stub. V37 pins the netcode to interpolation-only for the current
-batch; there is no prediction to reconcile until T131 lands (gated on the T129
-LAN feel test). Registered so scenario manifests can already cite it and so
-the suite output shows WHY it isn't checking anything.
+Each snapshot a predicting client compares the server's position with its own record
+for the same input tick and logs `pred_recon` {err, snap} (Mech._reconcile). FAIL
+when, for any client, the 95th-percentile error exceeds `pred_p95_m` or more than
+`pred_snap_frac` of reconciliations had to snap (error over Mech.PRED_SNAP_M):
+prediction diverging from the server (movement code that differs, input applied on
+the wrong ticks, broken matching) shows up as both. SKIP with no predicting client.
+Measured 2026-11-03: loopback p95 <= 0.06 m (default 0.15), `bad` profile p95 <= 0.39 m
+(impaired default 0.6), 0 snaps.
 """
 from . import base
 
 NAME = "prediction_recon"
+DEFAULTS = {"pred_p95_m": 0.15, "pred_snap_frac": 0.02}  # impaired links: base.IMPAIRED_NET_THRESHOLDS
 
 
-def run(_ctx):
-    return base.verdict(NAME, base.SKIP,
-                        note="V37 interpolation-only; activate when T131 client prediction lands")
+def run(ctx):
+    th = {**DEFAULTS, **ctx.get("thresholds", {})}
+    worst, seen = None, 0
+    for role, log in sorted(ctx["primary"].items()):
+        evs = [e.get("payload", {}) for e in log.events if e.get("type") == "pred_recon"]
+        if not evs:
+            continue
+        seen += 1
+        errs = sorted(float(p.get("err", 0.0)) for p in evs)
+        p95 = errs[min(len(errs) - 1, int(len(errs) * 0.95))]
+        snaps = sum(1 for p in evs if p.get("snap"))
+        if p95 > th["pred_p95_m"] or snaps > th["pred_snap_frac"] * len(evs):
+            v = base.verdict(NAME, base.FAIL, peer=role,
+                             note="p95 error %.2f m (max %.2f), %d/%d snapped" % (p95, errs[-1], snaps, len(evs)))
+            if worst is None:
+                worst = v
+    if worst is not None:
+        return worst
+    if not seen:
+        return base.verdict(NAME, base.SKIP, note="no predicting client in this run")
+    return base.verdict(NAME, base.PASS, note="%d predicting client(s) within p95 %.2f m, snaps <= %.0f%%"
+                        % (seen, th["pred_p95_m"], th["pred_snap_frac"] * 100))
