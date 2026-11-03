@@ -591,10 +591,15 @@ func _leave_server() -> void:
 	var to := "res://scenes/ui/MPEntry.tscn" if mp_refused_reason != "" else "res://scenes/ui/TitleScreen.tscn"
 	get_tree().change_scene_to_file.call_deferred(to)
 
+## T192: a callsign saved on this machine = signed in (TitleScreen skips the guest path).
+## The file also holds the loadout, so the pilot_name key is the test, not the file.
+var has_profile := false
+
 func _load_profile() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(_SAVE_PATH) != OK:
 		return
+	has_profile = cfg.has_section_key("profile", "pilot_name")
 	profile["pilot_name"]  = cfg.get_value("profile", "pilot_name",  profile["pilot_name"])
 	profile["wins"]        = cfg.get_value("profile", "wins",        0)
 	profile["losses"]      = cfg.get_value("profile", "losses",      0)
@@ -616,6 +621,7 @@ func save_profile() -> void:
 	cfg.set_value("profile", "coins",       profile.get("coins",       0))
 	cfg.set_value("profile", "skills",      profile.get("skills", {}))
 	cfg.save(_SAVE_PATH)
+	has_profile = true
 
 # ---- ELO / XP / match helpers ----
 
