@@ -2466,7 +2466,7 @@ func _slots_with_weapon_paths(slots: Array, weapon_paths: Array) -> Array:
 			result.append(slots[i])
 	return result
 
-func _spawn_one_mech(mech_def, team: int, idx: int, count: int, weapon_paths: Array = []) -> CharacterBody3D:
+func _spawn_one_mech(mech_def, team: int, idx: int, count: int, weapon_paths: Array = [], mech_name := "") -> CharacterBody3D:
 	var perp_offset: float = (float(idx) - float(count - 1) * 0.5) * _SPAWN_SPACING
 	var bx: float
 	var bz: float
@@ -2482,7 +2482,7 @@ func _spawn_one_mech(mech_def, team: int, idx: int, count: int, weapon_paths: Ar
 	var sx: float = bx + _SPAWN_PERP.x * perp_offset
 	var sz: float = bz + _SPAWN_PERP.z * perp_offset
 	var m: CharacterBody3D = mech_def.scene.instantiate()
-	m.name = "Mech_%d_%d" % [team, idx]
+	m.name = mech_name if mech_name != "" else "Mech_%d_%d" % [team, idx]
 	m.position = Vector3(sx, _bowl_height(sx, sz) + 1.0, sz)
 	m.rotation_degrees = Vector3(0, facing_y, 0)
 	m.team = team
@@ -2541,7 +2541,8 @@ func _setup_players_mp() -> void:
 	var roster: Array = Game.mp_active_match["roster"]
 	var my_id: int = multiplayer.get_unique_id()
 	var team_idx := [0, 0]
-	for entry in roster:
+	for ri in roster.size():
+		var entry: Dictionary = roster[ri]
 		var t: int = entry["team"]
 		if t < 0 or t >= 2:
 			continue
@@ -2549,7 +2550,11 @@ func _setup_players_mp() -> void:
 		var tidx: int = team_idx[t]
 		team_idx[t] += 1
 		if entry["peer_id"] == 0:
-			_spawn_bot_player(mech, t, tidx)
+			# T198: bots burn through their squads like humans (5 lives, server respawns)
+			var bp := _spawn_bot_player(mech, t, tidx)
+			bp.set("lives", _squad_lives(entry))
+			if multiplayer.is_server():
+				mech.died.connect(_on_bot_mech_died.bind(bp, ri))
 		elif entry["peer_id"] == my_id:
 			_player = Node.new()
 			_player.set_script(load("res://scripts/Player.gd"))
@@ -2573,11 +2578,7 @@ func _setup_players_mp() -> void:
 			_spectated_mech = mech
 			mech.died.connect(_on_spectated_mech_died)
 			# T127: squad lives -- count valid slots and set lives; wire squad picker.
-			var sq_lives := 0
-			for sq in entry["squad"]:
-				if sq.get("mech", "") != "":
-					sq_lives += 1
-			_player.set("lives", maxi(1, sq_lives))
+			_player.set("lives", _squad_lives(entry))
 			mech.died.connect(_on_local_mech_died_mp)
 			if multiplayer.is_server():
 				hud.squad_slot_selected.connect(func(si): _process_pick_next_mech(my_id, si))
@@ -2597,11 +2598,7 @@ func _setup_players_mp() -> void:
 			mech.died.connect(Callable(p, "on_pawn_destroyed"))
 			_players.append(p)
 			# T127: set remote player lives from squad valid slot count.
-			var rp_lives := 0
-			for sq in entry["squad"]:
-				if sq.get("mech", "") != "":
-					rp_lives += 1
-			p.set("lives", maxi(1, rp_lives))
+			p.set("lives", _squad_lives(entry))
 	# T122: HUD perspective — team-relative (own=green/blue, opp=red) regardless of server team id.
 	if player_mech != null and _player != null:
 		var my_team: int = _player.get("team")
@@ -2938,13 +2935,16 @@ func _wire_beacons() -> void:
 			match_node.register_beacon(child)
 			child.captured.connect(func(team: int): _beacons_captured[team] += 1)
 
-func _spawn_bot_player(mech: CharacterBody3D, team: int, idx: int) -> void:
-	# Attach a NavigationAgent3D directly to the mech so path queries use its position.
+# Attach a NavigationAgent3D directly to the mech so path queries use its position.
+func _add_nav_agent(mech: Node) -> void:
 	var nav_agent := NavigationAgent3D.new()
 	nav_agent.name = "NavAgent"
 	nav_agent.path_desired_distance = 1.5
 	nav_agent.target_desired_distance = 2.5
 	mech.add_child(nav_agent)
+
+func _spawn_bot_player(mech: CharacterBody3D, team: int, idx: int) -> Node:
+	_add_nav_agent(mech)
 
 	var p := Node.new()
 	p.set_script(load("res://scripts/Player.gd"))
@@ -2961,6 +2961,7 @@ func _spawn_bot_player(mech: CharacterBody3D, team: int, idx: int) -> void:
 	p.call("possess", mech)
 	mech.died.connect(Callable(p, "on_pawn_destroyed"))
 	_players.append(p)
+	return p
 
 func _on_spectated_mech_died() -> void:
 	if _match_over:
@@ -3141,11 +3142,7 @@ func _on_peer_disconnected_in_match(id: int) -> void:
 
 func _bot_ify_disconnected_mech(mech: CharacterBody3D, peer_id: int) -> void:
 	if mech.get_node_or_null("NavAgent") == null:
-		var nav := NavigationAgent3D.new()
-		nav.name = "NavAgent"
-		nav.path_desired_distance = 1.5
-		nav.target_desired_distance = 2.5
-		mech.add_child(nav)
+		_add_nav_agent(mech)
 	var ai_input := Node.new()
 	ai_input.set_script(load("res://scripts/AIInputSource.gd"))
 	ai_input.bot_id = peer_id
@@ -3275,7 +3272,8 @@ func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int) -> void:
 		push_error("[Arena] _rpc_spawn_next_mech: cannot load '%s'" % mech_path)
 		return
 	var wpn_paths: Array = squad[slot_idx].get("weapons", [])
-	var new_mech: CharacterBody3D = _spawn_one_mech(mech_def, team, slot_idx, team_size, wpn_paths)
+	var new_mech: CharacterBody3D = _spawn_one_mech(mech_def, team, slot_idx, team_size, wpn_paths,
+		"Mech_r%d_s%d" % [roster_idx, slot_idx])
 	new_mech.owner_peer_id = peer_id
 	new_mech.roster_idx = roster_idx
 	var my_id := multiplayer.get_unique_id()
@@ -3319,6 +3317,9 @@ func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int) -> void:
 				p.call("possess", new_mech)
 				new_mech.died.connect(Callable(p, "on_pawn_destroyed"))
 				break
+	_refresh_team_bars(team)
+
+func _refresh_team_bars(team: int) -> void:
 	if team == _local_team:
 		var ally_mechs: Array = []
 		for m in _team_mechs[team]:
@@ -3327,6 +3328,67 @@ func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int) -> void:
 		hud.setup_ally_bars(ally_mechs)
 	else:
 		hud.setup_bot_bars(_team_mechs[team])
+
+func _squad_lives(entry: Dictionary) -> int:
+	var n := 0
+	for sq in entry.get("squad", []):
+		if sq.get("mech", "") != "":
+			n += 1
+	return maxi(1, n)
+
+# ---- T198: bot squads ----
+# A dead bot comes back in its next squad mech after about the time a human spends in
+# the picker. Physics-tick timer (deterministic in ticks, V-determinism) and pause-aware.
+const BOT_RESPAWN_S := 3.0
+var _bot_slot_next: Dictionary = {}  # roster_idx -> next squad slot to try
+
+func _on_bot_mech_died(bp: Node, ri: int) -> void:
+	if _match_over or bp.get("lives") <= 0:
+		return
+	await get_tree().create_timer(BOT_RESPAWN_S, false, true).timeout
+	if _match_over or not is_instance_valid(bp):
+		return
+	var squad: Array = Game.mp_active_match["roster"][ri]["squad"]
+	var slot: int = _bot_slot_next.get(ri, 1)
+	while slot < squad.size() and squad[slot].get("mech", "") == "":
+		slot += 1
+	if slot >= squad.size():
+		return
+	_bot_slot_next[ri] = slot + 1
+	_rpc_spawn_next_bot.rpc(ri, slot)
+
+# Server -> all: spawn a bot's next squad mech (same order on every peer: snapshots
+# address mechs by their index in _team_mechs).
+@rpc("authority", "call_local", "reliable")
+func _rpc_spawn_next_bot(ri: int, slot: int) -> void:
+	var roster: Array = Game.mp_active_match["roster"]
+	if ri < 0 or ri >= roster.size() or slot >= roster[ri]["squad"].size():
+		return
+	var entry: Dictionary = roster[ri]
+	var mech_def = ResourceLoader.load(entry["squad"][slot].get("mech", ""))
+	if mech_def == null:
+		push_error("[Arena] _rpc_spawn_next_bot: cannot load squad slot %d of roster %d" % [slot, ri])
+		return
+	var team: int = entry["team"]
+	var team_size := 0
+	var tidx := -1
+	for i in roster.size():
+		if roster[i].get("team", -1) == team:
+			if i == ri:
+				tidx = team_size
+			team_size += 1
+	var m: CharacterBody3D = _spawn_one_mech(mech_def, team, slot, team_size,
+		entry["squad"][slot].get("weapons", []), "Mech_r%d_s%d" % [ri, slot])
+	m.owner_peer_id = 0
+	m.roster_idx = ri
+	var bp: Node = get_node_or_null("BotPlayer_%d_%d" % [team, tidx])
+	if bp != null:
+		_add_nav_agent(m)
+		bp.call("possess", m)
+		m.died.connect(Callable(bp, "on_pawn_destroyed"))
+		if multiplayer.is_server():
+			m.died.connect(_on_bot_mech_died.bind(bp, ri))
+	_refresh_team_bars(team)
 
 func _bowl_height(x: float, z: float) -> float:
 	var dx := x - BOWL_SUN_X

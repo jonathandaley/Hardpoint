@@ -19,7 +19,9 @@ func _ready() -> void:
 			bot_mechs[p.get("pawn").scene_file_path + str(p.get("pawn").max_health)] = true
 	if bot_mechs.size() < 2:
 		push_error("[probe] sp_match_end: every bot runs the same mech")
-	arena.get("_player").set("lives", 1)
+	for p in arena.get("_players"):  # last mech for everyone on team 0 (bots have squads, T198)
+		if p.get("team") == 0:
+			p.set("lives", 1)
 	var team0: Array = arena.get("_team_mechs")[0]
 	for i in range(team0.size() - 1, -1, -1):  # player (index 0) dies last
 		team0[i].take_damage(1e9)
