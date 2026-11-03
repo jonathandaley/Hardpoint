@@ -735,6 +735,8 @@ func _maybe_forward_input() -> void:
 
 @rpc("any_peer", "unreliable_ordered")
 func _rpc_input(seq: int, payload: Dictionary) -> void:
+	if not is_inside_tree():
+		return  # B77: a straggler resolved via the node cache to a mech already leaving the tree
 	if not multiplayer.is_server():
 		return
 	var sender := multiplayer.get_remote_sender_id()
