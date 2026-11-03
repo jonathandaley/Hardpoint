@@ -3215,7 +3215,9 @@ func _on_match_ended(winning_team: int) -> void:
 		for m in team_mechs:
 			if is_instance_valid(m):
 				m.set_deferred("process_mode", Node.PROCESS_MODE_DISABLED)
-	if multiplayer.has_multiplayer_peer():
+	# B74: SP runs on an OfflineMultiplayerPeer, so has_multiplayer_peer() is true there
+	# too; that check sent SP into this branch (no result screen, 30 s lobby deadline).
+	if not (multiplayer.multiplayer_peer is OfflineMultiplayerPeer):
 		if multiplayer.is_server():
 			var stats := _build_mp_stats()
 			Game._mp_return_confirmations.clear()
