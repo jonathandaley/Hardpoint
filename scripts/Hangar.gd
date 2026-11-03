@@ -1045,13 +1045,23 @@ func _build_progression_nodes() -> void:
 
 func _on_skill_unlock(key: String) -> void:
 	SoundManager.play_sfx_2d("ui_click")
-	if Game.unlock_skill(key):
+	var ok := false
+	if Game.account.is_empty():
+		ok = Game.unlock_skill(key)
+	else:
+		ok = await Game.account_skill("unlock_skill", key)  # T213: the account's server decides
+	if ok and is_inside_tree():
 		_refresh_pilot_stats()
 		_build_progression_nodes()
 
 func _on_skill_upgrade(key: String) -> void:
 	SoundManager.play_sfx_2d("ui_click")
-	if Game.upgrade_skill(key):
+	var ok := false
+	if Game.account.is_empty():
+		ok = Game.upgrade_skill(key)
+	else:
+		ok = await Game.account_skill("upgrade_skill", key)  # T213: the account's server decides
+	if ok and is_inside_tree():
 		_refresh_pilot_stats()
 		_build_progression_nodes()
 
