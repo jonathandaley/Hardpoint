@@ -2617,11 +2617,21 @@ func _setup_players_mp() -> void:
 		hud.setup_bot_bars(_team_mechs[opp_team])
 		hud.setup_ally_bars(ally_mechs)
 		hud.setup_beacon_bars(get_tree().get_nodes_in_group("beacons"))
+		hud.setup_minimap(self, my_team, Vector2(BOWL_SUN_X, BOWL_SUN_Z), MINIMAP_HALF,
+			_minimap_outline(), get_tree().get_nodes_in_group("beacons"))
 		for weapon in player_mech.get_weapons():
 			if weapon.has_signal("hit_confirmed"):
 				weapon.hit_confirmed.connect(hud.register_hit)
 		player_mech.damaged.connect(hud.show_damage)
 		_open_start_pick.call_deferred()
+
+const MINIMAP_HALF := 104.0  # T202: wall ring ~95 m from the bowl centre + margin
+
+func _minimap_outline() -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for seg in _WALL_SEGS:
+		pts.append(Vector2(seg[0], seg[1]))
+	return pts
 
 func _add_sun_marker() -> void:
 	var mat := StandardMaterial3D.new()

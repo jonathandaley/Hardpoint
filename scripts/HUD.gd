@@ -49,6 +49,27 @@ func setup(match_node: Node, player_mech: Node, player_team: int) -> void:
 	weapon_hud.setup(player_mech)
 	score_label.visible = false
 
+const MINIMAP_PX := 100.0  # HUD base px (shown 2x at 1280x720); clears the top-centre score bars
+var minimap: Control = null  # T202
+
+func setup_minimap(arena: Node, team: int, center: Vector2, half: float,
+		outline: PackedVector2Array, beacons: Array) -> void:
+	if minimap == null:
+		minimap = load("res://scripts/Minimap.gd").new()
+		minimap.name = "Minimap"
+		add_child(minimap)
+	minimap.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	minimap.offset_left = -MINIMAP_PX - 16.0
+	minimap.offset_right = -16.0
+	minimap.offset_top = 16.0
+	minimap.offset_bottom = 16.0 + MINIMAP_PX
+	minimap.arena = arena
+	minimap.local_team = team
+	minimap.center = center
+	minimap.half = half
+	minimap.outline = outline
+	minimap.beacons = beacons
+
 func setup_bot_bars(mechs: Array) -> void:
 	# Free all dynamically created bars from a previous call.
 	for bar in _bot_health_bars:
