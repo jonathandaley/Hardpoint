@@ -568,10 +568,14 @@ func _on_mp_peer_connected(id: int) -> void:
 		# snapshots); set a bandwidth limit on the ENet host if that ever matters.
 		enet.get_peer(id).throttle_configure(5000, 2, 0)
 	if multiplayer.is_server() and not mp_active_match["roster"].is_empty():
-		# T153 backstop: auth admitted it in the lobby, but the match started before the
-		# handshake finished. Kick before any RPC reaches it (T170 refuses the usual case
-		# during auth, with a reason).
-		multiplayer.multiplayer_peer.disconnect_peer(id)
+		# T206: a late joiner (its Arena was built during auth): spectator, or its old slot
+		var arena := get_tree().current_scene
+		if arena == null or not arena.has_method("late_join_connected"):
+			multiplayer.multiplayer_peer.disconnect_peer(id)  # mid scene change: try again
+			return
+		mp_lobby["peers"][id] = {"pilot_name": "Peer %d" % id, "elo": 1000, "level": 1, "squad": [], "ready": false}
+		arena.late_join_connected(id, _late_tokens.get(id, ""))
+		_rpc_request_meta.rpc_id(id)
 		return
 	mp_peer_connected.emit(id)
 	# Lobby._on_peer_connected runs synchronously above, populating mp_lobby["peers"][id].
@@ -590,30 +594,82 @@ var mp_entry_tab := 0
 ## a lossy link). Now the host answers during SceneMultiplayer auth -- AUTH_OK + complete,
 ## or the refusal text and never complete -- and a refused peer is never "connected".
 const AUTH_OK := "ok"
-const REFUSED_MID_MATCH := "Match in progress - try again after it ends"
 ## Both sides must complete within this; generous for the `bad` net profile. A refused
 ## joiner leaves on its own as soon as the reason arrives; this only reaps silent ones.
 const AUTH_TIMEOUT_S := 15.0
 
+## T206: the joiner opens with its player token; the server answers AUTH_OK in the lobby,
+## or, mid-match, with the whole live match (Arena.late_state, var_to_bytes). The joiner
+## builds its Arena from that while still unconnected -- no broadcast can reach a node it
+## doesn't have yet (B64's flood; T170 refused mid-match joins for that) -- then says
+## "ready"; the server answers "go" and completes, the client completes on "go". The
+## client must complete LAST: whoever completes last becomes connected first, and a
+## server that is connected first streams (unreliable, another channel) into a client
+## still authenticating -> engine error per packet (B89). A token that matches a player dropped < Arena.HOLD_S ago
+## takes that slot back (Arena.late_state "rejoin_old").
+const AUTH_READY := "ready"
+const AUTH_GO := "go"
+var late_join = null  # client: the late-join state until Arena applies it
+var _late_tokens: Dictionary = {}  # server: joining peer id -> token
+
 func _on_mp_peer_authenticating(id: int) -> void:
-	if not multiplayer.is_server():
-		return  # client: wait for the host's verdict in _on_mp_auth
-	var smp := multiplayer as SceneMultiplayer
-	if not mp_active_match["roster"].is_empty():  # roster set = Arena (T153)
-		smp.send_auth(id, REFUSED_MID_MATCH.to_utf8_buffer())
-		return
-	smp.send_auth(id, AUTH_OK.to_utf8_buffer())
-	smp.complete_auth(id)
+	if multiplayer.is_server():
+		return  # wait for the joiner's token (_on_mp_auth)
+	(multiplayer as SceneMultiplayer).send_auth(id, ("token:" + player_token()).to_utf8_buffer())
 
 func _on_mp_auth(id: int, data: PackedByteArray) -> void:
-	if multiplayer.is_server():
-		return  # clients send no auth data
-	var msg := data.get_string_from_utf8()
-	if msg == AUTH_OK:
-		(multiplayer as SceneMultiplayer).complete_auth(id)
+	var smp := multiplayer as SceneMultiplayer
+	if multiplayer.is_server():  # V41: client bytes are only ever read as text
+		var msg := data.get_string_from_utf8()
+		if msg.begins_with("token:"):
+			var token := msg.substr(6, 64)
+			_late_tokens[id] = token
+			var arena := get_tree().current_scene
+			if mp_active_match["roster"].is_empty() or arena == null or not arena.has_method("late_state"):
+				smp.send_auth(id, AUTH_OK.to_utf8_buffer())
+				smp.complete_auth(id)
+				return
+			var st: Dictionary = arena.late_state(token)
+			st["you"] = id
+			smp.send_auth(id, var_to_bytes(st))
+		elif msg == AUTH_READY:
+			smp.send_auth(id, AUTH_GO.to_utf8_buffer())
+			smp.complete_auth(id)
 		return
-	mp_refused_reason = msg
+	var text := data.get_string_from_utf8()
+	if text == AUTH_OK or text == AUTH_GO:
+		smp.complete_auth(id)
+		return
+	var st = bytes_to_var(data)  # from the server: trusted
+	if st is Dictionary and st.has("mechs"):
+		late_join = st
+		mp_active_match = {"map_path": st["map_path"], "roster": st["roster"], "match_seed": st["match_seed"]}
+		var md = ResourceLoader.load(st["map_path"])
+		if md != null:
+			loadout["map_def"] = md
+		get_tree().change_scene_to_file.call_deferred("res://scenes/arena/Arena.tscn")
+		return
+	mp_refused_reason = text
 	_leave_server.call_deferred()  # not from inside the multiplayer poll
+
+## Client: the late-join Arena is built -- finish the handshake (T206).
+func late_join_ready() -> void:
+	late_join = null
+	(multiplayer as SceneMultiplayer).send_auth(1, AUTH_READY.to_utf8_buffer())  # completes on "go"
+
+## T206: per-install id, so a reconnect is recognised (the ENet id changes). Lives in its
+## own [net] section: a saved pilot_name is what makes a profile (T192), not this.
+func player_token() -> String:
+	if profile.get("token", "") == "":
+		var cfg := ConfigFile.new()
+		cfg.load(_SAVE_PATH)
+		var t: String = cfg.get_value("net", "token", "")
+		if t == "":
+			t = "%08x%08x%08x%08x" % [randi(), randi(), randi(), randi()]
+			cfg.set_value("net", "token", t)
+			cfg.save(_SAVE_PATH)
+		profile["token"] = t
+	return profile["token"]
 
 # Server -> client: asks client to send its profile metadata (V36).
 @rpc("authority", "call_remote", "reliable")
@@ -634,6 +690,7 @@ func _rpc_send_meta(meta: Dictionary) -> void:
 		push_error("_rpc_send_meta: unknown sender %d" % sender)
 		return
 	var entry: Dictionary = mp_lobby["peers"][sender]
+	entry["token"] = _late_tokens.get(sender, "")  # T206: the auth token, not a claim in meta
 	entry["pilot_name"] = str(meta.get("pilot_name", "Pilot"))
 	entry["elo"]        = int(meta.get("elo", 1000))
 	entry["level"]      = int(meta.get("level", 1))
