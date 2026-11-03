@@ -3066,6 +3066,8 @@ func _on_pause_quit() -> void:
 	get_tree().change_scene_to_file("res://scenes/ui/Hangar.tscn")
 
 func on_player_eliminated(p: Node) -> void:
+	if not multiplayer.is_server():
+		return  # T185: match end is server-side (T40); a client's own count must not end it
 	var losing_team: int = p.get("team") if p.get("team") != null else 0
 	print("[Arena] %s eliminated (team %d)." % [p.name, losing_team])
 	# Only end the match when the entire team has been wiped out.
@@ -3282,6 +3284,10 @@ func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int) -> void:
 		if multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
 			new_mech.apply_pilot_skills()
 		_player.call("possess", new_mech)
+		# T185 (B76): before _on_local_mech_died_mp, which reads the lives this decrements.
+		# Missing, only the first squad mech cost a life: the picker came back after the
+		# last one and the team could never be eliminated.
+		new_mech.died.connect(Callable(_player, "on_pawn_destroyed"))
 		new_mech.mark_requested.connect(_on_mark_requested)
 		new_mech.damaged.connect(hud.show_damage)
 		new_mech.died.connect(_on_local_mech_died_mp)
