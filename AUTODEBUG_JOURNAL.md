@@ -69,3 +69,4 @@ date|task|outcome|commit|finding|suite
 2026-11-03|T197|DONE|see git log (T197)|B84: step-up check zeroed the jump's velocity.y when ground rose ahead; skipped while launching; probe jump_slope (0.37 m -> 5.75 m)|47/47 + selftest
 2026-11-03|T201|DONE|see git log (T201)|Cesh stealth = lit camouflage (blurred background colour) instead of full invisibility; render reviewed|47/47
 2026-11-03|queue empty|-|-|HUMAN_FOUND_ISSUES list done (T183-T201: SP as local MP, squads for bots, first-mech pick, hangar weapons, bot spread + point-blank, Seeker, title/guest, blob shadows, rockets light-only, damage tint, shoulder cam, Pegasus jump, Cesh camo; B74-B84); remaining open rows = pre-loop backlog T29-T82 + deferred T130-T132 = user decisions; loop stopped|-
+2026-11-03|T202|DONE|see git log (T202)|minimap: corner widget, beacons + non-stealthed mechs from the local side; probe minimap; bot_combat lock check flaked once (1 of 2 suite runs, unrelated: minimap only reads)|48/48
