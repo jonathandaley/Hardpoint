@@ -409,7 +409,23 @@ func _wait_until(cond: Callable, what: String) -> bool:
 	# Arena loads automatically when the server's _rpc_match_start (call_local)
 	# reaches us; _process polls for our local mech and then overrides input.
 
+# T206: after a rejoin, report how this client came back into the running match.
+var _rejoin_logged := false
+func _check_rejoined() -> void:
+	var scn := get_tree().current_scene
+	if _rejoin_logged or scn == null or scn.name != "Arena" or not _mp_connected():
+		return
+	_rejoin_logged = true
+	var mine := "none"
+	for m in get_tree().get_nodes_in_group("mechs"):
+		if int(m.get("owner_peer_id")) == multiplayer.get_unique_id() and not m.get("is_dead"):
+			mine = String(m.name)
+	print("[Harness] rejoined peer=%d mech=%s spectating=%s" % [multiplayer.get_unique_id(), mine,
+		str(scn.get("_spec_pivot") != null).to_lower()])
+
 func _process(_delta: float) -> void:
+	if _rejoining:
+		_check_rejoined()
 	if _role == "server" and not _live_logged and Game.mp_live:
 		_live_logged = true
 		print("[Harness] live at sync tick %d" % (Engine.get_physics_frames() - int(Game.get("_sync_start_frame"))))
@@ -602,7 +618,7 @@ func _run_action(a: Dictionary) -> void:
 			OS.kill(OS.get_process_id())
 		"rejoin":
 			# T153: a player who quit joins again mid-match through the real menus
-			# (expected: server kicks it on connect -> back at the title; server_lost_check rejoin=true)
+			# T206: expected back in the match, flying its old mech again (rejoined line)
 			_rejoining = true
 			_menu_connect()
 		"end_match":

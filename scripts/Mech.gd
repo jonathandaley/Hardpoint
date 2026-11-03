@@ -873,6 +873,8 @@ func _maybe_forward_input() -> void:
 		"fire_sec": _input_source.is_firing_secondary(),
 		"presses": _press_counts.duplicate(),
 	}
+	if not multiplayer.get_peers().has(1):
+		return  # T206: a late joiner's Arena runs a few ticks before its handshake completes
 	_net_input_seq += 1
 	rpc_id(1, &"_rpc_input", _net_input_seq, payload)
 

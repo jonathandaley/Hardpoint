@@ -42,8 +42,13 @@ def run(ctx):
             if m.group(1) != "false" or m.group(2) != want:
                 bad.append("%s: %s 90 frames after losing the server (connected=%s), not %s"
                            % (role, m.group(2), m.group(1), want))
-        if "[Harness] action rejoin" in text and "rejoin=true" not in text:
-            bad.append("%s: mid-match rejoin was not refused (never kicked back to the title)" % role)
+        # T206: a rejoin within Arena.HOLD_S takes the old slot back (was: refused, T170)
+        if "[Harness] action rejoin" in text:
+            m = re.search(r"\[Harness\] rejoined peer=(\d+) mech=(\S+) spectating=(\w+)", text)
+            if m is None:
+                bad.append("%s: rejoin never got back into the match" % role)
+            elif m.group(2) == "none":
+                bad.append("%s: rejoined but did not get its mech back (spectating=%s)" % (role, m.group(3)))
     # T167: host SIGKILLed -> every client must notice (peer timeout) and print its server_lost_check
     srv = os.path.join(ctx.get("run_dir") or "", "server.log")
     if os.path.exists(srv) and "[Harness] action kill_client" in open(srv, errors="replace").read():
@@ -51,13 +56,13 @@ def run(ctx):
             if os.path.basename(path).startswith("client") and "server_lost_check" not in open(path, errors="replace").read():
                 quits += 1
                 bad.append("%s never noticed the host died" % os.path.basename(path)[: -len(".log")])
-    # T170 (B64): a refused rejoiner is turned away during auth and never joins the connected
-    # set, so no broadcast can hit it. Each 'Unable to send packet' on the host = a send to a
-    # half-closed peer (the pre-T170 kick logged 2-21 per run on `bad`).
-    if os.path.exists(srv) and any("rejoin=true" in open(p, errors="replace").read() for p in logs):
+    # T170 (B64) / T206: a rejoiner builds its Arena during auth, before it joins the
+    # connected set, so no broadcast can hit it early. Each 'Unable to send packet' on the
+    # host = a send to a half-closed peer (the pre-T170 kick logged 2-21 per run on `bad`).
+    if os.path.exists(srv) and any("action rejoin" in open(p, errors="replace").read() for p in logs):
         n = open(srv, errors="replace").read().count("Unable to send packet")
         if n:
-            bad.append("server sent %d packet(s) to a half-closed peer around the refused rejoin (B64)" % n)
+            bad.append("server sent %d packet(s) to a half-closed peer around the rejoin (B64)" % n)
     if not quits:
         return base.verdict(NAME, base.SKIP, note="no lifecycle quit in run")
     if bad:

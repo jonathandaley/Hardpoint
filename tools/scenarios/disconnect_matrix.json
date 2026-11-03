@@ -26,7 +26,7 @@
       "action": "rejoin"
     }
   ],
-  "_comment": "T153: client_1 quits through the pause menu (graceful ENet disconnect) and at tick 400 tries to rejoin through Title -> Hangar -> FIND MATCH -> JOIN -> MPEntry while the match runs (expected: refused during auth (T170), back on MPEntry with the reason, no RPC leak). bot_takeover: the server hands the leaver's live mech to the bot AI (T123; the script stands still, so movement = bot). peer_closed: quitter disconnected; refused rejoiner routed to MPEntry. Crash/kill path: client_crash.",
+  "_comment": "T153/T206: client_1 quits through the pause menu (graceful ENet disconnect) at tick 150 and at tick 400 rejoins through Title -> Hangar -> FIND MATCH -> JOIN -> MPEntry while the match runs. T206: the server holds a dropped player's slot for Arena.HOLD_S (30 s); the joiner gets the live match during the auth handshake, builds its Arena before it is connected (no early broadcast, B64) and, its token matching, takes its old mech back from the bot. bot_takeover: the bot drove the leaver's mech meanwhile (T123; the script stands still, so movement = bot). peer_closed: quitter disconnected; rejoiner back in the match flying its mech; no send to a half-closed peer. crash_scan: no 'Node not found' around the join. Crash/kill path: client_crash.",
   "peers": {
     "server": {
       "input": {

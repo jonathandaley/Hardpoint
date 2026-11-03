@@ -2357,7 +2357,11 @@ func _ready() -> void:
 	# T184: SP is a local MP match (Game.start_sp_match); opened directly (tools, F6) = SP defaults
 	if Game.mp_active_match["roster"].is_empty():
 		Game.setup_sp_match()
-	_spawn_mechs_mp()
+	var late = Game.late_join  # T206: joined mid-match, the state came with the handshake
+	if late != null:
+		_apply_late_state(late)
+	else:
+		_spawn_mechs_mp()
 	_create_walls()
 	_create_wall_art()
 	_paint_wall_penrose()
@@ -2370,12 +2374,17 @@ func _ready() -> void:
 	if BAKE_WALLS:
 		_bake_wall_visuals()
 	_wire_beacons()
-	_setup_players_mp()
+	if late != null:
+		_apply_late_beacons(late)
+		_setup_late_player(late)
+		Game.late_join_ready.call_deferred()  # finish the handshake once the scene is in
+	else:
+		_setup_players_mp()
 	if multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
 		pass  # SP: no clients to stream snapshots to
 	elif multiplayer.is_server():
 		_start_snapshot_timer()
-	else:
+	elif late == null:
 		Game._rpc_transition_ack.rpc_id(1)  # T159: Arena loaded, server may stream
 	Game.match_ended_mp.connect(_on_mp_match_ended)
 	Game.mp_peer_disconnected.connect(_on_peer_disconnected_in_match)
@@ -2493,6 +2502,7 @@ func _spawn_one_mech(mech_def, team: int, idx: int, count: int, weapon_paths: Ar
 	var sz: float = base.z + perp.z * perp_offset
 	var m: CharacterBody3D = mech_def.scene.instantiate()
 	m.name = mech_name if mech_name != "" else "Mech_%d_%d" % [team, idx]
+	m.set_meta("spawn", [mech_def.resource_path, weapon_paths])  # T206: rebuilt by late joiners
 	m.position = Vector3(sx, _ground_y(sx, sz) + 1.0, sz)
 	m.rotation_degrees = Vector3(0, facing_y, 0)
 	m.team = team
@@ -2572,32 +2582,8 @@ func _setup_players_mp() -> void:
 			if multiplayer.is_server():
 				mech.died.connect(_on_bot_mech_died.bind(bp, ri))
 		elif entry["peer_id"] == my_id:
-			_player = Node.new()
-			_player.set_script(load("res://scripts/Player.gd"))
-			_player.name = "Player"
-			_player.set("team", t)
-			add_child(_player)
-			var input := Node.new()
-			input.set_script(load("res://scripts/PlayerInputSource.gd"))
-			_player.add_child(input)
-			_player.set("input_source", input)
-			var pilot := Node.new()
-			pilot.set_script(load("res://scripts/Pilot.gd"))
-			pilot.set("pilot_name", Game.profile.get("pilot_name", "Pilot"))
-			_player.add_child(pilot)
-			_player.set("pilot", pilot)
-			_player.call("possess", mech)
-			mech.make_camera_current()
-			mech.died.connect(Callable(_player, "on_pawn_destroyed"))
-			mech.mark_requested.connect(_on_mark_requested)
-			_players.append(_player)
-			_spectated_mech = mech
-			mech.died.connect(_on_spectated_mech_died)
 			# T127: squad lives -- count valid slots and set lives; wire squad picker.
-			_player.set("lives", _squad_lives(entry))
-			mech.died.connect(_on_local_mech_died_mp)
-			hud.squad_slot_selected.connect(_on_squad_slot_selected)
-			hud.spawn_selected.connect(_on_spawn_selected)
+			_make_local_player(t, _squad_lives(entry), mech)
 		else:
 			var p := Node.new()
 			p.set_script(load("res://scripts/Player.gd"))
@@ -2615,24 +2601,57 @@ func _setup_players_mp() -> void:
 			p.set("lives", _squad_lives(entry))
 	# T122: HUD perspective — team-relative (own=green/blue, opp=red) regardless of server team id.
 	if player_mech != null and _player != null:
-		var my_team: int = _player.get("team")
-		_local_team = my_team
-		var opp_team: int = 1 - my_team
-		hud.setup(match_node, player_mech, my_team)
-		var ally_mechs: Array = []
-		for m in _team_mechs[my_team]:
-			if m != player_mech:
-				ally_mechs.append(m)
-		hud.setup_bot_bars(_team_mechs[opp_team])
-		hud.setup_ally_bars(ally_mechs)
-		hud.setup_beacon_bars(get_tree().get_nodes_in_group("beacons"))
-		hud.setup_minimap(self, my_team, Vector2(BOWL_SUN_X, BOWL_SUN_Z), MINIMAP_HALF,
-			_minimap_outline(), get_tree().get_nodes_in_group("beacons"))
+		_setup_hud(_player.get("team"), player_mech)
 		for weapon in player_mech.get_weapons():
 			if weapon.has_signal("hit_confirmed"):
 				weapon.hit_confirmed.connect(hud.register_hit)
 		player_mech.damaged.connect(hud.show_damage)
 		_open_start_pick.call_deferred()
+
+# The local human: Player node + keyboard/mouse input + pilot; flies `mech` when given
+# (null = a late rejoiner whose mech is gone: the picker or spectating follows).
+func _make_local_player(t: int, lives: int, mech: Node) -> void:
+	_player = Node.new()
+	_player.set_script(load("res://scripts/Player.gd"))
+	_player.name = "Player"
+	_player.set("team", t)
+	add_child(_player)
+	var input := Node.new()
+	input.set_script(load("res://scripts/PlayerInputSource.gd"))
+	_player.add_child(input)
+	_player.set("input_source", input)
+	var pilot := Node.new()
+	pilot.set_script(load("res://scripts/Pilot.gd"))
+	pilot.set("pilot_name", Game.profile.get("pilot_name", "Pilot"))
+	_player.add_child(pilot)
+	_player.set("pilot", pilot)
+	_players.append(_player)
+	_player.set("lives", lives)
+	hud.squad_slot_selected.connect(_on_squad_slot_selected)
+	hud.spawn_selected.connect(_on_spawn_selected)
+	if mech == null:
+		return
+	_player.call("possess", mech)
+	mech.make_camera_current()
+	mech.died.connect(Callable(_player, "on_pawn_destroyed"))
+	mech.mark_requested.connect(_on_mark_requested)
+	_spectated_mech = mech
+	mech.died.connect(_on_spectated_mech_died)
+	mech.died.connect(_on_local_mech_died_mp)
+
+# HUD bars, beacons and minimap from `team`'s side, following `mech` (own or spectated).
+func _setup_hud(team: int, mech: Node) -> void:
+	_local_team = team
+	hud.setup(match_node, mech, team)
+	var ally_mechs: Array = []
+	for m in _team_mechs[team]:
+		if m != mech:
+			ally_mechs.append(m)
+	hud.setup_bot_bars(_team_mechs[1 - team])
+	hud.setup_ally_bars(ally_mechs)
+	hud.setup_beacon_bars(get_tree().get_nodes_in_group("beacons"))
+	hud.setup_minimap(self, team, Vector2(BOWL_SUN_X, BOWL_SUN_Z), MINIMAP_HALF,
+		_minimap_outline(), get_tree().get_nodes_in_group("beacons"))
 
 const MINIMAP_HALF := 104.0  # T202: wall ring ~95 m from the bowl centre + margin
 
@@ -3154,6 +3173,9 @@ func _build_mp_stats() -> Array:
 func _on_peer_disconnected_in_match(id: int) -> void:
 	if not multiplayer.is_server():
 		return
+	var tok: String = Game.mp_lobby["peers"].get(id, {}).get("token", "")
+	if tok != "" and not _match_over:
+		_held[tok] = {"old": id, "t": Time.get_ticks_msec() * 0.001}  # T206: slot held HOLD_S
 	if _match_over or _disconnected_peers.has(id):
 		return  # T167: the silence check may have taken over already
 	for team in range(2):
@@ -3186,7 +3208,167 @@ func _bot_ify_disconnected_mech(mech: CharacterBody3D, peer_id: int) -> void:
 		mech.set_input_source(ai_input)
 	ai_input.set_mp_seed(match_node.match_seed ^ peer_id)
 
+# ---- T206: late join + rejoin ----
+# A peer joining mid-match gets the live match during the auth handshake (Game._on_mp_auth):
+# every mech in _team_mechs order (snapshots address mechs by that index), beacons, scores,
+# used squad slots, remote lives. It spectates -- or, if its token belongs to a player who
+# dropped < HOLD_S ago (the bot has been flying that mech, T123), it takes the slot back:
+# roster, mechs, slots and lobby entry move to the new peer id on every peer.
+const HOLD_S := 30.0
+var _held: Dictionary = {}  # server: token -> {old: peer id, t: s}
+
+func late_state(token: String) -> Dictionary:
+	var mechs: Array = []
+	for t in 2:
+		for m in _team_mechs[t]:
+			if not is_instance_valid(m):
+				mechs.append({"t": t, "def": ""})
+				continue
+			var spawn: Array = m.get_meta("spawn", ["", []])
+			mechs.append({"t": t, "name": String(m.name), "def": spawn[0], "w": spawn[1],
+				"owner": m.owner_peer_id, "ri": m.roster_idx, "dead": bool(m.is_dead),
+				"hp": m.health, "pos": m.global_position})
+	var beacons: Array = []
+	for b in get_tree().get_nodes_in_group("beacons"):
+		beacons.append([String(b.name), b.owner_team, b.state, b._capture_progress])
+	var lives := {}
+	for p in _players:
+		if String(p.name).begins_with("RemotePlayer_"):
+			lives[int(String(p.name).substr(13))] = p.get("lives")
+	var old := 0
+	var h = _held.get(token)
+	if h != null and Time.get_ticks_msec() * 0.001 - float(h["t"]) <= HOLD_S:
+		old = int(h["old"])
+	return {"map_path": Game.mp_active_match["map_path"], "roster": Game.mp_active_match["roster"],
+		"match_seed": Game.mp_active_match["match_seed"], "mechs": mechs, "beacons": beacons,
+		"scores": (match_node.get("scores") as Array).duplicate(), "slot_used": _peer_slot_used.duplicate(true),
+		"lives": lives, "rejoin_old": old}
+
+# Server: the late joiner finished the handshake.
+func late_join_connected(id: int, token: String) -> void:
+	var h = _held.get(token)
+	if h == null or Time.get_ticks_msec() * 0.001 - float(h["t"]) > HOLD_S:
+		print("[Arena] late join: peer %d spectates" % id)
+		return
+	_held.erase(token)
+	print("[Arena] rejoin: peer %d takes back the slot of %d" % [id, int(h["old"])])
+	_rpc_reassign.rpc(int(h["old"]), id)
+
+# Joiner: build the match as the server has it (the roster came with it, Game).
+func _apply_late_state(st: Dictionary) -> void:
+	var me := int(st["you"])
+	var old := int(st.get("rejoin_old", 0))
+	if old > 0:
+		_remap_peer(old, me)
+	for e in st["mechs"]:
+		var def = ResourceLoader.load(e["def"]) if String(e["def"]) != "" else null
+		if def == null:
+			_team_mechs[int(e["t"])].append(null)
+			continue
+		var m: CharacterBody3D = _spawn_one_mech(def, int(e["t"]), 0, 1, e["w"], e["name"])
+		var owner: int = int(e["owner"])
+		m.owner_peer_id = me if old > 0 and owner == old else owner
+		m.roster_idx = int(e["ri"])
+		m.health = float(e["hp"])
+		m.position = e["pos"]
+		if e["dead"]:
+			m.is_dead = true
+			m.visible = false
+			m.process_mode = Node.PROCESS_MODE_DISABLED
+			(m.get_node("CollisionShape3D") as CollisionShape3D).disabled = true
+	_peer_slot_used = st["slot_used"]
+	if old > 0 and _peer_slot_used.has(old):
+		_peer_slot_used[me] = _peer_slot_used[old]
+		_peer_slot_used.erase(old)
+
+func _apply_late_beacons(st: Dictionary) -> void:
+	for b in st["beacons"]:
+		var node := get_node_or_null(String(b[0]))
+		if node != null:
+			node.call("_sync_state", int(b[1]), int(b[2]), float(b[3]))
+	match_node.set("scores", st["scores"])
+
+func _setup_late_player(st: Dictionary) -> void:
+	var me := multiplayer.get_unique_id()
+	for entry in Game.mp_active_match["roster"]:
+		if int(entry.get("peer_id", 0)) != me:
+			continue
+		var t: int = entry["team"]
+		var mine: Node = null
+		for m in _team_mechs[t]:
+			if is_instance_valid(m) and m.owner_peer_id == me and not m.is_dead:
+				mine = m
+		var lives: int = int(st["lives"].get(int(st["rejoin_old"]), _squad_lives(entry)))
+		_make_local_player(t, lives, mine)
+		if mine != null:
+			player_mech = mine
+			_setup_hud(t, mine)
+			mine.damaged.connect(hud.show_damage)
+			for weapon in mine.get_weapons():
+				if weapon.has_signal("hit_confirmed"):
+					weapon.hit_confirmed.connect(hud.register_hit)
+		else:
+			_late_spectate(t)
+			if lives > 0:
+				_on_local_mech_died_mp()  # its mech died while it was away: the picker
+		print("[Arena] rejoined as peer %d (mech %s, lives %d)" % [me, mine.name if mine else "none", lives])
+		return
+	_late_spectate(0)
+
+func _late_spectate(team: int) -> void:
+	for t in [team, 1 - team]:
+		for m in _team_mechs[t]:
+			if is_instance_valid(m) and not m.is_dead:
+				_setup_hud(team, m)
+				_switch_spectator(m)
+				return
+
+# Peer `old` came back as `new`: its roster entry, mechs and slots follow it (V35 T206).
+func _remap_peer(old: int, new: int) -> void:
+	for entry in Game.mp_active_match["roster"]:
+		if int(entry.get("peer_id", 0)) == old:
+			entry["peer_id"] = new
+	for t in 2:
+		for m in _team_mechs[t]:
+			if is_instance_valid(m) and m.owner_peer_id == old:
+				m.owner_peer_id = new
+	if _peer_slot_used.has(old):
+		_peer_slot_used[new] = _peer_slot_used[old]
+		_peer_slot_used.erase(old)
+
+@rpc("authority", "call_local", "reliable")
+func _rpc_reassign(old: int, new: int) -> void:
+	_remap_peer(old, new)  # the joiner applied it already; a no-op there
+	if not multiplayer.is_server():
+		return
+	_disconnected_peers.erase(old)
+	var lobby: Dictionary = Game.mp_lobby["peers"]
+	if lobby.has(old):
+		var e: Dictionary = lobby[old]
+		lobby.erase(old)
+		e["ready"] = false
+		lobby[new] = e
+	var rp := get_node_or_null("RemotePlayer_%d" % old)
+	if rp == null:
+		return
+	rp.name = "RemotePlayer_%d" % new
+	for t in 2:
+		for m in _team_mechs[t]:
+			if is_instance_valid(m) and m.owner_peer_id == new and not m.is_dead:
+				var ai: Node = rp.get("input_source")
+				var net_input := Node.new()
+				net_input.set_script(load("res://scripts/NetworkInputSource.gd"))
+				rp.add_child(net_input)
+				rp.set("input_source", net_input)
+				rp.call("possess", m)
+				m.last_input_ms = Time.get_ticks_msec()
+				if ai != null and ai != net_input:
+					ai.queue_free()
+
 func _on_mp_match_ended(winner_team: int, stats: Array) -> void:
+	# T205/T206: the server froze every mech (_on_match_ended); a predicting client stops too
+	if not multiplayer.is_server() and is_instance_valid(player_mech):
+		player_mech.set_deferred("process_mode", Node.PROCESS_MODE_DISABLED)
 	hud.hide_squad_picker_mp()
 	hud.show_result_mp(winner_team, stats)
 	print("[Arena] MP match over. Team %d wins." % winner_team)
