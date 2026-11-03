@@ -54,12 +54,6 @@ theme_override_fonts/font = SubResource("FontVariation_wordmark")
 theme_override_font_sizes/font_size = 40
 text = "POINT"
 
-[node name="Tagline" type="Label" parent="Logo/Wordmark"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.478, 0.478, 0.522, 1)
-theme_override_font_sizes/font_size = 8
-text = "THIRD-PERSON MECH ARENA · BEACON DRAIN"
-
 [node name="PlayButton" type="Button" parent="."]
 offset_left = 220.0
 offset_top = 270.0
@@ -67,5 +61,33 @@ offset_right = 420.0
 offset_bottom = 304.0
 theme_override_font_sizes/font_size = 18
 text = "PLAY"
+
+[node name="LoginButton" type="Button" parent="."]
+offset_left = 220.0
+offset_top = 200.0
+offset_right = 316.0
+offset_bottom = 228.0
+disabled = true
+theme_override_font_sizes/font_size = 14
+text = "LOG IN"
+
+[node name="SignupButton" type="Button" parent="."]
+offset_left = 324.0
+offset_top = 200.0
+offset_right = 420.0
+offset_bottom = 228.0
+disabled = true
+theme_override_font_sizes/font_size = 14
+text = "SIGN UP"
+
+[node name="AccountsNote" type="Label" parent="."]
+offset_left = 220.0
+offset_top = 232.0
+offset_right = 420.0
+offset_bottom = 248.0
+theme_override_colors/font_color = Color(0.478, 0.478, 0.522, 1)
+theme_override_font_sizes/font_size = 8
+text = "ACCOUNTS COMING SOON"
+horizontal_alignment = 1
 
 [connection signal="pressed" from="PlayButton" to="." method="_on_play_pressed"]

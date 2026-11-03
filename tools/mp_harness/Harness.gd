@@ -259,12 +259,16 @@ func _menu_connect(squad: Array = []) -> bool:
 	if not await _wait_until(start, "scene TitleScreen or Hangar"):
 		return false
 	if get_tree().current_scene.name == "TitleScreen":
-		_click("PlayButton")
-		if not await _wait_scene("SignIn"):
+		_click("PlayButton")  # T192: PLAY AS GUEST -> callsign; a saved profile -> straight to the hangar
+		var next := func() -> bool:
+			var cs := get_tree().current_scene
+			return cs != null and (cs.name == "SignIn" or cs.name == "Hangar")
+		if not await _wait_until(next, "scene SignIn or Hangar"):
 			return false
-		_click("ConfirmButton")
-		if not await _wait_scene("Hangar"):
-			return false
+		if get_tree().current_scene.name == "SignIn":
+			_click("ConfirmButton")
+			if not await _wait_scene("Hangar"):
+				return false
 	await get_tree().process_frame
 	if not squad.is_empty() and not await _menu_pick_squad(squad):
 		return false
