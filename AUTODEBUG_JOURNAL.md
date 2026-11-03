@@ -67,3 +67,4 @@ date|task|outcome|commit|finding|suite
 2026-11-03|T195|DONE|see git log (T195)|damage overlay: isolated hits flash, hit streams (laser/MG) hold a steady tint; probe hud_damage|45/45
 2026-11-03|T196|DONE|see git log (T196)|over-the-shoulder camera (arm 1.3 m right, V swaps, wall-aware); spectator follows; probe shoulder_cam + B83 (server camera copy centred -> laser 1.14 m off; side now rides the input)|46/46 + selftest; net 54/54
 2026-11-03|T197|DONE|see git log (T197)|B84: step-up check zeroed the jump's velocity.y when ground rose ahead; skipped while launching; probe jump_slope (0.37 m -> 5.75 m)|47/47 + selftest
+2026-11-03|T201|DONE|see git log (T201)|Cesh stealth = lit camouflage (blurred background colour) instead of full invisibility; render reviewed|47/47
