@@ -55,3 +55,4 @@ date|task|outcome|commit|finding|suite
 2026-11-02|T199|DONE|see git log (T199)|B77: server waits STREAM_DRAIN_S after last ack (client->server input drain) + _rpc_input out-of-tree guard; flaky pair 3/3 reps clean|38/38; net 53/54 (menu_flow@bad interp_smoothness again -> T200)
 2026-11-02|T200|DONE|see git log (T200)|B78: ENet sender throttle decayed during the idle lobby on bad net -> periodic unreliable drops -> snapshot bursts; throttle deceleration 0 (V57); menu_flow@bad 4/4, stalls 0-2% (was 35-57%)|38/38; net 54/54
 2026-11-02|T198|DONE|see git log (T198)|bots respawn through their 5-mech squads (server, 3 s, _rpc_spawn_next_bot); respawn names Mech_r<ri>_s<slot>; probe bot_squad|39/39 + selftest; net 54/54
+2026-11-02|T186|DONE|see git log (T186)|B79: MP pause QUIT went to the title (pre-T176 route); now the hangar; peer_closed checks the post-quit scene (red before)|39/39; net 54/54

@@ -252,14 +252,19 @@ func _menu_flow() -> void:
 
 # Title -> SignIn -> Hangar (optional squad) -> FIND MATCH -> HOST or JOIN -> MPEntry by real clicks.
 func _menu_connect(squad: Array = []) -> bool:
-	if not await _wait_scene("TitleScreen"):
+	# T186: a fresh start begins at the title; a rejoin after a pause-quit, in the hangar
+	var start := func() -> bool:
+		var cs := get_tree().current_scene
+		return cs != null and (cs.name == "TitleScreen" or cs.name == "Hangar")
+	if not await _wait_until(start, "scene TitleScreen or Hangar"):
 		return false
-	_click("PlayButton")
-	if not await _wait_scene("SignIn"):
-		return false
-	_click("ConfirmButton")
-	if not await _wait_scene("Hangar"):
-		return false
+	if get_tree().current_scene.name == "TitleScreen":
+		_click("PlayButton")
+		if not await _wait_scene("SignIn"):
+			return false
+		_click("ConfirmButton")
+		if not await _wait_scene("Hangar"):
+			return false
 	await get_tree().process_frame
 	if not squad.is_empty() and not await _menu_pick_squad(squad):
 		return false
