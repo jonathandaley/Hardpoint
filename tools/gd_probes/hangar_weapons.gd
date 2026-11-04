@@ -1,7 +1,8 @@
 extends Node
 # T188 probe (HUMAN_FOUND_ISSUES: "mechs should show their equipped weapons in the hangar"):
 # every squad lineup mech carries its slots' weapons, and the detail diorama mech re-arms
-# when a weapon is cycled (it shows the saved pick, not the default).
+# when a weapon is cycled (it shows the saved pick, not the default). T227: lineup mechs
+# stand 3/4 toward the camera.
 
 const WeaponVisuals := preload("res://scripts/WeaponVisuals.gd")
 
@@ -28,6 +29,15 @@ func _ready() -> void:
 			_fail("lineup mech %s shows no weapons" % m.name)
 		else:
 			armed += 1
+		# T227: a 3/4 view TOWARD the camera (mech forward = -Z): turned to the lens, not square-on
+		var cam: Camera3D = (h.get("_lineup_viewport") as Viewport).get_camera_3d()
+		var to_cam: Vector3 = cam.global_transform.basis.z  # orthographic: the view direction, reversed
+		to_cam.y = 0.0
+		var fwd: Vector3 = -(m as Node3D).global_transform.basis.z
+		fwd.y = 0.0
+		var facing := fwd.normalized().dot(to_cam.normalized())
+		if facing < 0.5 or facing > 0.95:
+			_fail("lineup mech %s faces %.2f toward the camera (want a 3/4 view toward it, 0.5..0.95)" % [m.name, facing])
 	h._on_slot_btn_pressed(0)
 	await get_tree().process_frame
 	var md: Resource = Game.loadout["mech_def"]
