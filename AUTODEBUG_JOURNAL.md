@@ -94,3 +94,4 @@ date|task|outcome|commit|finding|suite
 2026-11-03|T222|DONE|see git log (T222)|Sydney city map (blocks on podiums, towers, parks, harbour + arch bridge, sail landmark); checker found + fixed 2 wedges; checker: wedges count only where reachable, map_stuck checks beacons/spawns|58/58
 2026-11-03|T223|DONE|see git log (T223)|Redwood Forest map; B96 large cylinder colliders wedge mechs -> capsules (V59); MapScene terrain/boundary/environment helpers|58/58
 2026-11-03|T224|DONE|see git log (T224)|Giza map (3 pyramids at 60.5 deg, sphinx, temples, causeway, dunes, haze); checker clean|58/58
+2026-11-04|T225|DONE|see git log (T225)|Swamp map (wading water at 55% speed via Mech.terrain_speed, hummocks, boardwalks, dead trees, sunken ruin, fog); checker clean; probe swamp_wade red-tested; no render (display down)|59/59

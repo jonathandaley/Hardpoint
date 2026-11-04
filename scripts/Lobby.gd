@@ -6,6 +6,7 @@ const _MAP_OPTIONS: Array = [
 	{"name": "Sydney",      "path": "res://resources/maps/City.tres"},
 	{"name": "Redwood Forest", "path": "res://resources/maps/Forest.tres"},
 	{"name": "Giza", "path": "res://resources/maps/Giza.tres"},
+	{"name": "Swamp", "path": "res://resources/maps/Swamp.tres"},
 	{"name": "Ironworks",   "path": "res://resources/maps/Ironworks.tres"},
 ]
 

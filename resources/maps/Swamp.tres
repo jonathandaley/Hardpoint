@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MapDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/MapDef.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+scene_path = "res://scenes/maps/Swamp.tscn"
+map_name = "Swamp"
+theme = "swamp"
+ambient_color = Color(0.6, 0.66, 0.52, 1)
+ambient_energy = 0.6

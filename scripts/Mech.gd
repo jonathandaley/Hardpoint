@@ -86,7 +86,8 @@ var _shake_intensity: float = 0.0
 var _shake_timer: float = 0.0
 
 var walk_speed: float:
-	get: return base_walk_speed * _modifiers.get("walk_speed", 1.0)
+	get: return base_walk_speed * _modifiers.get("walk_speed", 1.0) * terrain_speed
+var terrain_speed := 1.0  # T225: set by the map each tick (swamp water slows wading mechs)
 
 func _ready() -> void:
 	add_to_group("mechs")
