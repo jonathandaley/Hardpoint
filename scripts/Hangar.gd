@@ -160,7 +160,7 @@ func _build_back_btn() -> void:
 	_back_btn.visible = false
 
 var _bay: Node3D = null  # T208
-const LINEUP_YAW := 35.0  # T220
+const LINEUP_YAW := 215.0  # T220 3/4 view; T227: forward is -Z and the camera is at +Z, so 180 + 35 (35 alone was 3/4 AWAY)
 
 func _setup_lineup_viewport() -> void:
 	_lineup_container = SubViewportContainer.new()
@@ -283,8 +283,7 @@ func _refresh_lineup_mechs() -> void:
 		m.scale = Vector3.ONE * md.body_scale
 		MechVisuals.apply(m, md.display_name)
 		m.position = Vector3(start_x + float(i) * spacing, 0.0, 0.0)
-		# T220: 3/4 view (the design's repair bay): facing the camera square-on, every
-		# weapon pointed at the lens and hid end-on in front of the body
+		# T220/T227: 3/4 view toward the camera (the design's repair bay); weapons visible
 		m.rotation_degrees.y = LINEUP_YAW
 		_lineup_viewport.add_child(m)
 		if _bay != null:
