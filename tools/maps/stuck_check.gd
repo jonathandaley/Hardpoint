@@ -5,7 +5,9 @@ extends RefCounted
 #      players can go); at each, a test mech (outside the match: no team, ignored by bots,
 #      invincible) drops in, settles, then walks 1.5 s each way along +X, -X, +Z, -Z
 #      (Hippogriff 1.75 m/s: ~2.6 m on open ground). A point is STUCK if the mech is
-#      wedged: less than STUCK_M from it in every direction.
+#      wedged there (less than STUCK_M from it in every direction) and the navmesh joins
+#      it to team 0's first spawn -- somewhere a mech can walk into. (The navmesh also
+#      covers roofs and podium tops nobody reaches; wedges there count as islands.)
 #   3. ISLANDS (reported, not failed): grid points the navmesh can't reach from team 0's
 #      first spawn whose walks never got back onto the connected navmesh -- a pit or a
 #      pocket shows here, but so do walkable slopes the navmesh splits (Badlands' edge
@@ -82,7 +84,8 @@ static func run(arena: Node, spacing: float, mech_path := "res://resources/mechs
 		var w := Walker.new()
 		m.add_child(w)
 		m.set_input_source(w)
-		walkers.append([m, w, 0.0, _linked(nav, home, p)])  # [mech, input, max move, connected]
+		var linked := _linked(nav, home, p)
+		walkers.append([m, w, 0.0, linked, linked])  # [mech, input, max move, connected now, at start]
 	for i in SETTLE:
 		await tree.physics_frame
 	for d in DIRS:
@@ -101,9 +104,9 @@ static func run(arena: Node, spacing: float, mech_path := "res://resources/mechs
 	for k in walkers.size():
 		var e: Array = walkers[k]
 		var p: Vector3 = (pts[k] as Vector3).snapped(Vector3.ONE * 0.1)
-		if float(e[2]) < STUCK_M:
+		if float(e[2]) < STUCK_M and e[4]:  # wedged where a mech can walk to
 			out["stuck"].append(p)
-		elif not e[3]:
+		elif not e[3]:  # unreachable (roof, pocket) and never walked back
 			out["islands"].append(p)
 		(e[0] as Node).queue_free()
 	return out

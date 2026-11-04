@@ -33,6 +33,10 @@ func _ready() -> void:
 			for m in arena.get("_team_mechs")[t]:
 				m.invincible = true
 				m.process_mode = Node.PROCESS_MODE_DISABLED
+		if get_tree().get_nodes_in_group("beacons").size() != 5:  # V18
+			_fail("%s: %d beacons, want 5" % [sp, get_tree().get_nodes_in_group("beacons").size()])
+		if arena.spawn_points(0).size() < 2 or arena.spawn_points(0).size() != arena.spawn_points(1).size():
+			_fail("%s: spawn points %d / %d" % [sp, arena.spawn_points(0).size(), arena.spawn_points(1).size()])
 		var r: Dictionary = await Check.run(arena, SPACING)
 		r["map"] = String(sp).get_file().get_basename()  # one scene, maybe several MapDefs
 		for u in r["unreached"]:

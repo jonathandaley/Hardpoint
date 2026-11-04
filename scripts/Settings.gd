@@ -10,6 +10,7 @@ const MAPS: Array = [
 	"res://resources/maps/MathTemple.tres",
 	"res://resources/maps/Ironworks.tres",
 	"res://resources/maps/Badlands.tres",
+	"res://resources/maps/City.tres",
 ]
 
 var _diff_buttons: Array = []

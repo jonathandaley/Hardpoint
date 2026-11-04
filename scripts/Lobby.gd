@@ -3,6 +3,7 @@ extends Control
 const _MAP_OPTIONS: Array = [
 	{"name": "Math Temple", "path": "res://resources/maps/MathTemple.tres"},
 	{"name": "Badlands",    "path": "res://resources/maps/Badlands.tres"},
+	{"name": "Sydney",      "path": "res://resources/maps/City.tres"},
 	{"name": "Ironworks",   "path": "res://resources/maps/Ironworks.tres"},
 ]
 
