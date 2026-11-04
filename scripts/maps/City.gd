@@ -98,6 +98,7 @@ func build() -> void:
 		add_child(body)
 	_bridge()
 	_sails(Vector3(0, 0, QUAY_Z + 16))
+	_rects.append(Rect2(-30, QUAY_Z + 2, 60, 28))  # the sails' podium
 	# city blocks: a grid mirrored across x = 0
 	var tex_rng := RandomNumberGenerator.new()
 	tex_rng.seed = 2220
@@ -123,13 +124,60 @@ func build() -> void:
 				var c := Vector2(cx * sx, cz)
 				if _near_any(c, BEACONS, 20.0) or _near_spawn(c):
 					continue
+				_rects.append(Rect2(c - Vector2.ONE * BLOCK * 0.5, Vector2.ONE * BLOCK))
 				if c.distance_to(PARKS[0 if sx < 0 else 1]) < 1.0:
 					_park(c, rng)
 				else:
 					_block(c, rng, facades)
+	_infill(rng, facades)
 	# central avenue median + plaza paving at the beacons
 	for b in BEACONS:
 		_solid(Vector3(22, 0.12, 22), Vector3(b.x, 0.06, b.y), _mat(PAVE), 0.0, false)
+
+# T231 (HUMAN_FOUND_ISSUES 2026-11-04: "Sydney feels too open"): the beacon / spawn
+# clearings, the promenade and the avenue get low and mid-rise buildings and kiosks
+# (cover), mirrored across x = 0, each >= LANE from everything else (T221: no wedges).
+# Streets between blocks (14 m) stay open: an infill needs LANE on both sides.
+const LANE := 9.0
+var _rects: Array = []  # Rect2 footprints of everything solid at street level
+
+func _rect_dist(r: Rect2, p: Vector2) -> float:
+	return Vector2(maxf(maxf(r.position.x - p.x, 0.0), p.x - r.end.x),
+		maxf(maxf(r.position.y - p.y, 0.0), p.y - r.end.y)).length()
+
+func _infill_free(r: Rect2) -> bool:
+	if r.position.x < -HALF + LANE or r.end.x > HALF - LANE or r.position.y < QUAY_Z + LANE or r.end.y > HALF - LANE:
+		return false
+	for b in BEACONS:
+		if _rect_dist(r, b) < 14.0:
+			return false
+	for team in SPAWNS:
+		for sp in team:
+			if _rect_dist(r, sp) < 24.0:
+				return false
+	for o in _rects:
+		if (o as Rect2).grow(LANE).intersects(r):
+			return false
+	return true
+
+func _infill(rng: RandomNumberGenerator, facades: Array) -> void:
+	var roof := _mat(CONCRETE)
+	var kiosk := [_mat(Color("#7a5a3a")), _mat(Color("#3f5f6f")), _mat(Color("#8a3f34")), _mat(Color("#6b6b5a"))]
+	for k in 500:
+		var big := rng.randf() < 0.55
+		var size := Vector2(rng.randf_range(10, 18), rng.randf_range(10, 18)) if big else Vector2(rng.randf_range(4, 7), rng.randf_range(4, 7))
+		var h := rng.randf_range(6, 18) if big else rng.randf_range(3, 4.5)
+		var c := Vector2(rng.randf_range(LANE, HALF - LANE), rng.randf_range(QUAY_Z + LANE, HALF - LANE))
+		var r := Rect2(c - size * 0.5, size)
+		var m := Rect2(Vector2(-r.end.x, r.position.y), size)
+		if r.position.x < LANE * 0.5 or not _infill_free(r) or not _infill_free(m):
+			continue
+		var mat: Material = facades[rng.randi() % facades.size()] if big else kiosk[rng.randi() % kiosk.size()]
+		for rect in [r, m]:
+			var q: Vector2 = (rect as Rect2).get_center()
+			_rects.append(rect)
+			_solid(Vector3(size.x, h, size.y), Vector3(q.x, h * 0.5, q.y), mat)
+			_solid(Vector3(size.x + 0.1, 0.2, size.y + 0.1), Vector3(q.x, h + 0.1, q.y), roof, 0.0, false)
 
 func _near_any(c: Vector2, pts: Array, r: float) -> bool:
 	for p in pts:
