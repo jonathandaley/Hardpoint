@@ -179,8 +179,32 @@ func _park(c: Vector2, rng: RandomNumberGenerator) -> void:
 	var leaf := _mat(Color("#2f5a2a"))
 	for k in 9:
 		var p := c + Vector2((k % 3 - 1) * 10.0 + rng.randf_range(-2, 2), (k / 3 - 1) * 10.0 + rng.randf_range(-2, 2))
-		_solid(Vector3(0.8, 5.0, 0.8), Vector3(p.x, 2.5, p.y), trunk)
+		_trunk(Vector3(p.x, 0.0, p.y), trunk)
 		_solid(Vector3(5.0, 4.0, 5.0), Vector3(p.x, 6.5, p.y), leaf, rng.randf() * PI, false)
+
+# T230: round trunks (capsule collider, V59). The 0.8 m box trunks had flat faces a bot
+# pushed into square-on, and voxelised so thin in the navmesh that paths grazed them: two
+# big bots stalled in the park for ~45 s (HUMAN_FOUND_ISSUES 2026-11-04).
+func _trunk(at: Vector3, mat: Material) -> void:
+	var body := StaticBody3D.new()
+	body.position = at
+	var col := CollisionShape3D.new()
+	var cs := CapsuleShape3D.new()
+	cs.radius = 0.6
+	cs.height = 6.0
+	col.shape = cs
+	col.position.y = 2.5
+	body.add_child(col)
+	var mi := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = 0.45
+	cm.bottom_radius = 0.6
+	cm.height = 5.0
+	mi.mesh = cm
+	mi.material_override = mat
+	mi.position.y = 2.5
+	body.add_child(mi)
+	add_child(body)
 
 # Steel through-arch bridge out over the harbour (scenery beyond the quay).
 func _bridge() -> void:
