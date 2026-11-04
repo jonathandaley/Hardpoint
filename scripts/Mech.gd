@@ -114,12 +114,31 @@ const CAMERA_CLEAR := 0.25  # T235: camera arm ball radius (local units)
 var shoulder := 1.0  # this mech's side: the owner's Game.shoulder, sent with its input
 var _shoulder_x := 0.0
 
+# T237 (user 2026-11-04: "Vesuvius crosshair is obstructed by his giant shoulder"): the
+# camera sits beside the widest part of this mech (body + guns, torso-local) instead of a
+# fixed SHOULDER_X, so the crosshair ray -- straight ahead from the camera, only pitched --
+# passes beside it at any pitch (Everest / Vesuvius reach 1.52 > 1.3). Measured once from
+# the kit meshes, which every peer builds the same (B83: the server aims from its copy).
+var _shoulder_reach := -1.0
+
+func _side_offset() -> float:
+	if _shoulder_reach < 0.0:
+		_shoulder_reach = 0.0
+		var inv := torso.global_transform.affine_inverse()
+		for mi in torso.find_children("*", "MeshInstance3D", true, false):
+			var n := mi as MeshInstance3D
+			if n.mesh == null or not n.is_visible_in_tree():
+				continue
+			var box: AABB = inv * n.global_transform * n.get_aabb()
+			_shoulder_reach = maxf(_shoulder_reach, maxf(absf(box.position.x), absf(box.end.x)))
+	return maxf(SHOULDER_X, _shoulder_reach + 0.3)
+
 func _update_shoulder(delta: float) -> void:
 	if owner_peer_id == multiplayer.get_unique_id():  # our own mech: V swaps
 		if camera.current and Input.is_action_just_pressed("swap_shoulder"):
 			Game.shoulder = -Game.shoulder
 		shoulder = Game.shoulder
-	var want := SHOULDER_X * shoulder
+	var want := _side_offset() * shoulder
 	var y := camera_arm.position.y
 	var from := torso.global_transform * Vector3(0.0, y, 0.0)
 	var q := PhysicsRayQueryParameters3D.create(from, torso.global_transform * Vector3(want, y, 0.0), 1)
