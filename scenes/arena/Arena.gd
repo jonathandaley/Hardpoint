@@ -894,6 +894,9 @@ func _open_start_pick() -> void:
 	if squad.filter(func(sq) -> bool: return sq.get("mech", "") != "").size() < 2:
 		return
 	_start_pick_open = true
+	# T216: the mech you're standing in waits for the pick (MP doesn't pause): no input
+	# until the start + spawn pick close (_close_start_pick hands it back)
+	player_mech.set_input_source(null)
 	var used: Array = _peer_slot_used[my_id].duplicate()
 	used[0] = false  # the mech you're standing in is a choice too
 	hud.show_squad_picker_mp(squad, used, "SELECT FIRST MECH")
@@ -910,6 +913,8 @@ func _close_start_pick() -> void:
 	_pending_slot = -1
 	hud.hide_squad_picker_mp()
 	hud.hide_spawn_picker()
+	if _player != null and is_instance_valid(player_mech) and not player_mech.is_dead:
+		_player.call("possess", player_mech)  # T216: input back (a swap re-possesses the new one)
 	if multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
 		get_tree().paused = false
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED

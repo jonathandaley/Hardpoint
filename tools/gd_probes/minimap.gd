@@ -18,6 +18,8 @@ func _ready() -> void:
 		arena.get("hud").spawn_selected.emit(0)
 	for i in 60:
 		await get_tree().physics_frame
+	if arena.get("player_mech").get("_input_source") == null:  # T216: keeping slot 0 hands input back
+		_fail("the kept first mech has no input after the pick")
 	var mm: Control = arena.get("hud").get("minimap")
 	if mm == null or not mm.visible or mm.size.x < 60.0:
 		_fail("no visible minimap in the HUD")

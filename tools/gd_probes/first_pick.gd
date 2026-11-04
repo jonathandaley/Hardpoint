@@ -25,7 +25,11 @@ func _ready() -> void:
 	elif not get_tree().paused:
 		_fail("SP did not pause while the first mech is picked")
 	var first: Node = arena.get("player_mech")
+	if first.get("_input_source") != null:  # T216: no driving the first mech before the pick
+		_fail("the first mech takes input while the start picker is open")
 	hud.squad_slot_selected.emit(3)  # what the VESUVIUS button does
+	if first.get("_input_source") != null:
+		_fail("the first mech takes input while the spawn picker is open")
 	hud.spawn_selected.emit(0)
 	for i in 10:
 		await get_tree().physics_frame
