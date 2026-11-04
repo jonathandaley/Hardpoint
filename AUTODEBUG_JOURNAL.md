@@ -100,3 +100,4 @@ date|task|outcome|commit|finding|suite
 2026-11-04|-|QUEUED|-|HUMAN_FOUND_ISSUES of 2026-11-04 -> T227-T242 (user answers: roofed ship corridors, swamp slow wears off over 2 s, T212 parked); answered NEEDS_HUMAN entries pruned|-
 2026-11-04|T227|DONE|see git log (T227)|hangar lineup 3/4 toward the camera (yaw 215; B97: forward is -Z, camera +Z, T220 had it backwards); hangar_weapons checks facing, red on 35|59/59
 2026-11-04|T228|DONE|see git log (T228)|SP map picker after SINGLE PLAYER (2-column CHOOSE MAP in FindMatchPanel); Settings map section removed; probe sp_map_pick red on old flow + off-screen 1-column layout|60/60
+2026-11-04|T229|DONE|see git log (T229)|beacon rings buried under map pads (B98: ring 0.02 over ground_y; Sydney plazas 0.12, Giza slab, Flight Deck pads, a Math Temple plate); Beacon.RING_Y 0.25; probe beacon_ring every map, red on 12 beacons|61/61

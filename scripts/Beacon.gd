@@ -21,6 +21,7 @@ var _contested_hold_timer: float = 0.0
 
 const BEAM_HEIGHT := 30.0
 const CIRCLE_RADIUS := 3.0
+const RING_Y := 0.25  # T229: clears every map's beacon pads (probe beacon_ring)
 
 @onready var _cap_mesh: MeshInstance3D = $Visual/Cap
 var _cap_mat: StandardMaterial3D
@@ -47,7 +48,9 @@ func _ready() -> void:
 	beam_mi.position = Vector3(0.0, BEAM_HEIGHT * 0.5, 0.0)
 	$Visual.add_child(beam_mi)
 
-	# Ground capture ring - emissive torus flush with ground
+	# Ground capture ring - emissive torus just above the ground. T229: RING_Y, not flush:
+	# maps lay flat pads / slabs over the beacon floor (Sydney plazas 0.12 m, Giza's
+	# causeway 0.18) and a flush ring was buried under them
 	_circle_mat = StandardMaterial3D.new()
 	_circle_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_circle_mat.emission_enabled = true
@@ -59,7 +62,7 @@ func _ready() -> void:
 	var circle_mi := MeshInstance3D.new()
 	circle_mi.mesh = circle_mesh
 	circle_mi.set_surface_override_material(0, _circle_mat)
-	circle_mi.position = Vector3(0.0, 0.02, 0.0)
+	circle_mi.position = Vector3(0.0, RING_Y, 0.0)
 	$Visual.add_child(circle_mi)
 
 	$CaptureZone.body_entered.connect(_on_body_entered)
