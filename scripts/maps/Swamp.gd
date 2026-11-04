@@ -1,8 +1,8 @@
 extends MapScene
 # T225: swamp. ~260 m of murky water over a mud bottom (wading depth, <= 0.6 m) between dry
-# hummocks; mechs in the water move at WADE of their speed (Mech.terrain_speed, set here
-# every tick from height vs the surface -- same on every peer, so server and a predicting
-# client agree). Raised plank boardwalks link hummocks (boarded from the dry ground: full
+# hummocks; mechs in the water slow to WADE of their speed (Mech.terrain_speed, stepped
+# here every tick from height vs the surface -- same on every peer, so server and a
+# predicting client agree; T233: ramps in over 5 s, out over 2 s). Raised plank boardwalks link hummocks (boarded from the dry ground: full
 # speed lanes), dead trees, a sunken ruin in the middle, low fog. Point-symmetric
 # (x, z) -> (-x, -z): team 0 west, team 1 east; 5 beacons (V18), 3 spawns each.
 
@@ -202,7 +202,15 @@ func _sunken_ruin() -> void:
 		_box(Vector3(1.2, 6, 14), Vector3(17 * s, 1.0, -4 * s), conc, Vector3(0, 0.2, 0.22 * s))
 		_box(Vector3(9, 0.8, 7), Vector3(13 * s, 2.6, 16 * s), conc, Vector3(0.4 * s, 0, 0.15))
 
-func _physics_process(_delta: float) -> void:
-	# T225: wading. Mech origin = its feet; under the surface -> slowed.
+# T233 (HUMAN_FOUND_ISSUES 2026-11-04): wading is a status effect -- the slow builds from
+# none to WADE over WADE_IN_S in the water and wears off over WADE_OUT_S out of it (user:
+# 2 s). The state is Mech.terrain_speed itself, stepped every physics tick on every peer.
+const WADE_IN_S := 5.0
+const WADE_OUT_S := 2.0
+
+func _physics_process(delta: float) -> void:
+	# T225: wading. Mech origin = its feet; under the surface -> slowing.
 	for m in get_tree().get_nodes_in_group("mechs"):
-		m.set("terrain_speed", WADE if (m as Node3D).global_position.y < WATER_Y - 0.05 else 1.0)
+		var wet: bool = (m as Node3D).global_position.y < WATER_Y - 0.05
+		var rate := (1.0 - WADE) / (WADE_IN_S if wet else WADE_OUT_S)
+		m.set("terrain_speed", move_toward(float(m.get("terrain_speed")), WADE if wet else 1.0, rate * delta))

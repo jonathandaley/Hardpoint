@@ -1,6 +1,7 @@
 extends Node
 # T225 probe: on the swamp map a mech standing in the water moves at Swamp.WADE of its
-# speed, and at full speed again once it's back on dry ground (spawn pad). T232: boardwalk
+# speed, and at full speed again once it's back on dry ground (spawn pad). T233: the slow
+# builds over 5 s in the water and wears off over 2 s out of it. T232: boardwalk
 # decks sit just above the ground they rest on.
 
 func _fail(msg: String) -> void:
@@ -24,14 +25,29 @@ func _ready() -> void:
 	var full := float(m.get("walk_speed"))
 	if absf(float(m.get("terrain_speed")) - 1.0) > 0.001:
 		_fail("slowed on the dry spawn pad (terrain_speed %s)" % m.get("terrain_speed"))
+	# T233: a status effect -- builds to WADE over 5 s in the water, wears off over 2 s out
+	var want: float = map.get_script().get_script_constant_map()["WADE"]
+	var dry_at: Vector3 = m.global_position
 	var wet := Vector2(-60, 0)  # open water: away from every hummock, pad and boardwalk
 	m.global_position = Vector3(wet.x, map.call("ground_y", wet.x, wet.y) + 0.2, wet.y)
-	for i in 20:
-		await get_tree().physics_frame
-	var wade := float(m.get("walk_speed"))
-	var want: float = map.get_script().get_script_constant_map()["WADE"]
-	if absf(wade / full - want) > 0.01:
-		_fail("in the water walk_speed is %.2f of dry (want %.2f)" % [wade / full, want])
+	var stages := [[60, 1.0 - (1.0 - want) * 0.2, "1 s into the water"], [330, want, "5.5 s into the water"]]
+	var waited := 0
+	var wade := 0.0
+	for st in stages:
+		for i in int(st[0]) - waited:
+			await get_tree().physics_frame
+		waited = int(st[0])
+		wade = float(m.get("walk_speed"))
+		if absf(wade / full - float(st[1])) > 0.04:
+			_fail("%s walk_speed is %.2f of dry (want %.2f)" % [st[2], wade / full, st[1]])
+	m.global_position = dry_at + Vector3.UP * 0.2
+	for st in [[60, want + (1.0 - want) * 0.5, "1 s back on dry ground"], [150, 1.0, "2.5 s back on dry ground"]]:
+		for i in int(st[0]) - (waited - 330):
+			await get_tree().physics_frame
+		waited = 330 + int(st[0])
+		var r := float(m.get("walk_speed")) / full
+		if absf(r - float(st[1])) > 0.04:
+			_fail("%s walk_speed is %.2f of dry (want %.2f)" % [st[2], r, st[1]])
 	# T232 (HUMAN_FOUND_ISSUES 2026-11-04: boardwalks flicker, "same level as the floor"):
 	# every deck clears the ground under it by DECK_GAP..STEP (no z-fight, still a step up)
 	var decks := 0
