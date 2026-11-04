@@ -1,0 +1,22 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/maps/Forest.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/beacon/Beacon.tscn" id="2"]
+
+[node name="Forest" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Beacon1" parent="." instance=ExtResource("2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 1.1, 0.0)
+
+[node name="Beacon2" parent="." instance=ExtResource("2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -80.0, 1.1, 60.0)
+
+[node name="Beacon3" parent="." instance=ExtResource("2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80.0, 1.1, -60.0)
+
+[node name="Beacon4" parent="." instance=ExtResource("2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -80.0, 1.1, -60.0)
+
+[node name="Beacon5" parent="." instance=ExtResource("2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80.0, 1.1, 60.0)
