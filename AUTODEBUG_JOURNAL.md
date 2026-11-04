@@ -90,3 +90,4 @@ date|task|outcome|commit|finding|suite
 2026-11-03|T218|DONE|see git log (T218)|B93: Everest's pre-kit blue ShieldMesh never cleared; probe everest_shield; shield-down look -> NEEDS_HUMAN|56/56
 2026-11-03|T219|DONE|see git log (T219)|B94: target score distance 0.1 -> 0.3/m (a hurt far enemy + hysteresis kept bots off a fresh near one); probe idle_target; bot_eval Elite vs legacy 10-2|57/57
 2026-11-03|T220|DONE|see git log (T220)|B95: lineup weapons hidden end-on (mechs faced the camera) + half-res lineup; 3/4 yaw + full-res viewport; render reviewed|57/57
+2026-11-03|T221|DONE|see git log (T221)|map stuck-point checker: navmesh reach + walk-out grid (wedge = stuck) for every map scene, islands reported; probe map_stuck; tools/maps/stuck_check.tscn; Badlands + Math Temple clean|58/58
