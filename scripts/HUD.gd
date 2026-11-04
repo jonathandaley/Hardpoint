@@ -329,6 +329,8 @@ func show_result_mp(winner_team: int, stats: Array) -> void:
 	crosshair.visible = false
 	_build_stats_panel_mp(winner_team, stats)
 
+const RESULT_ROWS_H := 170.0  # ~7 rows visible; the rest scroll (T215)
+
 func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 	var backdrop := ColorRect.new()
 	backdrop.process_mode = Node.PROCESS_MODE_ALWAYS
@@ -344,7 +346,7 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(480, 0)
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 8)
+	vbox.add_theme_constant_override("separation", 6)
 	panel.add_child(vbox)
 	center.add_child(panel)
 
@@ -365,6 +367,16 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 		col_hdr.add_child(lbl)
 	vbox.add_child(col_hdr)
 	vbox.add_child(HSeparator.new())
+	# T215: the player rows scroll; title, columns and button stay put. A 5v5 table pushed
+	# the button below the 360 px screen -- the match looked frozen (SP for good, MP
+	# until the 30 s auto-return).
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0, RESULT_ROWS_H)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var rows := VBoxContainer.new()
+	rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(rows)
+	vbox.add_child(scroll)
 
 	for entry: Dictionary in stats:
 		var peer_id: int = entry.get("peer_id", 0)
@@ -396,7 +408,7 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 			lbl.add_theme_font_size_override("font_size", 14)
 			lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			row.add_child(lbl)
-		vbox.add_child(row)
+		rows.add_child(row)
 
 	vbox.add_child(HSeparator.new())
 
