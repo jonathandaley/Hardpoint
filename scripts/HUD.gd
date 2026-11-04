@@ -67,6 +67,7 @@ func setup_minimap(arena: Node, team: int, center: Vector2, half: float,
 	minimap.half = half
 	minimap.outline = outline
 	minimap.beacons = beacons
+	minimap.set_features(arena.get("_map") if arena != null else null)  # T239 (after half: it sizes the filter)
 
 func _minimap_corner() -> void:
 	minimap.set_anchors_preset(Control.PRESET_TOP_RIGHT)
