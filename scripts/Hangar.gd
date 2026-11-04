@@ -155,14 +155,18 @@ func _build_back_btn() -> void:
 	_back_btn.visible = false
 
 var _bay: Node3D = null  # T208
+const LINEUP_YAW := 35.0  # T220
 
 func _setup_lineup_viewport() -> void:
 	_lineup_container = SubViewportContainer.new()
+	# T220: render the 3D lineup at the window's pixel size (1280x420), shown at half scale
+	# in the 640x210 UI area -- stretched from 640x210 the light weapons blurred into the hull
 	_lineup_container.offset_left   = 0.0
 	_lineup_container.offset_top    = 0.0
-	_lineup_container.offset_right  = 640.0
-	_lineup_container.offset_bottom = 210.0
-	_lineup_container.stretch = true
+	_lineup_container.offset_right  = 1280.0
+	_lineup_container.offset_bottom = 420.0
+	_lineup_container.scale = Vector2(0.5, 0.5)
+	_lineup_container.stretch = false
 	mech_panel.add_child(_lineup_container)
 
 	_lineup_viewport = SubViewport.new()
@@ -274,6 +278,9 @@ func _refresh_lineup_mechs() -> void:
 		m.scale = Vector3.ONE * md.body_scale
 		MechVisuals.apply(m, md.display_name)
 		m.position = Vector3(start_x + float(i) * spacing, 0.0, 0.0)
+		# T220: 3/4 view (the design's repair bay): facing the camera square-on, every
+		# weapon pointed at the lens and hid end-on in front of the body
+		m.rotation_degrees.y = LINEUP_YAW
 		_lineup_viewport.add_child(m)
 		if _bay != null:
 			_bay.set_bay_mech(i, String(md.display_name))
