@@ -14,8 +14,9 @@ extends CanvasLayer
 @onready var eligible_indicator: Control = $EligibleIndicator
 @onready var ability_label: Label = $AbilityLabel
 
-const BOT_BAR_FULL_WIDTH := 32.0
-const BOT_BAR_HEIGHT     := 6.0
+# T236 (HUMAN_FOUND_ISSUES 2026-11-04: bars "obstruct vision too much"): 32 x 6 -> 20 x 3 px
+const BOT_BAR_FULL_WIDTH := 20.0
+const BOT_BAR_HEIGHT     := 3.0
 const BOT_BAR_HEAD_OFFSET := Vector3(0.0, 3.5, 0.0)
 
 var _damage_alpha: float = 0.0
