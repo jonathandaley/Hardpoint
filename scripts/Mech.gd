@@ -188,7 +188,38 @@ func configure_energy_shield(has_shield: bool, max_hp: float, regen_rate: float,
 func configure_shield(has_shield: bool, max_hp: float = 300.0) -> void:
 	if has_shield:
 		_shield.activate(max_hp)
+		_adopt_shield_meshes()
+		if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+			_shield.shield_broken.connect(func() -> void: _rpc_shield_broken.rpc())
 	# disabled by default in scene; no action needed for mechs without shields
+
+# T242 (user 2026-11-04: "Everest shield should disappear on breaking"): the kit model's
+# shield (slab, face, cross, brackets -- the torso boxes inside the physical shield's
+# volume) moves under the PhysicalShield node, which hides when it breaks.
+const _SHIELD_GRAB := Vector3(0.1, 0.1, 0.3)  # slack around the shield box when adopting kit parts
+
+func _adopt_shield_meshes() -> void:
+	var cs := _shield.get_node_or_null("CollisionShape3D") as CollisionShape3D
+	if cs == null or not (cs.shape is BoxShape3D):
+		return
+	var half: Vector3 = (cs.shape as BoxShape3D).size * 0.5 + _SHIELD_GRAB
+	var to_shield: Transform3D = (_shield.transform * cs.transform).affine_inverse()
+	for c in torso.get_children():
+		var mi := c as MeshInstance3D
+		if mi == null or mi.mesh == null:
+			continue
+		var p: Vector3 = to_shield * mi.position
+		if absf(p.x) <= half.x and absf(p.y) <= half.y and absf(p.z) <= half.z:
+			var local: Transform3D = _shield.transform.affine_inverse() * mi.transform
+			torso.remove_child(mi)
+			_shield.add_child(mi)
+			mi.transform = local
+
+# Server -> clients: the physical shield broke (damage is server-only, V38).
+@rpc("authority", "reliable")
+func _rpc_shield_broken() -> void:
+	if is_instance_valid(_shield) and _shield.visible:
+		_shield.call("_break")
 
 func apply_pilot_skills() -> void:
 	max_health      *= 1.0 + Game.get_skill_effect("health")
