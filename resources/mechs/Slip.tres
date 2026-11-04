@@ -8,7 +8,7 @@
 [sub_resource type="Resource" id="1"]
 script = ExtResource("3")
 slot_size = 0
-position = Vector3(0, 2.12, -0.01)
+position = Vector3(0, 2.58, -0.01)
 weapon_scene = ExtResource("4")
 
 [resource]
@@ -24,5 +24,6 @@ leg_hip_sweep = 0.14
 leg_bob_magnitude = 0.02
 leg_cycle_rate = 1.18
 body_scale = 0.85
+weapon_scale = 1.8
 weapon_slots = [SubResource("1")]
 scene = ExtResource("2")
