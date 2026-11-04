@@ -145,13 +145,15 @@ func _clear(p: Vector2, placed: Array) -> bool:
 				return false
 	return true
 
-# Planks on a box collider, deck at WATER_Y + 0.6 (= the hummocks' dry ground): you walk on
-# from the hummocks; from the water it's a ledge.
+# Planks on a box collider, deck at WATER_Y + DECK_TOP: a 0.1 m step up from the hummocks'
+# dry ground (T232: flush with it, the deck z-fought the ground and flickered); from the
+# water it's a ledge.
+const DECK_TOP := 0.7
 func _boardwalk(a: Vector2, b: Vector2, mat: Material) -> void:
 	var mid := (a + b) * 0.5
 	var length := a.distance_to(b)
 	var yaw := atan2(b.x - a.x, b.y - a.y)
-	_box(Vector3(4.0, 0.3, length), Vector3(mid.x, WATER_Y + 0.45, mid.y), mat, Vector3(0, yaw, 0))
+	_box(Vector3(4.0, 0.3, length), Vector3(mid.x, WATER_Y + DECK_TOP - 0.15, mid.y), mat, Vector3(0, yaw, 0))
 	var dir := (b - a).normalized()
 	var side := Vector2(-dir.y, dir.x)
 	var n := int(length / 6.0)
