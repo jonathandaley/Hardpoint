@@ -669,12 +669,18 @@ const AUTH_TIMEOUT_S := 15.0
 const AUTH_READY := "ready"
 const AUTH_GO := "go"
 var late_join = null  # client: the late-join state until Arena applies it
+## B101 (T245): the server has streamed to us since we joined -- proof it finished our auth.
+## Whoever completes auth last is connected first (B89 makes that the client), so until a
+## snapshot arrives our packets could reach a server still authenticating us (engine error
+## per packet). Mech holds its input stream until then.
+var server_heard := false
 var _late_tokens: Dictionary = {}  # server: joining peer id -> token
 var _peer_sessions: Dictionary = {}  # server: peer id -> account session token (T207)
 
 func _on_mp_peer_authenticating(id: int) -> void:
 	if multiplayer.is_server():
 		return  # wait for the joiner's token (_on_mp_auth)
+	server_heard = false  # B101
 	var hello := "token:" + player_token()
 	if not account.is_empty():
 		hello += "|" + String(account["session"])  # T207: tie this peer to the account

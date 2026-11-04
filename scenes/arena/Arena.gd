@@ -1230,6 +1230,7 @@ func _check_host_silence() -> void:
 @rpc("authority", "unreliable_ordered")
 func _rpc_snapshot(snapshots: Array) -> void:
 	_last_snapshot_ms = Time.get_ticks_msec()  # T214
+	Game.server_heard = true  # B101: the server has us connected; our input may flow
 	var now := Time.get_ticks_msec() * 0.001
 	var st: float = float(snapshots[0].get("st", now)) if not snapshots.is_empty() else now
 	_snap_clock_offset = minf(_snap_clock_offset + 0.0002, now - st)
