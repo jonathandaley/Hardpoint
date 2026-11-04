@@ -45,7 +45,9 @@ func _ready() -> void:
 			var foot := AABB(Vector3(p.x - Beacon.CIRCLE_RADIUS, -1000, p.z - Beacon.CIRCLE_RADIUS),
 				Vector3(Beacon.CIRCLE_RADIUS * 2, 2000, Beacon.CIRCLE_RADIUS * 2))
 			for box in flats:
-				if (box as AABB).intersects(foot) and (box as AABB).end.y >= ry - 0.02:
+				# a pad buries the ring if it lies at its height (bottom at or under it, top over
+				# it); a thin light strip on a 10 m ceiling (Corvette) doesn't
+				if (box as AABB).intersects(foot) and (box as AABB).position.y <= ry and (box as AABB).end.y >= ry - 0.02:
 					_fail("%s beacon (%.0f, %.0f): ring at y %.2f, a flat mesh's top at %.2f covers it" % [
 						String(sp).get_file(), p.x, p.z, ry, (box as AABB).end.y])
 					break

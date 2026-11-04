@@ -8,6 +8,7 @@ const _MAP_OPTIONS: Array = [
 	{"name": "Giza", "path": "res://resources/maps/Giza.tres"},
 	{"name": "Swamp", "path": "res://resources/maps/Swamp.tres"},
 	{"name": "Factory", "path": "res://resources/maps/Factory.tres"},
+	{"name": "Corvette", "path": "res://resources/maps/Corvette.tres"},
 	{"name": "Ironworks",   "path": "res://resources/maps/Ironworks.tres"},
 ]
 

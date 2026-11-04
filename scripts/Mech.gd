@@ -91,6 +91,12 @@ var terrain_speed := 1.0  # T225: set by the map each tick (swamp water slows wa
 
 func _ready() -> void:
 	add_to_group("mechs")
+	# T235: the camera arm casts a ball, not a ray: a ray parks the camera 1 cm off a wall or
+	# ceiling and the near plane cuts through it (the roofed Corvette's corridors)
+	var ball := SphereShape3D.new()
+	ball.radius = CAMERA_CLEAR
+	camera_arm.shape = ball
+	camera_arm.add_excluded_object(get_rid())
 	health = max_health
 	_setup_weapon_owners()
 	_build_weapon_list()
@@ -104,6 +110,7 @@ func _ready() -> void:
 # server-side weapons (laser, hitscan) aim from the server's copy of the camera, so the
 # server must offset it exactly like the owner's screen (B83): the side rides the input.
 const SHOULDER_X := 1.3
+const CAMERA_CLEAR := 0.25  # T235: camera arm ball radius (local units)
 var shoulder := 1.0  # this mech's side: the owner's Game.shoulder, sent with its input
 var _shoulder_x := 0.0
 
