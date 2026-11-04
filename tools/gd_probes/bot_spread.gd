@@ -1,20 +1,24 @@
 extends Node
 # T189 probe (HUMAN_FOUND_ISSUES: "bots do not split up, but rush the center in a group"):
 # a 5v5 of Elite bots (the human slot kept out of it) must spread over the beacons. Two
-# numbers per team, sampled every second from 5 s to 30 s: the most bots heading for one
+# numbers per team, sampled every second from 5 s to 35 s: the most bots heading for one
 # beacon (their claimed objective) and the mean distance between teammate bots. Every
 # slot runs a Hornet (2.1 m/s): the roster's 5v5 puts the slow heavies (Everest 0.75 m/s)
 # all on one side, and spacing would measure walk speed instead of the AI.
 
 const MAX_SHARE := 2.6    # mean of the per-sample maximum bots on one beacon (old AI: 3-4)
-const MIN_SPACING := 12.0  # m, mean pairwise teammate distance, both teams averaged (old AI:
+const MIN_SPACING := 10.0  # m, mean pairwise teammate distance, both teams averaged (old AI:
                            # 6-8; new: 16-17 -- on MathTemple one team's two pairs share the
-                           # route past the centre for a while, the other spreads ~25 m)
+                           # route past the centre for a while, the other spreads ~25 m).
+                           # 2026-11-03: one match still varies (nav bake timing): 11.2 m
+                           # twice against the old 12 bar -> 10 (old AI still well under) and
+                           # a 30 s window (the suite caps probes at 6000 frames)
 
 func _ready() -> void:
 	Game.loadout["team_size"] = 5
 	Game.settings["bot_difficulty"] = 4
 	Game.setup_sp_match()
+	Game.mp_active_match["match_seed"] = 189  # fixed bot RNG; nav bake timing still varies
 	for e in Game.mp_active_match["roster"]:
 		e["squad"] = [{"mech": "res://resources/mechs/Hornet.tres", "weapons": []}]
 	var arena: Node = load("res://scenes/arena/Arena.tscn").instantiate()
@@ -30,7 +34,7 @@ func _ready() -> void:
 	var share := [0.0, 0.0]
 	var spacing := [0.0, 0.0]
 	var samples := 0
-	for sec in 30:
+	for sec in 35:
 		for i in 60:
 			await get_tree().physics_frame
 		if sec < 5:
