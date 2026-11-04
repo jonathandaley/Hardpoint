@@ -11,6 +11,7 @@ const MAPS: Array = [
 	"res://resources/maps/Ironworks.tres",
 	"res://resources/maps/Badlands.tres",
 	"res://resources/maps/City.tres",
+	"res://resources/maps/Forest.tres",
 ]
 
 var _diff_buttons: Array = []

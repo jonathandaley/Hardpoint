@@ -92,3 +92,4 @@ date|task|outcome|commit|finding|suite
 2026-11-03|T220|DONE|see git log (T220)|B95: lineup weapons hidden end-on (mechs faced the camera) + half-res lineup; 3/4 yaw + full-res viewport; render reviewed|57/57
 2026-11-03|T221|DONE|see git log (T221)|map stuck-point checker: navmesh reach + walk-out grid (wedge = stuck) for every map scene, islands reported; probe map_stuck; tools/maps/stuck_check.tscn; Badlands + Math Temple clean|58/58
 2026-11-03|T222|DONE|see git log (T222)|Sydney city map (blocks on podiums, towers, parks, harbour + arch bridge, sail landmark); checker found + fixed 2 wedges; checker: wedges count only where reachable, map_stuck checks beacons/spawns|58/58
+2026-11-03|T223|DONE|see git log (T223)|Redwood Forest map; B96 large cylinder colliders wedge mechs -> capsules (V59); MapScene terrain/boundary/environment helpers|58/58
