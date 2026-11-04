@@ -56,13 +56,20 @@ static func run(arena: Node, spacing: float, mech_path := "res://resources/mechs
 	var c: Vector2 = map.center
 	var half: float = float(map.minimap_half) * 0.95
 	var pts: Array = []
+	var space: PhysicsDirectSpaceState3D = (arena as Node3D).get_world_3d().direct_space_state
+	var inside := PhysicsPointQueryParameters3D.new()
+	inside.collision_mask = 1
 	var x := c.x - half
 	while x <= c.x + half:
 		var z := c.y - half
 		while z <= c.y + half:
 			var probe := Vector3(x, float(map.ground_y(x, z)) + 1.0, z)
 			var q := NavigationServer3D.map_get_closest_point(nav, probe)
-			if Vector2(q.x, q.z).distance_to(Vector2(x, z)) < spacing * 0.3:
+			inside.position = q + Vector3.UP
+			# T235: Recast rasterises a box's faces, not its volume, so a tall solid block bakes
+			# hollow -- navmesh on the floor inside it. A walker dropped there can't move, and
+			# 2.7 m from a corridor through a wall it read as "stuck" (Corvette). Not a place.
+			if Vector2(q.x, q.z).distance_to(Vector2(x, z)) < spacing * 0.3 and space.intersect_point(inside, 1).is_empty():
 				pts.append(q)
 			z += spacing
 		x += spacing

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MapDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/MapDef.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+scene_path = "res://scenes/maps/Corvette.tscn"
+map_name = "Corvette"
+theme = "ship"
+ambient_color = Color(0.87, 0.9, 0.93, 1)
+ambient_energy = 0.8
