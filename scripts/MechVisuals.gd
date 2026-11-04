@@ -88,7 +88,9 @@ static func _kit(mech: Node3D, k: Dictionary, tex: String) -> void:
 	}
 	var t := mech.get_node_or_null("Torso") as Node3D
 	if t:
-		for n in ["Waist", "Body", "Head", "ShoulderLeft", "ShoulderRight"]:
+		# T218: the physical shield's placeholder too -- the kit model carries its own shield;
+		# the blue box showed inside it while the shield was up (Everest, until it broke)
+		for n in ["Waist", "Body", "Head", "ShoulderLeft", "ShoulderRight", "PhysicalShield/ShieldMesh"]:
 			var old := t.get_node_or_null(n) as MeshInstance3D
 			if old:
 				old.mesh = null
