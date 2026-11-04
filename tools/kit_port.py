@@ -173,7 +173,7 @@ def classify(calls):
 # T191 (game-side, not in the kit): Seeker's turret shrunk so its oversized weapon
 # (MechDef.weapon_scale) sits on top of it instead of inside it -- "a tiny mech
 # staggering under a huge weapon". Mount/socket boxes scale toward the stack's base.
-MOUNT_SHRINK = {"Seeker": 0.7}
+MOUNT_SHRINK = {"Seeker": 0.7, "Slip": 0.45}  # T238 (user 2026-11-04): Slip "the mount should be subtle and the gun impressive"
 
 
 def shrink_mounts(torso, k):
