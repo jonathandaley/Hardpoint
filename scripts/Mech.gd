@@ -1226,10 +1226,10 @@ func _deactivate_ability(key: String) -> void:
 
 func _jump_launch() -> void:
 	velocity.y = 15.0
-	var launch_dir: Vector3 = _desired_move_dir if _desired_move_dir != Vector3.ZERO \
-		else -torso.global_transform.basis.z
-	velocity.x = launch_dir.x * walk_speed * 3.75
-	velocity.z = launch_dir.z * walk_speed * 3.75
+	# T240 (HUMAN_FOUND_ISSUES 2026-11-04): standing still, the jump goes straight up (it
+	# lunged along the facing); moving, it carries the move direction as before
+	velocity.x = _desired_move_dir.x * walk_speed * 3.75
+	velocity.z = _desired_move_dir.z * walk_speed * 3.75
 
 @rpc("authority", "reliable")
 func _rpc_ability_activated(slot: int) -> void:
