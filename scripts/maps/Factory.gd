@@ -1,11 +1,11 @@
 extends MapScene
-# T226: flight deck of a spacecraft. A 220 m square deck plate in open space (starfield sky,
-# a planet off the bow): launch rails down the middle with blast deflectors, cargo container
-# stacks, bulkhead walls with doorways splitting the deck in thirds, raised catwalks on the
-# outer bulkheads (solid wedge ramps up), the bridge tower on the north edge. Flat deck at
-# y = 0. Mirror-symmetric across x = 0: team 0 west, team 1 east; 5 beacons (V18), 3 spawns
-# each. Obstacles keep >= LANE m apart (T221: no wedges); colliders are boxes and convex
-# wedges (V59).
+# T226 / T234: "Factory" (was Flight Deck; user 2026-11-04: keep the deck, rename it, burnt
+# orange-red sky). A 220 m square deck plate over a dark hull under a burnt orange-red sky:
+# launch rails down the middle with blast deflectors, cargo container stacks, bulkhead walls
+# with doorways splitting the deck in thirds, raised catwalks on the outer bulkheads (solid
+# wedge ramps up), the bridge tower on the north edge. Flat deck at y = 0. Mirror-symmetric
+# across x = 0: team 0 west, team 1 east; 5 beacons (V18), 3 spawns each. Obstacles keep
+# >= LANE m apart (T221: no wedges); colliders are boxes and convex wedges (V59).
 
 const HALF := 110.0
 const LANE := 9.0
@@ -88,7 +88,7 @@ func _panel_texture() -> ImageTexture:
 func build() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 226
-	_space(rng)
+	_sky(rng)
 	var deck := _mat(Color.WHITE, 0.7, 0.4)
 	deck.albedo_texture = _panel_texture()
 	deck.uv1_triplanar = true
@@ -125,32 +125,30 @@ func build() -> void:
 			_box(Vector3(10, 0.06, 10), Vector3(s.x, 0.03, s.y), _mat(Color("#55402a")), false)
 	_containers(rng)
 
-# Black sky with stars (panorama), a planet below the bow, cold ambient light, no fog.
-func _space(rng: RandomNumberGenerator) -> void:
+# T234: burnt orange-red sky, warm ambient light, a light haze (was a starfield + planet).
+func _sky(rng: RandomNumberGenerator) -> void:
+	for k in 4000:  # replay the T226 starfield's draws (same calls: randf/randi advance
+		rng.randf_range(0.25, 1.0)  # differently) so the container layout stays the same
+		rng.randi()
+		rng.randi()
+		rng.randf_range(0.85, 1.1)
 	var env := own_environment()
-	if env != null:
-		var img := Image.create(2048, 1024, false, Image.FORMAT_RGB8)
-		img.fill(Color(0.004, 0.005, 0.012))
-		for k in 4000:
-			var f := rng.randf_range(0.25, 1.0)
-			img.set_pixel(rng.randi() % 2048, rng.randi() % 1024, Color(f, f, f * rng.randf_range(0.85, 1.1)))
-		var sm := PanoramaSkyMaterial.new()
-		sm.panorama = ImageTexture.create_from_image(img)
-		env.sky = Sky.new()
-		env.sky.sky_material = sm
-		env.background_mode = Environment.BG_SKY
-		env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-		env.ambient_light_color = Color("#8796b0")
-		env.ambient_light_energy = 0.6
-		env.fog_enabled = false
-	var planet := MeshInstance3D.new()
-	var ps := SphereMesh.new()
-	ps.radius = 420.0
-	ps.height = 840.0
-	planet.mesh = ps
-	planet.material_override = _mat(Color("#3a6ea8"), 0.9, 0.0)
-	planet.position = Vector3(-250, -520, -1300)
-	add_child(planet)
+	if env == null:
+		return
+	var sm := ProceduralSkyMaterial.new()
+	sm.sky_top_color = Color("#5e1a0c")
+	sm.sky_horizon_color = Color("#c8582a")
+	sm.ground_horizon_color = Color("#9c4420")
+	sm.ground_bottom_color = Color("#2a0f08")
+	env.sky = Sky.new()
+	env.sky.sky_material = sm
+	env.background_mode = Environment.BG_SKY
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color("#d09a7a")
+	env.ambient_light_energy = 0.6
+	env.fog_enabled = true
+	env.fog_light_color = Color("#b4542a")
+	env.fog_density = 0.004
 
 # Launch rails down the middle line (flush, visual) with a lit centre stripe; a blast
 # deflector (solid, upright) across each rail near either end.

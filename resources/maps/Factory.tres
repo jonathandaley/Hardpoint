@@ -4,8 +4,8 @@
 
 [resource]
 script = ExtResource("1")
-scene_path = "res://scenes/maps/FlightDeck.tscn"
-map_name = "Flight Deck"
-theme = "space"
-ambient_color = Color(0.55, 0.6, 0.7, 1)
+scene_path = "res://scenes/maps/Factory.tscn"
+map_name = "Factory"
+theme = "industrial"
+ambient_color = Color(0.82, 0.6, 0.48, 1)
 ambient_energy = 0.6
