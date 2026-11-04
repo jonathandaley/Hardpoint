@@ -164,11 +164,16 @@ func _is_live_enemy(m) -> bool:
 func _hp_pct(m: Node) -> float:
 	return clampf(m.health / maxf(float(m.get("max_health") if m.get("max_health") != null else 1.0), 1.0), 0.0, 1.0)
 
-# High score = close + low HP (HP weight 12 vs distance 0.1) + recent attacker (T169).
+# High score = close + low HP + recent attacker (T169).
 # T172 team presets: + in sight, + teammates already shooting it (focus fire).
+# T219: distance 0.3/m (was 0.1): a fresh enemy 25 m off lost to a hurt one 60 m off by
+# ~3 points and the +2 switching hysteresis kept the far one -- idle bots ignored who was
+# closest. Full HP difference (12) now buys ~40 m, not 120 m.
+const DIST_WEIGHT := 0.3
+
 func _score(from: Node3D, em: Node3D) -> float:
 	var d := from.global_position.distance_to(em.global_position)
-	var score := (1.0 - _hp_pct(em)) * 12.0 - d * 0.1
+	var score := (1.0 - _hp_pct(em)) * 12.0 - d * DIST_WEIGHT
 	if d < CLOSE_RANGE:  # T190: whoever walked up to us is the threat, LOS or not
 		score += CLOSE_BONUS * (1.0 - d / CLOSE_RANGE)
 	if em == _threat and _threat_timer > 0.0:
