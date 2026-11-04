@@ -53,6 +53,7 @@ func _ready() -> void:
 	else:
 		_spawn_mechs_mp()
 	_map.build()
+	_map.add_surface_detail()  # T241
 	_wire_beacons()
 	if late != null:
 		_apply_late_beacons(late)

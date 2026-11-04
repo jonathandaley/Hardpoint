@@ -72,6 +72,56 @@ func make_terrain(half: float, cell: float, color_at: Callable, detail_seed := 0
 	body.add_child(col)
 	add_child(body)
 
+## T241 (HUMAN_FOUND_ISSUES 2026-11-04: floors look textured, "the trees and obstacles are
+## plain ... add some surface detail, just to break up the silhouette a bit"): after build(),
+## every plain opaque material on the map (no texture, no detail yet, not emissive, not
+## transparent) gets a soft triplanar noise detail layer -- grey 0.72..1.0 multiplied in, so
+## surfaces vary without going darker overall. Shared materials are touched once.
+func add_surface_detail() -> void:
+	var grain := NoiseTexture2D.new()
+	var fn := FastNoiseLite.new()
+	fn.frequency = 0.12
+	fn.fractal_octaves = 3
+	grain.noise = fn
+	grain.seamless = true
+	grain.width = 128
+	grain.height = 128
+	var ramp := Gradient.new()
+	ramp.set_color(0, Color(0.72, 0.72, 0.72))
+	ramp.set_color(1, Color(1, 1, 1))
+	grain.color_ramp = ramp
+	var done := {}
+	for mi in find_children("*", "MeshInstance3D", true, false):
+		for mm in surface_materials(mi as MeshInstance3D):
+			var m := mm as StandardMaterial3D
+			if m == null or done.has(m) or not plain_material(m):
+				continue
+			done[m] = true
+			_dress(m, grain)
+
+func _dress(m: StandardMaterial3D, grain: Texture2D) -> void:
+	m.detail_enabled = true
+	m.detail_albedo = grain
+	m.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MUL
+	m.uv1_triplanar = true
+	m.uv1_scale = Vector3.ONE * 0.5
+
+## What each surface of a mesh draws with: override, else surface override, else the mesh's.
+static func surface_materials(n: MeshInstance3D) -> Array:
+	if n.material_override != null:
+		return [n.material_override]
+	var out: Array = []
+	if n.mesh != null:
+		for i in n.mesh.get_surface_count():
+			out.append(n.get_surface_override_material(i) if n.get_surface_override_material(i) != null else n.mesh.surface_get_material(i))
+	return out
+
+## A flat colour with nothing on it yet, made in code (a material loaded from a file may be
+## shared with mechs or the UI; those are left alone).
+static func plain_material(m: StandardMaterial3D) -> bool:
+	return m.resource_path == "" and m.albedo_texture == null and not m.detail_enabled and not m.emission_enabled \
+		and m.transparency == BaseMaterial3D.TRANSPARENCY_DISABLED and not m.vertex_color_use_as_albedo
+
 ## T223: invisible boundary walls around a square of side 2*half (+ center).
 func make_boundary(half: float, height := 40.0) -> void:
 	for side in [[Vector3(0, 0, -half), Vector3(half * 2.0, height, 2)], [Vector3(0, 0, half), Vector3(half * 2.0, height, 2)],
