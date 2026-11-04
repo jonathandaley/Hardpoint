@@ -1,6 +1,7 @@
 extends Node
 # T221: one map, finer grid, every finding printed.
 #   godot --headless --path . res://tools/maps/stuck_check.tscn -- map=res://resources/maps/Badlands.tres spacing=8
+#   [mech=res://resources/mechs/Everest.tres]  (T230: default Hippogriff)
 const Check := preload("res://tools/maps/stuck_check.gd")
 
 func _ready() -> void:
@@ -24,7 +25,7 @@ func _ready() -> void:
 		for m in arena.get("_team_mechs")[t]:
 			m.invincible = true
 			m.process_mode = Node.PROCESS_MODE_DISABLED
-	var r: Dictionary = await Check.run(arena, float(arg["spacing"]))
+	var r: Dictionary = await Check.run(arena, float(arg["spacing"]), arg.get("mech", "res://resources/mechs/Hippogriff.tres"))
 	print("[stuck_check] %s: %d points, %d stuck, %d unreached, %d island points" % [r["map"], r["tested"],
 		r["stuck"].size(), r["unreached"].size(), r["islands"].size()])
 	for k in ["unreached", "stuck", "islands"]:

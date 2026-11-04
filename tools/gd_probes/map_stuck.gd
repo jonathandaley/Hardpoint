@@ -5,6 +5,7 @@ extends Node
 
 const SPACING := 20.0
 const Check := preload("res://tools/maps/stuck_check.gd")
+var mech_path := "res://resources/mechs/Hippogriff.tres"  # T230: map_stuck_big walks Everest
 
 func _fail(msg: String) -> void:
 	push_error("[probe] map_stuck: " + msg)
@@ -37,16 +38,16 @@ func _ready() -> void:
 			_fail("%s: %d beacons, want 5" % [sp, get_tree().get_nodes_in_group("beacons").size()])
 		if arena.spawn_points(0).size() < 2 or arena.spawn_points(0).size() != arena.spawn_points(1).size():
 			_fail("%s: spawn points %d / %d" % [sp, arena.spawn_points(0).size(), arena.spawn_points(1).size()])
-		var r: Dictionary = await Check.run(arena, SPACING)
+		var r: Dictionary = await Check.run(arena, SPACING, mech_path)
 		r["map"] = String(sp).get_file().get_basename()  # one scene, maybe several MapDefs
 		for u in r["unreached"]:
 			_fail("%s: no nav path %s" % [r["map"], u])
 		for s in r["stuck"]:
-			_fail("%s: a mech is stuck at %s" % [r["map"], s])
+			_fail("%s: a %s is stuck at %s" % [r["map"], mech_path.get_file().get_basename(), s])
 		summary.append("%s %d points, %d stuck, %d unreached, %d island points (look: tools/maps/stuck_check.tscn)" % [
 			r["map"], r["tested"], r["stuck"].size(), r["unreached"].size(), r["islands"].size()])
 		arena.queue_free()
 		for i in 3:
 			await get_tree().process_frame
-	print("[probe] map_stuck done (%s)" % "; ".join(summary))
+	print("[probe] map_stuck done (%s: %s)" % [mech_path.get_file().get_basename(), "; ".join(summary)])
 	get_tree().quit(0)

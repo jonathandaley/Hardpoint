@@ -74,7 +74,9 @@ static func run(arena: Node, spacing: float, mech_path := "res://resources/mechs
 		var m: CharacterBody3D = md.scene.instantiate()
 		m.name = "StuckCheck_%d" % walkers.size()
 		m.max_health = md.max_health
-		m.base_walk_speed = md.walk_speed
+		# T230: wedging is about size, not speed: a slow mech walks at least Hippogriff's pace so
+		# a LEG covers ~2.6 m on open ground (Everest's own 0.75 m/s: 1.1 m, a hair over STUCK_M)
+		m.base_walk_speed = maxf(md.walk_speed, 1.75)
 		m.scale = Vector3.ONE * md.body_scale
 		m.team = 99
 		arena.add_child(m)
