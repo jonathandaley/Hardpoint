@@ -99,3 +99,4 @@ date|task|outcome|commit|finding|suite
 2026-11-04|-|QUEUE EMPTY|-|T215-T226 (HUMAN_FOUND_ISSUES of 2026-11-03) all done; T212 DTLS stays BLOCKED on the user; loop stopped|59/59
 2026-11-04|-|QUEUED|-|HUMAN_FOUND_ISSUES of 2026-11-04 -> T227-T242 (user answers: roofed ship corridors, swamp slow wears off over 2 s, T212 parked); answered NEEDS_HUMAN entries pruned|-
 2026-11-04|T227|DONE|see git log (T227)|hangar lineup 3/4 toward the camera (yaw 215; B97: forward is -Z, camera +Z, T220 had it backwards); hangar_weapons checks facing, red on 35|59/59
+2026-11-04|T228|DONE|see git log (T228)|SP map picker after SINGLE PLAYER (2-column CHOOSE MAP in FindMatchPanel); Settings map section removed; probe sp_map_pick red on old flow + off-screen 1-column layout|60/60

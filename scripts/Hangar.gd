@@ -820,10 +820,57 @@ func _on_pilot_tab_pressed() -> void:
 # T176: FIND MATCH comes after the squad is set up; then pick the kind of game.
 func _on_matchmaking_pressed() -> void:
 	SoundManager.play_sfx_2d("ui_click")
+	_on_matchmaking_reset()
 	$FindMatchPanel.visible = true
 
+# T228: SINGLE PLAYER -> pick the map (was buried in Settings) -> the match starts.
 func _on_find_sp_pressed() -> void:
 	SoundManager.play_sfx_2d("ui_click")
+	$FindMatchPanel/Choices.visible = false
+	var box: VBoxContainer = get_node_or_null("FindMatchPanel/MapChoices")
+	if box == null:
+		box = VBoxContainer.new()
+		box.name = "MapChoices"
+		box.position = Vector2(160, 80)
+		box.custom_minimum_size.x = 320
+		box.add_theme_constant_override("separation", 6)
+		$FindMatchPanel.add_child(box)
+		var head := Label.new()
+		head.text = "CHOOSE MAP"
+		head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		head.add_theme_font_size_override("font_size", 20)
+		box.add_child(head)
+		var grid := GridContainer.new()  # two columns: 8+ maps fit the 360 px screen
+		grid.columns = 2
+		box.add_child(grid)
+		for i in MAPS.size():
+			var btn := Button.new()
+			btn.name = "Map%d" % i
+			btn.text = String(load(MAPS[i]).map_name).to_upper()
+			btn.custom_minimum_size.y = 26
+			btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			btn.add_theme_font_size_override("font_size", 14)
+			btn.pressed.connect(_on_sp_map_pressed.bind(i))
+			grid.add_child(btn)
+		var back := Button.new()
+		back.text = "BACK"
+		back.add_theme_font_size_override("font_size", 14)
+		back.pressed.connect(func() -> void:
+			box.visible = false
+			$FindMatchPanel/Choices.visible = true)
+		box.add_child(back)
+	var cur = Game.loadout.get("map_def")
+	for i in MAPS.size():  # the last pick is highlighted
+		var btn: Button = box.find_child("Map%d" % i, true, false)
+		if cur != null and cur.resource_path == MAPS[i]:
+			btn.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
+		else:
+			btn.remove_theme_color_override("font_color")
+	box.visible = true
+
+func _on_sp_map_pressed(idx: int) -> void:
+	SoundManager.play_sfx_2d("ui_click")
+	Game.loadout["map_def"] = load(MAPS[idx])
 	Game.save_loadout()
 	Game.start_sp_match()  # T184: a local MP match with bot fill
 
@@ -907,6 +954,12 @@ func _on_preset_delete(pname: String) -> void:
 func _on_find_cancel_pressed() -> void:
 	SoundManager.play_sfx_2d("ui_click")
 	$FindMatchPanel.visible = false
+
+func _on_matchmaking_reset() -> void:
+	$FindMatchPanel/Choices.visible = true
+	var box := get_node_or_null("FindMatchPanel/MapChoices")
+	if box != null:
+		box.visible = false
 
 func _on_settings_pressed() -> void:
 	SoundManager.play_sfx_2d("ui_click")
