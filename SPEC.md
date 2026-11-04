@@ -329,11 +329,11 @@ T218|.|Everest sometimes shows the old blue shield under the current textured on
 T219|.|bots idle don't always notice the closest opponent (HUMAN_FOUND_ISSUES): repro (probe: idle bot, enemies at several ranges, closest must become the target) and fix target acquisition|T190,T172
 T220|.|hangar main screen (squad lineup) doesn't show equipped weapons; the weapon picker does (HUMAN_FOUND_ISSUES; T188 covered the picker diorama): find why `_arm_display` on the lineup mechs shows nothing, fix, render review|T188,T208
 T221|.|map stuck-point checker (HUMAN_FOUND_ISSUES: "check them for stuck points, geometrical/geographical sense"): tool + probe for every map scene -- navmesh reach from every spawn to every beacon, a grid of mech drop tests (lands, can walk out in 4 directions), random-walk bots looking for spots they can't leave; run on Math Temple + Badlands first; renders for the sense check|T210,T211,V55
-T222|.|map: downtown city modeled on Sydney (user 2026-11-03): harbour edge, bridge, sail-roofed landmark, CBD towers + streets as lanes, parks; 5 beacons, 3 spawns per team; passes T221|T210,T221,V18
-T223|.|map: forest (user: "Endor") -- giant-redwood forest in that spirit (huge trunks, ferns, fallen logs, mossy rises), no Star Wars-specific props; 5 beacons, 3 spawns per team; passes T221|T210,T221,V18
-T224|.|map: Giza -- desert plateau with three pyramids, a sphinx-like monument, causeways, ruined temples, dunes; 5 beacons, 3 spawns per team; passes T221|T210,T221,V18
-T225|.|map: swamp -- murky water (slows mechs or shallow wading), hummocks, dead trees, boardwalks, a sunken structure; 5 beacons, 3 spawns per team; passes T221|T210,T221,V18
-T226|.|map: deck of a spacecraft -- hangar deck / flight deck in space (starfield sky), launch rails, cargo stacks, bulkheads, catwalks; 5 beacons, 3 spawns per team; passes T221|T210,T221,V18
+T222|.|map: downtown city modeled on Sydney (user 2026-11-03): harbour edge, bridge, sail-roofed landmark, CBD towers + streets as lanes, parks; size ~300 m (user 2026-11-03: each to its theme); 5 beacons, 3 spawns per team; passes T221|T210,T221,V18
+T223|.|map: forest (user: "Endor") -- giant-redwood forest in that spirit (huge trunks, ferns, fallen logs, mossy rises), no Star Wars-specific props; size ~280 m (user 2026-11-03: each to its theme); 5 beacons, 3 spawns per team; passes T221|T210,T221,V18
+T224|.|map: Giza -- desert plateau with three pyramids, a sphinx-like monument, causeways, ruined temples, dunes; size ~340 m (user 2026-11-03: each to its theme); 5 beacons, 3 spawns per team; passes T221|T210,T221,V18
+T225|.|map: swamp -- murky water (slows mechs or shallow wading), hummocks, dead trees, boardwalks, a sunken structure; size ~260 m (user 2026-11-03: each to its theme); 5 beacons, 3 spawns per team; passes T221|T210,T221,V18
+T226|.|map: deck of a spacecraft -- hangar deck / flight deck in space (starfield sky), launch rails, cargo stacks, bulkheads, catwalks; size ~220 m (user 2026-11-03: each to its theme); 5 beacons, 3 spawns per team; passes T221|T210,T221,V18
 
 ## §B BUGS
 
