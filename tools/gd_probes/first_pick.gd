@@ -45,6 +45,10 @@ func _ready() -> void:
 		_fail("the swap cost a life (lives %d)" % player.get("lives"))
 	if used != [false, false, false, true, false]:
 		_fail("slot bookkeeping after the swap: %s" % [used])
+	await get_tree().process_frame
+	var own_count: String = (hud.get("_team_count_labels")[0] as Label).text
+	if own_count != "1 / 1":  # T217: one player, however many mechs it has used
+		_fail("team counter after the swap reads '%s', want '1 / 1'" % own_count)
 	now.take_damage(1e9)  # the next death offers slot 0 again
 	for i in 3:
 		await get_tree().process_frame
@@ -53,6 +57,9 @@ func _ready() -> void:
 	for i in 10:
 		await get_tree().physics_frame
 	var back: Node = arena.get("player_mech")
+	await get_tree().process_frame
+	if (hud.get("_team_count_labels")[0] as Label).text != "1 / 1":
+		_fail("team counter after a respawn reads '%s', want '1 / 1'" % (hud.get("_team_count_labels")[0] as Label).text)
 	if back == now or back.max_health != 175.0 or player.get("lives") != 4:
 		_fail("slot 0 (Slip) not available after the swap (HP %s, lives %d)" % [back.max_health, player.get("lives")])
 	print("[probe] first_pick done (swap -> %s HP, then %s HP, lives %d)" % [now.max_health, back.max_health, player.get("lives")])

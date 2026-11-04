@@ -639,22 +639,14 @@ func _update_bot_bar() -> void:
 		fg.offset_bottom = top + BOT_BAR_HEIGHT
 		fg.visible = pct > 0.0
 
+# T217: players, not mech objects -- the old count summed every mech a team had spawned
+# (each respawn, and the first mech swapped out at the start pick, added one).
+var arena: Node = null  # set by Arena._setup_hud
+
 func _update_team_counts() -> void:
-	if _team_count_labels.size() < 2:
+	if _team_count_labels.size() < 2 or arena == null:
 		return
-	# Team 0: original player mech + ally bots.
-	var t0_total := 1 + _ally_mechs.size()
-	var t0_alive := 0
-	if is_instance_valid(_original_player_mech) and _original_player_mech.visible:
-		t0_alive += 1
-	for m in _ally_mechs:
-		if is_instance_valid(m) and m.visible:
-			t0_alive += 1
-	# Team 1: enemy bots.
-	var t1_total := _bot_mechs.size()
-	var t1_alive := 0
-	for m in _bot_mechs:
-		if is_instance_valid(m) and m.visible:
-			t1_alive += 1
-	_team_count_labels[0].text = "%d / %d" % [t0_alive, t0_total]
-	_team_count_labels[1].text = "%d / %d" % [t1_alive, t1_total]
+	var own: Vector2i = arena.team_counts(_player_team)
+	var opp: Vector2i = arena.team_counts(1 - _player_team)
+	_team_count_labels[0].text = "%d / %d" % [own.x, own.y]
+	_team_count_labels[1].text = "%d / %d" % [opp.x, opp.y]

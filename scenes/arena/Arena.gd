@@ -280,9 +280,25 @@ func _make_local_player(t: int, lives: int, mech: Node) -> void:
 	mech.died.connect(_on_spectated_mech_died)
 	mech.died.connect(_on_local_mech_died_mp)
 
+## T217: (alive, total) players on `team`: one per roster entry however many mechs it
+## has used; alive = its current mech is in the fight.
+func team_counts(team: int) -> Vector2i:
+	var roster: Array = Game.mp_active_match["roster"]
+	var out := Vector2i.ZERO
+	for ri in roster.size():
+		if int(roster[ri].get("team", -1)) != team:
+			continue
+		out.y += 1
+		for m in _team_mechs[team]:
+			if is_instance_valid(m) and m.roster_idx == ri and not m.is_dead and m.visible:
+				out.x += 1
+				break
+	return out
+
 # HUD bars, beacons and minimap from `team`'s side, following `mech` (own or spectated).
 func _setup_hud(team: int, mech: Node) -> void:
 	_local_team = team
+	hud.arena = self  # T217: team counts
 	hud.setup(match_node, mech, team)
 	var ally_mechs: Array = []
 	for m in _team_mechs[team]:

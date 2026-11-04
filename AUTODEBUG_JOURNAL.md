@@ -86,3 +86,4 @@ date|task|outcome|commit|finding|suite
 2026-11-03|queue empty|-|-|user list of 2026-11-03 done: T202 minimap, T203 spawn points, T204 dedicated server, T205 prediction, T206 reconnect/late join, T207 accounts, T213 account skills, T208 hangar art, T209 balance tester (+ baseline), T210 scene maps, T211 Badlands, T214 ENet drops (B85-B91). BLOCKED: T212 DTLS (engine teardown errors; options in NEEDS_HUMAN)|54/54 + net 60/60
 2026-11-03|T215|DONE|see git log (T215)|B92: results button below the 360 px screen on a 5v5 table (the 'freeze'); rows scroll now; probe results_screen|55/55
 2026-11-03|T216|DONE|see git log (T216)|first mech holds still during the start + spawn pick (no input until it closes; MP had no pause); probes first_pick + minimap; bot_spread probe de-flaked (separate commit)|54/54 + bot_spread 3/3
+2026-11-03|T217|DONE|see git log (T217)|HUD team counter counts players (roster entries), not every mech ever spawned; probe first_pick|55/55
