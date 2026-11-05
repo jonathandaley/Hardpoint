@@ -8,8 +8,6 @@ Explosion animation for missile launcher
 
 Bullets don't disappear after reaching max range?
 
-Rangefinder in hud
-
 Enemy softlock hud uodate to square corners, 4pc
 
 Arc weapon beam visible even when not firing in binary export? Check it in the regular game.
@@ -26,8 +24,6 @@ Mech balance auto
 Explosion animation for missile launcher
 
 Bullets don't disappear after reaching max range?
-
-Rangefinder in hud
 
 Enemy softlock hud uodate to square corners, 4pc
 

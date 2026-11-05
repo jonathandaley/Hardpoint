@@ -517,6 +517,40 @@ func _process(delta: float) -> void:
 	_update_beacon_bars()
 	_update_team_counts()
 
+# T256 (HUMAN_FOUND_ISSUES 2026-11-05 note: "rangefinder in hud"): distance from our mech to
+# whatever is under the crosshair (the camera's centre ray, our own mech excluded), beside
+# the reticle; "--- m" when the ray meets nothing within RANGE_MAX.
+const RANGE_MAX := 600.0
+var rangefinder: Label = null
+
+# Physics frame, not _process: a ray from _process during the threaded navmesh bake
+# left Badlands with a 1-polygon navmesh (B108).
+func _physics_process(_delta: float) -> void:
+	_update_rangefinder()
+
+func _update_rangefinder() -> void:
+	if rangefinder == null:
+		rangefinder = Label.new()
+		rangefinder.name = "Rangefinder"
+		rangefinder.add_theme_font_size_override("font_size", 9)
+		rangefinder.add_theme_color_override("font_color", Color(0.85, 0.95, 1.0, 0.85))
+		rangefinder.add_theme_constant_override("outline_size", 2)
+		rangefinder.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+		rangefinder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(rangefinder)
+	var cam := get_viewport().get_camera_3d()
+	if cam == null or not is_instance_valid(_player_mech) or not crosshair.visible or _player_mech.get("is_dead"):
+		rangefinder.visible = false
+		return
+	var from := cam.global_position
+	var q := PhysicsRayQueryParameters3D.create(from, from - cam.global_transform.basis.z * RANGE_MAX)
+	if _player_mech.has_method("get_exclude_rids"):
+		q.exclude = _player_mech.get_exclude_rids()
+	var hit := cam.get_world_3d().direct_space_state.intersect_ray(q)
+	rangefinder.text = "--- m" if hit.is_empty() else "%d m" % roundi(((hit.position as Vector3) - (_player_mech as Node3D).global_position).length())
+	rangefinder.position = get_viewport().get_visible_rect().size * 0.5 + Vector2(10, 5)
+	rangefinder.visible = true
+
 const ELIGIBLE_HALF := 9.5
 
 func _update_eligible_indicator() -> void:
