@@ -46,9 +46,11 @@ Plan of record: `MP_AUTODEBUG_PLAN.md` §9. Queue: SPEC.md §T.
 - **Never:** install packages, write outside the repo (except `~/.claude/`
   memory), force-push or rewrite history, use extra usage credits, start a
   second loop.
-- **Usage guard** (`~/.claude/hooks/usage_guard.py`) blocks tools near the limit.
-  When it fires: `git` commit WIP with "WIP T<n>: stopped at <step>", push, end
-  the turn. Do not retry other tools. Next run resumes the `~` row.
+- **Usage advisory** (`~/.claude/hooks/usage_guard.py`, PostToolUse) adds a USAGE
+  ADVISORY note past 90% 5h / 95% 7d; it never blocks (user 2026-11-05: running out
+  midway is annoying, not critical). On the note: finish the current task if it's
+  close, else commit WIP with "WIP T<n>: stopped at <step>" and push; don't start a
+  big task. If the limit itself stops the session, the next run resumes from git.
 
 ## Notify the user (PushNotification) when
 
