@@ -2,6 +2,8 @@
 
 Mech balancing automatically: wide variety of team sizes and maps, weapons. Write the data to a file, including both total winrate/damage but also "kestrel weak against everest" etc.
 
+Patterned emissives, on the mech textures, also probably a toggle, as the glow probably costs something. (T255 attempt reverted 2026-11-05 -- "totally broken"; waiting on new instructions here)
+
 ### after this are random notes that may or may not be intelligible, I'll edit them when I have time.
 
 Explosion animation for missile launcher
