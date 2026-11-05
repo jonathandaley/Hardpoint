@@ -51,6 +51,29 @@ static func _mat_e(emit: Color, energy: float) -> StandardMaterial3D:
 	m.emission_energy_multiplier = energy
 	return m
 
+# T255 (HUMAN_FOUND_ISSUES 2026-11-05: "patterned emissives on the mech textures", behind a
+# GRAPHICS toggle -- emissive_patterns): thin glowing panel seams and a few status pixels
+# in the mech's own emissive colour over its armor tile, same triplanar box-local mapping
+# (TEX_M per tile) and nearest filtering as the pixel tiles. Mechs with no emissive
+# (Cesh) stay dark. The pattern is new art -- the kit only has solid emissive islands.
+static var _seams: ImageTexture = null
+
+static func _pattern(armor: StandardMaterial3D, emit: Color) -> void:
+	if _seams == null:
+		var img := Image.create(32, 32, false, Image.FORMAT_RGB8)
+		img.fill(Color.BLACK)
+		for i in 32:
+			for e in [0, 16]:  # panel seams: a 2 x 2 panel grid per tile
+				img.set_pixel(i, e, Color(0.55, 0.55, 0.55))
+				img.set_pixel(e, i, Color(0.55, 0.55, 0.55))
+		for d in [Vector2i(4, 4), Vector2i(26, 9), Vector2i(9, 23), Vector2i(21, 27)]:  # status pixels
+			img.set_pixel(d.x, d.y, Color.WHITE)
+		_seams = ImageTexture.create_from_image(img)
+	armor.emission_enabled = true
+	armor.emission = emit
+	armor.emission_energy_multiplier = 1.2
+	armor.emission_texture = _seams
+
 static func _paint(mi: MeshInstance3D, mat: StandardMaterial3D) -> void:
 	if mi:
 		mi.set_surface_override_material(0, mat)
@@ -86,6 +109,8 @@ static func _kit(mech: Node3D, k: Dictionary, tex: String) -> void:
 		"MO": _mat(_KIT_MOUNT), "SO": _mat(_KIT_SOCKET),
 		"E": _mat_e(k["emis"], k["energy"]) if k["energy"] > 0.0 else detail,
 	}
+	if k["energy"] > 0.0 and bool(Game.settings.get("emissive_patterns", true)):
+		_pattern(mats["A"], k["emis"])
 	var t := mech.get_node_or_null("Torso") as Node3D
 	if t:
 		# T218: the physical shield's placeholder too -- the kit model carries its own shield;
