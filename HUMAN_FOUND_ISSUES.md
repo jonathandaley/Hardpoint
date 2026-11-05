@@ -2,8 +2,6 @@
 
 Mech balancing automatically: wide variety of team sizes and maps, weapons. Write the data to a file, including both total winrate/damage but also "kestrel weak against everest" etc.
 
-Fancy hangar, animation toggle: copy more of Design's animation, if possible, with the flying drones, conveyor belts. Lives under a fancy graphics toggle in settings. Graphics might need a dedicated page in settings.
-
 Patterned emissives, on the mech textures, also probably a toggle, as the glow probably costs something.
 
 ### after this are random notes that may or may not be intelligible, I'll edit them when I have time.
@@ -26,8 +24,6 @@ Tracer rounds?
 
 Machine gun barrel should start glowing as ramp-up increases, red-hot at max speed.
 Mech balance auto
-
-Fancy hangar, animation toggle
 
 Patterned emissives, too, on the mech textures
 
