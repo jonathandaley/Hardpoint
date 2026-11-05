@@ -103,6 +103,7 @@ func _build_controls_section() -> void:
 		["1 2 3 4", "Toggle weapon slot"],
 		["R", "Reload"],
 		["Space", "Ability"],
+		["V", "Swap shoulder (shoulder view)"],
 		["Tab", "Cycle spectate target"],
 		["Esc", "Release mouse / pause"],
 	]

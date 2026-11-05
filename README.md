@@ -50,6 +50,9 @@ updated there after each match. Guests keep their local profile. Open that TCP p
 | Right click | Fire active-subset only |
 | 1 / 2 / 3 / 4 | Toggle weapon slot in/out of active subset |
 | R | Manual reload (fixed-magazine weapons) |
+| Space | Ability (Pegasus jump + heal, Cesh stealth) |
+| V | Swap shoulder (shoulder view) |
+| Tab | Cycle spectate target |
 | Escape | Release mouse capture |
 
 Weapon slots shown bottom-right. Dimmed icon = excluded from right-click subset. Ammo bar greys during reload.
@@ -65,7 +68,7 @@ Weapon slots shown bottom-right. Dimmed icon = excluded from right-click subset.
 | Seeker | Light | 1 H | Low | Medium-fast | — |
 | Hornet | Medium | 2 L | Medium | Fast | — |
 | Hippogriff | Medium | 3 L | Medium | Medium | — |
-| Pegasus | Medium | 2 L | Low | Medium | Jump + heal (Q) |
+| Pegasus | Medium | 2 L | Low | Medium | Jump + heal (Space) |
 | Everest | Heavy | 2 H | High | Very slow | Physical front shield |
 | Vesuvius | Heavy | 3 H | High | Slow | — |
 
