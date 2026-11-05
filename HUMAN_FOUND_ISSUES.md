@@ -2,8 +2,6 @@
 
 Mech balancing automatically: wide variety of team sizes and maps, weapons. Write the data to a file, including both total winrate/damage but also "kestrel weak against everest" etc.
 
-Patterned emissives, on the mech textures, also probably a toggle, as the glow probably costs something.
-
 ### after this are random notes that may or may not be intelligible, I'll edit them when I have time.
 
 Explosion animation for missile launcher
@@ -24,8 +22,6 @@ Tracer rounds?
 
 Machine gun barrel should start glowing as ramp-up increases, red-hot at max speed.
 Mech balance auto
-
-Patterned emissives, too, on the mech textures
 
 Explosion animation for missile launcher
 

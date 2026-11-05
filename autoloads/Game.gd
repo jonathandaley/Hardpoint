@@ -81,6 +81,7 @@ var settings: Dictionary = {
 	"shadows": "blob",  # T193: "blob" (disc under each mech, no sun shadows) or "full"
 	"view": "center",   # T252: "center" (raised, crosshair over the mech) or "shoulder"
 	"fancy_hangar": true,  # T254: the animated repair bay (GRAPHICS > FANCY HANGAR)
+	"emissive_patterns": true,  # T255: glowing seams on mech armor (GRAPHICS > EMISSIVE PATTERNS)
 }
 
 # M0.1: central seeded RNG for all gameplay randomness (weapon spread, etc.).
@@ -968,6 +969,7 @@ func _load_settings() -> void:
 	settings["shadows"]           = cfg.get_value("settings", "shadows",           settings["shadows"])
 	settings["view"]              = cfg.get_value("settings", "view",              settings["view"])
 	settings["fancy_hangar"]      = cfg.get_value("settings", "fancy_hangar",      settings["fancy_hangar"])
+	settings["emissive_patterns"] = cfg.get_value("settings", "emissive_patterns", settings["emissive_patterns"])
 	shoulder = 0.0 if settings["view"] == "center" else 1.0  # T252
 	apply_volume(settings["master_volume"])
 
@@ -1072,6 +1074,7 @@ func save_settings() -> void:
 	cfg.set_value("settings", "shadows",           settings.get("shadows",           "blob"))
 	cfg.set_value("settings", "view",              settings.get("view",              "center"))
 	cfg.set_value("settings", "fancy_hangar",      settings.get("fancy_hangar",      true))
+	cfg.set_value("settings", "emissive_patterns", settings.get("emissive_patterns", true))
 	cfg.save(_SETTINGS_PATH)
 
 func apply_volume(linear: float) -> void:
