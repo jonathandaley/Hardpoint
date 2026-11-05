@@ -12,8 +12,6 @@ Fancy hangar, animation toggle: copy more of Design's animation, if possible, wi
 
 Patterned emissives, on the mech textures, also probably a toggle, as the glow probably costs something.
 
-Delete ironworks, was a placeholder
-
 Aiming over the shoulder doesn't really work, suggest a method for centering the crosshair without occlusion.
 
 ### after this are random notes that may or may not be intelligible, I'll edit them when I have time.
@@ -48,8 +46,6 @@ Fancy hangar, animation toggle
 Graphics toggles in general
 
 Patterned emissives, too, on the mech textures
-
-Delete ironworks
 
 View toggle to center in settings
 
