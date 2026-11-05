@@ -245,6 +245,7 @@ func _build_graphics_page() -> void:
 	title.add_theme_font_size_override("font_size", 18)
 	graphics_box.add_child(title)
 	_build_shadow_section(graphics_box)
+	_build_toggle_section(graphics_box, "FANCY HANGAR", "fancy_hangar", "Fancy")  # T254
 	var back := Button.new()
 	back.offset_left = 200.0
 	back.offset_top = 316.0
@@ -267,6 +268,37 @@ func _build_graphics_page() -> void:
 		$BackButton.visible = false
 		page.visible = true)
 	$Scroll/Content/PageButtons.add_child(open)
+
+# An ON / OFF row for a boolean Game.settings key (graphics toggles: T254 ...).
+func _build_toggle_section(box: VBoxContainer, title: String, key: String, prefix: String) -> void:
+	var lbl := Label.new()
+	lbl.text = title
+	lbl.add_theme_font_size_override("font_size", 14)
+	box.add_child(lbl)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	box.add_child(row)
+	var buttons: Array = []
+	for v in [[true, "ON"], [false, "OFF"]]:
+		var btn := Button.new()
+		btn.name = "%s_%s" % [prefix, "on" if v[0] else "off"]
+		btn.text = v[1]
+		btn.custom_minimum_size = Vector2(80, 24)
+		btn.add_theme_font_size_override("font_size", 14)
+		row.add_child(btn)
+		buttons.append([btn, v[0]])
+	var paint := func() -> void:
+		for b in buttons:
+			if bool(Game.settings.get(key, true)) == b[1]:
+				(b[0] as Button).add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
+			else:
+				(b[0] as Button).remove_theme_color_override("font_color")
+	for b in buttons:
+		(b[0] as Button).pressed.connect(func() -> void:
+			Game.settings[key] = b[1]
+			Game.save_settings()
+			paint.call())
+	paint.call()
 
 func _on_vol_changed(value: float) -> void:
 	Game.settings["master_volume"] = value
