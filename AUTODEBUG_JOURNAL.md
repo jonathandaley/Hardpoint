@@ -122,3 +122,4 @@ date|task|outcome|commit|finding|suite
 2026-11-05|T248|DONE|see git log (T248)|Ironworks deleted (palette-swapped Math Temple placeholder): MapDef + list entries; saved map paths that no longer exist are skipped; probe map_lists red before|75/75
 2026-11-05|T249|DONE|see git log (T249)|controls list: V (swap shoulder) added to Settings; README table gains Space/V/Tab, Pegasus key Q -> Space; probe controls_list red on V|76/76
 2026-11-05|T250|DONE|see git log (T250)|swamp water murkier: (0.15,0.17,0.09) at 94% opacity, rougher; swamp_wade checks alpha/luminance (red before)|76/76
+2026-11-05|T251|DONE|see git log (T251)|SP bot counts (ally/enemy spin boxes in CHOOSE MAP, saved; [] = old fill); first run caught ConfigFile null default -> [] ; probe sp_bots 0/0 -> 1v0, 2/3 -> 3v3. SPEC also queues T267 (pilot eject for every mech, user 2026-11-05)|77/77

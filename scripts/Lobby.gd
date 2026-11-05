@@ -290,8 +290,24 @@ static func _build_roster() -> Array:
 		slot_idx += 1
 		team_counts[team] += 1
 
+	# T251: singleplayer sets exact bot counts per team ([ally, enemy]; 0 = none) instead
+	var counts = Game.mp_lobby.get("bot_counts", null)
+	if counts is Array and counts.size() == 2:
+		for team in range(2):
+			var target: int = team_counts[team] + clampi(int(counts[team]), 0, 5)
+			while team_counts[team] < target:
+				roster.append({
+					"slot_idx": slot_idx,
+					"peer_id":  0,
+					"team":     team,
+					"squad":    _default_bot_squad(bot_id),
+					"bot_id":   bot_id,
+				})
+				slot_idx += 1
+				team_counts[team] += 1
+				bot_id += 1
 	# Bot fill: pad each team to team_size (V29: bot_id used for RNG seed).
-	if Game.mp_lobby.get("bot_fill", true):
+	elif Game.mp_lobby.get("bot_fill", true):
 		for team in range(2):
 			while team_counts[team] < team_size:
 				roster.append({
