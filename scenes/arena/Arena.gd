@@ -733,6 +733,11 @@ func _on_mp_match_ended(winner_team: int, stats: Array) -> void:
 # ENet gives up); a client that merely froze 5 s keeps watching its bot -- kick + reason
 # message if that ever matters.
 const INPUT_SILENCE_MS := 5000
+# T269 (B106): a mech whose owner has never sent input is timed from the first live check
+# that saw it (since T245 a client sends nothing until its first snapshot, so one that
+# dies before that never set last_input_ms and was skipped until ENet's 45 s timeout).
+# Per mech, not from match start: a late joiner's / respawned mech gets the same grace.
+var _silence_since: Dictionary = {}  # mech instance id -> first live check with no input yet
 
 func _check_input_silence() -> void:
 	if _match_over:
@@ -744,7 +749,10 @@ func _check_input_silence() -> void:
 				continue
 			var pid: int = m.owner_peer_id
 			var last: int = m.last_input_ms
-			if pid < 2 or last == 0 or _disconnected_peers.has(pid) or now - last < INPUT_SILENCE_MS:
+			if last == 0 and pid >= 2:
+				last = int(_silence_since.get(m.get_instance_id(), now))
+				_silence_since[m.get_instance_id()] = last
+			if pid < 2 or _disconnected_peers.has(pid) or now - last < INPUT_SILENCE_MS:
 				continue
 			print("[Arena] peer %d silent for %d ms: bot takes over" % [pid, now - last])
 			_on_peer_disconnected_in_match(pid)
