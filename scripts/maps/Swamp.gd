@@ -18,6 +18,8 @@ const HUMMOCKS := [[Vector2(-40, 20), 12.0], [Vector2(-30, -45), 10.0], [Vector2
 const BOARDWALKS := [[Vector2(-40, 20), Vector2(-70, 55)], [Vector2(-30, -45), Vector2(-70, -55)],
 	[Vector2(-40, 20), Vector2(0, 0)], [Vector2(-15, 90), Vector2(-70, 55)]]
 const MUD := Color("#3d3424")
+const MURK := Color(0.15, 0.17, 0.09)  # T250: swamp water colour
+const MURK_ALPHA := 0.94
 const GRASS := Color("#4f5a2e")
 
 func _init() -> void:
@@ -98,9 +100,11 @@ func build() -> void:
 	pm.size = Vector2(HALF * 2.0, HALF * 2.0)
 	water.mesh = pm
 	var wm := StandardMaterial3D.new()
-	wm.albedo_color = Color(0.22, 0.26, 0.17, 0.82)
+	# T250 (HUMAN_FOUND_ISSUES 2026-11-05: "make swamp water murkier"): darker, browner,
+	# barely see-through (was 0.22/0.26/0.17 at 82% opacity, glossy 0.15)
+	wm.albedo_color = Color(MURK.r, MURK.g, MURK.b, MURK_ALPHA)
 	wm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	wm.roughness = 0.15
+	wm.roughness = 0.45
 	water.material_override = wm
 	water.position.y = WATER_Y
 	add_child(water)
