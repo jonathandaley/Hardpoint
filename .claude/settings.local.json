@@ -27,7 +27,7 @@
   "spinnerTipsEnabled": false,
   "prefersReducedMotion": true,
   "hooks": {
-    "PreToolUse": [
+    "PostToolUse": [
       {
         "matcher": "*",
         "hooks": [
