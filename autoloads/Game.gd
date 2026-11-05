@@ -985,7 +985,7 @@ func _load_loadout() -> void:
 	loadout["squad"] = squad_paths
 	loadout["presets"] = _migrate_weapons(cfg.get_value("loadout", "presets", {}))
 	var map_path: String = cfg.get_value("loadout", "map_path", "")
-	if map_path != "":
+	if map_path != "" and ResourceLoader.exists(map_path):  # T248: a saved map that was deleted (Ironworks) -> default
 		var mpd = load(map_path)
 		if mpd != null:
 			loadout["map_def"] = mpd

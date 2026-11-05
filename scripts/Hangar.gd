@@ -89,7 +89,6 @@ var _diorama_mech_node = null
 
 const MAPS: Array = [
 	"res://resources/maps/MathTemple.tres",
-	"res://resources/maps/Ironworks.tres",
 	"res://resources/maps/Badlands.tres",
 	"res://resources/maps/City.tres",
 	"res://resources/maps/Forest.tres",

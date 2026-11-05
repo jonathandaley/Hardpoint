@@ -9,7 +9,6 @@ const _MAP_OPTIONS: Array = [
 	{"name": "Swamp", "path": "res://resources/maps/Swamp.tres"},
 	{"name": "Factory", "path": "res://resources/maps/Factory.tres"},
 	{"name": "Corvette", "path": "res://resources/maps/Corvette.tres"},
-	{"name": "Ironworks",   "path": "res://resources/maps/Ironworks.tres"},
 ]
 
 const ROSTER: Array = [
