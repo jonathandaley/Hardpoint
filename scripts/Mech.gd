@@ -263,6 +263,9 @@ func configure_weapons(slots: Array) -> void:
 		return
 	for child in torso.get_children():
 		if child.name.begins_with("Hardpoint"):
+			# B102: detach first -- a queued-but-attached "Hardpoint0" made the new one get
+			# renamed, and the weapon list picked up the dying weapon (every second re-arm)
+			torso.remove_child(child)
 			child.queue_free()
 	for i in slots.size():
 		var slot = slots[i]
