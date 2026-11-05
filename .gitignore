@@ -17,3 +17,8 @@ tools/__pycache__/
 __pycache__/
 *.pyc
 sessions_in/
+
+# editor backups (HUMAN_FOUND_ISSUES.md~ etc.)
+*~
+\#*\#
+.#*
