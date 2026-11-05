@@ -29,8 +29,6 @@ Mech balance auto
 
 Fancy hangar, animation toggle
 
-Graphics toggles in general
-
 Patterned emissives, too, on the mech textures
 
 Explosion animation for missile launcher

@@ -39,17 +39,16 @@ func _ready() -> void:
 		diff_row.add_child(btn)
 		_diff_buttons.append(btn)
 	_highlight_diff(cur_diff)
-	_build_shadow_section()
 	_build_view_section()
 	_build_controls_section()
+	_build_graphics_page()  # T253: SHADOWS (and the later graphics toggles) live there
 
 # T193: BLOB (default) = a soft disc under each mech, no sun shadows; FULL = the
 # pre-T193 real-time sun shadows, kept in case the look is wanted back.
 const SHADOW_MODES := [["blob", "BLOB"], ["full", "FULL"]]
 var _shadow_buttons: Array = []
 
-func _build_shadow_section() -> void:
-	var content: VBoxContainer = $Scroll/Content
+func _build_shadow_section(content: VBoxContainer) -> void:
 	var section_lbl := Label.new()
 	section_lbl.text = "SHADOWS"
 	section_lbl.add_theme_font_size_override("font_size", 14)
@@ -203,6 +202,8 @@ func _build_controls_section() -> void:
 	controls_page.add_child(back_btn)
 
 	var btn_row := HBoxContainer.new()
+	btn_row.name = "PageButtons"  # T253: GRAPHICS joins CONTROLS here
+	btn_row.add_theme_constant_override("separation", 8)
 	content.add_child(btn_row)
 	var btn := Button.new()
 	btn.text = "CONTROLS"
@@ -214,6 +215,58 @@ func _build_controls_section() -> void:
 		controls_page.visible = true
 	)
 	btn_row.add_child(btn)
+
+# T253 (HUMAN_FOUND_ISSUES 2026-11-05: "graphics toggles in general", "graphics might need
+# a dedicated page in settings"): a GRAPHICS page like CONTROLS. SHADOWS moved here; the
+# graphics toggles of later tasks (fancy hangar, emissive patterns, effect detail) add
+# their own sections to graphics_box.
+var graphics_box: VBoxContainer = null
+
+func _build_graphics_page() -> void:
+	var page := Control.new()
+	page.name = "GraphicsPage"
+	page.set_anchors_preset(Control.PRESET_FULL_RECT)
+	page.visible = false
+	add_child(page)
+	page.add_child($Background.duplicate())
+	var scroll := ScrollContainer.new()
+	scroll.offset_top = 32.0
+	scroll.offset_right = 640.0
+	scroll.offset_bottom = 306.0
+	page.add_child(scroll)
+	graphics_box = VBoxContainer.new()
+	graphics_box.name = "GraphicsBox"
+	graphics_box.offset_left = 24.0
+	graphics_box.offset_top = 12.0
+	graphics_box.add_theme_constant_override("separation", 8)
+	scroll.add_child(graphics_box)
+	var title := Label.new()
+	title.text = "GRAPHICS"
+	title.add_theme_font_size_override("font_size", 18)
+	graphics_box.add_child(title)
+	_build_shadow_section(graphics_box)
+	var back := Button.new()
+	back.offset_left = 200.0
+	back.offset_top = 316.0
+	back.offset_right = 440.0
+	back.offset_bottom = 348.0
+	back.add_theme_font_size_override("font_size", 20)
+	back.text = "BACK"
+	back.pressed.connect(func():
+		page.visible = false
+		$Scroll.visible = true
+		$BackButton.visible = true)
+	page.add_child(back)
+	var open := Button.new()
+	open.name = "GraphicsButton"
+	open.text = "GRAPHICS"
+	open.custom_minimum_size = Vector2(80, 24)
+	open.add_theme_font_size_override("font_size", 14)
+	open.pressed.connect(func():
+		$Scroll.visible = false
+		$BackButton.visible = false
+		page.visible = true)
+	$Scroll/Content/PageButtons.add_child(open)
 
 func _on_vol_changed(value: float) -> void:
 	Game.settings["master_volume"] = value
