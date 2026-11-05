@@ -5,6 +5,8 @@ Plan of record: `MP_AUTODEBUG_PLAN.md` §9. Queue: SPEC.md §T.
 
 ## One iteration = one task
 
+0. **Sync.** `git pull --rebase --autostash` (picks up the user's phone edits to
+   HUMAN_FOUND_ISSUES.md, tracked since 2026-11-05); new items there get queued as §T rows.
 1. **Pick.** First §T row in table order (rows may be inserted out of number
    order to reprioritize) with status `.` or `~`, T138 or later, that
    `AUTODEBUG_JOURNAL.md` does not list as BLOCKED. None left → journal "queue
@@ -24,7 +26,9 @@ Plan of record: `MP_AUTODEBUG_PLAN.md` §9. Queue: SPEC.md §T.
    (~15 min, must stay green). Long-run / perf / leak work → `python3 tools/run_suite.py --soak --only
    soak_match` (~15 min).
 5. **Ship.** Flip the row to `x`, commit `T<n>: <goal>` (+ attribution lines),
-   push to main (see memory `git-push-from-claude`). One commit per task;
+   `git pull --rebase --autostash` then push to main (see memory `git-push-from-claude`;
+   the user edits HUMAN_FOUND_ISSUES.md on GitHub, so main can move under us). Only
+   pull between suite runs: an autostash empties the working tree for a moment. One commit per task;
    instrumentation commits never mixed with fix commits.
 6. **Journal.** Append to `AUTODEBUG_JOURNAL.md`: date, task, outcome
    (DONE / BLOCKED / REVERTED), commit hash, one-line finding, suite result.
