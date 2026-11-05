@@ -27,6 +27,21 @@ func _ready() -> void:
 	_beam_mesh = mi
 	_beam_mesh.visible = false
 
+# T247 (HUMAN_FOUND_ISSUES 2026-11-05: "beam visible even when not firing"): the beam shows
+# only while _do_fire keeps refreshing it. The explicit hides missed releases -- the RMB
+# ("fire selected weapon") release never reaches on_fire_release, nor does a slot toggle or
+# death mid-beam -- and on a client a late unreliable _rpc_beam_fx could land after the
+# reliable hide. Fire rate 10/s refreshes every 0.1 s; BEAM_HOLD_S rides out a lost packet.
+const BEAM_HOLD_S := 0.35
+var _beam_age := 0.0
+
+func _physics_process_impl(delta: float) -> void:
+	super._physics_process_impl(delta)
+	if _beam_mesh != null and _beam_mesh.visible:
+		_beam_age += delta
+		if _beam_age > BEAM_HOLD_S:
+			_hide_beam()
+
 func fire() -> void:
 	if owner_mech == null or owner_mech.get("locked_target") == null:
 		_hide_beam()
@@ -87,6 +102,7 @@ func _beam_fx(target_pos: Vector3) -> void:
 	_beam_pivot.look_at(target_pos, Vector3.UP)
 	_beam_mesh.position = Vector3(0.0, 0.0, -dist * 0.5)
 	_beam_mesh.scale.z = dist
+	_beam_age = 0.0  # T247
 	var was_visible := _beam_mesh.visible
 	_beam_mesh.visible = true
 	if not was_visible:
