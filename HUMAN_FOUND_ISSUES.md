@@ -6,12 +6,6 @@ Mech balancing automatically: wide variety of team sizes and maps, weapons. Writ
 
 Explosion animation for missile launcher
 
-Bullets don't disappear after reaching max range?
-
-Enemy softlock hud uodate to square corners, 4pc
-
-Arc weapon beam visible even when not firing in binary export? Check it in the regular game.
-
 Arc weapon animation: lightning arc (continuous)
 
 Patience shot: thick beam that fades slowly
@@ -22,12 +16,6 @@ Machine gun barrel should start glowing as ramp-up increases, red-hot at max spe
 Mech balance auto
 
 Explosion animation for missile launcher
-
-Bullets don't disappear after reaching max range?
-
-Enemy softlock hud uodate to square corners, 4pc
-
-Arc weapon beam visible even when not firing in binary export? Check it in the regular game.
 
 Arc weapon animation: lightning arc (continuous)
 
