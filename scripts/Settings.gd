@@ -40,6 +40,7 @@ func _ready() -> void:
 		_diff_buttons.append(btn)
 	_highlight_diff(cur_diff)
 	_build_shadow_section()
+	_build_view_section()
 	_build_controls_section()
 
 # T193: BLOB (default) = a soft disc under each mech, no sun shadows; FULL = the
@@ -67,6 +68,46 @@ func _build_shadow_section() -> void:
 		row.add_child(btn)
 		_shadow_buttons.append(btn)
 	_highlight_shadow()
+
+# T252: VIEW -- CENTER (raised camera, crosshair over the mech; default) or SHOULDER
+# (T196's over-the-shoulder, V swaps sides).
+const VIEW_MODES := [["center", "CENTER"], ["shoulder", "SHOULDER"]]
+var _view_buttons: Array = []
+
+func _build_view_section() -> void:
+	var content: VBoxContainer = $Scroll/Content
+	var section_lbl := Label.new()
+	section_lbl.text = "VIEW"
+	section_lbl.add_theme_font_size_override("font_size", 14)
+	content.add_child(section_lbl)
+	var row := HBoxContainer.new()
+	row.name = "ViewRow"
+	row.add_theme_constant_override("separation", 8)
+	content.add_child(row)
+	for mode in VIEW_MODES:
+		var btn := Button.new()
+		btn.name = "View_" + mode[0]
+		btn.text = mode[1]
+		btn.custom_minimum_size = Vector2(80, 24)
+		btn.add_theme_font_size_override("font_size", 14)
+		btn.pressed.connect(_on_view_pressed.bind(mode[0]))
+		row.add_child(btn)
+		_view_buttons.append(btn)
+	_highlight_view()
+
+func _on_view_pressed(mode: String) -> void:
+	Game.settings["view"] = mode
+	Game.shoulder = 0.0 if mode == "center" else 1.0
+	Game.save_settings()
+	_highlight_view()
+
+func _highlight_view() -> void:
+	for i in _view_buttons.size():
+		var btn: Button = _view_buttons[i]
+		if VIEW_MODES[i][0] == Game.settings.get("view", "center"):
+			btn.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
+		else:
+			btn.remove_theme_color_override("font_color")
 
 func _on_shadow_pressed(mode: String) -> void:
 	Game.settings["shadows"] = mode

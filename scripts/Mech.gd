@@ -111,7 +111,7 @@ func _ready() -> void:
 # server must offset it exactly like the owner's screen (B83): the side rides the input.
 const SHOULDER_X := 1.3
 const CAMERA_CLEAR := 0.25  # T235: camera arm ball radius (local units)
-var shoulder := 1.0  # this mech's side: the owner's Game.shoulder, sent with its input
+var shoulder := 0.0  # this mech's side: the owner's Game.shoulder, sent with its input (T252: 0 = center)
 var _shoulder_x := 0.0
 
 # T237 (user 2026-11-04: "Vesuvius crosshair is obstructed by his giant shoulder"): the
@@ -133,11 +133,56 @@ func _side_offset() -> float:
 			_shoulder_reach = maxf(_shoulder_reach, maxf(absf(box.position.x), absf(box.end.x)))
 	return maxf(SHOULDER_X, _shoulder_reach + 0.3)
 
+# T252 (HUMAN_FOUND_ISSUES 2026-11-05: over-the-shoulder aiming "doesn't really work";
+# user: raised center view): shoulder 0 = camera straight behind with the arm pivot raised
+# above the mech's highest part (body + guns). A SpringArm camera looks through its pivot,
+# so the crosshair ray then passes over the mech instead of through it.
+# Past the pivot the ray keeps descending (pitch), so the clearance also covers the mech's
+# fore / aft reach at CENTER_PITCH (a long top gun -- Slip, Seeker -- lifts the camera more).
+const CENTER_CLEAR := 0.45  # minimum pivot height over the mech's top, torso-local
+const CENTER_PITCH := 0.6   # clear down to this pitch (rad)
+var _arm_y := -1.0           # the scene's arm height (shoulder view)
+var _center_y := -1.0
+
+func _center_pivot_y() -> float:
+	if _center_y < 0.0:
+		var top := 0.0
+		var reach := 0.0
+		var inv := torso.global_transform.affine_inverse()
+		for mi in torso.find_children("*", "MeshInstance3D", true, false):
+			var n := mi as MeshInstance3D
+			if n.mesh == null or not n.is_visible_in_tree():
+				continue
+			var box: AABB = inv * n.global_transform * n.get_aabb()
+			top = maxf(top, box.end.y)
+			reach = maxf(reach, maxf(absf(box.position.z), absf(box.end.z)))
+		_center_y = top + maxf(CENTER_CLEAR, reach * tan(CENTER_PITCH) + 0.1)
+	return _center_y
+
 func _update_shoulder(delta: float) -> void:
-	if owner_peer_id == multiplayer.get_unique_id():  # our own mech: V swaps
-		if camera.current and Input.is_action_just_pressed("swap_shoulder"):
+	if _arm_y < 0.0:
+		_arm_y = camera_arm.position.y
+	if owner_peer_id == multiplayer.get_unique_id():  # our own mech: V swaps (shoulder view)
+		if camera.current and Input.is_action_just_pressed("swap_shoulder") and Game.shoulder != 0.0:
 			Game.shoulder = -Game.shoulder
 		shoulder = Game.shoulder
+	var want_y := maxf(_arm_y, _center_pivot_y()) if shoulder == 0.0 else _arm_y
+	# Never let the pivot come within the camera ball of a ceiling: the arm's cast then
+	# starts touching it, reports no hit and the camera goes through the roof (Corvette,
+	# jumping or a tall mech). Capped at once, not eased: a jump rises faster than the ease.
+	var low := torso.global_transform * Vector3(0.0, _arm_y * 0.5, 0.0)
+	var high := torso.global_transform * Vector3(0.0, want_y + CAMERA_CLEAR + 0.05, 0.0)
+	var up := PhysicsRayQueryParameters3D.create(low, high, 1)
+	up.exclude = [get_rid()]
+	var roof := get_world_3d().direct_space_state.intersect_ray(up)
+	var capped := false
+	if not roof.is_empty():
+		var lid: float = (torso.global_transform.affine_inverse() * (roof.position as Vector3)).y - CAMERA_CLEAR - 0.05
+		if lid < want_y:
+			want_y = lid
+			capped = true
+	camera_arm.position.y = minf(camera_arm.position.y, want_y) if capped and camera_arm.position.y > want_y \
+		else move_toward(camera_arm.position.y, want_y, delta * 6.0)
 	var want := _side_offset() * shoulder
 	var y := camera_arm.position.y
 	var from := torso.global_transform * Vector3(0.0, y, 0.0)
@@ -951,7 +996,8 @@ func _rpc_input(seq: int, payload: Dictionary) -> void:
 		push_error("[Mech] _rpc_input: sender %d doesn't own this mech (owner=%d)" % [sender, owner_peer_id])
 		return
 	last_input_ms = Time.get_ticks_msec()
-	shoulder = -1.0 if float(payload.get("shoulder", shoulder)) < 0.0 else 1.0  # V41: only ever +-1
+	var sh := float(payload.get("shoulder", shoulder))
+	shoulder = 0.0 if absf(sh) < 0.5 else signf(sh)  # V41: only ever -1 / 0 (center, T252) / +1
 	var now := Time.get_ticks_msec() / 1000.0
 	while not _rpc_rate_times.is_empty() and now - float(_rpc_rate_times[0]) > 1.0:
 		_rpc_rate_times.pop_front()
