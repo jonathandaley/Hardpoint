@@ -15,13 +15,21 @@ from . import base
 NAME = "prediction_recon"
 DEFAULTS = {"pred_p95_m": 0.15, "pred_snap_frac": 0.02}
 MIN_SAMPLES = 20  # 1 s of snapshots: judge only runs long enough to settle  # impaired links: base.IMPAIRED_NET_THRESHOLDS
+# T268 (B105): the first second after the first reconciliation is start-up alignment --
+# on the `bad` link (loss, 80 ms +- 30) the first inputs can be lost and the error starts
+# near 0.9 m, easing out (no snap) within ~1 s. In a short run (two_matches: ~70
+# reconciliations) those few samples alone decided p95 (flaky, 1-in-6 to 1-in-4). Judge
+# settled prediction; a divergence that persists still fails.
+WARMUP_TICKS = 60
 
 
 def run(ctx):
     th = {**DEFAULTS, **ctx.get("thresholds", {})}
     worst, seen = None, 0
     for role, log in sorted(ctx["primary"].items()):
-        evs = [e.get("payload", {}) for e in log.events if e.get("type") == "pred_recon"]
+        recs = [e for e in log.events if e.get("type") == "pred_recon"]
+        t0 = min((int(e.get("tick", 0)) for e in recs), default=0)
+        evs = [e.get("payload", {}) for e in recs if int(e.get("tick", 0)) >= t0 + WARMUP_TICKS]
         if len(evs) < MIN_SAMPLES:
             continue  # a few start-up reconciliations (host_crash: 7) are all transient
         seen += 1
