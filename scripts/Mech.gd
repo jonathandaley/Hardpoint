@@ -786,8 +786,21 @@ func _pred_record() -> void:
 	if _pred_hist.size() > _PRED_HIST_MAX:
 		_pred_hist.pop_front()
 
+# T270: the newest server position of our predicted mech (see snap_to_server)
+var _last_server_pos := Vector3.INF
+
+## T270: at match end the server froze every mech, but on a lossy link its match-end RPC
+## lands late and this client predicted on meanwhile -- inputs the server never applied --
+## and no snapshot follows to correct it (the stream stops at match end): the own mech
+## froze up to ~1.7 m off (dedicated_server@bad transform_desync). Take the server's word.
+func snap_to_server() -> void:
+	if _predicting() and _last_server_pos != Vector3.INF:
+		global_position = _last_server_pos
+		velocity = Vector3.ZERO
+
 func _reconcile(entry: Dictionary) -> void:
 	var server_pos: Vector3 = entry.get("pos", global_position)
+	_last_server_pos = server_pos
 	if not _pred_live:  # start from the server's word (mid-fall from the spawn height, too)
 		_pred_live = true
 		global_position = server_pos

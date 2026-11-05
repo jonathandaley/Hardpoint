@@ -720,6 +720,7 @@ func _on_mp_match_ended(winner_team: int, stats: Array) -> void:
 	_last_snapshot_ms = 0  # T214: the stream stops at match end by design
 	# T205/T206: the server froze every mech (_on_match_ended); a predicting client stops too
 	if not multiplayer.is_server() and is_instance_valid(player_mech):
+		player_mech.call("snap_to_server")  # T270: where the server froze it, not where we predicted
 		player_mech.set_deferred("process_mode", Node.PROCESS_MODE_DISABLED)
 	hud.hide_squad_picker_mp()
 	hud.show_result_mp(winner_team, stats)
