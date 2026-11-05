@@ -2,8 +2,6 @@
 
 Mech balancing automatically: wide variety of team sizes and maps, weapons. Write the data to a file, including both total winrate/damage but also "kestrel weak against everest" etc.
 
-Bot fill should be optional in singleplayer, including # of bots
-
 Fancy hangar, animation toggle: copy more of Design's animation, if possible, with the flying drones, conveyor belts. Lives under a fancy graphics toggle in settings. Graphics might need a dedicated page in settings.
 
 Patterned emissives, on the mech textures, also probably a toggle, as the glow probably costs something.
@@ -30,8 +28,6 @@ Tracer rounds?
 
 Machine gun barrel should start glowing as ramp-up increases, red-hot at max speed.
 Mech balance auto
-
-Bot fill optional
 
 Fancy hangar, animation toggle
 

@@ -852,6 +852,22 @@ func _on_find_sp_pressed() -> void:
 			btn.add_theme_font_size_override("font_size", 14)
 			btn.pressed.connect(_on_sp_map_pressed.bind(i))
 			grid.add_child(btn)
+		# T251: bot fill is optional -- how many bots join each side (0 = none)
+		var bots := HBoxContainer.new()
+		bots.name = "BotRow"
+		bots.add_theme_constant_override("separation", 6)
+		for spec in [["AllyBots", "ALLY BOTS"], ["EnemyBots", "ENEMY BOTS"]]:
+			var l := Label.new()
+			l.text = spec[1]
+			l.add_theme_font_size_override("font_size", 12)
+			bots.add_child(l)
+			var sb := SpinBox.new()
+			sb.name = spec[0]
+			sb.min_value = 0
+			sb.max_value = 5
+			sb.add_theme_font_size_override("font_size", 12)
+			bots.add_child(sb)
+		box.add_child(bots)
 		var back := Button.new()
 		back.text = "BACK"
 		back.add_theme_font_size_override("font_size", 14)
@@ -859,6 +875,12 @@ func _on_find_sp_pressed() -> void:
 			box.visible = false
 			$FindMatchPanel/Choices.visible = true)
 		box.add_child(back)
+	var ts: int = int(Game.loadout.get("team_size", 3))
+	var counts = Game.loadout.get("sp_bots")
+	if not (counts is Array and counts.size() == 2):
+		counts = [maxi(0, ts - 1), ts]  # default: the old fill to team_size
+	(box.find_child("AllyBots", true, false) as SpinBox).value = int(counts[0])
+	(box.find_child("EnemyBots", true, false) as SpinBox).value = int(counts[1])
 	var cur = Game.loadout.get("map_def")
 	for i in MAPS.size():  # the last pick is highlighted
 		var btn: Button = box.find_child("Map%d" % i, true, false)
@@ -870,6 +892,9 @@ func _on_find_sp_pressed() -> void:
 
 func _on_sp_map_pressed(idx: int) -> void:
 	SoundManager.play_sfx_2d("ui_click")
+	var box := get_node("FindMatchPanel/MapChoices")
+	Game.loadout["sp_bots"] = [int((box.find_child("AllyBots", true, false) as SpinBox).value),
+		int((box.find_child("EnemyBots", true, false) as SpinBox).value)]  # T251
 	Game.loadout["map_def"] = load(MAPS[idx])
 	Game.save_loadout()
 	Game.start_sp_match()  # T184: a local MP match with bot fill

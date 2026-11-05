@@ -981,6 +981,7 @@ func _load_loadout() -> void:
 		if bd != null:
 			loadout["bot_def"] = bd
 	loadout["team_size"] = cfg.get_value("loadout", "team_size", 1)
+	loadout["sp_bots"] = cfg.get_value("loadout", "sp_bots", [])  # T251: [ally, enemy]; [] = fill to team_size
 	var squad_paths: Array = cfg.get_value("loadout", "squad", [])
 	loadout["squad"] = squad_paths
 	loadout["presets"] = _migrate_weapons(cfg.get_value("loadout", "presets", {}))
@@ -1015,6 +1016,7 @@ func save_loadout() -> void:
 	var bot_def = loadout.get("bot_def")
 	cfg.set_value("loadout", "bot_path", bot_def.resource_path if bot_def != null else "")
 	cfg.set_value("loadout", "team_size", loadout.get("team_size", 1))
+	cfg.set_value("loadout", "sp_bots", loadout.get("sp_bots") if loadout.get("sp_bots") is Array else [])  # T251 ([] = fill)
 	cfg.set_value("loadout", "squad", loadout.get("squad", []))
 	cfg.set_value("loadout", "presets", loadout.get("presets", {}))
 	var map_def = loadout.get("map_def")
@@ -1234,6 +1236,8 @@ func setup_sp_match() -> void:
 	var map_path: String = md.resource_path if md != null else "res://resources/maps/MathTemple.tres"
 	mp_lobby = {"peers": {1: lobby._local_peer_meta()}, "bot_fill": true,
 		"team_size": loadout.get("team_size", 1), "map_path": map_path, "match_seed": 0}
+	if loadout.get("sp_bots") is Array and (loadout["sp_bots"] as Array).size() == 2:  # T251: the SP picker's exact ally / enemy counts
+		mp_lobby["bot_counts"] = loadout["sp_bots"]
 	mp_active_match = {"map_path": map_path, "roster": lobby._build_roster(), "match_seed": 0}
 	loadout["map_def"] = load(map_path)
 
