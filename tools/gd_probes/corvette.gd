@@ -60,6 +60,8 @@ func _ready() -> void:
 		src.aim = Vector2(c[1], c[2])
 		for i in 40:
 			await get_tree().physics_frame
+			if i < 2:
+				continue  # the case just snapped aim / position; the arm re-casts on the next tick
 			q.transform = Transform3D(Basis(), cam.global_position)
 			var hits := space.intersect_shape(q, 4)
 			if not hits.is_empty():

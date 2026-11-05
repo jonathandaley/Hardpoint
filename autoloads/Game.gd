@@ -71,13 +71,15 @@ var loadout: Dictionary = {
 }
 
 ## T196: over-the-shoulder side of the local view, +1 right / -1 left (V swaps).
-var shoulder := 1.0
+## T252: 0 = the raised center view (Settings VIEW, the default; user 2026-11-05).
+var shoulder := 0.0
 
 var settings: Dictionary = {
 	"mouse_sensitivity": 0.003,
 	"bot_difficulty": 1,  # 0=Easy  1=Normal  2=Medium  3=Hard  4=Elite
 	"master_volume": 0.5,
 	"shadows": "blob",  # T193: "blob" (disc under each mech, no sun shadows) or "full"
+	"view": "center",   # T252: "center" (raised, crosshair over the mech) or "shoulder"
 }
 
 # M0.1: central seeded RNG for all gameplay randomness (weapon spread, etc.).
@@ -963,6 +965,8 @@ func _load_settings() -> void:
 	settings["bot_difficulty"]    = cfg.get_value("settings", "bot_difficulty",    settings["bot_difficulty"])
 	settings["master_volume"]     = cfg.get_value("settings", "master_volume",     settings["master_volume"])
 	settings["shadows"]           = cfg.get_value("settings", "shadows",           settings["shadows"])
+	settings["view"]              = cfg.get_value("settings", "view",              settings["view"])
+	shoulder = 0.0 if settings["view"] == "center" else 1.0  # T252
 	apply_volume(settings["master_volume"])
 
 func _load_loadout() -> void:
@@ -1064,6 +1068,7 @@ func save_settings() -> void:
 	cfg.set_value("settings", "bot_difficulty",    settings.get("bot_difficulty",    1))
 	cfg.set_value("settings", "master_volume",     settings.get("master_volume",     0.5))
 	cfg.set_value("settings", "shadows",           settings.get("shadows",           "blob"))
+	cfg.set_value("settings", "view",              settings.get("view",              "center"))
 	cfg.save(_SETTINGS_PATH)
 
 func apply_volume(linear: float) -> void:
