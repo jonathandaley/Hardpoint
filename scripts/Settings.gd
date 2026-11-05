@@ -246,7 +246,6 @@ func _build_graphics_page() -> void:
 	graphics_box.add_child(title)
 	_build_shadow_section(graphics_box)
 	_build_toggle_section(graphics_box, "FANCY HANGAR", "fancy_hangar", "Fancy")  # T254
-	_build_toggle_section(graphics_box, "EMISSIVE PATTERNS", "emissive_patterns", "Emissive")  # T255
 	var back := Button.new()
 	back.offset_left = 200.0
 	back.offset_top = 316.0
