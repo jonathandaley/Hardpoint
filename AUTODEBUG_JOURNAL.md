@@ -121,3 +121,4 @@ date|task|outcome|commit|finding|suite
 2026-11-05|T247|DONE|see git log (T247)|arc beam stayed on after RMB release / slot toggle / death / MP reorder (B103); beam now times out 0.35 s after the last refresh; probe arc_beam red on RMB|74/74
 2026-11-05|T248|DONE|see git log (T248)|Ironworks deleted (palette-swapped Math Temple placeholder): MapDef + list entries; saved map paths that no longer exist are skipped; probe map_lists red before|75/75
 2026-11-05|T249|DONE|see git log (T249)|controls list: V (swap shoulder) added to Settings; README table gains Space/V/Tab, Pegasus key Q -> Space; probe controls_list red on V|76/76
+2026-11-05|T250|DONE|see git log (T250)|swamp water murkier: (0.15,0.17,0.09) at 94% opacity, rougher; swamp_wade checks alpha/luminance (red before)|76/76

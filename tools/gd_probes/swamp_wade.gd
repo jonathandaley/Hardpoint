@@ -66,6 +66,14 @@ func _ready() -> void:
 			lowest_gap = minf(lowest_gap, top - float(map.call("ground_y", q.x, q.z)))
 		if lowest_gap < 0.05 or lowest_gap > 0.3:
 			_fail("boardwalk at %s: deck top %.2f clears the ground by %.2f (want 0.05..0.3)" % [(b as Node3D).global_position, top, lowest_gap])
+	# T250: the water is murky -- nearly opaque and dark (was 82% opaque, luminance ~0.24)
+	var water: MeshInstance3D = null
+	for c in map.get_children():
+		if c is MeshInstance3D and (c as MeshInstance3D).mesh is PlaneMesh:
+			water = c
+	var wcol: Color = (water.material_override as StandardMaterial3D).albedo_color if water != null else Color.WHITE
+	if wcol.a < 0.92 or wcol.get_luminance() > 0.2:
+		_fail("swamp water %s isn't murky (want alpha >= 0.92, luminance <= 0.2)" % wcol)
 	if decks != 8:
 		_fail("found %d boardwalk decks, want 8" % decks)
 	print("[probe] swamp_wade done (dry %.2f, wading %.2f, %d boardwalks)" % [full, wade, decks])

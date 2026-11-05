@@ -4,8 +4,6 @@ Mech balancing automatically: wide variety of team sizes and maps, weapons. Writ
 
 Bot fill should be optional in singleplayer, including # of bots
 
-Make swamp water murkier
-
 Fancy hangar, animation toggle: copy more of Design's animation, if possible, with the flying drones, conveyor belts. Lives under a fancy graphics toggle in settings. Graphics might need a dedicated page in settings.
 
 Patterned emissives, on the mech textures, also probably a toggle, as the glow probably costs something.
@@ -34,8 +32,6 @@ Machine gun barrel should start glowing as ramp-up increases, red-hot at max spe
 Mech balance auto
 
 Bot fill optional
-
-Make swamp water murkier
 
 Fancy hangar, animation toggle
 
