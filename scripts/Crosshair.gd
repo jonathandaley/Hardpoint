@@ -35,25 +35,39 @@ func _process(delta: float) -> void:
 		_hit_timer -= delta
 		queue_redraw()
 
-# T276 (HUMAN_FOUND 2026-11-05, top priority: "too hard to see through. Make it only the
-# current width at the edges, and narrow it to a point in the middle"): no centre dot; each
-# arm is a wedge, LINE_WIDTH wide at its outer end (where the old arm ended) tapering to a
-# point at the centre, so the aim point itself is open. Outline wedges drawn first.
-static func arm_wedges(c: Vector2, rim := 0.0) -> Array[PackedVector2Array]:
-	var reach := LINE_WIDTH * 0.5 + GAP + LINE_LEN + rim
-	var hw := LINE_WIDTH * 0.5 + rim
-	var out: Array[PackedVector2Array] = []
-	for d: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
-		var side := Vector2(-d.y, d.x) * hw
-		out.append(PackedVector2Array([c + d * reach + side, c + d * reach - side, c]))
+# T276 + T309 (user: "thin the center even more ... use the fractional pixels to make it super
+# accurate. The points can come in toward the center a bit if they can get thin enough"): no
+# centre dot; each arm runs from LINE_WIDTH wide at the old arm end (REACH from the centre) to a
+# hairline at the centre, narrowing on a concave curve (TAPER_POW), drawn as short antialiased
+# segments so sub-pixel widths fade instead of dropping out (the 640x360 canvas is drawn at
+# screen resolution: 0.5 unit = 1.5 px at 1080p). The dark rim only lines the outer half and
+# thins to nothing, so the inner hairline stays clear over the target.
+const REACH := LINE_WIDTH * 0.5 + GAP + LINE_LEN
+const TAPER_POW := 1.6
+const RIM := 0.5        # extra half-width of the dark rim at the outer end (was a full unit)
+const ARM_STEPS := 10
+
+## [distance from centre, colour half-width, rim extra half-width] from the outer end inward.
+static func arm_profile() -> Array:
+	var out: Array = []
+	for k in ARM_STEPS + 1:
+		var d := REACH * (1.0 - float(k) / ARM_STEPS)
+		var f := d / REACH
+		out.append([d, LINE_WIDTH * 0.5 * pow(f, TAPER_POW), RIM * clampf((f - 0.5) * 2.0, 0.0, 1.0)])
 	return out
 
 func _draw() -> void:
 	var c := size * 0.5
-	for poly in arm_wedges(c, 1.0):
-		draw_colored_polygon(poly, OUTLINE)
-	for poly in arm_wedges(c):
-		draw_colored_polygon(poly, COLOR)
+	var prof := arm_profile()
+	for layer in 2:  # 0 = rim under, 1 = colour on top
+		for dir: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
+			for k in prof.size() - 1:
+				var a: Array = prof[k]
+				var b: Array = prof[k + 1]
+				var hw: float = (float(a[1]) + float(b[1])) * 0.5 + (((float(a[2]) + float(b[2])) * 0.5) if layer == 0 else 0.0)
+				if layer == 0 and float(a[2]) <= 0.0:
+					continue
+				draw_line(c + dir * float(a[0]), c + dir * float(b[0]), OUTLINE if layer == 0 else COLOR, hw * 2.0, true)
 
 	if _lock_progress > 0.0:
 		var dist := lerpf(LOCK_DIST_FAR, LOCK_DIST_NEAR, _lock_progress)
