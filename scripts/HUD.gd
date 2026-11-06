@@ -31,6 +31,10 @@ var _ally_mechs: Array = []
 var _ally_health_bars: Array = []  # green foreground health rects
 var _ally_bg_bars: Array = []      # black background rects
 var _name_tags: Array = []         # T325: [bot tags..., ally tags...] parallel to the bars
+var _feed: RichTextLabel = null    # T324: kill feed + chat stub under the ability marker
+var _feed_lines: Array = []        # [bbcode, age s]
+const FEED_LINES := 4
+const FEED_LIFE_S := 6.0
 var _spectate_label: Label = null
 
 var _beacons: Array = []
@@ -722,6 +726,60 @@ func _update_name_tags() -> void:
 func _update_bot_bar() -> void:
 	_update_bot_bar_impl()
 	_update_name_tags()
+	_update_feed(get_process_delta_time())
+
+# T324 (HUMAN_FOUND 2026-11-05 late: "Top left of HUD, under the ability marker, should have a
+# readout, small text, listing kills and chat. Chat as a stub; kills very simple. Should take up
+# very little space and not be distracting"): FEED_LINES newest lines, each gone after FEED_LIFE_S.
+const _ALLY_HEX := "7fb8ff"
+const _ENEMY_HEX := "ff7f6e"
+
+func add_kill(killer: String, killer_ally: bool, victim: String, victim_ally: bool) -> void:
+	var v := "[color=#%s]%s[/color]" % [_ALLY_HEX if victim_ally else _ENEMY_HEX, _bb(victim)]
+	if killer == "":
+		_feed_add("%s [color=#aaaaaa]destroyed[/color]" % v)
+	else:
+		_feed_add("[color=#%s]%s[/color] [color=#aaaaaa]>[/color] %s" % [
+			_ALLY_HEX if killer_ally else _ENEMY_HEX, _bb(killer), v])
+
+# player names and chat are other players' text: no bbcode tags from them
+static func _bb(t: String) -> String:
+	return t.replace("[", "[lb]")
+
+## Chat stub: nothing sends chat yet; a message shows in the feed like a kill.
+func add_chat(sender: String, text: String) -> void:
+	_feed_add("[color=#dddddd]%s:[/color] %s" % [_bb(sender), _bb(text)])
+
+func _feed_add(line: String) -> void:
+	_feed_lines.append([line, 0.0])
+	while _feed_lines.size() > FEED_LINES:
+		_feed_lines.pop_front()
+	_redraw_feed()
+
+func _update_feed(delta: float) -> void:
+	if _feed_lines.is_empty():
+		return
+	for e in _feed_lines:
+		e[1] += delta
+	var n := _feed_lines.size()
+	_feed_lines = _feed_lines.filter(func(e): return e[1] < FEED_LIFE_S)
+	if _feed_lines.size() != n:
+		_redraw_feed()
+
+func _redraw_feed() -> void:
+	if _feed == null:
+		_feed = RichTextLabel.new()
+		_feed.name = "KillFeed"
+		_feed.bbcode_enabled = true
+		_feed.scroll_active = false
+		_feed.fit_content = true
+		_feed.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_feed.add_theme_font_size_override("normal_font_size", 9)
+		_feed.position = Vector2(16, 64)  # under the ability marker (AbilityLabel 44..62)
+		_feed.size = Vector2(230, 0)
+		add_child(_feed)
+	_feed.text = "\n".join(_feed_lines.map(func(e): return e[0]))
+	_feed.visible = not _feed_lines.is_empty()
 
 func _update_bot_bar_impl() -> void:
 	var camera := get_viewport().get_camera_3d()
