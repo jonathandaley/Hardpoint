@@ -85,8 +85,11 @@ static func _shape_points(cs: CollisionShape3D) -> PackedVector3Array:
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
+# T318 (HUMAN_FOUND 2026-11-05: "Minimap, both for picking spawnpoints and in the HUD, should be
+# rotated 90 degrees counterclockwise"): world +X is up, -Z is left (was +X right, -Z up).
 func to_map(p: Vector3) -> Vector2:
-	return size * 0.5 + (Vector2(p.x, p.z) - center) / half * (minf(size.x, size.y) * 0.5)
+	var d := (Vector2(p.x, p.z) - center) / half * (minf(size.x, size.y) * 0.5)
+	return size * 0.5 + Vector2(d.y, -d.x)
 
 func team_color(team: int) -> Color:
 	return ALLY if team == local_team else ENEMY
@@ -141,7 +144,7 @@ func _draw() -> void:
 	if is_instance_valid(me) and me.is_inside_tree() and not me.get("is_dead"):  # own mech even stealthed
 		var torso: Node3D = me.get("torso")
 		var f3: Vector3 = -(torso if torso != null else me as Node3D).global_transform.basis.z
-		var f := Vector2(f3.x, f3.z).normalized()
+		var f := Vector2(f3.z, -f3.x).normalized()  # T318: the heading rotates with the map
 		var c := to_map(me.global_position)
 		var s := Vector2(-f.y, f.x)
 		draw_colored_polygon(PackedVector2Array([c + f * 5.0 * k, c - f * 3.0 * k + s * 3.0 * k,

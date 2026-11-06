@@ -39,10 +39,11 @@ func _ready() -> void:
 		var p: Vector2 = mm.to_map(m.global_position)
 		if not rect.has_point(p):
 			_fail("%s maps outside the minimap (%s)" % [m.name, p])
-		# north-up: world -Z is up, +X right
-		var q: Vector2 = mm.to_map(m.global_position + Vector3(10, 0, -10))
-		if not (q.x > p.x and q.y < p.y):
-			_fail("map axes wrong: +X/-Z moved %s -> %s" % [p, q])
+		# T318 (user 2026-11-05: rotated 90 deg counter-clockwise): world +X is up, -Z is left
+		var qx: Vector2 = mm.to_map(m.global_position + Vector3(10, 0, 0))
+		var qz: Vector2 = mm.to_map(m.global_position + Vector3(0, 0, -10))
+		if not (qx.y < p.y - 1.0 and absf(qx.x - p.x) < 0.5 and qz.x < p.x - 1.0 and absf(qz.y - p.y) < 0.5):
+			_fail("map axes wrong: +X moved %s -> %s, -Z -> %s (want up / left)" % [p, qx, qz])
 		if mm.team_color(m.team) != (mm.ALLY if m.team == arena.get("_local_team") else mm.ENEMY):
 			_fail("%s team colour not from the local side" % m.name)
 	# a stealthed enemy drops off the map; the local mech stays even when stealthed
