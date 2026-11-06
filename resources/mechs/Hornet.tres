@@ -19,6 +19,7 @@ weapon_scene = ExtResource("4")
 
 [resource]
 script = ExtResource("1")
+weapon_scale = 1.3
 display_name = "Hornet"
 description = "Fast medium mech with side-mounted dual light hardpoints. Aggressive skirmisher."
 class_tag = "Medium"

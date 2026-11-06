@@ -14,6 +14,7 @@ weapon_scene = ExtResource("4")
 
 [resource]
 script = ExtResource("1")
+weapon_scale = 1.3
 display_name = "Cesh"
 description = "Dark unobtrusive light mech. Passive stealth hides it from enemy sensors."
 class_tag = "Light"
