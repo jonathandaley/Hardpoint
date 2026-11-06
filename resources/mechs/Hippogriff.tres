@@ -22,6 +22,7 @@ weapon_scene = ExtResource("4")
 
 [resource]
 script = ExtResource("1")
+weapon_scale = 1.3
 display_name = "Hippogriff"
 description = "Versatile medium mech with three light hardpoints. Reliable all-around fire platform."
 class_tag = "Medium"

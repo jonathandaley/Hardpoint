@@ -20,6 +20,7 @@ weapon_scene = ExtResource("4")
 
 [resource]
 script = ExtResource("1")
+weapon_scale = 1.3
 display_name = "Pegasus"
 description = "Medium mech with jump and heal ability. Low HP offset by mobility."
 class_tag = "Medium"

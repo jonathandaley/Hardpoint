@@ -49,7 +49,9 @@ func _ready() -> void:
 		_fail("gun %.2f m long, %.2f unscaled (want >= x%.1f)" % [gun.size.z, plain.size.z, MIN_LEN_X])
 	if mount_vol > gun_vol * MOUNT_FRAC:
 		_fail("mount %.3f m3 vs gun %.3f m3 (want under %.0f%%)" % [mount_vol, gun_vol, MOUNT_FRAC * 100.0])
-	if gun.position.y < mount_top - 0.15 or gun.position.y > mount_top + 0.1:
+	# T312 (user on T238: "now the weapons are floating a bit. Lower them slightly"): at -0.10
+	# (grip only in the mount) the gun body floated; it rests on the mount from ~-0.15 down
+	if gun.position.y < mount_top - 0.3 or gun.position.y > mount_top - 0.15:
 		_fail("gun bottom at %.2f, mount top at %.2f: sunk or floating" % [gun.position.y, mount_top])
 	print("[probe] slip_gun done (gun %.2f m long vs %.2f, mount %.0f%% of gun volume, bottom %.2f / mount top %.2f)" % [
 		gun.size.z, plain.size.z, 100.0 * mount_vol / gun_vol, gun.position.y, mount_top])
