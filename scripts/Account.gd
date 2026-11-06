@@ -13,20 +13,51 @@ func _ready() -> void:
 	bg.color = Color(0.05, 0.05, 0.07)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
+	# T306 (HUMAN_FOUND 2026-11-05: "Sign up screen isn't scrollable, so ... you have to exit the
+	# game to leave the screen"): the sign-up column (4 fields) ran past the 360 px screen and
+	# took BACK with it. Now the form scrolls and BACK is pinned top-left. The SERVER field
+	# ("what is that for?") picks which game server holds the account -- not something players
+	# should need -- so it hides behind a small SERVER... toggle with the default filled in.
+	var back := Button.new()
+	back.name = "BackButton"
+	back.text = "< BACK"
+	back.position = Vector2(8, 8)
+	back.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/ui/TitleScreen.tscn"))
+	add_child(back)
+	var scroll := ScrollContainer.new()
+	scroll.name = "FormScroll"
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scroll.offset_top = 40.0
+	scroll.offset_bottom = -8.0
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	add_child(scroll)
+	var center := CenterContainer.new()
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(center)
 	var box := VBoxContainer.new()
-	box.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	box.name = "Form"
 	box.custom_minimum_size = Vector2(280, 0)
-	box.position -= Vector2(140, 120)
-	add_child(box)
+	center.add_child(box)
 	var head := Label.new()
 	head.text = "SIGN UP" if signup else "LOG IN"
 	head.add_theme_font_size_override("font_size", 22)
 	box.add_child(head)
-	var rows := [["server", "SERVER (address:port)", "127.0.0.1:8910"], ["email", "EMAIL", ""],
-		["password", "PASSWORD (8+ characters)" if signup else "PASSWORD", ""]]
+	var rows := [["email", "EMAIL", ""], ["password", "PASSWORD (8+ characters)" if signup else "PASSWORD", ""]]
 	if signup:
 		rows.append(["callsign", "CALLSIGN", ""])
+	rows.append(["server", "SERVER (address:port)", "127.0.0.1:8910"])
+	var server_nodes: Array = []
 	for r in rows:
+		if r[0] == "server":
+			var toggle := Button.new()
+			toggle.name = "ServerToggle"
+			toggle.text = "SERVER..."
+			toggle.flat = true
+			toggle.add_theme_font_size_override("font_size", 11)
+			toggle.pressed.connect(func() -> void:
+				for n in server_nodes:
+					n.visible = not n.visible)
+			box.add_child(toggle)
 		var lbl := Label.new()
 		lbl.text = r[1]
 		box.add_child(lbl)
@@ -36,16 +67,15 @@ func _ready() -> void:
 		e.secret = r[0] == "password"
 		box.add_child(e)
 		_fields[r[0]] = e
+		if r[0] == "server":
+			server_nodes.append_array([lbl, e])  # in place: the toggle's lambda holds this array
+			lbl.visible = false
+			e.visible = false
 	_go = Button.new()
 	_go.name = "ConfirmButton"
 	_go.text = "CREATE ACCOUNT" if signup else "LOG IN"
 	_go.pressed.connect(_on_confirm)
 	box.add_child(_go)
-	var back := Button.new()
-	back.name = "BackButton"
-	back.text = "BACK"
-	back.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/ui/TitleScreen.tscn"))
-	box.add_child(back)
 	_status = Label.new()
 	_status.name = "Status"
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD
