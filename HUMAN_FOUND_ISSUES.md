@@ -70,8 +70,6 @@ This error appeared after closing the game.
 
 Minimap, both for picking spawnpoints and in the HUD, should be rotated 90 degrees counterclockwise.
 
-Reduce sniper recoil/screen shudder by 50%.
-
 Make sure muzzle flash is actually at the end of the barrel and not at its base. Make its size proportional to the barrel.
 
 The impact sound of bullets hitting a mech should not play for laser, arc, or patience. Any raycast weapons added in the future, either.
