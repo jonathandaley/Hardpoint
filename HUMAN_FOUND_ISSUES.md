@@ -6,13 +6,9 @@ Gun shells should stick around longer, at least at higher graphics settings. I d
 
 Check for rocket launcher accuracy? Didn't work in Sydney, not sure what was up with that. 
 
-All lock-on weapons should not lock on until the weapon is within range. Square reticle should still be visible at any range. 
-
 Cesh bots should use stealth more intelligently.
 
 Arc weapon visual is sometimes broken, seems to always work for bots? Flaky error.
-
-Laser and arc should not go through targets, but stop when hitting a mech.
 
 ERROR: Texture with GL ID of 63: leaked 349524 bytes.
    at: ~Utilities (drivers/gles3/storage/utilities.cpp:77)
@@ -27,8 +23,6 @@ Bots should be assigned names, which are visible like players (Which I can't rem
 At elite level, bots will have a much shorter, separate list of names. Only good gamertags; cheesy ones are fine for the basic bots, but not elites. These will have persistent pilot upgrades that are tied to their names, so, e.g. Inexorable always has "health" and the whole "move speed" tree maxed out.
 
 How hard would it be to make the weapons tilt up and down as they aim? If easy, add it to the queue.
-
-Game lagged when shot at close range with three heavy shotguns at once. Too many particles? Want to make sure that doesn't happen.
 
 
 Make rockets be smarter to avoid hitting obstacles.
