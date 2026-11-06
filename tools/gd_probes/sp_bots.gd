@@ -20,6 +20,7 @@ func _start(ally: int, enemy: int) -> Node:
 	(box.find_child("AllyBots", true, false) as SpinBox).value = ally
 	(box.find_child("EnemyBots", true, false) as SpinBox).value = enemy
 	(box.find_child("Map0", true, false) as Button).pressed.emit()
+	(box.find_child("SpPlay", true, false) as Button).pressed.emit()  # T277: a pick only selects
 	for i in 6:
 		await get_tree().process_frame
 	return get_tree().current_scene
