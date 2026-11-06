@@ -1,9 +1,9 @@
 # MP_M0_BRIEF — Claude Code session: determinism + instrumentation foundation
 
 Paste this whole file at the start of a fresh Sonnet Claude Code session on
-pomegranate. It is self-contained. If `MP_AUTODEBUG_PLAN.md` is in the repo, it
+pomegranate. It is self-contained. If `docs/MP_AUTODEBUG_PLAN.md` is in the repo, it
 is the source of truth for the overall harness; this brief covers M0 only.
-DESIGN.md and SPEC.md in the repo are ground truth — read them before writing code.
+docs/DESIGN.md and SPEC.md in the repo are ground truth — read them before writing code.
 
 ---
 
@@ -50,7 +50,7 @@ Escalate the choice.
 
 Before writing anything:
 
-1. Read DESIGN.md, SPEC.md, and the actual multiplayer code (whatever exists of
+1. Read docs/DESIGN.md, SPEC.md, and the actual multiplayer code (whatever exists of
    T40: `MultiplayerAPI` setup, `MultiplayerSynchronizer` nodes, any
    server/client split, the existing `InputSource` implementations).
 2. Report back, concisely: what netcode exists today, where the

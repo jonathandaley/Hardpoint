@@ -85,8 +85,8 @@ T124 is marked done with "`_take_damage_rpc` … add sender = projectile/weapon 
 
 These matter more than usual since SPEC.md is the machine ground-truth for your Claude Code sessions:
 
-- **DESIGN.md is stale** and self-describes as canonical: 320×180 render (actual: 640×360), white/grey/blue "mathematical temple" art direction (actual: Matrix-3 steam/cyberpunk), "**only one autoload**" (V5 allows three), "server-authoritative **with client prediction**" (V37: interpolation-only, prediction deferred to T131). Either update it or demote it to history.
-- **GRAPHICS_PLAN.md §C forbids normal maps** while SPEC T78 (marked done) evaluates normal-mapped arena edges. One of them is lying.
+- **docs/DESIGN.md is stale** and self-describes as canonical: 320×180 render (actual: 640×360), white/grey/blue "mathematical temple" art direction (actual: Matrix-3 steam/cyberpunk), "**only one autoload**" (V5 allows three), "server-authoritative **with client prediction**" (V37: interpolation-only, prediction deferred to T131). Either update it or demote it to history.
+- **docs/GRAPHICS_PLAN.md §C forbids normal maps** while SPEC T78 (marked done) evaluates normal-mapped arena edges. One of them is lying.
 - **Task-status drift**: T124 marked `x` but the ownership check is absent (§1.7); T121 marked `x` but the 30s timeout is unarmed (§1.6). If `/check` trusts `x`, these never get revisited.
 - **README controls table** lacks Q (ability) and Tab (spectate-cycle); T81 added them to the Settings screen only.
 - **Naming**: repo `Hardpoint`, README title `MechBattle`, CLAUDE.md `mechbattle`, binary `mechbattle_X.X.X`. Pick one.

@@ -1,4 +1,4 @@
-# Mech Arena — DESIGN.md
+# Mech Arena — docs/DESIGN.md
 
 A mech FPS with modular weapons and area control, inspired by War Robots. Single-player loop first; multiplayer deferred until the game is fun against bots.
 
@@ -128,4 +128,4 @@ Multiplayer is the hardest part. Defer until the single-player loop is fun.
 - Claude Code writes all code, manages git, reads terminal output, edits files, instruments with prints, maintains this document.
 - Sonnet for day-to-day sessions. Opus for architecture decisions.
 - Fresh Claude Code sessions per major subsystem to keep context lean.
-- DESIGN.md is living documentation. Update it when decisions change; do not let it drift.
+- docs/DESIGN.md is living documentation. Update it when decisions change; do not let it drift.

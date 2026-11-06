@@ -5,7 +5,7 @@ A "run" is one execution of run_scenario.py: a directory holding one
 <role>.events.jsonl event stream. Oracles consume PeerLog objects plus the
 scenario spec via a ctx dict; see tools/sync_compare.py for how ctx is built.
 
-Verdict shape (the M1 contract, per MP_AUTODEBUG_PLAN.md S4):
+Verdict shape (the M1 contract, per docs/MP_AUTODEBUG_PLAN.md S4):
     {
       "oracle": "transform_desync",
       "verdict": "PASS" | "FAIL" | "SKIP",

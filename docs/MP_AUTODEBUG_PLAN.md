@@ -1,6 +1,6 @@
-# MP_AUTODEBUG_PLAN.md — Autonomous Multiplayer Debugging Harness
+# docs/MP_AUTODEBUG_PLAN.md — Autonomous Multiplayer Debugging Harness
 
-Companion to SPEC.md (canonical; tracks this work as T133-T135) and MP_PLAN.md. Target: set-and-forget agentic
+Companion to SPEC.md (canonical; tracks this work as T133-T135) and docs/MP_PLAN.md. Target: set-and-forget agentic
 debugging of multiplayer state divergence, zero interaction once running.
 
 ---
@@ -283,7 +283,7 @@ divergence. Sonnet for M0–M2 (mechanical/build-out), Opus for the M3 brief des
 ## 9. Coverage map v2 (2026-10-31) -- every bug class, how it is caught
 
 Written after T129 showed the M0-M2 harness was green while real LAN play had
-8 bugs (B-a..B-h, `T129_CHECKLIST.md`). Root lesson: the harness ran under
+8 bugs (B-a..B-h, `docs/T129_CHECKLIST.md`). Root lesson: the harness ran under
 conditions real play never has -- shared settings file, zero loss, zero
 latency, one match per process, no scene flow, no HUD checks. v2 closes those
 gaps first, then adds breadth. Tasks are SPEC.md §T T137-T157, in run order (T137 = loop brief, needs user).

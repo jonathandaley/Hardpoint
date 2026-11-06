@@ -1,7 +1,7 @@
 # AUTODEBUG_BRIEF.md -- what each /loop iteration does
 
 Start the loop with: `/loop Follow AUTODEBUG_BRIEF.md` (no interval = self-paced).
-Plan of record: `MP_AUTODEBUG_PLAN.md` §9. Queue: SPEC.md §T.
+Plan of record: `docs/MP_AUTODEBUG_PLAN.md` §9. Queue: SPEC.md §T.
 
 ## One iteration = one task
 
