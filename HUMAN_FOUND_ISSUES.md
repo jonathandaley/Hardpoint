@@ -14,8 +14,6 @@ Self destruct option in esc menu, just kill the current mech.
 
 Don't spawn the first mech until it's picked (currently spawns the first mech then switches)
 
-Beacon capture count at end of match is wrong (only tried singleplayer): everyone on each team gets counted for every beacon.
-
 Bots should pick spawnpoints instead of all spawning together.
 
 Death match (no beacon) match option
