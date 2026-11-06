@@ -166,3 +166,4 @@ date|task|outcome|commit|finding|suite
 2026-11-06|T273|DONE|batch 5 (local commit)|arc spends nothing while its locked target is out of range; probe arc_range red before (cooldown/ammo spent at 105 m, range 90)|batch suite pending
 2026-11-06|T277|DONE|batch 5 (local commit)|SP map picker: a map button only selects, PLAY starts; sp_map_pick red before, sp_bots presses PLAY|batch suite pending
 2026-11-06|T284|DONE|batch 5 (local commit)|bogged-down icon + slowdown % under the minimap from terrain_speed; probe bog_status red before|batch suite pending
+2026-11-06|batch 5|DONE|T274, T273, T277, T284|suite green over the stack; T263 held (Q5), T266 waits on Q4|102/102
