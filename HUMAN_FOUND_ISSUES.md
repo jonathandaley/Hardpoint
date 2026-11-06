@@ -28,8 +28,6 @@ ERROR: Texture with GL ID of 63: leaked 349524 bytes.
    at: ~Utilities (drivers/gles3/storage/utilities.cpp:77)
 This error appeared after closing the game.
 
-Targeting reticule should aim for center mass, instead of the current spot (appears constant, so it's a little low on a pegasus and very low on a vesuvius).
-
 The mech picker for matches should look like a miniature version of the hangar, without any of the fancy parts; no light cones, drones, etc. Just enough to see what weapons they have equipped so you can tell the difference between mechs with the same name in the squad.
 
 Top left of HUD, under the ability marker, should have a readout, small text, listing kills and chat. Chat as a stub; kills very simple. Should take up very little space and not be distracting.

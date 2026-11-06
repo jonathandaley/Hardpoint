@@ -51,7 +51,8 @@ func _physics_process_impl(delta: float) -> void:
 	else:
 		# Phase 2: steer toward target
 		if is_instance_valid(target):
-			var to_target := (target.global_position + target_offset - global_position).normalized()
+			var aim_at: Vector3 = target.call("center_mass") if target.has_method("center_mass") else target.global_position
+			var to_target := (aim_at + target_offset - global_position).normalized()  # T319: centre mass, was the feet
 			var angle := _velocity_dir.angle_to(to_target)
 			var t := minf(1.0, turn_rate * delta / maxf(angle, 0.0001))
 			_velocity_dir = _velocity_dir.slerp(to_target, t)

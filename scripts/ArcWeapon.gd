@@ -118,7 +118,7 @@ func _do_fire() -> void:
 		_hide_beam()
 		return
 
-	var target_pos := target.global_position + Vector3(0, 1.0, 0)
+	var target_pos: Vector3 = target.call("center_mass") if target.has_method("center_mass") else target.global_position + Vector3(0, 1.0, 0)  # T319
 
 	var space := get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(global_position, target_pos)
