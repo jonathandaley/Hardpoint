@@ -4,6 +4,9 @@ extends "res://scripts/WeaponBase.gd"
 # Damage falls off linearly from damage_close (point-blank) to damage_far (max range).
 
 const PROJECTILE_SCENE := preload("res://scenes/weapons/ProjectileGrey.tscn")
+# T330: one pellet in SMOKE_EVERY trails smoke -- 25 trails per heavy blast were most of the
+# nodes behind the three-shotgun lag; a fifth still reads as a smoky blast.
+const SMOKE_EVERY := 5
 
 @export var pellet_count: int = 8
 @export var spread_angle: float = 5.0   # half-cone degrees per pellet
@@ -54,6 +57,7 @@ func _do_fire() -> void:
 		proj.damage_override = func(dist: float) -> float:
 			return lerpf(dc, df, clampf(dist / r, 0.0, 1.0))
 		proj.on_hit = func(body, pos): _emit_hit_if_visible(body, pos, true)
+		proj.smoke_trail = proj.smoke_trail and _i % SMOKE_EVERY == 0  # T330
 		get_tree().current_scene.add_child(proj)
 		proj.global_transform = Transform3D(Basis(), global_position).looking_at(aim_point)
 		ghost_aims.append(aim_point)
@@ -66,9 +70,11 @@ func _do_fire() -> void:
 func _rpc_pellet_ghosts(aim_points: Array) -> void:
 	if multiplayer.is_server():
 		return
-	for ap in aim_points:
+	for i in aim_points.size():
+		var ap = aim_points[i]
 		var ghost := PROJECTILE_SCENE.instantiate() as Projectile
 		ghost.is_ghost = true
+		ghost.smoke_trail = ghost.smoke_trail and i % SMOKE_EVERY == 0  # T330
 		ghost.speed = projectile_speed
 		ghost.lifetime = range / projectile_speed
 		get_tree().current_scene.add_child(ghost)

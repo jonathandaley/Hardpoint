@@ -495,6 +495,8 @@ func request_damage(amount: float, source: Node3D = null) -> void:
 		amount *= DAMAGE_BOOST
 	_apply_damage(amount, source)
 
+var _last_hurt_sfx := -3
+
 func _apply_damage(amount: float, source: Node3D = null) -> void:
 	if health <= 0.0 or invincible:
 		return
@@ -516,7 +518,9 @@ func _apply_damage(amount: float, source: Node3D = null) -> void:
 		src_mech.damage_dealt_total += actual
 		last_attacker = src_mech
 	damaged.emit()
-	SoundManager.play_sfx("damage_hit", global_position)
+	if Engine.get_physics_frames() - _last_hurt_sfx >= 3:  # T330: one per blast, not per pellet
+		_last_hurt_sfx = Engine.get_physics_frames()
+		SoundManager.play_sfx("damage_hit", global_position)
 	print("[Mech] %s  %.0f / %.0f HP" % [name, health, max_health])
 	# M1.3: autodebug event stream. Runs at the server-authoritative damage
 	# chokepoint (clients route take_damage -> server via RPC), so hit/died are
