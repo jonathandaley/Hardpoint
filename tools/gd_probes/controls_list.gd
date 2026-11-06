@@ -3,7 +3,7 @@ extends Node
 # action bound in the InputMap (project.godot) shows its key on the Settings controls page.
 # Debug-only binds (DEBUG) are left off.
 
-const DEBUG := ["mark_debug"]
+const DEBUG := []  # T304: mark_debug removed
 
 func _fail(msg: String) -> void:
 	push_error("[probe] controls_list: " + msg)

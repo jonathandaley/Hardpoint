@@ -38,8 +38,6 @@ Pegasus sometimes heals too much in a single jump?
 
 Corvette feels very spread out, shrink it by 30%.
 
-Remove debug mech and the "e" mark set key. Archive the code just in case. The window currently says "Hardpoint (DEBUG)" on the title bar, that's probably not necessary anymore.
-
 Sign up screen isn't scrollable, so currently makes it so you have to exit the game to leave the screen. Both login and signup have a "server" field, what is that for? That's not a normal thing with other games, so if that's necessary for some reason it should probably be moved somewhere else.
 
 ERROR: Texture with GL ID of 63: leaked 349524 bytes.

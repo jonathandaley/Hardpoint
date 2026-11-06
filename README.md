@@ -26,6 +26,15 @@ godot --headless --path <project dir> -- --server=9000 --team-size=3 --min-playe
 
 The release binary takes the same flags: `./hardpoint_X.X.X.x86_64 --headless -- --server`.
 
+**Building a release** (Linux preset in `export_presets.cfg`):
+
+```bash
+~/bin/godot --headless --path . --export-release "Linux" build/hardpoint_X.X.X.x86_64
+```
+
+Use `--export-release`, not `--export-debug`: debug templates (and runs from the editor) add
+"(DEBUG)" to the window title.
+
 No player on the server and no menus. Players use FIND MATCH → JOIN with the server's
 address and port. They ready up in the lobby, and the match starts 5 s after everyone
 is ready (a new player joining, or someone un-readying, cancels the countdown). Bots

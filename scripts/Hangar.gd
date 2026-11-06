@@ -5,7 +5,6 @@ const MechVisuals = preload("res://scripts/MechVisuals.gd")
 const DEBUG_BOT_PICKER := false
 
 const ROSTER: Array = [
-	"res://resources/mechs/DebugMech.tres",
 	"res://resources/mechs/Slip.tres",
 	"res://resources/mechs/Cesh.tres",
 	"res://resources/mechs/Seeker.tres",
@@ -135,6 +134,8 @@ func _load_squad() -> void:
 	_squad_paths.clear()
 	for i in SQUAD_SIZE:
 		var path: String = saved[i] if i < saved.size() else DEFAULT_SQUAD[i % DEFAULT_SQUAD.size()]
+		if not ROSTER.has(path):  # T304: e.g. a squad saved with the removed debug mech
+			path = DEFAULT_SQUAD[i % DEFAULT_SQUAD.size()]
 		_squad_paths.append(path)
 	_squad_mechs.clear()
 	for path in _squad_paths:
