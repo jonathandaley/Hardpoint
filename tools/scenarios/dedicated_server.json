@@ -9,6 +9,8 @@
   "duration_ticks": 900,
   "server_opts": {"team_size": 2, "min_players": 2},
   "actions": [{"tick": 240, "peer": "server", "action": "end_match", "winner": 0, "match": 1}],
+  "thresholds": {"pred_p95_m": 0.25},
+  "_thresholds": "B123: three clients + bots start crowded; a teammate brushing a predicting client (it collides with where it sees the teammate, a few ticks in the past) spikes the error to ~0.5 m for a second -- 7 such samples decided p95 (0.18 in 3 of ~12 runs, 0.02-0.13 otherwise). Contact with remote mechs is a known prediction limit; 0.25 still catches movement code that diverges.",
   "oracles": [
     "dedicated",
     "menu_flow",

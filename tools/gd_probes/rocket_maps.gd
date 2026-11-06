@@ -18,7 +18,7 @@ func _fail(msg: String) -> void:
 func _rate(map: String) -> Vector2i:  # (hits, rockets)
 	Game.mp_active_match["roster"] = []
 	Game.loadout["team_size"] = 1
-	Game.loadout["sp_bots"] = [0, 1]
+	Game.loadout["sp_bots"] = [0, 4]  # one enemy per target spot: every spot at once
 	Game.loadout["mode"] = "beacons"
 	Game.loadout["map_def"] = load("res://resources/maps/%s.tres" % map)
 	var arena: Node = load("res://scenes/arena/Arena.tscn").instantiate()
@@ -31,7 +31,7 @@ func _rate(map: String) -> Vector2i:  # (hits, rockets)
 	for i in 5:
 		await get_tree().physics_frame
 	var me: Node3D = arena.get("player_mech")
-	var enemy: Node3D = arena.get("_team_mechs")[1 - int(me.get("team"))][0]
+	var enemies: Array = arena.get("_team_mechs")[1 - int(me.get("team"))]
 	for t in 2:
 		for m in arena.get("_team_mechs")[t]:
 			m.disable_mode = CollisionObject3D.DISABLE_MODE_KEEP_ACTIVE
@@ -48,11 +48,14 @@ func _rate(map: String) -> Vector2i:  # (hits, rockets)
 		targets.append(all_t[i * all_t.size() / mini(4, all_t.size())])
 	var shot := 0
 	var hit := 0
-	for tp in targets:
-		enemy.global_position = tp
-		for i in 2:
-			await get_tree().physics_frame
-		var live: Array = []
+	for k in enemies.size():
+		(enemies[k] as Node3D).global_position = targets[k] if k < targets.size() else Vector3(0, -900 - 50 * k, 0)
+	for i in 2:
+		await get_tree().physics_frame
+	var live: Array = []
+	for k in mini(targets.size(), enemies.size()):
+		var tp: Vector3 = targets[k]
+		var enemy: Node3D = enemies[k]
 		for op in origins:
 			var d: float = (op as Vector3).distance_to(tp)
 			if d < 25.0 or d > 170.0:
@@ -76,10 +79,13 @@ func _rate(map: String) -> Vector2i:  # (hits, rockets)
 			proj.global_transform = Transform3D(Basis(), from).looking_at(from + flat.normalized())
 			live.append(proj)
 			shot += 1
-		for i in 660:
-			await get_tree().physics_frame
-			if live.all(func(p): return not is_instance_valid(p)):
-				break
+	for i in 660:
+		await get_tree().physics_frame
+		if live.all(func(p): return not is_instance_valid(p)):
+			break
+	for p in live:  # none should be left; never quit with rockets in flight
+		if is_instance_valid(p):
+			p.queue_free()
 	for k in _hits:
 		hit += 1
 	_hits.clear()
@@ -90,7 +96,7 @@ func _rate(map: String) -> Vector2i:  # (hits, rockets)
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	Engine.time_scale = 4.0  # rockets fly 10 s; the physics is the same, just sooner
+	Engine.time_scale = 8.0  # rockets fly 10 s; the physics is the same, just sooner
 	var rows := []
 	var worst := 1.0
 	var worst_map := ""
@@ -98,13 +104,13 @@ func _ready() -> void:
 		var r: Vector2i = await _rate(map)
 		var rate := float(r.x) / maxf(1.0, float(r.y))
 		rows.append("%s %d/%d" % [map, r.x, r.y])
-		print("[probe] rocket_maps " + rows[-1])
+		print("[rocket_maps] " + rows[-1])  # not "[probe]": the suite reads that as finished
 		if rate < worst:
 			worst = rate
 			worst_map = map
-	print("[probe] rocket_maps: " + ", ".join(rows))
+	Engine.time_scale = 1.0
 	if worst < MIN_RATE:
 		_fail("rockets hit only %.0f%% on %s (min %.0f%%): %s" % [worst * 100.0, worst_map, MIN_RATE * 100.0, ", ".join(rows)])
 		return
-	print("[probe] rocket_maps done")
+	print("[probe] rocket_maps done (" + ", ".join(rows) + ")")
 	get_tree().quit(0)
