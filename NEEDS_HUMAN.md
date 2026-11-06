@@ -12,7 +12,8 @@ Map picker should have an indoor/outdoor menu, and match doesn't start if anybod
 Much better, now the weapons are floating a bit. Lower them slightly.
 
 
-- 2026-11-05 | T259/B112 | Your grey/faint arc beam: the new lightning bolt lost its colour after any shield-hit flash on your mech (the flash resets the override material it used). Fixed by moving the colour onto the mesh. If you still see grey or invisible arcs after this, put the note back in HUMAN_FOUND -- the "sometimes invisible" part may be separate. | scripts/ArcWeapon.gd | check
 
 - 2026-11-05 | T276 | Crosshair: the centre dot is gone and each arm is now a thin wedge -- full width (1 px + dark rim) at the outside, narrowing to a point at the centre, so the aim point is open. Not seen by eye: if it is too faint, LINE_WIDTH / LINE_LEN / GAP in Crosshair.gd. | scripts/Crosshair.gd | look call
 This is better, but thin the center even more. Keep the points where they are, just thin the angles going down to it.
+- 2026-11-05 | T255 (attempt 2) | Glow variation: each mech's existing glow parts now come in four close shades (up to 14% dimmer / 8% brighter, a hair of hue) instead of one flat colour. Nothing added. Not seen by eye: too subtle / too strong is GLOW_SHADES in MechVisuals.gd. | scripts/MechVisuals.gd | look call
+It looks like each block of glow is the same color; I meant to texture it like the non-emissive parts of the mech (speckle? not sure the right word).

@@ -55,6 +55,19 @@ static func _paint(mi: MeshInstance3D, mat: StandardMaterial3D) -> void:
 	if mi:
 		mi.set_surface_override_material(0, mat)
 
+# T255 attempt 2 (user 2026-11-05: "slight variations in the glowing/emissive parts of the
+# mechs that are already glowing. No adding anything new"): each existing glow box takes one
+# of four nearby shades in turn -- brightness x0.86-1.08, hue +-0.02 -- instead of one flat
+# colour. Same boxes, same count; order-based, so every peer sees the same mech.
+const GLOW_SHADES := [[1.0, 0.0], [0.86, 0.02], [1.08, -0.015], [0.93, 0.01]]  # [brightness, hue shift]
+
+static func _glow_shades(emit: Color, energy: float) -> Array:
+	var out: Array = []
+	for sh in GLOW_SHADES:
+		var c := Color.from_hsv(fposmod(emit.h + sh[1], 1.0), emit.s, clampf(emit.v * sh[0], 0.0, 1.0), emit.a)
+		out.append(_mat_e(c, energy * sh[0]))
+	return out
+
 # ---- accessory factories (added as Torso or Legs children) ----
 
 static func _add_box(parent: Node3D, pos: Vector3, sz: Vector3) -> MeshInstance3D:
@@ -86,6 +99,13 @@ static func _kit(mech: Node3D, k: Dictionary, tex: String) -> void:
 		"MO": _mat(_KIT_MOUNT), "SO": _mat(_KIT_SOCKET),
 		"E": _mat_e(k["emis"], k["energy"]) if k["energy"] > 0.0 else detail,
 	}
+	var shades: Array = _glow_shades(k["emis"], k["energy"]) if k["energy"] > 0.0 else []
+	var n_glow := [0]  # boxed: the lambda below must mutate it
+	var pick := func(key: String) -> StandardMaterial3D:
+		if key != "E" or shades.is_empty():
+			return mats[key]
+		n_glow[0] += 1
+		return shades[(n_glow[0] - 1) % shades.size()]
 	var t := mech.get_node_or_null("Torso") as Node3D
 	if t:
 		# T218: the physical shield's placeholder too -- the kit model carries its own shield;
@@ -97,7 +117,7 @@ static func _kit(mech: Node3D, k: Dictionary, tex: String) -> void:
 		for b in k["torso"]:
 			var mi := _add_box(t, Vector3(b[3], b[4], b[5]), Vector3(b[0], b[1], b[2]))
 			mi.rotation = Vector3(b[6], b[7], b[8])
-			_paint(mi, mats[b[9]])
+			_paint(mi, pick.call(b[9]))
 	var l := mech.get_node_or_null("Legs") as Node3D
 	if l == null:
 		return
@@ -106,9 +126,9 @@ static func _kit(mech: Node3D, k: Dictionary, tex: String) -> void:
 	if hips:
 		_bm(hips, Vector3(pv[0], pv[1], pv[2]))
 		hips.position = Vector3(pv[3], pv[4], pv[5])
-		_paint(hips, mats[pv[6]])
+		_paint(hips, pick.call(pv[6]))
 	for e in k["pelvis_extra"]:
-		_paint(_add_box(l, Vector3(e[3], e[4], e[5]), Vector3(e[0], e[1], e[2])), mats[e[6]])
+		_paint(_add_box(l, Vector3(e[3], e[4], e[5]), Vector3(e[0], e[1], e[2])), pick.call(e[6]))
 	var hb: Array = k["hip"]
 	var segs: Array = k["segs"]
 	var tp: Array = k["toe"]
@@ -118,20 +138,20 @@ static func _kit(mech: Node3D, k: Dictionary, tex: String) -> void:
 		if hip == null:
 			continue
 		hip.position.x = side[1] * k["hip_x"]
-		_paint(_add_box(l, hip.position, Vector3(hb[0], hb[1], hb[2])), mats[hb[3]])
+		_paint(_add_box(l, hip.position, Vector3(hb[0], hb[1], hb[2])), pick.call(hb[3]))
 		var k1 := hip.get_node(side[0] + "Knee1") as Node3D
 		var k2 := k1.get_node(side[0] + "Knee2") as Node3D
 		var seg_nodes: Array = [hip.get_node("Upper" + side[0]), k1.get_node("Mid" + side[0]), k2.get_node("Lower" + side[0])]
 		for i in 3:
 			_bm(seg_nodes[i], Vector3(segs[i][0], 0.55, segs[i][1]))
-			_paint(seg_nodes[i], mats[segs[i][2]])
+			_paint(seg_nodes[i], pick.call(segs[i][2]))
 		var foot := Node3D.new()
 		foot.name = "Foot"
 		foot.position = Vector3(0.0, -0.55, 0.0)
 		foot.rotation.x = -_REST_HIP
 		k2.add_child(foot)
-		_paint(_add_box(foot, pad, Vector3(tp[0], tp[1], tp[2])), mats[tp[3]])
+		_paint(_add_box(foot, pad, Vector3(tp[0], tp[1], tp[2])), pick.call(tp[3]))
 		for e in k["leg_extra"]:
 			var at: Node3D = {"knee1": k1, "knee2": k2, "foot": foot}[e[0]]
 			var off := Vector3(e[4], e[5], e[6]) + (pad if e[0] == "foot" else Vector3.ZERO)
-			_paint(_add_box(at, off, Vector3(e[1], e[2], e[3])), mats[e[7]])
+			_paint(_add_box(at, off, Vector3(e[1], e[2], e[3])), pick.call(e[7]))

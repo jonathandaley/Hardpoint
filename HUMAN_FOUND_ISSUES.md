@@ -2,9 +2,6 @@
 
 Mech balancing automatically: wide variety of team sizes and maps, weapons. Write the data to a file, including both total winrate/damage but also "kestrel weak against everest" etc.
 
-Patterned emissives, on the mech textures, also probably a toggle, as the glow probably costs something. (T255 attempt reverted 2026-11-05 -- "totally broken"; waiting on new instructions here)
-Add slight variatons in the glowing/emissive parts of the mechs that are already glowing. No adding anything new. Make a note to never put anything "at panel seams" again, because you've done things like that several times now and it is never even close.
-
 Machine gun barrel should start glowing as ramp-up increases, red-hot at max speed.
 
 Gun shells should stick around longer, at least at higher graphics settings. I don't actually see the spent shells at all anymore, where did they go?
@@ -49,6 +46,8 @@ Remove the two big stationary drones in the hangar.
 
 Arc weapon should be unable to fire until it's within range.
 
+All lock-on weapons should not lock on until the weapon is within range.
+
 Kestrel shield is too strong.
 
 Missile explosion visual is 20% too big.
@@ -86,6 +85,11 @@ Beacon takeover ring should double in diameter.
 ERROR: Texture with GL ID of 63: leaked 349524 bytes.
    at: ~Utilities (drivers/gles3/storage/utilities.cpp:77)
 This error appeared after closing the game.
+
+Minimap, both for picking spawnpoints and in the HUD, should be rotated 90 degrees counterclockwise.
+
+Don't change anything, but how computationally expensive would it be to double the resolution again? Some things, most notably the crosshair, are visually annoying at this resolution. Remember that this wants to be able to run in a web browser eventually. Just answer after this question.
+
 
 
 Harden security for network: Look through the source code for vulnerabilities, and also try to hack it from the outside if possible. Defer for now, but flag it before setting up online stuff.
