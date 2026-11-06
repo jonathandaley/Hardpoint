@@ -122,7 +122,13 @@ func _do_fire() -> void:
 
 	var space := get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(global_position, target_pos)
-	query.exclude = owner_mech.get_exclude_rids()
+	# T299 (user 2026-11-06: "make sure arc hits the mech that it's locked onto, not the first in its
+	# path"): other mechs (and their shields) don't block the bolt; walls and the target's own shield do.
+	var ex: Array = owner_mech.get_exclude_rids()
+	for m in get_tree().get_nodes_in_group("mechs"):
+		if m != target and m != owner_mech and m.has_method("get_exclude_rids"):
+			ex.append_array(m.get_exclude_rids())
+	query.exclude = ex
 	var result := space.intersect_ray(query)
 	if result:
 		if result.collider.has_method("take_damage"):
@@ -132,7 +138,7 @@ func _do_fire() -> void:
 				result.collider.take_damage(damage, self)
 				_emit_hit_if_visible(result.collider, result.position)
 
-	if result:  # T299: the bolt ends at what it hit (a mech in the way, the target's hull), not inside it
+	if result:  # T299: the bolt ends on the target's hull (or the wall / shield in the way), not inside it
 		target_pos = result.position
 	_beam_fx(target_pos)
 	# Audit #15: beam + loop audio were server-only; remote peers saw nothing.
