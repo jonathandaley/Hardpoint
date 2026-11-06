@@ -1,8 +1,9 @@
 extends Node
 # T228 probe (HUMAN_FOUND_ISSUES 2026-11-04: "map picker for singleplayer should be after
 # choosing singleplayer, not buried in settings"): FIND MATCH -> SINGLE PLAYER shows one
-# button per map (no match yet); picking one starts the SP match on that map and saves the
-# choice (the next picker highlights it); Settings has no map section any more.
+# button per map (no match yet); picking one selects it (saved + highlighted) and does NOT
+# start the match (T277: "a play button so that picking a map doesn't immediately start
+# it"); PLAY starts the SP match on the picked map; Settings has no map section any more.
 
 func _fail(msg: String) -> void:
 	push_error("[probe] sp_map_pick: " + msg)
@@ -43,6 +44,18 @@ func _ready() -> void:
 		_fail("map picker has %d buttons, %d maps" % [btns.size(), maps.size()])
 	var want := maps.find("res://resources/maps/Swamp.tres")
 	(picker.find_child("Map%d" % want, true, false) as Button).pressed.emit()
+	for i in 4:
+		await get_tree().process_frame
+	if get_tree().current_scene != h:
+		_fail("picking a map started the match (T277: only PLAY should)")
+		get_tree().quit(0)
+		return
+	var play := picker.find_child("SpPlay", true, false) as Button
+	if play == null:
+		_fail("no PLAY button in the map picker")
+		get_tree().quit(0)
+		return
+	play.pressed.emit()
 	for i in 4:
 		await get_tree().process_frame
 	var arena: Node = get_tree().current_scene

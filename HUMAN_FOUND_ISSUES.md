@@ -14,8 +14,6 @@ Bots should eject on death like players
 
 Check for rocket launcher accuracy? Didn't work in Sydney, not sure what was up with that. 
 
-Map picker in singleplayer should have a play button so that picking a map doesn't immediately start it. Play button should go where the back button is now, back button should shift to the left.
-
 Badlands should have some decrepit windows in the buildings.
 
 Self destruct option in esc menu, just kill the current mech.

@@ -842,13 +842,26 @@ func _on_find_sp_pressed() -> void:
 			sb.add_theme_font_size_override("font_size", 12)
 			bots.add_child(sb)
 		box.add_child(bots)
-		var back := Button.new()
+		# T277 (HUMAN_FOUND 2026-11-05: "Map picker in singleplayer should have a play button so
+		# that picking a map doesn't immediately start it"): a map button selects; PLAY starts.
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		box.add_child(row)
+		var back := Button.new()  # user: PLAY takes BACK's old place, BACK shifts left
 		back.text = "BACK"
+		back.custom_minimum_size.x = 70
 		back.add_theme_font_size_override("font_size", 14)
 		back.pressed.connect(func() -> void:
 			box.visible = false
 			$FindMatchPanel/Choices.visible = true)
-		box.add_child(back)
+		row.add_child(back)
+		var play := Button.new()
+		play.name = "SpPlay"
+		play.text = "PLAY"
+		play.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		play.add_theme_font_size_override("font_size", 14)
+		play.pressed.connect(_on_sp_play_pressed)
+		row.add_child(play)
 	var ts: int = int(Game.loadout.get("team_size", 3))
 	var counts = Game.loadout.get("sp_bots")
 	if not (counts is Array and counts.size() == 2):
@@ -856,20 +869,31 @@ func _on_find_sp_pressed() -> void:
 	(box.find_child("AllyBots", true, false) as SpinBox).value = int(counts[0])
 	(box.find_child("EnemyBots", true, false) as SpinBox).value = int(counts[1])
 	var cur = Game.loadout.get("map_def")
-	for i in MAPS.size():  # the last pick is highlighted
+	if cur == null or not MAPS.has(cur.resource_path):
+		Game.loadout["map_def"] = load(MAPS[0])  # T277: PLAY always has a map
+	_highlight_sp_map(box)
+	box.visible = true
+
+func _highlight_sp_map(box: Node) -> void:
+	var cur = Game.loadout.get("map_def")
+	for i in MAPS.size():  # the current pick is highlighted
 		var btn: Button = box.find_child("Map%d" % i, true, false)
 		if cur != null and cur.resource_path == MAPS[i]:
 			btn.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
 		else:
 			btn.remove_theme_color_override("font_color")
-	box.visible = true
 
 func _on_sp_map_pressed(idx: int) -> void:
+	SoundManager.play_sfx_2d("ui_click")
+	Game.loadout["map_def"] = load(MAPS[idx])
+	Game.save_loadout()
+	_highlight_sp_map(get_node("FindMatchPanel/MapChoices"))
+
+func _on_sp_play_pressed() -> void:
 	SoundManager.play_sfx_2d("ui_click")
 	var box := get_node("FindMatchPanel/MapChoices")
 	Game.loadout["sp_bots"] = [int((box.find_child("AllyBots", true, false) as SpinBox).value),
 		int((box.find_child("EnemyBots", true, false) as SpinBox).value)]  # T251
-	Game.loadout["map_def"] = load(MAPS[idx])
 	Game.save_loadout()
 	Game.start_sp_match()  # T184: a local MP match with bot fill
 
