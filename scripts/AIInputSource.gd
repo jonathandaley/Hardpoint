@@ -38,8 +38,12 @@ const DIFFICULTY_PRESETS: Array = [
 	{"aim_jitter": 0.18,  "turn_scale": 0.55, "lead": 0.0, "reaction": 0.70, "pause": 1.0,  "tactics": false, "team": false},  # Easy
 	{"aim_jitter": 0.055, "turn_scale": 1.00, "lead": 0.5, "reaction": 0.45, "pause": 1.0,  "tactics": false, "team": false},  # Normal
 	{"aim_jitter": 0.015, "turn_scale": 1.50, "lead": 0.8, "reaction": 0.30, "pause": 0.6,  "tactics": false, "team": true},   # Medium
-	{"aim_jitter": 0.02,  "turn_scale": 1.85, "lead": 0.85, "reaction": 0.25, "pause": 0.4, "tactics": true,  "team": true, "juke": false},  # Hard
-	{"aim_jitter": 0.0,   "turn_scale": 4.00, "lead": 1.0, "reaction": 0.08, "pause": 0.0,  "tactics": true,  "team": true, "juke": true},   # Elite
+	# T282 (user 2026-11-05: "Hard will have no intentional bad strategy/aiming errors, elite will be
+	# that plus upgrades"; "elite bots don't miss, and in fact shoot ahead of moving targets"): Hard
+	# now plays exactly like Elite did -- no aim drift, full lead, no burst pauses, jukes; ELITE is
+	# Hard + pilot upgrades ("upgrades": the named elite pilots of T325).
+	{"aim_jitter": 0.0,   "turn_scale": 4.00, "lead": 1.0, "reaction": 0.08, "pause": 0.0,  "tactics": true,  "team": true, "juke": true},   # Hard
+	{"aim_jitter": 0.0,   "turn_scale": 4.00, "lead": 1.0, "reaction": 0.08, "pause": 0.0,  "tactics": true,  "team": true, "juke": true, "upgrades": true},  # Elite
 ]
 # T172: roles by team slot (Arena: bot_id = 1 + team*100 + slot), not RNG: a random
 # 2:1:1 roll could make a whole team defenders. Team presets drop the idle defender.

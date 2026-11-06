@@ -190,3 +190,4 @@ date|task|outcome|commit|finding|suite
 2026-11-06|T278|DONE|solo (new RPC)|pause menu SELF DESTRUCT: server-side kill of the asker's own mech, normal death flow; probe self_destruct red before|suite + sweep pending
 2026-11-06|T278 verify|DONE|-|suite 114/114, sweep 60/60|114/114 + net 60/60
 2026-11-06|T281|DONE|batch 9 (local commit)|match-start bots spread round-robin over their spawn points; probe bot_start_spread red before|batch suite pending
+2026-11-06|T282|DONE|batch 9 (local commit)|Hard = old Elite (no deliberate aim/strategy errors), Elite = Hard + upgrades marker for T325; probe hard_bots red before|batch suite pending
