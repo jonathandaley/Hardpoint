@@ -199,3 +199,5 @@ date|task|outcome|commit|finding|suite
 2026-11-06|T279|DONE|solo (new RPCs)|first mech staged (unseen, no collision, untargetable) on every peer during the start pick; swap retires it unseen, keep / refused / timeout reveal it via the server; probe first_mech_staged red before|suite + sweep pending
 2026-11-06|T279 verify|DONE|-|suite 119/119, sweep 60/60|119/119 + net 60/60
 2026-11-06|T285|DONE (limit pending)|solo (RPC signature)|death match: no beacons / score bars, HUD clock, time-out = more mechs left (equal = DRAW, Elo 0.5), lobby + SP + --mode; legacy bots hunt with no beacon; balance_eval measures DM length; render-checked picker + HUD; probe deathmatch red before (no DM option)|suite + sweep pending; then the length measurement
+2026-11-06|T287|FOLDED|-|user: put the Kestrel shield in the balance pass with a note that they think it is too strong; numbers + simulated option recorded in T243 (an arc alone never breaks it today), no stat change now|-
+2026-11-06|T285 verify|DONE|-|suite 120/120, sweep 60/60|120/120 + net 60/60
