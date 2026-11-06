@@ -132,6 +132,8 @@ func _do_fire() -> void:
 				result.collider.take_damage(damage, self)
 				_emit_hit_if_visible(result.collider, result.position)
 
+	if result:  # T299: the bolt ends at what it hit (a mech in the way, the target's hull), not inside it
+		target_pos = result.position
 	_beam_fx(target_pos)
 	# Audit #15: beam + loop audio were server-only; remote peers saw nothing.
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
