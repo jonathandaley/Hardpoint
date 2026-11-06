@@ -2,11 +2,12 @@ extends Node
 
 # --- public API ---
 
-func muzzle_flash(pos: Vector3, color: Color = Color(1.0, 0.80, 0.30), broadcast: bool = false) -> void:
+# T317: radius (m) -- WeaponBase sizes it to the barrel; 0.26 was the old one-size flash.
+func muzzle_flash(pos: Vector3, color: Color = Color(1.0, 0.80, 0.30), broadcast: bool = false, radius: float = 0.26) -> void:
 	if broadcast and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
-		_rpc_muzzle_flash.rpc(pos, color)
+		_rpc_muzzle_flash.rpc(pos, color, radius)
 	var mi := _sphere(0.14, color, 6.0, true)
-	mi.scale = Vector3(1.875, 1.875, 1.875)
+	mi.scale = Vector3.ONE * (radius / 0.14)
 	get_tree().current_scene.add_child(mi)
 	mi.global_position = pos
 	var tw := mi.create_tween()
@@ -14,10 +15,10 @@ func muzzle_flash(pos: Vector3, color: Color = Color(1.0, 0.80, 0.30), broadcast
 	tw.tween_callback(mi.queue_free)
 
 @rpc("authority", "unreliable")
-func _rpc_muzzle_flash(pos: Vector3, color: Color) -> void:
+func _rpc_muzzle_flash(pos: Vector3, color: Color, radius: float) -> void:
 	if multiplayer.is_server():
 		return
-	muzzle_flash(pos, color)
+	muzzle_flash(pos, color, false, radius)
 
 # T260: width (m) for thick beams; the beam holds, then fades out (alpha) and thins.
 func tracer(from: Vector3, to: Vector3, color: Color = Color(0.75, 0.5, 1.0), duration: float = 0.35, broadcast: bool = false, width: float = 0.04) -> void:
