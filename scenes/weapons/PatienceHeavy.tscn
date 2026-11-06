@@ -39,7 +39,7 @@ emission_energy_multiplier = 6.0
 [node name="PatienceHeavy" type="Node3D"]
 script = ExtResource("1")
 slot_size = 1
-damage = 62.5
+damage = 160.0
 fire_rate = 100.0
 range = 300.0
 max_ammo = 1
@@ -49,7 +49,7 @@ shake_magnitude = 0.0
 muzzle_color = Color(0.75, 0.5, 1.0, 1.0)
 fire_sound_key = "patience_shot"
 min_damage = 7.5
-max_damage = 62.5
+max_damage = 160.0
 max_charge_time = 12.0
 projectile_speed = 360.0
 inaccuracy_angle = 0.05

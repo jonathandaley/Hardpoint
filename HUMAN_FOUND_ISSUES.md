@@ -28,8 +28,6 @@ Cesh bots should use stealth more intelligently.
 
 Arc weapon visual is sometimes broken, seems to always work for bots? Flaky error.
 
-Patience damage should scale higher; human testing shows sniper to be vastly better than patience in every situation I tried.
-
 Laser and arc should not go through targets, but stop when hitting a mech.
 
 Corvette feels very spread out, shrink it by 30%.
