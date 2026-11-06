@@ -56,6 +56,8 @@ func _ready() -> void:
 		_apply_late_state(late)
 	else:
 		_spawn_mechs_mp()
+		if multiplayer.is_server():  # T279 safety net (paused with SP's start pick)
+			get_tree().create_timer(START_PICK_S + 4.0, false).timeout.connect(_reveal_stale_staged)
 	_map.build()
 	_map.add_surface_detail()  # T241
 	_wire_beacons()
@@ -216,6 +218,8 @@ func _spawn_mechs_mp() -> void:
 				m.apply_pilot_skills()  # SP only, as before T184
 		if entry["peer_id"] != 0:
 			_peer_slot_used[entry["peer_id"]] = [true, false, false, false, false]
+			if _picks_at_start(squad):
+				_stage(m, true)  # T279: unseen until its pilot keeps it (or the pick times out)
 		team_idx[t] += 1
 
 func _setup_players_mp() -> void:
@@ -1055,8 +1059,12 @@ func _send_pick(si: int, sp: int) -> void:
 	var my_id := multiplayer.get_unique_id()
 	if _start_pick_open:
 		_close_start_pick()
-		if si == 0 and sp == 0:
-			return  # keep the mech you're in, where it stands
+		if si == 0 and sp == 0:  # keep the mech you're in, where it stands: the server reveals it (T279)
+			if multiplayer.is_server():
+				_reveal_first(my_id)
+			else:
+				_rpc_keep_first.rpc_id(1)
+			return
 		if multiplayer.is_server():
 			_process_start_pick(my_id, si, sp)
 		else:
@@ -1082,6 +1090,7 @@ func _process_start_pick(sender: int, slot: int, spawn: int) -> void:
 	if team < 0 or slot < 0 or slot >= used.size() or (slot > 0 and used[slot]) or slot >= squad.size() \
 			or squad[slot].get("mech", "") == "" or match_node.elapsed > START_PICK_S + 2.0 \
 			or spawn < 0 or spawn >= spawn_points(team).size() or (slot == 0 and spawn == 0):
+		_reveal_first(sender)  # T279: a refused swap keeps (and shows) the first mech
 		return
 	var first_idx := -1
 	for i in _team_mechs[team].size():
@@ -1089,9 +1098,47 @@ func _process_start_pick(sender: int, slot: int, spawn: int) -> void:
 		if is_instance_valid(m) and m.owner_peer_id == sender and not m.get("is_dead"):
 			first_idx = i
 	if first_idx < 0 or _team_mechs[team][first_idx].health < _team_mechs[team][first_idx].max_health:
+		_reveal_first(sender)  # T279
 		return  # no swapping out of a fight
 	_rpc_retire_first_mech.rpc(sender, team, first_idx)
 	_rpc_spawn_next_mech.rpc(sender, slot, team, spawn)
+
+# T279 (HUMAN_FOUND 2026-11-05: "Don't spawn the first mech until it's picked (currently spawns the
+# first mech then switches)"): a human who gets a start pick has the first mech STAGED on every
+# peer -- unseen, no collision, not a target -- until the pick resolves: a swap retires it unseen,
+# keeping it (or a refused / timed-out pick) reveals it everywhere via the server.
+func _picks_at_start(squad: Array) -> bool:  # the same test _open_start_pick makes, on every peer
+	return not Game.has_node("MPHarness") and squad.filter(func(sq) -> bool: return sq.get("mech", "") != "").size() >= 2
+
+func _stage(m: Node, on: bool) -> void:
+	m.visible = not on
+	m.set("is_stealthy", on)  # targeting, locks and the enemy minimap skip it
+	(m.get_node("CollisionShape3D") as CollisionShape3D).set_deferred("disabled", on)
+	m.set_meta("staged", on)
+
+func _reveal_first(pid: int) -> void:  # server
+	for t in 2:
+		for i in _team_mechs[t].size():
+			var m: Node = _team_mechs[t][i]
+			if is_instance_valid(m) and int(m.owner_peer_id) == pid and not m.get("is_dead") and m.get_meta("staged", false):
+				_rpc_reveal_first.rpc(t, i)
+
+@rpc("authority", "call_local", "reliable")
+func _rpc_reveal_first(team: int, idx: int) -> void:
+	if idx >= 0 and idx < _team_mechs[team].size() and is_instance_valid(_team_mechs[team][idx]):
+		_stage(_team_mechs[team][idx], false)
+
+@rpc("any_peer", "reliable")
+func _rpc_keep_first() -> void:
+	if multiplayer.is_server():
+		_reveal_first(multiplayer.get_remote_sender_id())
+
+# Server safety net: whatever is still staged once the start pick is long over gets revealed.
+func _reveal_stale_staged() -> void:
+	for t in 2:
+		for m in _team_mechs[t]:
+			if is_instance_valid(m) and m.get_meta("staged", false) and not m.get("is_dead"):
+				_reveal_first(int(m.owner_peer_id))
 
 # Client -> server: start pick (V41: server validates).
 @rpc("any_peer", "reliable")
