@@ -25,9 +25,14 @@ func _ready() -> void:
 	var lives0: int = player.get("lives")
 	for slot in range(1, 6):
 		arena.get("player_mech").take_damage(1e9)
-		await get_tree().process_frame
-		var picker: Variant = hud.get("_squad_picker")
-		var picker_up: bool = picker != null and is_instance_valid(picker)
+		# T267: the picker opens after the 0.75 s canister camera ride
+		var picker: Variant = null
+		var picker_up := false
+		var t0 := Time.get_ticks_msec()
+		while not picker_up and Time.get_ticks_msec() - t0 < 1500:
+			await get_tree().process_frame
+			picker = hud.get("_squad_picker")
+			picker_up = picker != null and is_instance_valid(picker)
 		if slot < lives0:
 			if not picker_up:
 				_fail("no picker after mech %d of %d" % [slot, lives0])

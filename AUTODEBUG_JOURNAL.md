@@ -186,3 +186,4 @@ date|task|outcome|commit|finding|suite
 2026-11-06|T310|DONE|batch 8 (local commit)|glow parts speckled with the mech armor tile (0.7-1.0, glow tint), replacing the T255 shades; render-checked; probe glow_speckle red before (glow_shades retired)|batch suite pending
 2026-11-06|batch 8|DONE|T318, T306, T321, T310|suite green over the stack|112/112
 2026-11-06|T267|DONE|solo|pilot ejection for every mech on every peer (EjectPod: canister, curved boost, puff trail -- the old CPUParticles trail never drew, no mesh), local death camera rides it 0.75 s before the picker; render-checked; probe pilot_eject red before|suite + sweep pending
+2026-11-06|T267 verify|DONE|-|suite 112/113: squad_exhaust looked for the picker one frame after death -- T267 opens it after the 0.75 s ride; probe now waits up to 1.5 s (green, 5 lives -> 0, over); sweep 60/60|112/113 -> probe fixed + net 60/60
