@@ -84,7 +84,7 @@ func _physics_process_impl(delta: float) -> void:
 					continue
 				if int(mech.get("team")) == team:
 					continue
-				var dist: float = (mech as Node3D).global_position.distance_to(result.position)
+				var dist: float = Projectile.mech_distance(mech as Node3D, result.position)  # T327
 				if dist < splash_radius:
 					mech.take_damage(splash_damage * (1.0 - dist / splash_radius), source_weapon)
 		queue_free()

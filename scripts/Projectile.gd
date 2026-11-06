@@ -119,7 +119,7 @@ func _physics_process_impl(delta: float) -> void:
 	global_position += step
 
 # Splash: enemy mechs (not `direct`, already hit, nor the shooter) within splash_radius of
-# here take splash_damage falling off linearly with distance to their origin.
+# here take splash_damage falling off linearly with distance to their body (T327).
 func _splash(direct: Object) -> void:
 	if splash_radius <= 0.0:
 		return
@@ -128,9 +128,24 @@ func _splash(direct: Object) -> void:
 			continue
 		if int(mech.get("team")) == team:
 			continue
-		var dist: float = (mech as Node3D).global_position.distance_to(global_position)
+		var dist: float = mech_distance(mech as Node3D, global_position)
 		if dist < splash_radius:
 			mech.take_damage(splash_damage * (1.0 - dist / splash_radius), source_weapon)
+
+# T327 (user 2026-11-05 "Yes" to measuring splash to the nearest point of the mech): distance
+# from p to the mech's collision capsule (0 inside it) -- it was to the mech's origin at its
+# feet, so a chest-height burst on a tall mech lost ~1/3. Falls back to the origin.
+static func mech_distance(mech: Node3D, p: Vector3) -> float:
+	var cs := mech.get_node_or_null("CollisionShape3D") as CollisionShape3D
+	var cap := cs.shape as CapsuleShape3D if cs != null else null
+	if cap == null:
+		return mech.global_position.distance_to(p)
+	var xf := cs.global_transform
+	var k := xf.basis.get_scale().x
+	var half := maxf(cap.height * 0.5 - cap.radius, 0.0)
+	var a := xf * Vector3(0, -half, 0)
+	var b := xf * Vector3(0, half, 0)
+	return maxf(Geometry3D.get_closest_point_to_segment(p, a, b).distance_to(p) - cap.radius * k, 0.0)
 
 # T258: an orange fireball swells and fades in 0.3 s inside a slower grey smoke puff,
 # sized to the splash radius. Purely visual; freed after 0.9 s. T272 (user: "20% too
