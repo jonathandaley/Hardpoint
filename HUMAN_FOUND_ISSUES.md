@@ -26,9 +26,6 @@ Make a tutorial - defer, just have the note somewhere. Also a manual in settings
 
 ### Question from Claude (2026-11-05 late)
 
-Q3: "Tracer rounds?" dropped out of this list in your cleanup. Still want tracers (rifles/snipers every round, MG every 3rd, a warm glowing streak)? Holding it (T261) until you say. The machine-gun bug I found on the way (clients never see MG bullets) gets fixed either way.
-Tracer rounds might end up as a toggleable pilot skill. Not sure yet; add the idea to a maybe-add list.
-
 Q4 (T266, from Claude 2026-11-06): true online (lemon.limedaley.com) is next in the queue. You asked me to flag the network security review (T290) before any online work -- flagging it now. Do T290 first, or go ahead with T266? Skipping T266 until you say.
 
 Q5 (T263, from Claude 2026-11-06): there has never been spent-shell code in the game (I searched all of git history). What you saw was probably the grey smoke puffs each bullet leaves along its path (they shrink away in 0.18 s) or the orange impact sparks (gone in ~0.2 s). Which did you mean -- or do you want real casings ejected from the guns (falling, bouncing, lingering longer at higher effect settings)? Holding T263 until you say.
