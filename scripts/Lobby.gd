@@ -46,6 +46,7 @@ const WEAPON_CATALOG: Array = [
 @onready var _peer_list: VBoxContainer = $PeerList
 @onready var _host_controls: VBoxContainer = $HostControls
 @onready var _bot_fill_check: CheckBox = $HostControls/BotFillRow/BotFillCheck
+@onready var _dm_check: CheckBox = $HostControls/BotFillRow/DeathMatchCheck  # T285
 @onready var _team_size_spin: SpinBox = $HostControls/TeamSizeRow/TeamSizeSpin
 @onready var _map_option: OptionButton = $HostControls/MapRow/MapOption
 @onready var _start_button: Button = $StartButton
@@ -59,6 +60,9 @@ func _ready() -> void:
 	Game.mp_peer_disconnected.connect(_on_peer_disconnected)
 
 	_setup_map_option()
+	_dm_check.toggled.connect(func(on: bool) -> void:  # T285
+		Game.mp_lobby["mode"] = "deathmatch" if on else "beacons"
+		Game.broadcast_lobby())
 
 	# B44: Lobby also loads on the V40 return after a match -- the match is over, and
 	# the connected peers must NOT be wiped (only a fresh host session starts empty).
@@ -79,6 +83,7 @@ func _ready() -> void:
 			"bot_fill":   true,
 			"team_size":  Game.loadout.get("team_size", 1),
 			"map_path":   "res://resources/maps/MathTemple.tres",
+			"mode":       "beacons",
 			"match_seed": 0,
 		}
 		var my_id := multiplayer.get_unique_id()
@@ -203,6 +208,7 @@ func _sync_host_controls_to_lobby() -> void:
 	if not multiplayer.is_server():
 		return
 	_bot_fill_check.set_pressed_no_signal(Game.mp_lobby.get("bot_fill", true))
+	_dm_check.set_pressed_no_signal(Game.mp_lobby.get("mode", "beacons") == "deathmatch")
 	_team_size_spin.set_value_no_signal(Game.mp_lobby.get("team_size", 1))
 	var map_path: String = Game.mp_lobby.get("map_path", "")
 	for i in _MAP_OPTIONS.size():
@@ -262,7 +268,7 @@ func _on_start_pressed() -> void:
 	var match_seed := randi()
 	Game.mp_lobby["match_seed"] = match_seed
 	var map_path: String = Game.mp_lobby.get("map_path", "res://resources/maps/MathTemple.tres")
-	Game._rpc_match_start.rpc(map_path, roster, match_seed)
+	Game._rpc_match_start.rpc(map_path, roster, match_seed, Game.mp_lobby.get("mode", "beacons"))
 
 # T184: static -- Game.setup_sp_match builds the SP roster with these too.
 static func _build_roster() -> Array:

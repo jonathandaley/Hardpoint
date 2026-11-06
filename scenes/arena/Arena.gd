@@ -16,6 +16,11 @@ var _players: Array = []            # all Player nodes across both teams
 var _spectated_mech: Node = null    # mech whose camera is currently active
 var _local_team: int = 0            # local player's team index (set in setup)
 var _match_over: bool = false
+# T285 death match: each team runs out of lives, last one standing wins; at DM_TIME_S the team
+# with more mechs left wins, equal = draw. DM_TIME_S is a placeholder until the user picks one
+# from the measured bot match lengths (NEEDS_HUMAN).
+var deathmatch := false
+const DM_TIME_S := 600.0
 var _beacons_captured: Array[int] = [0, 0]
 var _captures_by_ri := {}  # T280: roster idx -> beacons its mechs were in the zone for when they flipped
 var _disconnected_peers: Dictionary = {}  # peer_id -> true; set on mid-match disconnect
@@ -45,12 +50,22 @@ func _ready() -> void:
 	# T184: SP is a local MP match (Game.start_sp_match); opened directly (tools, F6) = SP defaults
 	if Game.mp_active_match["roster"].is_empty():
 		Game.setup_sp_match()
+	deathmatch = Game.mp_active_match.get("mode", "beacons") == "deathmatch"
 	# T210: the map is its own scene (geometry, beacons, spawn points); built after the spawn
 	var md = Game.loadout.get("map_def")
 	var map_path: String = md.scene_path if md != null and md.get("scene_path") else "res://scenes/maps/MathTemple.tscn"
 	_map = load(map_path).instantiate()
 	_map.name = "Map"
 	add_child(_map)
+	if deathmatch:  # T285: no beacons -- before anything (bots, HUD, spawns) looks for them
+		for b in get_tree().get_nodes_in_group("beacons"):
+			b.free()
+		match_node.deathmatch = true  # before the HUD is set up (no score bars)
+		match_node.time_limit = DM_TIME_S
+		match_node.time_out_winner = func() -> int:
+			var a := mechs_left(0)
+			var b := mechs_left(1)
+			return 0 if a > b else 1 if b > a else -1
 	var late = Game.late_join  # T206: joined mid-match, the state came with the handshake
 	if late != null:
 		_apply_late_state(late)
@@ -301,6 +316,14 @@ func _make_local_player(t: int, lives: int, mech: Node) -> void:
 
 ## T217: (alive, total) players on `team`: one per roster entry however many mechs it
 ## has used; alive = its current mech is in the fight.
+# T285: alive + unspent squad mechs of `team` (Player.lives counts the live one). Server.
+func mechs_left(team: int) -> int:
+	var n := 0
+	for p in _players:
+		if p.get("team") == team:
+			n += maxi(0, int(p.get("lives")))
+	return n
+
 func team_counts(team: int) -> Vector2i:
 	var roster: Array = Game.mp_active_match["roster"]
 	var out := Vector2i.ZERO
@@ -651,6 +674,7 @@ func late_state(token: String) -> Dictionary:
 		old = int(h["old"])
 	return {"map_path": Game.mp_active_match["map_path"], "roster": Game.mp_active_match["roster"],
 		"match_seed": Game.mp_active_match["match_seed"], "mechs": mechs, "beacons": beacons,
+		"mode": Game.mp_active_match.get("mode", "beacons"), "elapsed": match_node.elapsed,
 		"scores": (match_node.get("scores") as Array).duplicate(), "slot_used": _peer_slot_used.duplicate(true),
 		"lives": lives, "rejoin_old": old}
 
@@ -697,6 +721,7 @@ func _apply_late_beacons(st: Dictionary) -> void:
 		if node != null:
 			node.call("_sync_state", int(b[1]), int(b[2]), float(b[3]))
 	match_node.set("scores", st["scores"])
+	match_node.set("elapsed", float(st.get("elapsed", 0.0)))  # T285: the match clock
 
 func _setup_late_player(st: Dictionary) -> void:
 	var me := multiplayer.get_unique_id()

@@ -9,6 +9,11 @@ extends "res://scripts/Match.gd"
 
 var beacons: Array = []
 var _tick_timer: float = 0.0
+# T285 death match (Arena sets these before start): no beacons, so nothing drains; the match
+# ends on elimination (Arena.on_player_eliminated) or at time_limit, where time_out_winner
+# (Arena: more mechs left, -1 = draw) decides.
+var deathmatch := false
+var time_out_winner: Callable = func() -> int: return -1
 
 func start() -> void:
 	super.start()
@@ -36,15 +41,20 @@ func _drain_tick() -> void:
 	if b > 0:
 		scores[0] = max(0, scores[0] - per_beacon * b)
 	if multiplayer.has_multiplayer_peer() and Game.mp_live:  # T159/V52 stream gate
-		_sync_scores.rpc(scores[0], scores[1])
+		_sync_scores.rpc(scores[0], scores[1], elapsed)
 
 # T40: clients receive score updates here for HUD display; win evaluation stays server-only.
+# T285: the match clock rides along (a client's Match never ticks: the HUD countdown).
 @rpc("authority", "unreliable_ordered")
-func _sync_scores(s0: int, s1: int) -> void:
+func _sync_scores(s0: int, s1: int, t: float) -> void:
 	scores[0] = s0
 	scores[1] = s1
+	elapsed = t
 
 func _check_win() -> void:
+	if time_limit > 0.0 and elapsed >= time_limit:
+		_end_match(time_out_winner.call())
+		return
 	for i in scores.size():
 		if scores[i] <= 0:
 			_end_match(1 - i)

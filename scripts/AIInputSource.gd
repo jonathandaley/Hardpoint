@@ -604,7 +604,8 @@ func _legacy_move(bot_mech: Node3D, has_target: bool, dist: float, own_hp_pct: f
 		if dist > ENGAGE_DIST:
 			return Vector2(0.0, -1.0)
 		return Vector2(_strafe_sign, -0.3).normalized()
-	return Vector2.ZERO
+	var near := _nearest_enemy(bot_mech)  # T285: no beacons (death match) -> hunt
+	return _steer_to(bot_mech, near.global_position) if near != null else Vector2.ZERO
 
 ## T172 (Hard, Elite). In a fight: hold the weapon's preferred range and strafe (slow
 ## projectiles miss a sidestepping mech), keep capturing a contested objective underfoot,
@@ -652,10 +653,7 @@ func _tactical_move(bot_mech: Node3D, has_target: bool, dist: float, fire_range:
 		return _steer_to(bot_mech, _target.global_position)
 	var goal: Vector3 = beacon.global_position if beacon != null else Vector3(INF, 0.0, INF)
 	if beacon == null:
-		var near: Node3D = null
-		for em in get_tree().get_nodes_in_group("mechs"):
-			if _is_live_enemy(em) and (near == null or pos.distance_to(em.global_position) < pos.distance_to(near.global_position)):
-				near = em
+		var near := _nearest_enemy(bot_mech)
 		if near == null:
 			return Vector2.ZERO
 		goal = near.global_position

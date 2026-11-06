@@ -36,6 +36,7 @@ var _beacons: Array = []
 var _beacon_dots: Array = []       # BeaconDot per beacon, top-center ownership circles
 var _score_bars: Array = []        # [{bg, fg, max_w}] team 0 and 1 score bars
 var _team_count_labels: Array = [] # [team0_label, team1_label] alive counters
+var _clock_label: Label = null     # T285: death match countdown (top centre, no score bars)
 
 var _original_player_mech: Node = null  # keeps the original ref after spectate switch
 var _squad_picker: Control = null
@@ -266,6 +267,19 @@ func setup_beacon_bars(beacons: Array) -> void:
 		fg.offset_bottom = _BAR_Y + _BAR_H
 		add_child(fg)
 		_score_bars.append({"bg": bg, "fg": fg, "left": bar_left, "right": bar_right, "max_w": _BAR_W})
+		if _match != null and _match.get("deathmatch"):  # T285: no score at all
+			bg.visible = false
+			fg.visible = false
+	if _match != null and _match.get("deathmatch") and _clock_label == null:
+		_clock_label = Label.new()
+		_clock_label.add_theme_font_size_override("font_size", 14)
+		_clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_clock_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_clock_label.offset_left = strip_x - 40.0  # the hidden bars leave room for "10:00"
+		_clock_label.offset_right = strip_x + 40.0
+		_clock_label.offset_top = _BAR_Y - 4.0
+		_clock_label.offset_bottom = _BAR_Y + _BAR_H + 4.0
+		add_child(_clock_label)
 
 	# Alive-count labels just below each score bar.
 	for entry in _team_count_labels:
@@ -369,10 +383,10 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 	center.add_child(panel)
 
 	var header := Label.new()
-	header.text = "YOU WIN" if winner_team == _player_team else "YOU LOSE"
+	header.text = "DRAW" if winner_team < 0 else "YOU WIN" if winner_team == _player_team else "YOU LOSE"  # T285
 	header.add_theme_font_size_override("font_size", 28)
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	header.modulate = Color(0.2, 1.0, 0.2) if winner_team == _player_team else Color(1.0, 0.3, 0.3)
+	header.modulate = Color(0.9, 0.9, 0.5) if winner_team < 0 else Color(0.2, 1.0, 0.2) if winner_team == _player_team else Color(1.0, 0.3, 0.3)
 	vbox.add_child(header)
 	vbox.add_child(HSeparator.new())
 
@@ -409,7 +423,7 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 			# T168: new rating + change, same math as Game._update_mp_profile.
 			var pre: int = entry.get("pre_elo", 0)
 			var t: int = entry.get("team", -1)
-			var d := Game.mp_elo_delta(pre, Game.mp_opp_elos(t, stats), winner_team == t)
+			var d := Game.mp_elo_delta(pre, Game.mp_opp_elos(t, stats), Game.match_result(t, winner_team))
 			elo_str = "%d (%+d)" % [pre + d, d] if pre > 0 else "-"
 		if entry.get("disconnected", false):
 			pilot_name = "[DC] " + pilot_name
@@ -515,6 +529,9 @@ func _process(delta: float) -> void:
 			shield_bar_bg.visible = false
 			shield_bar_fg.visible = false
 
+	if _clock_label != null and _match != null:
+		var left := ceili(maxf(0.0, float(_match.get("time_limit")) - float(_match.get("elapsed"))))
+		_clock_label.text = "%d:%02d" % [left / 60, left % 60]
 	if _match != null:
 		var scores: Array = _match.get("scores")
 		var s_limit: int = _match.get("score_limit") if "score_limit" in _match else 1000

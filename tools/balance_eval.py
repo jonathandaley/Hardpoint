@@ -35,7 +35,8 @@ def run_match(seed, a):
         try:
             out = subprocess.run([godot, "--headless", "--fixed-fps", "60", "--path", ROOT,
                                   "res://tools/balance/balance_match.tscn", "--",
-                                  "seed=%d" % seed, "size=%d" % a.size, "max_s=%d" % a.max_s],
+                                  "seed=%d" % seed, "size=%d" % a.size, "max_s=%d" % a.max_s,
+                                  "mode=" + a.mode, "map=" + a.map, "diff=%d" % a.diff],
                                  capture_output=True, text=True, env=env, timeout=a.max_s * 2 + 300).stdout
         except subprocess.TimeoutExpired:
             return seed, [], None
@@ -80,15 +81,28 @@ def table(rows, title):
     return "\n".join(out)
 
 
+DIFFS = ["Easy", "Normal", "Medium", "Hard", "Elite"]
+
+
+def pct(xs, p):
+    """Nearest-rank percentile of a sorted list."""
+    return xs[min(len(xs) - 1, max(0, math.ceil(p / 100 * len(xs)) - 1))]
+
+
 def report(lives, matches, a):
     lines = ["# Balance report (%s)" % datetime.datetime.now().strftime("%Y-%m-%d %H:%M"), "",
-             "%d all-bot matches (Elite, team size %d, up to %d s each, 5-mech squads of random mech + "
+             "%d all-bot matches (%s bots, %s, %s, team size %d, up to %d s each, 5-mech squads of random mech + "
              "weapon-family picks), %d mech lives. Win rate = share of lives whose team won the match. "
-             "Overlapping intervals = no demonstrated difference." % (len(matches), a.size, a.max_s, len(lives)), "",
+             "Overlapping intervals = no demonstrated difference." % (len(matches), DIFFS[a.diff], a.mode,
+             os.path.basename(a.map) or "default map", a.size, a.max_s, len(lives)), "",
              table(aggregate(lives, "mech"), "Per mech"), "", table(aggregate(lives, "wpn"), "Per weapon family"), ""]
     draws = sum(1 for m in matches if m["winner"] < 0)
     lines.append("Matches: %d, team 0 won %d, team 1 won %d, unfinished %d (hit --max-s)." % (
         len(matches), sum(1 for m in matches if m["winner"] == 0), sum(1 for m in matches if m["winner"] == 1), draws))
+    t = sorted(m["t"] for m in matches if m["winner"] >= 0)  # T285: how long finished matches ran
+    if t:
+        lines.append("Length of finished matches (s): p50 %.0f, p90 %.0f, max %.0f." % (
+            pct(t, 50), pct(t, 90), t[-1]))
     return "\n".join(lines) + "\n"
 
 
@@ -103,6 +117,8 @@ def selftest():
     assert r["A"]["n"] == 2 and r["A"]["won"] == 1 and r["A"]["dealt"] == 100 and r["B"]["won"] == 1
     t = table(r, "t")
     assert "| B | 1 | 100%" in t and "| A | 2 | 50% (9-91)" in t, t
+    assert pct([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 50) == 5 and pct([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 90) == 9
+    assert pct([7], 90) == 7
     print("selftest ok")
 
 
@@ -113,6 +129,9 @@ def main():
     ap.add_argument("--max-s", type=int, default=420, help="simulated seconds per match")
     ap.add_argument("--seed0", type=int, default=1)
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) // 2))
+    ap.add_argument("--mode", default="beacons", help="beacons | deathmatch (T285: timer off)")
+    ap.add_argument("--map", default="", help="MapDef path, e.g. res://resources/maps/Badlands.tres")
+    ap.add_argument("--diff", type=int, default=4, help="bot difficulty 0..4 (Elite)")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:

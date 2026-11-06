@@ -68,6 +68,7 @@ var loadout: Dictionary = {
 	"squad": [],                   # Array of 5 mech resource paths (slot 0 = player mech)
 	"presets": {},                 # T177: {name: {"squad": [mech paths], "weapons": {mech path: [weapon paths]}}}
 	"map_def": null,               # MapDef resource; null = Math Temple (default)
+	"mode": "beacons",             # T285: "beacons" or "deathmatch" (SP picker)
 }
 
 ## T196: over-the-shoulder side of the local view, +1 right / -1 left (V swaps).
@@ -465,6 +466,8 @@ func _maybe_start_dedicated() -> void:
 			opts["min_players"] = int(a.get_slice("=", 1))
 		elif a == "--no-bots":
 			opts["bot_fill"] = false
+		elif a.begins_with("--mode="):  # T285: beacons | deathmatch
+			opts["mode"] = a.get_slice("=", 1)
 	if port > 0 and not has_node("MPHarness"):
 		start_dedicated.call_deferred(port, opts)
 
@@ -482,6 +485,7 @@ func start_dedicated(port: int, opts: Dictionary = {}) -> void:
 		"bot_fill":   bool(opts.get("bot_fill", true)),
 		"team_size":  clampi(int(opts.get("team_size", 5)), 1, 6),
 		"map_path":   String(opts.get("map_path", "res://resources/maps/MathTemple.tres")),
+		"mode":       String(opts.get("mode", "beacons")),
 		"match_seed": 0,
 	}
 	account_server = load("res://scripts/AccountServer.gd").new()  # T207: accounts on port + 1
@@ -516,7 +520,7 @@ func _dedicated_lobby_changed() -> void:
 		var roster: Array = lobby.call("_build_roster")
 		mp_lobby["match_seed"] = randi()
 		print("[Server] match start: %d players, %d mechs" % [peers.size(), roster.size()])
-		_rpc_match_start.rpc(mp_lobby["map_path"], roster, mp_lobby["match_seed"]))
+		_rpc_match_start.rpc(mp_lobby["map_path"], roster, mp_lobby["match_seed"], mp_lobby.get("mode", "beacons")))
 
 # ---- T207: online accounts (client) ----
 # Signed in = `account` holds {host, port, email, session, profile}; Game.profile is the
@@ -715,7 +719,8 @@ func _on_mp_auth(id: int, data: PackedByteArray) -> void:
 	var st = bytes_to_var(data)  # from the server: trusted
 	if st is Dictionary and st.has("mechs"):
 		late_join = st
-		mp_active_match = {"map_path": st["map_path"], "roster": st["roster"], "match_seed": st["match_seed"]}
+		mp_active_match = {"map_path": st["map_path"], "roster": st["roster"], "match_seed": st["match_seed"],
+			"mode": st.get("mode", "beacons")}
 		var md = ResourceLoader.load(st["map_path"])
 		if md != null:
 			loadout["map_def"] = md
@@ -994,6 +999,7 @@ func _load_loadout() -> void:
 		var mpd = load(map_path)
 		if mpd != null:
 			loadout["map_def"] = mpd
+	loadout["mode"] = cfg.get_value("loadout", "mode", "beacons")  # T285
 
 # T194: the heavy rocket launcher was cut (rockets are light-only; AERIAL HV is the heavy
 # pick). Saved choices and presets from before load with the replacement.
@@ -1025,6 +1031,7 @@ func save_loadout() -> void:
 	cfg.set_value("loadout", "presets", loadout.get("presets", {}))
 	var map_def = loadout.get("map_def")
 	cfg.set_value("loadout", "map_path", map_def.resource_path if map_def != null else "")
+	cfg.set_value("loadout", "mode", loadout.get("mode", "beacons"))  # T285
 	cfg.save(_SAVE_PATH)
 
 ## T177: hangar squad presets -- the whole squad (5 mech paths) plus the weapon choices
@@ -1229,6 +1236,7 @@ var mp_active_match: Dictionary = {
 	"map_path":   "",
 	"roster":     [],   # Array[{slot_idx, peer_id, team, squad, bot_id}]
 	"match_seed": 0,
+	"mode":       "beacons",  # T285: "beacons" | "deathmatch"
 }
 
 ## T184: single player = a local MP match: the hangar squad as peer 1 plus bot fill,
@@ -1240,10 +1248,12 @@ func setup_sp_match() -> void:
 	var md: Resource = loadout.get("map_def")
 	var map_path: String = md.resource_path if md != null else "res://resources/maps/MathTemple.tres"
 	mp_lobby = {"peers": {1: lobby._local_peer_meta()}, "bot_fill": true,
-		"team_size": loadout.get("team_size", 1), "map_path": map_path, "match_seed": 0}
+		"team_size": loadout.get("team_size", 1), "map_path": map_path, "match_seed": 0,
+		"mode": loadout.get("mode", "beacons")}
 	if loadout.get("sp_bots") is Array and (loadout["sp_bots"] as Array).size() == 2:  # T251: the SP picker's exact ally / enemy counts
 		mp_lobby["bot_counts"] = loadout["sp_bots"]
-	mp_active_match = {"map_path": map_path, "roster": lobby._build_roster(), "match_seed": 0}
+	mp_active_match = {"map_path": map_path, "roster": lobby._build_roster(), "match_seed": 0,
+		"mode": mp_lobby["mode"]}
 	loadout["map_def"] = load(map_path)
 
 func start_sp_match() -> void:
@@ -1252,7 +1262,7 @@ func start_sp_match() -> void:
 
 # Server broadcasts this; all peers store match data and change scene (V40).
 @rpc("authority", "call_local", "reliable")
-func _rpc_match_start(map_path: String, roster: Array, match_seed: int) -> void:
+func _rpc_match_start(map_path: String, roster: Array, match_seed: int, mode: String) -> void:
 	if multiplayer.is_server():
 		# T159: stream nothing until every client has loaded Arena (it acks from Arena._ready);
 		# set up before any ack can arrive.
@@ -1263,6 +1273,7 @@ func _rpc_match_start(map_path: String, roster: Array, match_seed: int) -> void:
 		"map_path":   map_path,
 		"roster":     roster,
 		"match_seed": match_seed,
+		"mode":       mode,  # T285
 	}
 	# Keep SP loadout map_def in sync so Arena SP path still works.
 	if map_path != "":
@@ -1362,8 +1373,11 @@ func mp_opp_elos(my_team: int, stats: Array) -> Array:
 
 ## ELO change: average K=32 delta across opponents, floor 100. Shared by the profile
 ## update and the MP result table (T168) so the shown change is the applied one.
-func mp_elo_delta(my_elo: int, opp_elos: Array, won: bool) -> int:
-	var result_val: float = 1.0 if won else 0.0
+## T285: 1 win, 0.5 draw (winner -1, a death match timing out level), 0 loss.
+static func match_result(my_team: int, winner_team: int) -> float:
+	return 0.5 if winner_team < 0 else float(winner_team == my_team)
+
+func mp_elo_delta(my_elo: int, opp_elos: Array, result_val: float) -> int:
 	var d: float = 0.0
 	for opp_elo in opp_elos:
 		var expected: float = 1.0 / (1.0 + pow(10.0, float(opp_elo - my_elo) / 400.0))
@@ -1397,11 +1411,12 @@ func _apply_match_to(prof: Dictionary, my_team: int, winner_team: int, stats: Ar
 
 func _apply_match(my_team: int, winner_team: int, stats: Array, my_pid := 0) -> void:
 	var won: bool = winner_team == my_team
-	var wl := "wins" if won else "losses"
-	profile[wl] = profile.get(wl, 0) + 1
+	if winner_team >= 0:  # T285: a draw is neither (it pays like a loss)
+		var wl := "wins" if won else "losses"
+		profile[wl] = profile.get(wl, 0) + 1
 	var my_elo: int = profile.get("elo", 1000)
 	var opp_elos := mp_opp_elos(my_team, stats)
-	profile["elo"] = my_elo + mp_elo_delta(my_elo, opp_elos, won)
+	profile["elo"] = my_elo + mp_elo_delta(my_elo, opp_elos, match_result(my_team, winner_team))
 	# XP with avg opponent ELO.
 	var avg_opp_elo: int = 0
 	for e in opp_elos:

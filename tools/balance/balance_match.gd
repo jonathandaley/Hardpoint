@@ -4,6 +4,7 @@ extends Node
 # picks from the live catalogs (Lobby.ROSTER, Lobby.bot_weapon_paths), seeded, so many
 # matches cover every mech and family in mixed company. Bots respawn into their squads
 # as in a real match (T198). User args: seed=<n> size=<team size> max_s=<sim seconds>
+# T285: mode=deathmatch (timer off: the natural length) map=<MapDef path> diff=<0..4, Elite>
 # Prints one line per mech life, then the match:
 #   [bal] {"mech", "wpn", "team", "dealt", "taken", "kills", "alive_s", "won"}
 #   [bal-match] {"winner", "t"}
@@ -11,7 +12,7 @@ extends Node
 const Lobby := preload("res://scripts/Lobby.gd")
 const AI := preload("res://scripts/AIInputSource.gd")
 
-var _arg := {"seed": "1", "size": "3", "max_s": "420"}
+var _arg := {"seed": "1", "size": "3", "max_s": "420", "mode": "beacons", "map": "", "diff": "4"}
 var _born: Dictionary = {}  # mech -> tick first seen
 var _gone: Dictionary = {}  # mech -> tick first seen dead
 
@@ -23,7 +24,10 @@ func _ready() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(_arg["seed"])
 	Game.loadout["team_size"] = int(_arg["size"])
-	Game.settings["bot_difficulty"] = 4
+	Game.settings["bot_difficulty"] = int(_arg["diff"])
+	Game.loadout["mode"] = _arg["mode"]
+	if _arg["map"] != "":
+		Game.loadout["map_def"] = load(_arg["map"])
 	Game.setup_sp_match()
 	for e in Game.mp_active_match["roster"]:
 		e["peer_id"] = 0  # the human slot plays as a bot too
@@ -38,6 +42,7 @@ func _ready() -> void:
 	await get_tree().physics_frame
 	var won := [-1]
 	arena.match_node.match_ended.connect(func(w: int) -> void: won[0] = w)
+	arena.match_node.time_limit = 0.0  # T285: measure how long a death match runs on its own
 	var max_ticks := int(float(_arg["max_s"]) * 60.0)
 	var t := 0
 	while t < max_ticks and won[0] < 0:
