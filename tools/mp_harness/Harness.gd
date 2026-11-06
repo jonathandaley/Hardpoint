@@ -202,6 +202,8 @@ func _quit_with_server() -> void:
 		print("[Harness] server gone, quitting (%s)" % _role)
 		for _i in 90:
 			await get_tree().process_frame
+		if _quitting:  # B124: our own deadline came first and is settling -- it routed us, not the loss
+			return
 		var scene := get_tree().current_scene
 		print("[Harness] server_lost_check %s: connected=%s scene=%s rejoin=%s" % [_key, str(_mp_connected()).to_lower(),
 			scene.name if scene != null else "<none>", str(_rejoining).to_lower()])
