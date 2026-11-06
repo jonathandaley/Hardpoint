@@ -39,8 +39,9 @@ No player on the server and no menus. Players use FIND MATCH → JOIN with the s
 address and port. They ready up in the lobby, and the match starts 5 s after everyone
 is ready (a new player joining, or someone un-readying, cancels the countdown). Bots
 fill both teams up to `--team-size` (default 5; `--no-bots` turns that off). After a
-match, everyone returns to the lobby. Other flags: `--map=res://resources/maps/<Map>.tres`
-and `--min-players=N` (default 1). Open the UDP port in the firewall.
+match, everyone returns to the lobby. Other flags: `--map=res://resources/maps/<Map>.tres`,
+`--mode=deathmatch` (no beacons: last team with mechs wins, or more mechs left at the time
+limit) and `--min-players=N` (default 1). Open the UDP port in the firewall.
 
 Accounts: the server also runs a TLS account endpoint on the next port up (TCP, e.g. 8911).
 Title → SIGN UP / LOG IN with the server's address; signed-in players' ELO, XP and coins

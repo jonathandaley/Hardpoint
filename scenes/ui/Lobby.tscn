@@ -54,6 +54,14 @@ theme_override_font_sizes/font_size = 15
 button_pressed = true
 theme_override_font_sizes/font_size = 15
 
+[node name="DeathMatchLabel" type="Label" parent="HostControls/BotFillRow"]
+size_flags_horizontal = 3
+text = "Death Match"
+theme_override_font_sizes/font_size = 15
+
+[node name="DeathMatchCheck" type="CheckBox" parent="HostControls/BotFillRow"]
+theme_override_font_sizes/font_size = 15
+
 [node name="TeamSizeRow" type="HBoxContainer" parent="HostControls"]
 
 [node name="TeamSizeLabel" type="Label" parent="HostControls/TeamSizeRow"]

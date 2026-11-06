@@ -150,7 +150,7 @@ func _begin_match() -> void:
 	var map_path: String = _scenario.get("map_path", "res://resources/maps/MathTemple.tres")
 	print("[Harness] starting match: %d mechs, seed=%d" % [roster.size(), seed])
 	# call_local: the server also receives this and loads Arena.
-	Game._rpc_match_start.rpc(map_path, roster, seed)
+	Game._rpc_match_start.rpc(map_path, roster, seed, String(_scenario.get("mode", "beacons")))
 
 func _build_roster() -> Array:
 	var mech_path: String = _scenario.get("mech", DEFAULT_MECH)

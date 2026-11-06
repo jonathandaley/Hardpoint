@@ -198,3 +198,4 @@ date|task|outcome|commit|finding|suite
 2026-11-06|batch 10|DONE|T303, T288|suite green over the stack; pausing at a clean point (5 h usage at 90%)|118/118
 2026-11-06|T279|DONE|solo (new RPCs)|first mech staged (unseen, no collision, untargetable) on every peer during the start pick; swap retires it unseen, keep / refused / timeout reveal it via the server; probe first_mech_staged red before|suite + sweep pending
 2026-11-06|T279 verify|DONE|-|suite 119/119, sweep 60/60|119/119 + net 60/60
+2026-11-06|T285|DONE (limit pending)|solo (RPC signature)|death match: no beacons / score bars, HUD clock, time-out = more mechs left (equal = DRAW, Elo 0.5), lobby + SP + --mode; legacy bots hunt with no beacon; balance_eval measures DM length; render-checked picker + HUD; probe deathmatch red before (no DM option)|suite + sweep pending; then the length measurement

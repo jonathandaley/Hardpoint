@@ -856,6 +856,11 @@ func _on_find_sp_pressed() -> void:
 			box.visible = false
 			$FindMatchPanel/Choices.visible = true)
 		row.add_child(back)
+		var dm := CheckBox.new()  # T285: death match -- no beacons, last team with mechs wins
+		dm.name = "SpDeathMatch"
+		dm.text = "DEATH MATCH"
+		dm.add_theme_font_size_override("font_size", 12)
+		row.add_child(dm)
 		var play := Button.new()
 		play.name = "SpPlay"
 		play.text = "PLAY"
@@ -869,6 +874,7 @@ func _on_find_sp_pressed() -> void:
 		counts = [maxi(0, ts - 1), ts]  # default: the old fill to team_size
 	(box.find_child("AllyBots", true, false) as SpinBox).value = int(counts[0])
 	(box.find_child("EnemyBots", true, false) as SpinBox).value = int(counts[1])
+	(box.find_child("SpDeathMatch", true, false) as CheckBox).button_pressed = Game.loadout.get("mode", "beacons") == "deathmatch"
 	var cur = Game.loadout.get("map_def")
 	if cur == null or not MAPS.has(cur.resource_path):
 		Game.loadout["map_def"] = load(MAPS[0])  # T277: PLAY always has a map
@@ -895,6 +901,7 @@ func _on_sp_play_pressed() -> void:
 	var box := get_node("FindMatchPanel/MapChoices")
 	Game.loadout["sp_bots"] = [int((box.find_child("AllyBots", true, false) as SpinBox).value),
 		int((box.find_child("EnemyBots", true, false) as SpinBox).value)]  # T251
+	Game.loadout["mode"] = "deathmatch" if (box.find_child("SpDeathMatch", true, false) as CheckBox).button_pressed else "beacons"
 	Game.save_loadout()
 	Game.start_sp_match()  # T184: a local MP match with bot fill
 
