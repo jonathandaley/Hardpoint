@@ -219,6 +219,7 @@ func _update_shoulder(delta: float) -> void:
 func _process(delta: float) -> void:
 	if owner_peer_id != 0:  # bots keep a centred camera
 		_update_shoulder(delta)
+	_tilt_guns()
 	if _shake_timer > 0.0:
 		_shake_timer = maxf(0.0, _shake_timer - delta)
 		var frac := _shake_timer / _SHAKE_DURATION
@@ -239,6 +240,18 @@ func _process(delta: float) -> void:
 			if multiplayer.has_multiplayer_peer() and (_regen_sync_t >= 0.25 or health >= max_health):
 				_regen_sync_t = 0.0
 				_sync_health.rpc(health)  # snapshots carry no health: clients see the repair here
+
+# T329 (user 2026-11-05: "make the weapons tilt up and down as they aim"): every hardpoint pitches
+# with the aim -- level at the camera's level-aim pitch (the raised view looks down TILT_NEUTRAL),
+# clamped to TILT_MAX. Remote mechs get the pitch in the snapshot. Muzzles and shot spawns follow.
+const TILT_NEUTRAL := -0.3
+const TILT_MAX := 0.45
+
+func _tilt_guns() -> void:
+	var tilt := clampf(_camera_pitch - TILT_NEUTRAL, -TILT_MAX, TILT_MAX)
+	for hp in torso.get_children():
+		if hp is Node3D and String(hp.name).begins_with("Hardpoint"):
+			(hp as Node3D).rotation.x = tilt
 
 func apply_camera_shake(magnitude: float) -> void:
 	_shake_intensity = magnitude
@@ -633,6 +646,7 @@ func receive_snapshot(entry: Dictionary, local_t: float = -1.0) -> void:
 		"quat": entry.get("quat", global_transform.basis.get_rotation_quaternion()),
 		"vel": entry.get("vel", Vector3.ZERO),
 		"torso_y": entry.get("torso_y", torso.rotation.y),
+		"pitch": entry.get("pitch", _camera_pitch),  # T329
 	})
 	if _snap_buf.size() > _SNAP_BUF_MAX:
 		_snap_buf.pop_front()
@@ -983,6 +997,7 @@ func _apply_snapshot_interp() -> void:
 	while _snap_buf.size() >= 2 and (_snap_buf[1]["time"] as float) <= render_t:
 		_snap_buf.pop_front()
 	var interp_torso_y: float = torso.rotation.y
+	var interp_pitch: float = _camera_pitch
 	# B40: Basis(quat) carries no scale; keep the body_scale Arena set at spawn, or
 	# every client draws (and aims from) every mech at scale 1.
 	var body_scale := global_transform.basis.get_scale()
@@ -992,6 +1007,7 @@ func _apply_snapshot_interp() -> void:
 		global_transform = Transform3D(Basis(s0["quat"] as Quaternion).scaled(body_scale), s0["pos"] as Vector3)
 		velocity = s0["vel"] as Vector3
 		interp_torso_y = s0.get("torso_y", torso.rotation.y)
+		interp_pitch = s0.get("pitch", _camera_pitch)
 	else:
 		var s1: Dictionary = _snap_buf[1]
 		var span: float = (s1["time"] as float) - (s0["time"] as float)
@@ -1003,8 +1019,10 @@ func _apply_snapshot_interp() -> void:
 		interp_torso_y = lerp_angle(
 			s0.get("torso_y", torso.rotation.y) as float,
 			s1.get("torso_y", torso.rotation.y) as float, t)
+		interp_pitch = lerpf(s0.get("pitch", _camera_pitch) as float, s1.get("pitch", _camera_pitch) as float, t)
 	if owner_peer_id != multiplayer.get_unique_id():
 		torso.rotation.y = interp_torso_y
+		_camera_pitch = interp_pitch  # T329: a remote mech's guns tilt with its aim
 
 func _maybe_forward_input() -> void:
 	if not multiplayer.has_multiplayer_peer():

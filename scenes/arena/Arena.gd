@@ -1488,6 +1488,7 @@ func _snapshot_tick() -> void:
 				"quat": m.global_transform.basis.get_rotation_quaternion(),
 				"vel": m.velocity,
 				"torso_y": m.torso.rotation.y,
+				"pitch": m.get("_camera_pitch"),  # T329: guns tilt with the aim on every peer
 			}
 			if m.owner_peer_id > 1:  # T205: a client's mech -> its prediction's reference
 				e["ack"] = m.input_ack
