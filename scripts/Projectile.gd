@@ -65,6 +65,13 @@ func _physics_process(delta: float) -> void:
 func _physics_process_impl(delta: float) -> void:
 	_age += delta
 	if _age >= lifetime:
+		# T272 (HUMAN_FOUND 2026-11-05: "Missiles should explode once they hit maximum range,
+		# regardless of whether they hit anything"): a missile bursts where its range ends --
+		# splash on the server's real shot, the fireball on every peer (ghosts too).
+		if explode:
+			if not is_ghost:
+				_splash(null)
+			_explode_at(global_position)
 		queue_free()
 		return
 
@@ -103,15 +110,7 @@ func _physics_process_impl(delta: float) -> void:
 				result.collider.take_damage(actual, source_weapon)
 				if on_hit.is_valid():
 					on_hit.call(result.collider, result.position)
-		if splash_radius > 0.0:
-			for mech in get_tree().get_nodes_in_group("mechs"):
-				if mech == result.collider or (is_instance_valid(owner_body) and mech == owner_body):
-					continue
-				if int(mech.get("team")) == team:
-					continue
-				var dist: float = (mech as Node3D).global_position.distance_to(global_position)
-				if dist < splash_radius:
-					mech.take_damage(splash_damage * (1.0 - dist / splash_radius), source_weapon)
+		_splash(result.collider)
 		if explode:
 			_explode_at(result.position)
 		queue_free()
@@ -119,8 +118,24 @@ func _physics_process_impl(delta: float) -> void:
 
 	global_position += step
 
+# Splash: enemy mechs (not `direct`, already hit, nor the shooter) within splash_radius of
+# here take splash_damage falling off linearly with distance to their origin.
+func _splash(direct: Object) -> void:
+	if splash_radius <= 0.0:
+		return
+	for mech in get_tree().get_nodes_in_group("mechs"):
+		if mech == direct or (is_instance_valid(owner_body) and mech == owner_body):
+			continue
+		if int(mech.get("team")) == team:
+			continue
+		var dist: float = (mech as Node3D).global_position.distance_to(global_position)
+		if dist < splash_radius:
+			mech.take_damage(splash_damage * (1.0 - dist / splash_radius), source_weapon)
+
 # T258: an orange fireball swells and fades in 0.3 s inside a slower grey smoke puff,
-# sized to the splash radius. Purely visual; freed after 0.9 s.
+# sized to the splash radius. Purely visual; freed after 0.9 s. T272 (user: "20% too
+# big"): fireball radius 0.4 x splash radius (was 0.5), smoke 0.56 (was 0.7).
+const BOOM_SCALE := 0.8
 static var _boom_mesh: SphereMesh = null
 
 func _explode_at(pos: Vector3) -> void:
@@ -148,6 +163,6 @@ func _explode_at(pos: Vector3) -> void:
 		boom.add_child(mi)
 		var t := 0.3 if i == 0 else 0.8
 		var tw := mi.create_tween().set_parallel()
-		tw.tween_property(mi, "scale", Vector3.ONE * r * (1.0 if i == 0 else 1.4), t).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+		tw.tween_property(mi, "scale", Vector3.ONE * r * BOOM_SCALE * (1.0 if i == 0 else 1.4), t).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
 		tw.tween_property(mat, "albedo_color:a", 0.0, t)
 	boom.create_tween().tween_callback(boom.queue_free).set_delay(0.9)

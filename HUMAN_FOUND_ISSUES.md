@@ -48,11 +48,7 @@ All lock-on weapons should not lock on until the weapon is within range.
 
 Kestrel shield is too strong.
 
-Missile explosion visual is 20% too big.
-
 Cesh bots should use stealth more intelligently.
-
-Missiles should explode once they hit maximum range, regardless of whether they hit anything.
 
 Arc weapon visual is sometimes broken, seems to always work for bots? Flaky error.
 
