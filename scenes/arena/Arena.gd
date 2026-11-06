@@ -274,6 +274,7 @@ func _make_local_player(t: int, lives: int, mech: Node) -> void:
 	_players.append(_player)
 	_player.set("lives", lives)
 	hud.squad_slot_selected.connect(_on_squad_slot_selected)
+	hud.spawn_back.connect(func() -> void: _pending_slot = -1)  # T322
 	hud.spawn_selected.connect(_on_spawn_selected)
 	if mech == null:
 		return
