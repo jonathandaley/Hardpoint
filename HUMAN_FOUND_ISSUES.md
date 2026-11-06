@@ -12,8 +12,6 @@ Don't spawn the first mech until it's picked (currently spawns the first mech th
 
 Death match (no beacon) match option
 
-Make sure elite bots don't miss, and in fact shoot ahead of moving targets. I want elites to be impossible. Can always add more intermediate levels if necessary.
-
 All lock-on weapons should not lock on until the weapon is within range. Square reticle should still be visible at any range. 
 
 Kestrel shield is too strong.
@@ -39,8 +37,6 @@ Top left of HUD, under the ability marker, should have a readout, small text, li
 Bots should be assigned names, which are visible like players (Which I can't remember if they're already visible, but in multiplayer the callsign should be above the health bar). You make a list of names that sound cool and have nothing objectionable in them (this is a shooter game, MurderousMaximus27 etc. is totally fine, but not DeeezGunz69). That way names are assigned from a preset list, but aren't just random. Make the list long enough so that repeats aren't constant. (100-200?)
 
 At elite level, bots will have a much shorter, separate list of names. Only good gamertags; cheesy ones are fine for the basic bots, but not elites. These will have persistent pilot upgrades that are tied to their names, so, e.g. Inexorable always has "health" and the whole "move speed" tree maxed out.
-
-Pilot upgrades will be the difference between hard and elite. Hard will have no intentional bad strategy/aiming errors, elite will be that plus upgrades.
 
 How hard would it be to make the weapons tilt up and down as they aim? If easy, add it to the queue.
 
