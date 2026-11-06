@@ -78,7 +78,7 @@ Minimap, both for picking spawnpoints and in the HUD, should be rotated 90 degre
 
 Reduce sniper recoil/screen shudder by 50%.
 
-Make sure muzzle flash is actually at the end of the barrel and not at its base.
+Make sure muzzle flash is actually at the end of the barrel and not at its base. Make its size proportional to the barrel.
 
 The impact sound of bullets hitting a mech should not play for laser, arc, or patience. Any raycast weapons added in the future, either.
 
@@ -100,12 +100,13 @@ Pilot upgrades will be the difference between hard and elite. Hard will have no 
 
 Remove the "full" shadows option. I don't want to have to deal with troubleshooting it, somebody can make a shader mod if they really want to.
 
+How hard would it be to make the weapons tilt up and down as they aim? If easy, add it to the queue.
+
+Game lagged when shot at close range with three heavy shotguns at once. Too many particles? Want to make sure that doesn't happen.
 
 
 
-Don't change anything, but how computationally expensive would it be to double the resolution again? Some things, most notably the crosshair, are visually annoying at this resolution. Remember that this wants to be able to run in a web browser eventually. Just answer after this question.
 
-A (Claude): almost free to run -- 640x360 is only the 2D layout grid; the window stretches it and the 3D world already renders at full window resolution, so doubling adds no 3D cost (fine for web). The cost is work: every UI position / font size is hard-coded in 640x360 units across many files. Cheaper fix for what bugs you: fractional line widths (0.5 unit = 1-1.5 screen px) -- doing that on the crosshair in T309.
 
 Defer until I decide more: The general texturing applied to most of the maps' floors and obstacles is pretty good in general, but it looks blurry. Probably make the pixels/texels bigger? Like the bot texture, sharp bigger pixels instead of blurry finer detail. Not for every map, though: Redwood's floor is great.
 
