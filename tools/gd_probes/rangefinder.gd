@@ -1,6 +1,8 @@
 extends Node
-# T256 probe (HUMAN_FOUND_ISSUES 2026-11-05: "rangefinder in hud"): with an enemy straight
-# ahead 25 m from our mech, the HUD shows a distance near 25 m beside the crosshair.
+# T256 + T274 probe (HUMAN_FOUND_ISSUES 2026-11-05: "rangefinder in hud"; user: "only show
+# distance to an enemy that's in the targeting reticle. So no range shown looking at a wall"):
+# with an enemy straight ahead 25 m from our mech the HUD reads ~25 m beside the crosshair;
+# with that enemy moved far off the crosshair (nothing in the reticle) it shows nothing.
 
 const AHEAD := 25.0
 
@@ -8,6 +10,8 @@ class AimSrc extends "res://scripts/InputSource.gd":
 	var aim := Vector2.ZERO
 	func get_abs_aim():
 		return aim
+	func is_human_input() -> bool:  # the soft-lock (reticle) only updates for a human pilot
+		return true
 
 func _fail(msg: String) -> void:
 	push_error("[probe] rangefinder: " + msg)
@@ -55,5 +59,11 @@ func _ready() -> void:
 		var d := lbl.text.to_float()
 		if absf(d - AHEAD) > 4.0:
 			_fail("rangefinder reads '%s' with an enemy %.0f m ahead" % [lbl.text, AHEAD])
-		print("[probe] rangefinder done (%s)" % lbl.text)
+		var read := lbl.text
+		enemy.global_position = me.global_position + Vector3(-flat.z, 0, flat.x) * 40.0  # 90 deg off the crosshair
+		for i in 10:
+			await get_tree().physics_frame
+		if lbl.visible:
+			_fail("rangefinder still shows '%s' with no enemy in the reticle" % lbl.text)
+		print("[probe] rangefinder done (%s; hidden with no enemy in the reticle)" % read)
 	get_tree().quit(0)

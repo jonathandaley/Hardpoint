@@ -12,8 +12,6 @@ General weapon mount size/weapon size checkup
 
 Bots should eject on death like players
 
-Rangefinder should activate at the same time as the targeting reticle
-
 Check for rocket launcher accuracy? Didn't work in Sydney, not sure what was up with that. 
 
 Map picker in singleplayer should have a play button so that picking a map doesn't immediately start it. Play button should go where the back button is now, back button should shift to the left.
@@ -43,8 +41,6 @@ Kestrel shield is too strong.
 Cesh bots should use stealth more intelligently.
 
 Arc weapon visual is sometimes broken, seems to always work for bots? Flaky error.
-
-Rangefinder toggle is actually not what I wanted. Remove everything about the pilot skill; instead, make the only rangefinder be always-active, and only show distance to an enemy that's in the targeting reticle. So no range shown looking at a wall, unless there's an enemy behind it.
 
 Patience damage should scale higher; human testing shows sniper to be vastly better than patience in every situation I tried.
 
@@ -104,3 +100,7 @@ Make a tutorial - defer, just have the note somewhere. Also a manual in settings
 
 Q3: "Tracer rounds?" dropped out of this list in your cleanup. Still want tracers (rifles/snipers every round, MG every 3rd, a warm glowing streak)? Holding it (T261) until you say. The machine-gun bug I found on the way (clients never see MG bullets) gets fixed either way.
 Tracer rounds might end up as a toggleable pilot skill. Not sure yet; add the idea to a maybe-add list.
+
+Q4 (T266, from Claude 2026-11-06): true online (lemon.limedaley.com) is next in the queue. You asked me to flag the network security review (T290) before any online work -- flagging it now. Do T290 first, or go ahead with T266? Skipping T266 until you say.
+
+Q5 (T263, from Claude 2026-11-06): there has never been spent-shell code in the game (I searched all of git history). What you saw was probably the grey smoke puffs each bullet leaves along its path (they shrink away in 0.18 s) or the orange impact sparks (gone in ~0.2 s). Which did you mean -- or do you want real casings ejected from the guns (falling, bouncing, lingering longer at higher effect settings)? Holding T263 until you say.

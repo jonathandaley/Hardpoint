@@ -161,3 +161,5 @@ date|task|outcome|commit|finding|suite
 2026-11-06|T331|DONE|batch 4 (local commit)|missile_explosion.ogg copied from audio/import to audio/sfx/weapons + imported, played at every missile burst; probe missile_sound red before; B117: the import first crashed on ~2900 suite CSVs under build/ (no .gdignore)|batch suite pending
 2026-11-06|T327|DONE|batch 4 (local commit)|splash measured to the mech capsule (0 inside) for missiles + rockets + aerial strike; chest-height burst 1 m out now counts as 0.5 m (was ~2.2 to the feet); probe splash_body red before|batch suite pending
 2026-11-06|batch 4|DONE|T315, T316, T331 (+B117), T327|suite green over the stack|100/100
+2026-11-06|T263|HELD|-|no spent shells exist anywhere in git history; user probably saw bullet smoke puffs (0.18 s) or impact sparks (~0.2 s); asked Q5; T266 skipped until Q4 (security review first?)|-
+2026-11-06|T274|DONE|batch 5 (local commit)|rangefinder shows only the reticle enemy range (locked / soft-lock target, no LOS needed), no raycast; probe rangefinder red before (135 m off terrain); probe needed is_human_input (soft-lock updates only for human pilots)|batch suite pending
