@@ -43,31 +43,6 @@ func _ready() -> void:
 	_build_controls_section()
 	_build_graphics_page()  # T253: SHADOWS (and the later graphics toggles) live there
 
-# T193: BLOB (default) = a soft disc under each mech, no sun shadows; FULL = the
-# pre-T193 real-time sun shadows, kept in case the look is wanted back.
-const SHADOW_MODES := [["blob", "BLOB"], ["full", "FULL"]]
-var _shadow_buttons: Array = []
-
-func _build_shadow_section(content: VBoxContainer) -> void:
-	var section_lbl := Label.new()
-	section_lbl.text = "SHADOWS"
-	section_lbl.add_theme_font_size_override("font_size", 14)
-	content.add_child(section_lbl)
-	var row := HBoxContainer.new()
-	row.name = "ShadowRow"
-	row.add_theme_constant_override("separation", 8)
-	content.add_child(row)
-	for mode in SHADOW_MODES:
-		var btn := Button.new()
-		btn.name = "Shadow_" + mode[0]
-		btn.text = mode[1]
-		btn.custom_minimum_size = Vector2(80, 24)
-		btn.add_theme_font_size_override("font_size", 14)
-		btn.pressed.connect(_on_shadow_pressed.bind(mode[0]))
-		row.add_child(btn)
-		_shadow_buttons.append(btn)
-	_highlight_shadow()
-
 # T252: VIEW -- CENTER (raised camera, crosshair over the mech; default) or SHOULDER
 # (T196's over-the-shoulder, V swaps sides).
 const VIEW_MODES := [["center", "CENTER"], ["shoulder", "SHOULDER"]]
@@ -104,19 +79,6 @@ func _highlight_view() -> void:
 	for i in _view_buttons.size():
 		var btn: Button = _view_buttons[i]
 		if VIEW_MODES[i][0] == Game.settings.get("view", "center"):
-			btn.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
-		else:
-			btn.remove_theme_color_override("font_color")
-
-func _on_shadow_pressed(mode: String) -> void:
-	Game.settings["shadows"] = mode
-	Game.save_settings()
-	_highlight_shadow()
-
-func _highlight_shadow() -> void:
-	for i in _shadow_buttons.size():
-		var btn: Button = _shadow_buttons[i]
-		if SHADOW_MODES[i][0] == Game.settings.get("shadows", "blob"):
 			btn.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
 		else:
 			btn.remove_theme_color_override("font_color")
@@ -244,7 +206,6 @@ func _build_graphics_page() -> void:
 	title.text = "GRAPHICS"
 	title.add_theme_font_size_override("font_size", 18)
 	graphics_box.add_child(title)
-	_build_shadow_section(graphics_box)
 	_build_toggle_section(graphics_box, "FANCY HANGAR", "fancy_hangar", "Fancy")  # T254
 	var back := Button.new()
 	back.offset_left = 200.0

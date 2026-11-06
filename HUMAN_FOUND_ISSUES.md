@@ -84,8 +84,6 @@ At elite level, bots will have a much shorter, separate list of names. Only good
 
 Pilot upgrades will be the difference between hard and elite. Hard will have no intentional bad strategy/aiming errors, elite will be that plus upgrades.
 
-Remove the "full" shadows option. I don't want to have to deal with troubleshooting it, somebody can make a shader mod if they really want to.
-
 How hard would it be to make the weapons tilt up and down as they aim? If easy, add it to the queue.
 
 Game lagged when shot at close range with three heavy shotguns at once. Too many particles? Want to make sure that doesn't happen.
