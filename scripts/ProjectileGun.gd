@@ -62,6 +62,11 @@ func _rpc_spawn_ghost(pos: Vector3, basis: Basis, speed: float, lifetime: float,
 	ghost.speed = speed
 	ghost.lifetime = lifetime
 	ghost.team = team
+	if get("splash_radius") != null:  # T258: missile ghosts burst where they hit
+		ghost.explode = true
+		ghost.splash_radius = get("splash_radius")
+		if owner_mech != null:
+			ghost._exclude_rids = owner_mech.get_exclude_rids()
 	get_tree().current_scene.add_child(ghost)
 	var actual_basis := basis
 	if owner_mech != null and owner_mech.get("owner_peer_id") == multiplayer.get_unique_id():

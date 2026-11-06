@@ -6,8 +6,6 @@ Patterned emissives, on the mech textures, also probably a toggle, as the glow p
 
 ### after this are random notes that may or may not be intelligible, I'll edit them when I have time.
 
-Explosion animation for missile launcher
-
 Arc weapon animation: lightning arc (continuous)
 
 Patience shot: thick beam that fades slowly
@@ -16,8 +14,6 @@ Tracer rounds?
 
 Machine gun barrel should start glowing as ramp-up increases, red-hot at max speed.
 Mech balance auto
-
-Explosion animation for missile launcher
 
 Arc weapon animation: lightning arc (continuous)
 
