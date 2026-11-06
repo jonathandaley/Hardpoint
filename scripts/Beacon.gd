@@ -100,16 +100,19 @@ func _update_capture(delta: float) -> void:
 			if _contested_hold_timer > 0.0:
 				return
 			_contested_hold_timer = 0.0
-		if state != State.CONTESTED:
-			state = State.CONTESTED
-			_update_visuals()
+		_set_state(State.CONTESTED)
 		return
 
 	_contested_hold_timer = 0.0
+	# B116: a contest used to stick until the next capture (T297 "stays contested
+	# indefinitely"): with one team or none left the beacon shows its owner again.
+	if state == State.CONTESTED:
+		_set_state(_owner_state())
 
 	if teams.is_empty():
 		if _capture_progress > 0.0 and _capturing_team != owner_team:
 			_capture_progress = max(0.0, _capture_progress - delta / capture_time)
+			_stream_progress(delta, _capture_progress <= 0.0)  # B116: clients saw the decay never
 		return
 
 	var team: int = teams[0]
@@ -125,20 +128,38 @@ func _update_capture(delta: float) -> void:
 		cap_delta *= 1.0 + Game.get_skill_effect("beacon_capture")
 	# B87: clamp -- the capturing tick overshot (1.002) and the stream sent that before the reset
 	_capture_progress = minf(_capture_progress + cap_delta / capture_time, 1.0)
-	if multiplayer.has_multiplayer_peer():
-		_progress_broadcast_timer -= delta
-		if _progress_broadcast_timer <= 0.0 and Game.mp_live:  # T159/V52 stream gate
-			_progress_broadcast_timer = _PROGRESS_BROADCAST_INTERVAL
-			_sync_progress.rpc(_capture_progress, _capturing_team)
+	_stream_progress(delta, false)
 	if _capture_progress >= 1.0:
 		_capture_progress = 0.0
 		owner_team = team
-		state = State.TEAM_A if team == 0 else State.TEAM_B
-		_update_visuals()
 		captured.emit(team)
 		Game.sync_log_event("captured", name, {"team": team})  # M1.3 autodebug event stream
-		if multiplayer.has_multiplayer_peer():
-			_sync_state.rpc(owner_team, state, _capture_progress)
+		_set_state(_owner_state(), true)
+
+func _owner_state() -> State:
+	if owner_team < 0:
+		return State.NEUTRAL
+	return State.TEAM_A if owner_team == 0 else State.TEAM_B
+
+# B116: every state change goes through here, so clients hear about all of them -- contest
+# start / end weren't sent at all (the client never saw CONTESTED; T314's bigger zones made
+# brushes with them common: beacon_capture / outage_recovery desync).
+func _set_state(new_state: State, force := false) -> void:
+	if new_state == state and not force:
+		return
+	state = new_state
+	_update_visuals()
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server() and Game.mp_live:  # V52; late joiners get it in the join snapshot
+		_sync_state.rpc(owner_team, state, _capture_progress)
+
+# T105 progress stream (rate-limited); `now` forces a send (e.g. the decay reaching 0).
+func _stream_progress(delta: float, now: bool) -> void:
+	if not multiplayer.has_multiplayer_peer():
+		return
+	_progress_broadcast_timer -= delta
+	if (now or _progress_broadcast_timer <= 0.0) and Game.mp_live:  # T159/V52 stream gate
+		_progress_broadcast_timer = _PROGRESS_BROADCAST_INTERVAL
+		_sync_progress.rpc(_capture_progress, _capturing_team)
 
 func _teams_present() -> Array:
 	var out: Array = []
