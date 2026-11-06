@@ -184,3 +184,4 @@ date|task|outcome|commit|finding|suite
 2026-11-06|T306|DONE|batch 8 (local commit)|sign-up form scrolls, BACK pinned top-left (was off-screen at y 378), SERVER field behind a toggle; probe account_screen red before (lambda captured a reassigned array first -- append in place)|batch suite pending
 2026-11-06|T321|DONE|batch 8 (local commit)|Redwood bark: procedural 16x48 streak texture, 0.25 m texels, world-triplanar nearest, per-column phase (first render showed a seam line at the tile repeat); render-checked close up; probe forest_bark red before|batch suite pending
 2026-11-06|T310|DONE|batch 8 (local commit)|glow parts speckled with the mech armor tile (0.7-1.0, glow tint), replacing the T255 shades; render-checked; probe glow_speckle red before (glow_shades retired)|batch suite pending
+2026-11-06|batch 8|DONE|T318, T306, T321, T310|suite green over the stack|112/112
