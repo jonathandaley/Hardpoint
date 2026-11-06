@@ -179,3 +179,4 @@ date|task|outcome|commit|finding|suite
 2026-11-06|T301|DONE (no bug)|batch 7 (local commit)|jump heal fires once per jump (+80 flat, 16 s cd = 27% of Pegasus HP); probe jump_heal_once guards it (red with cooldown 0); Q6 asks whether to lower; found T332 on the way|batch suite pending
 2026-11-06|T322|DONE|batch 7 (local commit)|spawn picker BACK -> mech picker (pending pick dropped); probe spawn_back red before; spawn_points probe skips the BACK button|batch suite pending
 2026-11-06|T298|DONE|batch 7 (local commit)|Patience max_damage 62.5 -> 160 (damage too, V28 clamp): 2.7x a sniper shot, ~10 DPS at full charge (sniper ~13); probe patience_damage red before|batch suite pending
+2026-11-06|batch 7|DONE|T280, T301, T322, T298|suite green over the stack|110/110
