@@ -74,6 +74,7 @@ func _rpc_spawn_ghost(pos: Vector3, basis: Basis, speed: float, lifetime: float,
 		return
 	var ghost := HOMING_SCENE.instantiate() as HomingProjectile
 	ghost.is_ghost = true
+	ghost._exclude_rids = owner_mech.get_exclude_rids() if owner_mech != null else []  # T333: steers like the real one
 	ghost.speed = speed
 	ghost.lifetime = lifetime
 	ghost.team = team
