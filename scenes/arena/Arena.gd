@@ -279,7 +279,6 @@ func _make_local_player(t: int, lives: int, mech: Node) -> void:
 	_player.call("possess", mech)
 	mech.make_camera_current()
 	mech.died.connect(Callable(_player, "on_pawn_destroyed"))
-	mech.mark_requested.connect(_on_mark_requested)
 	_spectated_mech = mech
 	mech.died.connect(_on_spectated_mech_died)
 	mech.died.connect(_on_local_mech_died_mp)
@@ -867,7 +866,6 @@ func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int, spawn: int) ->
 		# Missing, only the first squad mech cost a life: the picker came back after the
 		# last one and the team could never be eliminated.
 		new_mech.died.connect(Callable(_player, "on_pawn_destroyed"))
-		new_mech.mark_requested.connect(_on_mark_requested)
 		new_mech.damaged.connect(hud.show_damage)
 		new_mech.died.connect(_on_local_mech_died_mp)
 		# Audit #27: mirror _setup_players_mp -- without this, landing hits after
@@ -1241,21 +1239,6 @@ func _ground_y(x: float, z: float) -> float:
 
 
 
-
-func _on_mark_requested(pos: Vector3) -> void:
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(1.0, 0.8, 0.0)
-	mat.emission_enabled = true
-	mat.emission = Color(1.0, 0.8, 0.0)
-	mat.emission_energy_multiplier = 3.0
-	var mesh := SphereMesh.new()
-	mesh.radius = 0.4
-	mesh.height = 0.8
-	var mi := MeshInstance3D.new()
-	mi.mesh = mesh
-	mi.set_surface_override_material(0, mat)
-	mi.position = pos + Vector3(0, 0.4, 0)
-	add_child(mi)
 
 func _create_nav_region() -> void:
 	_nav_region = NavigationRegion3D.new()

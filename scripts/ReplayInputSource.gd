@@ -104,8 +104,6 @@ func is_reload_pressed() -> bool:
 func is_ability_pressed() -> bool:
 	return not _take_pulse("ability").is_empty()
 
-func is_mark_pressed() -> bool:
-	return not _take_pulse("mark").is_empty()
 
 func is_human_input() -> bool:
 	return false
