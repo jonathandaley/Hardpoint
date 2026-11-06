@@ -1,16 +1,12 @@
 # This file is for humans to list bugs or other issues where Claude can see them. Not all of these are fixable without discussion, but some of them should be able to be fixed autonomously. Fixed bugs should be deleted, the record can live in SPEC. You may rearrange these tasks and group them in ways that make sense; they're in the order I found or thought of them, unless otherwise specified, with no inherent priority.
 
-Mech balancing automatically: wide variety of team sizes and maps, weapons. Write the data to a file, including both total winrate/damage but also "kestrel weak against everest" etc.
+Mech balancing automatically: wide variety of team sizes and maps, weapons. Write the data to a file, including both total winrate/damage but also "kestrel weak against everest" etc. Kestrel shield is too strong (now part of the balance pass, T243).
 
 Gun shells should stick around longer, at least at higher graphics settings. I don't actually see the spent shells at all anymore, where did they go?
 
 Check for rocket launcher accuracy? Didn't work in Sydney, not sure what was up with that. 
 
-Death match (no beacon) match option
-
 All lock-on weapons should not lock on until the weapon is within range. Square reticle should still be visible at any range. 
-
-Kestrel shield is too strong.
 
 Cesh bots should use stealth more intelligently.
 
