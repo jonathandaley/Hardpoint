@@ -148,7 +148,7 @@ func _sky(rng: RandomNumberGenerator) -> void:
 	env.ambient_light_energy = 0.6
 	env.fog_enabled = true
 	env.fog_light_color = Color("#b4542a")
-	env.fog_density = 0.004
+	env.fog_density = 0.0015  # T300 (HUMAN_FOUND 2026-11-05: "less atmospheric haze"; was 0.004)
 
 # Launch rails down the middle line (flush, visual) with a lit centre stripe; a blast
 # deflector (solid, upright) across each rail near either end.
@@ -174,7 +174,10 @@ func _bulkheads() -> void:
 			var z0: float = seg[0]
 			var z1: float = seg[1]
 			_box(Vector3(3, 10, z1 - z0), Vector3(x, 5, (z0 + z1) * 0.5), steel)
-			_box(Vector3(3.1, 0.4, z1 - z0), Vector3(x, 9.0, (z0 + z1) * 0.5), stripe, false)
+			# T302 (HUMAN_FOUND 2026-11-05: yellow bands "at the same depth, so flicker"): the
+			# stripe ran exactly the wall's length, its end faces in the wall's end planes --
+			# 5 cm proud at each end now, like its 5 cm on each side
+			_box(Vector3(3.1, 0.4, z1 - z0 + 0.1), Vector3(x, 9.0, (z0 + z1) * 0.5), stripe, false)
 		for sz in [-1.0, 1.0]:
 			var length := HALF - CATWALK_Z
 			_box(Vector3(6, CATWALK_H, length), Vector3(x, CATWALK_H * 0.5, sz * (CATWALK_Z + length * 0.5)), steel)

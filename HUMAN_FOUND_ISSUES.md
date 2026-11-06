@@ -54,11 +54,7 @@ Patience damage should scale higher; human testing shows sniper to be vastly bet
 
 Laser and arc should not go through targets, but stop when hitting a mech.
 
-Factory should have less atmosphric haze.
-
 Pegasus sometimes heals too much in a single jump?
-
-Factory yellow bands around some of the buildings are at the same depth, so flicker.
 
 Corvette feels very spread out, shrink it by 30%.
 
