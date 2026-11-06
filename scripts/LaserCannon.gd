@@ -99,8 +99,10 @@ func _do_fire() -> void:
 func _beam_fx(hit_pos: Vector3) -> void:
 	var hit_dist := maxf(0.01, global_position.distance_to(hit_pos))
 	_beam_pivot.look_at(hit_pos, Vector3.UP)
-	_beam.position = Vector3(0.0, 0.0, -hit_dist * 0.5)
-	_beam.scale.z = hit_dist
+	# T296: in the gun's own scale (weapon_scale x body_scale), or the beam stops short / overshoots
+	var local := hit_dist / maxf(0.01, _beam_pivot.global_transform.basis.get_scale().z)
+	_beam.position = Vector3(0.0, 0.0, -local * 0.5)
+	_beam.scale.z = local
 	if not _beam.visible:
 		_beam.visible = true
 	_start_laser_loop()

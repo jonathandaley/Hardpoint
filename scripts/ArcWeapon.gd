@@ -60,11 +60,14 @@ func _process(_delta: float) -> void:
 		_redraw_bolt()
 
 func _redraw_bolt() -> void:
+	# T296: the bolt lives under the gun, whose scale (weapon_scale x body_scale: 0.75 Seeker ..
+	# 1.25 Everest) stretched it -- 5 m short of a target 20 m off, or 5 m through it
+	var local_len := _beam_len / maxf(0.01, _beam_pivot.global_transform.basis.get_scale().z)
 	_bolt_points.resize(BOLT_SEGS + 1)
 	for i in BOLT_SEGS + 1:
 		var f := float(i) / BOLT_SEGS
 		var j := BOLT_JITTER * sin(PI * f)
-		_bolt_points[i] = Vector3(_bolt_rng.randf_range(-j, j), _bolt_rng.randf_range(-j, j), -_beam_len * f)
+		_bolt_points[i] = Vector3(_bolt_rng.randf_range(-j, j), _bolt_rng.randf_range(-j, j), -local_len * f)
 	var im := _beam_mesh.mesh as ImmediateMesh
 	im.clear_surfaces()
 	im.surface_begin(Mesh.PRIMITIVE_TRIANGLES, _bolt_mat)
