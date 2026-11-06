@@ -517,14 +517,14 @@ func _process(delta: float) -> void:
 	_update_beacon_bars()
 	_update_team_counts()
 
-# T256 (HUMAN_FOUND_ISSUES 2026-11-05 note: "rangefinder in hud"): distance from our mech to
-# whatever is under the crosshair (the camera's centre ray, our own mech excluded), beside
-# the reticle; "--- m" when the ray meets nothing within RANGE_MAX.
-const RANGE_MAX := 600.0
+# T256 + T274 (user 2026-11-05: "make the only rangefinder be always-active, and only show
+# distance to an enemy that's in the targeting reticle. So no range shown looking at a wall,
+# unless there's an enemy behind it"): distance from our mech to the locked / lock-eligible
+# enemy (the soft-lock box: the crosshair ray or the acquisition cone, no line of sight
+# needed), beside the reticle; hidden when there is none. No raycast of its own any more
+# (B108's _physics_process placement kept anyway).
 var rangefinder: Label = null
 
-# Physics frame, not _process: a ray from _process during the threaded navmesh bake
-# left Badlands with a 1-polygon navmesh (B108).
 func _physics_process(_delta: float) -> void:
 	_update_rangefinder()
 
@@ -538,16 +538,14 @@ func _update_rangefinder() -> void:
 		rangefinder.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 		rangefinder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(rangefinder)
-	var cam := get_viewport().get_camera_3d()
-	if cam == null or not is_instance_valid(_player_mech) or not crosshair.visible or _player_mech.get("is_dead"):
+	var target: Node3D = null
+	if is_instance_valid(_player_mech) and crosshair.visible and not _player_mech.get("is_dead"):
+		var locked = _player_mech.get("locked_target")
+		target = locked if is_instance_valid(locked) else _player_mech.get("lock_eligible_target")
+	if not is_instance_valid(target):
 		rangefinder.visible = false
 		return
-	var from := cam.global_position
-	var q := PhysicsRayQueryParameters3D.create(from, from - cam.global_transform.basis.z * RANGE_MAX)
-	if _player_mech.has_method("get_exclude_rids"):
-		q.exclude = _player_mech.get_exclude_rids()
-	var hit := cam.get_world_3d().direct_space_state.intersect_ray(q)
-	rangefinder.text = "--- m" if hit.is_empty() else "%d m" % roundi(((hit.position as Vector3) - (_player_mech as Node3D).global_position).length())
+	rangefinder.text = "%d m" % roundi(target.global_position.distance_to((_player_mech as Node3D).global_position))
 	rangefinder.position = get_viewport().get_visible_rect().size * 0.5 + Vector2(10, 5)
 	rangefinder.visible = true
 
