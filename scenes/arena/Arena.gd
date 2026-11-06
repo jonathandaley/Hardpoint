@@ -36,6 +36,7 @@ func _ready() -> void:
 	# paused is now handled by PauseMenu (PROCESS_MODE_ALWAYS).
 	pause_menu.resume_requested.connect(_on_pause_resume)
 	pause_menu.quit_requested.connect(_on_pause_quit)
+	pause_menu.self_destruct_requested.connect(_on_pause_self_destruct)  # T278
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_apply_map_theme()
 	# T315 (user 2026-11-05: remove the FULL shadows option, "I don't want to have to deal with
@@ -466,6 +467,30 @@ func _on_pause_resume() -> void:
 	pause_menu.hide()
 	get_tree().paused = false
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+# T278 (HUMAN_FOUND 2026-11-05: "Self destruct option in esc menu, just kill the current mech"):
+# a normal death (canister, camera ride, mech picker). The server does the killing -- a client
+# asks with _rpc_self_destruct and the server only ever kills the asker's own live mech.
+func _on_pause_self_destruct() -> void:
+	_on_pause_resume()
+	if multiplayer.is_server():
+		_self_destruct(multiplayer.get_unique_id())
+	else:
+		_rpc_self_destruct.rpc_id(1)
+
+@rpc("any_peer", "call_remote", "reliable")
+func _rpc_self_destruct() -> void:
+	if multiplayer.is_server():
+		_self_destruct(multiplayer.get_remote_sender_id())
+
+func _self_destruct(pid: int) -> void:
+	if _match_over:
+		return
+	for t in 2:
+		for m in _team_mechs[t]:
+			if is_instance_valid(m) and not m.is_dead and int(m.owner_peer_id) == pid:
+				m.request_damage(m.health + m.max_health, null)  # no source: unclamped, server-side
+				return
 
 func _on_pause_quit() -> void:
 	if _movement_logger != null:

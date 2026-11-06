@@ -2,6 +2,7 @@ extends CanvasLayer
 
 signal resume_requested
 signal quit_requested
+signal self_destruct_requested  # T278
 
 # T161: Esc while paused. Arena is pausable, so it no longer sees input while the
 # tree is paused; this CanvasLayer runs PROCESS_MODE_ALWAYS.
@@ -12,6 +13,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func _on_resume_pressed() -> void:
 	emit_signal("resume_requested")
+
+func _on_self_destruct_pressed() -> void:
+	emit_signal("self_destruct_requested")
 
 func _on_quit_pressed() -> void:
 	emit_signal("quit_requested")

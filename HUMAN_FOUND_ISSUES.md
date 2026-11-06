@@ -8,8 +8,6 @@ Check for rocket launcher accuracy? Didn't work in Sydney, not sure what was up 
 
 Badlands should have some decrepit windows in the buildings.
 
-Self destruct option in esc menu, just kill the current mech.
-
 Don't spawn the first mech until it's picked (currently spawns the first mech then switches)
 
 Bots should pick spawnpoints instead of all spawning together.
