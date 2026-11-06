@@ -37,6 +37,11 @@ def main():
     ap.add_argument("--soak", action="store_true", help="T152: also run 'soak' scenarios (one full match, ~15 min)")
     ap.add_argument("--jobs", type=int, default=6, help="T292: probes run this many at a time (1 = serial)")
     args = ap.parse_args()
+    # B117: run outputs (movement CSVs, logs) live under build/; without a .gdignore Godot's
+    # importer treats every CSV as a translation (thousands of them) and crashed on --import
+    build = os.path.join(HERE, "..", "build")
+    os.makedirs(build, exist_ok=True)
+    open(os.path.join(build, ".gdignore"), "a").close()
 
     scenarios = sorted(glob.glob(os.path.join(HERE, "scenarios", "*.json")))
     results = []
