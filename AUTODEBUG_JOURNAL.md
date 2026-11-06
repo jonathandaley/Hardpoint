@@ -182,3 +182,4 @@ date|task|outcome|commit|finding|suite
 2026-11-06|batch 7|DONE|T280, T301, T322, T298|suite green over the stack|110/110
 2026-11-06|T318|DONE|batch 8 (local commit)|minimap rotated 90 deg CCW (to_map + heading arrow), spawn picker follows; minimap probe axes red before|batch suite pending
 2026-11-06|T306|DONE|batch 8 (local commit)|sign-up form scrolls, BACK pinned top-left (was off-screen at y 378), SERVER field behind a toggle; probe account_screen red before (lambda captured a reassigned array first -- append in place)|batch suite pending
+2026-11-06|T321|DONE|batch 8 (local commit)|Redwood bark: procedural 16x48 streak texture, 0.25 m texels, world-triplanar nearest, per-column phase (first render showed a seam line at the tile repeat); render-checked close up; probe forest_bark red before|batch suite pending
