@@ -12,8 +12,6 @@ General weapon mount size/weapon size checkup
 
 Bots should eject on death like players
 
-Team size should not be in hangar- I think that's entirely stale as it's part of setting up a match now.
-
 Rangefinder should activate at the same time as the targeting reticle
 
 Always-on rangefinder should be available as a pilot skill, only one level. Once bought, togglable. R?
