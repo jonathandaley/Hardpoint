@@ -43,6 +43,10 @@ func _ready() -> void:
 	pause_menu.quit_requested.connect(_on_pause_quit)
 	pause_menu.self_destruct_requested.connect(_on_pause_self_destruct)  # T278
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	# T328 (before release: any screen shape): the match fills the window -- 16:10, 21:9, a tall
+	# browser -- instead of letterboxing to 16:9; the HUD lays out from the real visible size.
+	# Menus keep the designed 640x360 layout (letterboxed) -- restored in _exit_tree.
+	get_tree().root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
 	_apply_map_theme()
 	# T315 (user 2026-11-05: remove the FULL shadows option, "I don't want to have to deal with
 	# troubleshooting it"): no sun shadows, a blob disc under every mech (T193), always.
@@ -106,6 +110,9 @@ func _ready() -> void:
 
 
 var _overhead_cam: Camera3D
+
+func _exit_tree() -> void:
+	get_tree().root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP  # T328: menus letterbox
 
 func _apply_map_theme() -> void:
 	var map_def = Game.loadout.get("map_def")

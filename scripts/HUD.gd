@@ -48,7 +48,20 @@ var _squad_picker: Control = null
 
 signal squad_slot_selected(slot_idx: int)
 
+# T328: in a match the canvas follows the window's shape (Arena sets aspect EXPAND), so a resize
+# or fullscreen toggle mid-match re-lays the pieces placed from the canvas size (the minimap is
+# anchored and follows by itself).
+func _on_view_resized() -> void:
+	if not is_inside_tree():  # a HUD on its way out (its arena is being freed)
+		return
+	if is_instance_valid(_player_mech):
+		weapon_hud.setup(_player_mech)
+	if not _score_bars.is_empty():
+		setup_beacon_bars(_beacons)
+
 func setup(match_node: Node, player_mech: Node, player_team: int) -> void:
+	if not get_viewport().size_changed.is_connected(_on_view_resized):
+		get_viewport().size_changed.connect(_on_view_resized)
 	_match = match_node
 	_player_mech = player_mech
 	_original_player_mech = player_mech
@@ -282,11 +295,12 @@ func setup_beacon_bars(beacons: Array) -> void:
 		_clock_label.add_theme_font_size_override("font_size", 14)
 		_clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_clock_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_clock_label)
+	if _clock_label != null:  # (re)placed on every layout -- T328 resizes
 		_clock_label.offset_left = strip_x - 40.0  # the hidden bars leave room for "10:00"
 		_clock_label.offset_right = strip_x + 40.0
 		_clock_label.offset_top = _BAR_Y - 4.0
 		_clock_label.offset_bottom = _BAR_Y + _BAR_H + 4.0
-		add_child(_clock_label)
 
 	# Alive-count labels just below each score bar.
 	for entry in _team_count_labels:
