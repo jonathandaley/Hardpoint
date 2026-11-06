@@ -77,9 +77,20 @@ Factory yellow bands around some of the buildings are at the same depth, so flic
 
 Corvette feels very spread out, shrink it by 30%.
 
+Remove debug mech and the "e" mark set key. Archive the code just in case. The window currently says "Hardpoint (DEBUG)" on the title bar, that's probably not necessary anymore.
+
+The general texturing applied to most of the maps' floors and obstacles is pretty good in general, but it looks blurry. Probably make the pixels/texels bigger? Like the bot texture, sharp bigger pixels instead of blurry finer detail.
+
+Sign up screen isn't scrollable, so currently makes it so you have to exit the game to leave the screen. Both login and signup have a "server" field, what is that for? That's not a normal thing with other games, so if that's necessary for some reason it should probably be moved somewhere else.
+
+
 
 
 Harden security for network: Look through the source code for vulnerabilities, and also try to hack it from the outside if possible. Defer for now, but flag it before setting up online stuff.
 
 Make a tutorial - defer, just have the note somewhere. Also a manual in settings.
 
+
+### Question from Claude (2026-11-05 late)
+
+Q3: "Tracer rounds?" dropped out of this list in your cleanup. Still want tracers (rifles/snipers every round, MG every 3rd, a warm glowing streak)? Holding it (T261) until you say. The machine-gun bug I found on the way (clients never see MG bullets) gets fixed either way.
