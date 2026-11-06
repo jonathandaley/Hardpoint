@@ -271,6 +271,8 @@ func _on_start_pressed() -> void:
 	Game._rpc_match_start.rpc(map_path, roster, match_seed, Game.mp_lobby.get("mode", "beacons"))
 
 # T184: static -- Game.setup_sp_match builds the SP roster with these too.
+const BotNames := preload("res://scripts/BotNames.gd")
+
 static func _build_roster() -> Array:
 	var roster: Array = []
 	var slot_idx := 0
@@ -327,6 +329,16 @@ static func _build_roster() -> Array:
 				team_counts[team] += 1
 				bot_id += 1
 
+	# T325: callsigns ride the roster to every peer -- players keep theirs, bots draw from the deck
+	var taken: Array = []
+	for e in roster:
+		if int(e["peer_id"]) != 0:
+			e["name"] = str(Game.mp_lobby["peers"].get(e["peer_id"], {}).get("pilot_name", "Pilot"))
+			taken.append(e["name"])
+	for e in roster:
+		if int(e["peer_id"]) == 0:
+			e["name"] = BotNames.next_name(taken)
+			taken.append(e["name"])
 	return roster
 
 static func _default_bot_squad(bot_id: int) -> Array:

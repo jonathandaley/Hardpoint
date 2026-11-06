@@ -30,6 +30,7 @@ var _bot_bg_bars: Array = []       # black background rects (constant full width
 var _ally_mechs: Array = []
 var _ally_health_bars: Array = []  # green foreground health rects
 var _ally_bg_bars: Array = []      # black background rects
+var _name_tags: Array = []         # T325: [bot tags..., ally tags...] parallel to the bars
 var _spectate_label: Label = null
 
 var _beacons: Array = []
@@ -144,6 +145,7 @@ func hide_spawn_picker() -> void:
 		_minimap_corner()
 
 func setup_bot_bars(mechs: Array) -> void:
+	_clear_name_tags()
 	# Free all dynamically created bars from a previous call.
 	for bar in _bot_health_bars:
 		if is_instance_valid(bar) and bar != bot_health_bar:
@@ -176,6 +178,7 @@ func setup_bot_bars(mechs: Array) -> void:
 			_bot_health_bars.append(bar)
 
 func setup_ally_bars(mechs: Array) -> void:
+	_clear_name_tags()
 	for bar in _ally_health_bars:
 		if is_instance_valid(bar):
 			bar.queue_free()
@@ -415,7 +418,7 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 		var pilot_name: String
 		var elo_str: String
 		if peer_id == 0:
-			pilot_name = "[BOT]"
+			pilot_name = "[BOT] " + str(entry.get("name", "")) if str(entry.get("name", "")) != "" else "[BOT]"  # T325
 			elo_str = "-"
 		else:
 			var pdata: Dictionary = Game.mp_lobby["peers"].get(peer_id, {})
@@ -681,7 +684,46 @@ func _update_beacon_bars() -> void:
 		dot.set("cap_team", beacon.get("_capturing_team")   if "_capturing_team"   in beacon else -1)
 		dot.queue_redraw()
 
+# T325: the callsign (roster "name") over each health bar, shown with it.
+func _clear_name_tags() -> void:
+	for t in _name_tags:
+		if is_instance_valid(t):
+			t.queue_free()
+	_name_tags.clear()
+
+func _update_name_tags() -> void:
+	var mechs: Array = _bot_mechs + _ally_mechs
+	var bgs: Array = _bot_bg_bars + _ally_bg_bars
+	while _name_tags.size() < mechs.size():
+		var tag := Label.new()
+		tag.add_theme_font_size_override("font_size", 7)
+		tag.add_theme_constant_override("outline_size", 2)
+		tag.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+		tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tag.visible = false
+		add_child(tag)
+		_name_tags.append(tag)
+	var roster: Array = Game.mp_active_match["roster"]
+	for i in mechs.size():
+		var tag: Label = _name_tags[i]
+		var bg: ColorRect = bgs[i]
+		tag.visible = bg.visible
+		if not tag.visible:
+			continue
+		if tag.text == "":
+			var ri: int = int(mechs[i].get("roster_idx"))
+			tag.text = str(roster[ri].get("name", "")) if ri >= 0 and ri < roster.size() else ""
+		tag.offset_left = bg.offset_left - 50.0
+		tag.offset_right = bg.offset_right + 50.0
+		tag.offset_top = bg.offset_top - 11.0
+		tag.offset_bottom = bg.offset_top - 1.0
+
 func _update_bot_bar() -> void:
+	_update_bot_bar_impl()
+	_update_name_tags()
+
+func _update_bot_bar_impl() -> void:
 	var camera := get_viewport().get_camera_3d()
 	for i in _bot_mechs.size():
 		var m: Node = _bot_mechs[i]

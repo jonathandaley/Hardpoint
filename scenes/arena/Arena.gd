@@ -592,6 +592,7 @@ func _build_mp_stats() -> Array:
 			pre_elo = Game.mp_lobby["peers"][peer_id].get("elo", 0)
 		stats.append({
 			"peer_id":      peer_id,
+			"name":         str(entry.get("name", "")),  # T325
 			"kills":        0,
 			"team":         t,
 			"dealt":        dealt,
