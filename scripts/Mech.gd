@@ -18,6 +18,7 @@ const MachineGun    = preload("res://scripts/MachineGun.gd")
 
 signal died
 signal damaged
+signal damage_event(amount: float, source: Node)  # T243: who hit whom, for the balance tester
 
 @export var base_walk_speed: float = 3.15
 @export var base_reload_rate: float = 1.0
@@ -543,6 +544,7 @@ func _apply_damage(amount: float, source: Node3D = null) -> void:
 		src_mech.damage_dealt_total += actual
 		last_attacker = src_mech
 	damaged.emit()
+	damage_event.emit(actual, source)
 	if Engine.get_physics_frames() - _last_hurt_sfx >= 3:  # T330: one per blast, not per pellet
 		_last_hurt_sfx = Engine.get_physics_frames()
 		SoundManager.play_sfx("damage_hit", global_position)
