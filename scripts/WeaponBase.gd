@@ -148,6 +148,12 @@ func start_reload_cosmetic() -> void:
 # T316 (user 2026-11-05: the bullet impact sound "should not play for laser, arc, or patience. Any
 # raycast weapons added in the future, either"): only a projectile's hit plays it -- projectile
 # weapons pass by_projectile from their on_hit; any raycast weapon is silent by default.
+# T330 (user: three heavy shotguns point-blank lagged the game): one impact sound + spark burst per
+# CUE_GAP physics ticks per weapon, so a 25-pellet blast makes one, not 25 (657 extra nodes for
+# three blasts before). The hit confirm + its owner RPC stay per hit (hit_confirm oracle, B32).
+const CUE_GAP := 3
+var _last_cue_tick := -CUE_GAP
+
 func _emit_hit_if_visible(target: Node, hit_pos: Vector3 = Vector3.ZERO, by_projectile := false) -> void:
 	if target != null and target.get("is_stealthy"):
 		return
@@ -161,6 +167,10 @@ func _emit_hit_if_visible(target: Node, hit_pos: Vector3 = Vector3.ZERO, by_proj
 		if owner_peer > 1 and owner_peer in multiplayer.get_peers():
 			var slot: int = owner_mech.get_weapons().find(self)
 			owner_mech.rpc_id(owner_peer, &"_sync_hit_confirmed", slot)
+	var tick := Engine.get_physics_frames()
+	if tick - _last_cue_tick < CUE_GAP:
+		return
+	_last_cue_tick = tick
 	if impact_sound_enabled and by_projectile:
 		var sfx_pos := hit_pos if hit_pos != Vector3.ZERO else (target as Node3D).global_position
 		SoundManager.play_sfx("hit_impact", sfx_pos, _bc)

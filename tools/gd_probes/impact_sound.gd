@@ -28,6 +28,7 @@ func _ready() -> void:
 			bad = true
 		if n == "RifleLight":
 			before = _impacts()
+			w.set("_last_cue_tick", -1000)  # T330: one cue per blast -- this is the next blast
 			w.call("_emit_hit_if_visible", dummy, dummy.global_position, true)
 			if _impacts() <= before:
 				_fail("a projectile hit no longer plays the impact sound")
