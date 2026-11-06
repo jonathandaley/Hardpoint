@@ -6,8 +6,6 @@ Gun shells should stick around longer, at least at higher graphics settings. I d
 
 Check for rocket launcher accuracy? Didn't work in Sydney, not sure what was up with that. 
 
-Don't spawn the first mech until it's picked (currently spawns the first mech then switches)
-
 Death match (no beacon) match option
 
 All lock-on weapons should not lock on until the weapon is within range. Square reticle should still be visible at any range. 

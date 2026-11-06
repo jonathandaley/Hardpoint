@@ -196,3 +196,4 @@ date|task|outcome|commit|finding|suite
 2026-11-06|T303|DONE|batch 10 (local commit)|Corvette floor plan x0.7 (S const) incl. corridors 7.7 m; the scene's alcove beacons had to move too (first stuck check: 24 unreached -- they sat outside the shrunken hull); Everest + default stuck checks clean; corvette probe red before|batch suite pending
 2026-11-06|T288|DONE|batch 10 (local commit)|Badlands ruins: 43 window holes (sill/piers/lintel, some lintels fallen), own RNG so layout + stuck check unchanged; render-checked; probe badlands_windows red before|batch suite pending
 2026-11-06|batch 10|DONE|T303, T288|suite green over the stack; pausing at a clean point (5 h usage at 90%)|118/118
+2026-11-06|T279|DONE|solo (new RPCs)|first mech staged (unseen, no collision, untargetable) on every peer during the start pick; swap retires it unseen, keep / refused / timeout reveal it via the server; probe first_mech_staged red before|suite + sweep pending
