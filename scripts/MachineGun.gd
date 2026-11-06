@@ -60,7 +60,7 @@ func _ready() -> void:
 # ramp independent of render frame rate.
 func _physics_process(delta: float) -> void:
 	super._physics_process(delta)  # base cooldown/reload/refill timers
-	if _trigger_held:
+	if _trigger_held or _remote_firing:  # T262: a client ramps from the loop on/off RPC
 		_current_rate = minf(_current_rate + rate_accel * delta, max_fire_rate)
 	else:
 		_current_rate = maxf(_current_rate - rate_decay * delta, base_fire_rate)
@@ -70,6 +70,48 @@ func _process(_delta: float) -> void:
 	if _reloading and _loop_player != null and _loop_player.playing:
 		_loop_player.stop()
 		_bc_loop(false)
+	_update_barrel_glow()
+
+# T262 (HUMAN_FOUND_ISSUES 2026-11-05: "barrel should start glowing as ramp-up increases,
+# red-hot at max speed"): an additive shell over the kit barrel + muzzle (boxes 20/21 of
+# WeaponKit "MachineGun", same scale as WeaponVisuals.apply) from dull red to red-hot as
+# the fire rate climbs, fading as it cools. Clients have no fire() calls, so they ramp
+# _current_rate from the replicated loop on/off instead (_remote_firing).
+const GLOW_BOXES := [[Vector3(0.14, 0.14, 0.73), Vector3(0, 0.02, -0.86)], [Vector3(0.18, 0.18, 0.15), Vector3(0, 0.02, -1.24)]]
+const GLOW_COOL := Color(0.45, 0.03, 0.0)
+const GLOW_HOT := Color(1.0, 0.32, 0.08)
+var _remote_firing := false
+var _glow: MeshInstance3D = null
+var _glow_mat: StandardMaterial3D = null
+
+func get_heat() -> float:
+	return clampf((_current_rate - base_fire_rate) / maxf(max_fire_rate - base_fire_rate, 0.001), 0.0, 1.0)
+
+func _update_barrel_glow() -> void:
+	var h := get_heat()
+	if _glow == null:
+		if h <= 0.02:
+			return
+		var s := (0.8 if slot_size == 1 else 0.5) * visual_scale
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		for b in GLOW_BOXES:
+			var box := BoxMesh.new()
+			box.size = (b[0] as Vector3) * s * 1.04
+			st.append_from(box, 0, Transform3D(Basis(), (b[1] as Vector3) * s))
+		_glow_mat = StandardMaterial3D.new()
+		_glow_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_glow_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		st.set_material(_glow_mat)  # on the surface: Mech's shield flash nulls material_override (B112)
+		_glow = MeshInstance3D.new()
+		_glow.name = "BarrelGlow"
+		_glow.mesh = st.commit()
+		_glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(_glow)
+	_glow.visible = h > 0.02
+	var c := GLOW_COOL.lerp(GLOW_HOT, h) * h  # additive: scaling rgb fades it in
+	c.a = 1.0
+	_glow_mat.albedo_color = c
 
 func _start_mg_loop() -> void:
 	var stream := SoundManager.get_sfx_stream("machinegun_fire")
@@ -110,6 +152,7 @@ func _bc_loop(on: bool) -> void:
 func _rpc_mg_loop(on: bool) -> void:
 	if multiplayer.is_server():
 		return
+	_remote_firing = on  # T262
 	if on:
 		_start_mg_loop()
 	elif _loop_player != null and _loop_player.playing:
