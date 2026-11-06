@@ -30,8 +30,6 @@ Beacon capture count at end of match is wrong (only tried singleplayer): everyon
 
 Bots should pick spawnpoints instead of all spawning together.
 
-Guns should list their range in the description
-
 Bogged down status effect should have a HUD icon and slowdown % listed. This should go under the minimap.
 
 Death match (no beacon) match option
