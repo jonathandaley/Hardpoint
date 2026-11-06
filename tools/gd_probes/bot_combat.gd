@@ -97,6 +97,8 @@ func _ready() -> void:
 	# 3. lock: mark one of E's weapons lock-only, park E 15 m from team 0, no damage.
 	e.get_weapons()[0].requires_lock = true
 	e.invincible = true  # no hits -> no retaliation switches during the lock window
+	for m in team0:  # B115: the other bots may kill E's only targets inside the 10 s window
+		m.invincible = true
 	var a3 := a as Node3D
 	(e as Node3D).global_position = a3.global_position - a3.global_transform.basis.z * 15.0 + Vector3.UP * 3.0  # in front of A, facing it
 	var locked := false
