@@ -14,8 +14,6 @@ Bots should eject on death like players
 
 Rangefinder should activate at the same time as the targeting reticle
 
-Always-on rangefinder should be available as a pilot skill, only one level. Once bought, togglable. R?
-
 Check for rocket launcher accuracy? Didn't work in Sydney, not sure what was up with that. 
 
 Map picker in singleplayer should have a play button so that picking a map doesn't immediately start it. Play button should go where the back button is now, back button should shift to the left.
@@ -38,15 +36,13 @@ Make sure elite bots don't miss, and in fact shoot ahead of moving targets. I wa
 
 Arc weapon should be unable to fire until it's within range.
 
-All lock-on weapons should not lock on until the weapon is within range.
+All lock-on weapons should not lock on until the weapon is within range. Square reticle should still be visible at any range. 
 
 Kestrel shield is too strong.
 
 Cesh bots should use stealth more intelligently.
 
 Arc weapon visual is sometimes broken, seems to always work for bots? Flaky error.
-
-Beacon contested in stealth stays contested indefinitely.
 
 Rangefinder toggle is actually not what I wanted. Remove everything about the pilot skill; instead, make the only rangefinder be always-active, and only show distance to an enemy that's in the targeting reticle. So no range shown looking at a wall, unless there's an enemy behind it.
 
@@ -96,6 +92,7 @@ Game lagged when shot at close range with three heavy shotguns at once. Too many
 
 New "missile_explosion" sound in audio/import, played when a missile explodes.
 
+Make rockets be smarter to avoid hitting obstacles.
 
 
 
