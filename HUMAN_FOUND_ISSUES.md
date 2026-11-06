@@ -32,8 +32,6 @@ Patience damage should scale higher; human testing shows sniper to be vastly bet
 
 Laser and arc should not go through targets, but stop when hitting a mech.
 
-Pegasus sometimes heals too much in a single jump?
-
 Corvette feels very spread out, shrink it by 30%.
 
 Sign up screen isn't scrollable, so currently makes it so you have to exit the game to leave the screen. Both login and signup have a "server" field, what is that for? That's not a normal thing with other games, so if that's necessary for some reason it should probably be moved somewhere else.
@@ -86,3 +84,5 @@ Tracer rounds might end up as a toggleable pilot skill. Not sure yet; add the id
 Q4 (T266, from Claude 2026-11-06): true online (lemon.limedaley.com) is next in the queue. You asked me to flag the network security review (T290) before any online work -- flagging it now. Do T290 first, or go ahead with T266? Skipping T266 until you say.
 
 Q5 (T263, from Claude 2026-11-06): there has never been spent-shell code in the game (I searched all of git history). What you saw was probably the grey smoke puffs each bullet leaves along its path (they shrink away in 0.18 s) or the orange impact sparks (gone in ~0.2 s). Which did you mean -- or do you want real casings ejected from the guns (falling, bouncing, lingering longer at higher effect settings)? Holding T263 until you say.
+
+Q6 (T301, from Claude 2026-11-06): Pegasus's jump heals exactly once per jump (checked: mashing the key through a jump gives one heal; the 16 s cooldown blocks the rest) -- but it is a flat +80 HP, 27% of Pegasus's 300 at once, which may be what reads as "too much". Lower it (e.g. +50), make it a % of max HP, or heal over the jump instead of instantly? Leaving it at +80 until you say.
