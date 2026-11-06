@@ -56,6 +56,24 @@ class PeerLog:
     def at(self, tick, mech_id):
         return self.by_key.get((tick, mech_id))
 
+    def has_ms(self):
+        if not hasattr(self, "_ms"):
+            pairs = sorted({(s["unix_ms"], s["tick"]) for s in self.snaps if "unix_ms" in s})
+            self._ms = ([u for u, _ in pairs], [t for _, t in pairs])
+        return bool(self._ms[0])
+
+    def tick_at_ms(self, ms):
+        """B122: this peer's tick nearest wall time `ms` (None out of its logged range)."""
+        if not self.has_ms():
+            return None
+        times, ticks = self._ms
+        if not times[0] - 50 <= ms <= times[-1] + 50:
+            return None
+        import bisect
+        i = bisect.bisect_left(times, ms)
+        j = min((k for k in (i - 1, i) if 0 <= k < len(times)), key=lambda k: abs(times[k] - ms))
+        return ticks[j]
+
     def beacon_at(self, tick, beacon_id):
         return self.beacon_by_key.get((tick, beacon_id))
 
@@ -188,9 +206,16 @@ def cross_series(server, client, mech_id, mag_fn, skew=CROSS_PEER_SKEW_TICKS):
         cs = client.at(t, mech_id)
         if cs is None:
             continue
+        # B122: centre on the server tick at this snapshot's wall time -- a client that ran slow
+        # under load drifts 20+ ticks from load_run's one median offset over a minute
+        tc = t
+        if "unix_ms" in cs and server.has_ms():
+            tc = server.tick_at_ms(cs["unix_ms"])
+            if tc is None:
+                continue  # T152: logged while the server wasn't -- no counterpart
         best = None
         for dt in range(-skew - INTERP_LAG_TICKS, skew + 1):
-            ss = server.at(t + dt, mech_id)
+            ss = server.at(tc + dt, mech_id)
             if ss is not None:
                 m = mag_fn(ss, cs)
                 best = m if best is None else min(best, m)
