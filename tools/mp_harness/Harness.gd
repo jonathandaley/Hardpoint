@@ -205,7 +205,7 @@ func _quit_with_server() -> void:
 		var scene := get_tree().current_scene
 		print("[Harness] server_lost_check %s: connected=%s scene=%s rejoin=%s" % [_key, str(_mp_connected()).to_lower(),
 			scene.name if scene != null else "<none>", str(_rejoining).to_lower()])
-		get_tree().quit(0))
+		_quit_clean(0))
 
 func _mp_connected() -> bool:
 	var mp := multiplayer.multiplayer_peer
@@ -487,14 +487,33 @@ func _process(_delta: float) -> void:
 		var scene := get_tree().current_scene
 		print("[Harness] peer_check %s: connected=%s scene=%s" % [_key, str(connected).to_lower(),
 			scene.name if scene != null else "<none>"])
-	if _deadline_frame >= 0 and Engine.get_physics_frames() >= _deadline_frame:
+	if _deadline_frame >= 0 and Engine.get_physics_frames() >= _deadline_frame and not _quitting:
 		print("[Harness] duration reached, quitting (%s)" % _role)
 		if not Game.account.is_empty():  # T207: account results must not land in the local file
 			var cfg := ConfigFile.new()
 			cfg.load("user://profile.cfg")
 			print("[Harness] local_profile elo=%s" % str(cfg.get_value("profile", "elo", "none")))
 		Game.disconnect_mp()
-		get_tree().quit(0)
+		_quit_clean(0)
+
+# B124: quitting mid-match leaked at exit -> crash_scan FAIL (arc_audio@bad: the client's mech died
+# in the last ~2 s): (a) a sound still playing (the death explosion) -- the dummy audio thread
+# needs real time to drop a stopped playback (4 in 10 in a repro -> 0 in 10); (b) a coroutine
+# still suspended (the 0.75 s death-camera pod ride awaits) leaks its function state + Variants.
+# Stop every player and let QUIT_SETTLE_S of real time pass first.
+const QUIT_SETTLE_S := 1.0
+var _quitting := false
+
+func _quit_clean(code: int) -> void:
+	if _quitting:
+		return
+	_quitting = true
+	Game.sync_logging_enabled = false  # the settle second isn't the match: log nothing more
+	for n in get_tree().root.find_children("*", "AudioStreamPlayer3D", true, false) \
+			+ get_tree().root.find_children("*", "AudioStreamPlayer", true, false):
+		n.stop()
+	await get_tree().create_timer(QUIT_SETTLE_S, true, false, true).timeout
+	get_tree().quit(code)
 
 func _lobby_tick() -> void:
 	if _lobby_wait and get_tree().current_scene != null and get_tree().current_scene.name == "Lobby":
