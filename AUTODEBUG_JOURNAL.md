@@ -151,3 +151,4 @@ date|task|outcome|commit|finding|suite
 2026-11-05|T283+T308|DONE|batch 2 (local commit)|hangar weapon hover tooltip (range/damage/rate/magazine) + stats on 3 lines under the picker, placed by its real height; one probe hangar_weapon_info red before|batch suite pending
 2026-11-05|T300+T302|DONE|batch 2 (local commit)|Factory fog 0.004 -> 0.0015; bulkhead stripes 10 cm longer than their walls (end faces were coplanar -> flicker); one probe factory_no_zfight red before (all 8 stripe ends + fog)|batch suite pending
 2026-11-05|batch 2|DONE|T283+T308, T300+T302|suite green over the stack|94/94
+2026-11-05|T309|DONE|batch 3 (local commit)|crosshair concave taper to a hairline (fractional AA segments), rim on the outer half only; probe crosshair_wedges rewritten for it, red before|batch suite pending
