@@ -36,6 +36,7 @@ def main():
     ap.add_argument("--no-probes", action="store_true", help="skip tools/gd_probes (e.g. for --net sweeps)")
     ap.add_argument("--soak", action="store_true", help="T152: also run 'soak' scenarios (one full match, ~15 min)")
     ap.add_argument("--jobs", type=int, default=6, help="T292: probes run this many at a time (1 = serial)")
+    ap.add_argument("--scen-jobs", type=int, default=1, help="T293: MP scenarios side by side (ports moved +100 per worker)")
     args = ap.parse_args()
     # B117: run outputs (movement CSVs, logs) live under build/; without a .gdignore Godot's
     # importer treats every CSV as a translation (thousands of them) and crashed on --import
@@ -67,6 +68,12 @@ def main():
 
 
 def _run_scenarios(args, scenarios, net, label, results):
+    # T293: --scen-jobs N runs N scenarios side by side. Each worker k > 0 runs a copy of its
+    # scenario moved to port + 100*k (scenario ports are consecutive; the account port +1 and
+    # proxy +1000 of neighbours would collide). Results print in scenario order.
+    import queue
+    from concurrent.futures import ThreadPoolExecutor
+    todo = []
     for spath in scenarios:
         with open(spath) as f:
             scen = json.load(f)
@@ -77,30 +84,57 @@ def _run_scenarios(args, scenarios, net, label, results):
             continue  # T152: soaks run on request (--soak / --only), not every verify
         if scen.get("review") and not (args.only and name in args.only):
             continue  # T156: rendered screenshot runs are for review, not verdicts
-        out = os.path.join(os.path.abspath(args.out_root), name + ("@" + net if label else ""))
-        run_args = ["--timeout", str(max(args.timeout, 1800.0) if scen.get("soak") else args.timeout)]
-        if args.godot:
-            run_args += ["--godot", args.godot]
-        if net is not None:
-            run_args += ["--net", net]
-        print("=== %s ===" % name, flush=True)
-        rc = sh([os.path.join(HERE, "run_scenario.py"), spath, os.path.join(out, "run1")] + run_args)
-        cmp_args = [os.path.join(HERE, "sync_compare.py"), spath, os.path.join(out, "run1")]
-        # T151: a second run only means something on a lossless link (random delay shifts input ticks)
-        if rc == 0 and "determinism" in scen.get("oracles", []) and net in (None, "none"):
-            rc = sh([os.path.join(HERE, "run_scenario.py"), spath, os.path.join(out, "run2")] + run_args)
-            cmp_args += ["--baseline-run", os.path.join(out, "run2")]
-        if rc != 0:
-            print("!!! %s: run_scenario failed (exit %d)" % (name, rc))
-            results.append((name + ("@" + net if label else ""), "ERROR"))
-            continue
-        rc = sh(cmp_args)
-        results.append((name + ("@" + net if label else ""), "PASS" if rc == 0 else "FAIL"))
-        # T163: match 2+ of a multi-match scenario, judged on its own logs (Game writes run1/match<n>/)
-        for n in range(2, int(scen.get("matches", 1)) + 1):
-            mdir = os.path.join(out, "run1", "match%d" % n)
-            ok = os.path.exists(os.path.join(mdir, "server.jsonl")) and sh(cmp_args[:2] + [mdir]) == 0
-            results.append((name + "#m%d" % n + ("@" + net if label else ""), "PASS" if ok else "FAIL"))
+        todo.append((spath, scen, name))
+    slots = queue.Queue()
+    for k in range(max(1, args.scen_jobs)):
+        slots.put(k)
+
+    def one(job):
+        k = slots.get()
+        try:
+            return _run_one_scenario(args, job, net, label, k)
+        finally:
+            slots.put(k)
+
+    with ThreadPoolExecutor(max(1, args.scen_jobs)) as pool:
+        for rows in pool.map(one, todo):
+            results.extend(rows)
+
+
+def _run_one_scenario(args, job, net, label, slot):
+    spath, scen, name = job
+    results = []
+    out = os.path.join(os.path.abspath(args.out_root), name + ("@" + net if label else ""))
+    if slot > 0:  # T293: a copy on its own port block
+        os.makedirs(out, exist_ok=True)
+        moved = dict(scen, port=int(scen.get("port", 8900)) + 100 * slot)
+        spath = os.path.join(out, "scenario_slot%d.json" % slot)
+        with open(spath, "w") as f:
+            json.dump(moved, f)
+    run_args = ["--timeout", str(max(args.timeout, 1800.0) if scen.get("soak") else args.timeout)]
+    if args.godot:
+        run_args += ["--godot", args.godot]
+    if net is not None:
+        run_args += ["--net", net]
+    print("=== %s ===" % name, flush=True)
+    rc = sh([os.path.join(HERE, "run_scenario.py"), spath, os.path.join(out, "run1")] + run_args)
+    cmp_args = [os.path.join(HERE, "sync_compare.py"), spath, os.path.join(out, "run1")]
+    # T151: a second run only means something on a lossless link (random delay shifts input ticks)
+    if rc == 0 and "determinism" in scen.get("oracles", []) and net in (None, "none"):
+        rc = sh([os.path.join(HERE, "run_scenario.py"), spath, os.path.join(out, "run2")] + run_args)
+        cmp_args += ["--baseline-run", os.path.join(out, "run2")]
+    if rc != 0:
+        print("!!! %s: run_scenario failed (exit %d)" % (name, rc))
+        results.append((name + ("@" + net if label else ""), "ERROR"))
+        return results
+    rc = sh(cmp_args)
+    results.append((name + ("@" + net if label else ""), "PASS" if rc == 0 else "FAIL"))
+    # T163: match 2+ of a multi-match scenario, judged on its own logs (Game writes run1/match<n>/)
+    for n in range(2, int(scen.get("matches", 1)) + 1):
+        mdir = os.path.join(out, "run1", "match%d" % n)
+        ok = os.path.exists(os.path.join(mdir, "server.jsonl")) and sh(cmp_args[:2] + [mdir]) == 0
+        results.append((name + "#m%d" % n + ("@" + net if label else ""), "PASS" if ok else "FAIL"))
+    return results
 
 
 def _run_probes(args, results):
