@@ -202,3 +202,4 @@ date|task|outcome|commit|finding|suite
 2026-11-06|T287|FOLDED|-|user: put the Kestrel shield in the balance pass with a note that they think it is too strong; numbers + simulated option recorded in T243 (an arc alone never breaks it today), no stat change now|-
 2026-11-06|T285 verify|DONE|-|suite 120/120, sweep 60/60|120/120 + net 60/60
 2026-11-06|T299|DONE|batch 11 (local commit)|laser: muzzle-line ray, a mech/shield in the way stops the beam + takes the damage; arc bolt ends at its ray hit; probe beam_stops red before (first try was a false red: a process-disabled body leaves physics -- DISABLE_MODE_KEEP_ACTIVE)|batch suite pending (after the DM measurement)
+2026-11-06|T334|DONE|batch 11 (local commit)|HUMAN_FOUND note with no SPEC row (lock-on only within range): lock timer needs the candidate within the farthest lock weapon range, red box unchanged at any range; probe lock_range red before (90 m arc locked at 115 m)|batch suite pending

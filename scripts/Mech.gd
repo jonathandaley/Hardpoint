@@ -316,6 +316,14 @@ func has_lock_weapon() -> bool:
 			return true
 	return false
 
+# T334: the farthest reach of our lock weapons (0 = none).
+func lock_weapon_range() -> float:
+	var r := 0.0
+	for w in _weapons:
+		if is_instance_valid(w) and w.get("requires_lock") == true:
+			r = maxf(r, float(w.get("range")))
+	return r
+
 func get_exclude_rids() -> Array:
 	var rids: Array = [get_rid()]
 	if is_instance_valid(_shield) and _shield.visible:
@@ -1173,6 +1181,11 @@ func _update_lock(delta: float) -> void:
 		if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 			_broadcast_lock_state()
 		return
+	# T334 (HUMAN_FOUND 2026-11-05: "All lock-on weapons should not lock on until the weapon is
+	# within range. Square reticle should still be visible at any range."): the red box above
+	# (lock_eligible) stays; the lock itself only builds within a lock weapon's range.
+	if candidate != null and global_position.distance_to(candidate.global_position) > lock_weapon_range():
+		candidate = null
 	if candidate == null:
 		_lock_timer = 0.0
 		_lock_candidate = null
