@@ -405,9 +405,9 @@ T296|.|arc weapon visual still sometimes broken, seems always fine for bots (HUM
 T297|.|beacon contested by a stealthed mech stays contested indefinitely (HUMAN_FOUND 2026-11-05 late): probe + fix|-
 T298|.|Patience damage scales higher (HUMAN_FOUND 2026-11-05 late: "sniper vastly better than patience in every situation I tried"): compare DPS / burst vs Sniper at equal charge times, retune max_damage (and min), numbers in the journal. Keep the scene's `damage` = max_damage: Mech.request_damage rejects hits > 1.5 x source.damage (V28)|T260,T307
 T299|.|laser and arc stop at the first mech they hit instead of passing through (HUMAN_FOUND 2026-11-05 late): beam ends at the hit; probe both|T259
-T300|.|Factory: less atmospheric haze (HUMAN_FOUND 2026-11-05 late)|T234
+T300|x|Factory: less atmospheric haze (HUMAN_FOUND 2026-11-05 late) -> DONE: fog density 0.004 -> 0.0015; probe factory_no_zfight red before|T234
 T301|.|Pegasus sometimes heals too much in one jump? (HUMAN_FOUND 2026-11-05 late): check jump_heal fires once per jump (B-row if not)|T240
-T302|.|Factory: yellow bands around some buildings z-fight (same depth) (HUMAN_FOUND 2026-11-05 late)|T234
+T302|x|Factory: yellow bands around some buildings z-fight (same depth) (HUMAN_FOUND 2026-11-05 late) -> DONE: the bulkhead wall stripes ran exactly the wall length (end faces in the wall end planes); now 5 cm proud at each end; probe factory_no_zfight (no emissive box shares a visible face plane with another box) red before: the 4 bulkhead stripes x 2 ends|T234
 T303|.|Corvette 30% smaller (HUMAN_FOUND 2026-11-05 late: "feels very spread out"); rerun stuck checks|T235
 T304|.|remove the debug mech + the E "mark set" key, archive their code (docs/archive or similar), drop "(DEBUG)" from the window title (HUMAN_FOUND 2026-11-05 late)|-
 T305|~|PARKED (user 2026-11-05 late: "Defer until I decide more ... Not for every map, though: Redwood's floor is great") map surface texturing looks blurry (HUMAN_FOUND 2026-11-05 late: "make the pixels/texels bigger... like the bot texture, sharp bigger pixels"): bigger texels, nearest filtering, on map floors and obstacles|T241
