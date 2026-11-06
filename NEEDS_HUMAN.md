@@ -13,3 +13,4 @@ Good. Make the box background opaque so it's easier to read.
 Pretty good. It looks like it does run into pixel-width errors, as the icon changes if I fullscreen the game. Probably good enough for now.
 
 - 2026-11-05 | T297/B116 | "Beacon contested in stealth stays contested indefinitely": the contest never cleared at all (stealth or not) until someone captured; it now goes back to the owner's colour once only one team (or nobody) is in the zone. Clients also now see contests and the capture bar draining. If you still see a stuck yellow beacon with a stealthed mech near it, re-add the note. | scripts/Beacon.gd | check
+- 2026-11-06 | T284 | Bogged-down status: a small green water icon + "BOGGED -45%" just under the minimap while you wade (it ramps with the 5 s wade-in / 2 s wade-out). Not seen by eye: size / colour in HUD._update_bog_status. | scripts/HUD.gd | look call
