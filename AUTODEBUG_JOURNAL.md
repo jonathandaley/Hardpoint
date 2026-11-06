@@ -229,3 +229,4 @@ date|task|outcome|commit|finding|suite
 2026-11-06|T243 tooling verify|DONE|-|suite 132/132; queue review: T65 obsolete, T66 -> T291, T29 music asked in NEEDS_HUMAN|132/132
 2026-11-06|T328|DONE|local commit|match canvas EXPANDs to the window shape (Arena sets root content_scale_aspect, restores KEEP on exit), HUD re-lays on resize (weapon slots, score strip, DM clock); menus letterbox (NEEDS_HUMAN); probe hud_shapes red before; renders 21:9 + tall|suite pending (after the balance run)
 2026-11-06|T243|DONE (report)|-|96-match all-map run: no win rate shown off; Vesuvius dominates pairings, Everest beats lights, aerial/rocket/arc weak, Kestrel takes least; proposals in NEEDS_HUMAN (no stat changes)|-
+2026-11-06|T328 verify + T293 trial 1|DONE|-|suite with --scen-jobs 2: 133/133 in 512 s (serial ~13 min)|133/133
