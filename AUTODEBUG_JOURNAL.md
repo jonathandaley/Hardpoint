@@ -188,3 +188,4 @@ date|task|outcome|commit|finding|suite
 2026-11-06|T267|DONE|solo|pilot ejection for every mech on every peer (EjectPod: canister, curved boost, puff trail -- the old CPUParticles trail never drew, no mesh), local death camera rides it 0.75 s before the picker; render-checked; probe pilot_eject red before|suite + sweep pending
 2026-11-06|T267 verify|DONE|-|suite 112/113: squad_exhaust looked for the picker one frame after death -- T267 opens it after the 0.75 s ride; probe now waits up to 1.5 s (green, 5 lives -> 0, over); sweep 60/60|112/113 -> probe fixed + net 60/60
 2026-11-06|T278|DONE|solo (new RPC)|pause menu SELF DESTRUCT: server-side kill of the asker's own mech, normal death flow; probe self_destruct red before|suite + sweep pending
+2026-11-06|T278 verify|DONE|-|suite 114/114, sweep 60/60|114/114 + net 60/60
