@@ -7,7 +7,7 @@ This is the permanent multiplayer regression net -- rerun after every netcode
 change. Exit 0 only if every scenario's aggregate verdict is PASS.
 
 Usage:
-    run_suite.py [out_root] [--godot PATH] [--timeout SEC] [--only NAME ...]
+    run_suite.py [out_root] [--godot PATH] [--timeout SEC] [--only NAME ...] [--jobs N]
 """
 import argparse
 import glob
@@ -35,6 +35,7 @@ def main():
                     help="T139/T151 chaos profile(s) for every scenario, comma-separated (e.g. lan,wifi,bad)")
     ap.add_argument("--no-probes", action="store_true", help="skip tools/gd_probes (e.g. for --net sweeps)")
     ap.add_argument("--soak", action="store_true", help="T152: also run 'soak' scenarios (one full match, ~15 min)")
+    ap.add_argument("--jobs", type=int, default=6, help="T292: probes run this many at a time (1 = serial)")
     args = ap.parse_args()
 
     scenarios = sorted(glob.glob(os.path.join(HERE, "scenarios", "*.json")))
@@ -100,30 +101,37 @@ def _run_scenarios(args, scenarios, net, label, results):
 def _run_probes(args, results):
     # T146: engine-level probes (tools/gd_probes/*.tscn) -- tiny scenes that drive
     # one code path headless and must exit 0, print their done line, and log no
-    # engine errors (crash_scan rules).
+    # engine errors (crash_scan rules). T292: each has its own userdata dir, so they
+    # run --jobs at a time (9 min serial -> ~2); results still print in name order.
+    from concurrent.futures import ThreadPoolExecutor
     sys.path.insert(0, HERE)
     from oracles import crash_scan
-    for probe in sorted(glob.glob(os.path.join(HERE, "gd_probes", "*.tscn"))):
+    godot = args.godot or os.environ.get("GODOT", os.path.expanduser("~/bin/godot"))
+
+    def one(probe):
         name = "probe:" + os.path.basename(probe)[:-5]
         out = os.path.join(os.path.abspath(args.out_root), name.replace(":", "_"))
         os.makedirs(out, exist_ok=True)
         log = os.path.join(out, "probe.log")
         env = dict(os.environ, XDG_DATA_HOME=os.path.join(out, "userdata"))
-        godot = args.godot or os.environ.get("GODOT", os.path.expanduser("~/bin/godot"))
         with open(log, "w") as f:
             try:
+                # 180 s: room for the ~110 s map_stuck_big when probes share the CPU
                 rc = subprocess.run([godot, "--headless", "--path", os.path.dirname(HERE),
                                      "res://tools/gd_probes/" + os.path.basename(probe), "--quit-after", "6000"],
-                                    stdout=f, stderr=subprocess.STDOUT, env=env, timeout=120).returncode
+                                    stdout=f, stderr=subprocess.STDOUT, env=env, timeout=180).returncode
             except subprocess.TimeoutExpired:
                 rc = -1
         done = "[probe]" in open(log, errors="replace").read()
         hit = crash_scan.scan_log(log)
         ok = rc == 0 and done and hit is None
-        print("=== %s === %s%s" % (name, "PASS" if ok else "FAIL",
-                                   "" if ok else " (exit %s, done=%s, %s)" % (rc, done, hit)))
-        results.append((name, "PASS" if ok else "FAIL"))
+        return name, ok, "" if ok else " (exit %s, done=%s, %s)" % (rc, done, hit)
 
+    probes = sorted(glob.glob(os.path.join(HERE, "gd_probes", "*.tscn")))
+    with ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
+        for name, ok, why in pool.map(one, probes):
+            print("=== %s === %s%s" % (name, "PASS" if ok else "FAIL", why), flush=True)
+            results.append((name, "PASS" if ok else "FAIL"))
 
 if __name__ == "__main__":
     sys.exit(main())
