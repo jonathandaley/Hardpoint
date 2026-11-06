@@ -1,8 +1,10 @@
 extends Node
 # T299 probe (HUMAN_FOUND 2026-11-05 late: "Laser and arc should not go through targets, but
-# stop when hitting a mech"): an enemy standing between the gun and the aim point -- off the
-# camera's crosshair ray (laser) / short of the locked target (arc) -- ends the beam where it
-# is hit, and the laser's damage lands on it.
+# stop when hitting a mech"; user 2026-11-06: "make sure arc hits the mech that it's locked onto,
+# not the first in its path. Laser hitting the first is right"): an enemy standing between the
+# gun and the crosshair point (off the camera ray) ends the laser beam and takes its damage; an
+# enemy between the arc and its locked target is passed -- the bolt reaches the target's hull and
+# hurts the target, not the mech in the way.
 
 const SlotDef := preload("res://scripts/WeaponSlotDef.gd")
 
@@ -93,10 +95,15 @@ func _ready() -> void:
 	for i in 2:
 		await get_tree().physics_frame
 	me.set("locked_target", target)
+	var t_hp: float = target.get("health")
+	var b_hp: float = blocker.get("health")
 	w.call("_do_fire")
 	var arc_len: float = w.get("_beam_len")
-	if arc_len > rng * 0.5 + 1.0:
-		_fail("the arc runs %.1f m to its target through the mech %.1f m away" % [arc_len, rng * 0.5])
+	if arc_len < rng - 2.0:
+		_fail("the arc stopped at %.1f m short of its locked target %.1f m away" % [arc_len, rng])
 		return
-	print("[probe] beam_stops done (laser %.1f m / blocker %.1f m, arc %.1f m / %.1f m)" % [beam_len, to_blocker, arc_len, rng * 0.5])
+	if float(target.get("health")) >= t_hp or float(blocker.get("health")) < b_hp:
+		_fail("the arc hurt the mech in the way instead of its locked target")
+		return
+	print("[probe] beam_stops done (laser %.1f m / blocker %.1f m, arc %.1f m / target %.1f m)" % [beam_len, to_blocker, arc_len, rng])
 	get_tree().quit(0)
