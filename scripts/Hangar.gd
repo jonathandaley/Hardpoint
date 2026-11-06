@@ -525,7 +525,8 @@ func _update_mech_panel() -> void:
 		shield_str = "ENERGY"
 	else:
 		shield_str = "-"
-	mech_stats_label.text = "SPEED: %.2f   HEALTH: %.0f   SHIELDS: %s" % [md.walk_speed, md.max_health, shield_str]
+	# T308: one stat per line under the weapon picker (one 16 px line ran into the preview)
+	mech_stats_label.text = "SPEED: %.2f\nHEALTH: %.0f\nSHIELDS: %s" % [md.walk_speed, md.max_health, shield_str]
 	_build_weapon_picker(md)
 
 func _build_weapon_picker(md) -> void:
@@ -583,6 +584,8 @@ func _build_weapon_picker(md) -> void:
 		var wep_lbl := Label.new()
 		wep_lbl.name = "Weapon"
 		wep_lbl.text = wep_name
+		wep_lbl.tooltip_text = weapon_tip(cat_idx)  # T283
+		wep_lbl.mouse_filter = Control.MOUSE_FILTER_PASS  # labels ignore the mouse by default: no tooltip
 		wep_lbl.add_theme_font_size_override("font_size", 13)
 		wep_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		wep_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -598,10 +601,39 @@ func _build_weapon_picker(md) -> void:
 		next_btn.pressed.connect(_on_weapon_cycle.bind(i, 1))
 		row.add_child(next_btn)
 
-	var stats_top: float = picker_top + slots.size() * row_h + 8.0
+	# T308: from the picker's real height (rows are 26 px, not row_h: 3-slot mechs overlapped)
+	var stats_top: float = picker_top + maxf(slots.size() * row_h, picker.get_combined_minimum_size().y) + 8.0
 	mech_stats_label.offset_top = stats_top
-	mech_stats_label.offset_bottom = stats_top + 28.0
+	mech_stats_label.offset_bottom = stats_top + 3.0 * 17.0 + 4.0
 	mech_stats_label.offset_right = 415.0
+	mech_stats_label.add_theme_font_size_override("font_size", 13)  # T308: the picker's size
+
+# T283 (user 2026-11-05: range "in a drop-down mouseover menu", not in the name): hover a
+# weapon in the picker for its numbers. Read once per weapon scene.
+static var _tips := {}
+
+static func weapon_tip(cat_idx: int) -> String:
+	if cat_idx < 0:
+		return ""
+	var path: String = WEAPON_CATALOG[cat_idx]["path"]
+	if not _tips.has(path):
+		var w: Node = (load(path) as PackedScene).instantiate()
+		var lines: Array = ["RANGE  %d m" % roundi(float(w.get("range")))]
+		var dmg: float = float(w.get("max_damage")) if "max_damage" in w else float(w.get("damage"))
+		if "pellet_count" in w:
+			lines.append("DAMAGE  %.0f x %d" % [dmg, int(w.get("pellet_count"))])
+		else:
+			lines.append("DAMAGE  %.0f" % dmg)
+		if "max_charge_time" in w:
+			lines.append("CHARGE  %.0f s" % float(w.get("max_charge_time")))
+		else:
+			var rate: float = float(w.get("max_fire_rate")) if "max_fire_rate" in w else float(w.get("fire_rate"))
+			lines.append("FIRE RATE  %.1f /s" % rate)
+		var mag: int = int(w.get("max_ammo"))
+		lines.append("MAGAZINE  %s" % ("-" if mag < 0 else str(mag)))
+		_tips[path] = "\n".join(lines)
+		w.free()
+	return _tips[path]
 
 func _on_weapon_cycle(slot_idx: int, direction: int) -> void:
 	SoundManager.play_sfx_2d("ui_click")
@@ -642,6 +674,7 @@ func _on_weapon_cycle(slot_idx: int, direction: int) -> void:
 
 	if slot_idx < _weapon_name_labels.size() and is_instance_valid(_weapon_name_labels[slot_idx]):
 		_weapon_name_labels[slot_idx].text = WEAPON_CATALOG[_weapon_indices[slot_idx]]["name"]
+		_weapon_name_labels[slot_idx].tooltip_text = weapon_tip(_weapon_indices[slot_idx])
 	_refresh_diorama_mech()  # T188: the shown mech carries the new pick
 	_refresh_lineup_mechs()
 
