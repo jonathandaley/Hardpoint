@@ -190,7 +190,28 @@ func _spawn_one_mech(mech_def, team: int, idx: int, count: int, weapon_paths: Ar
 	m.configure_abilities(mech_def.abilities)
 	m.invincible = mech_def.invincible
 	_team_mechs[team].append(m)
+	if multiplayer.is_server():
+		m.died.connect(_on_mech_killed.bind(m))  # T324
 	return m
+
+# T324 (HUMAN_FOUND 2026-11-05 late: a small kill readout under the ability marker): the server
+# names killer and victim by roster entry to every peer; each HUD shows the callsigns.
+func _on_mech_killed(m: Node) -> void:
+	var killer = m.get("last_attacker")  # untyped: may be freed
+	var kri: int = int(killer.get("roster_idx")) if is_instance_valid(killer) else -1
+	_rpc_kill_feed.rpc(int(m.get("roster_idx")), kri)
+
+@rpc("authority", "call_local", "reliable")
+func _rpc_kill_feed(victim_ri: int, killer_ri: int) -> void:
+	var roster: Array = Game.mp_active_match["roster"]
+	var info := func(ri: int) -> Array:  # [name, on our team]
+		if ri < 0 or ri >= roster.size():
+			return ["", false]
+		return [str(roster[ri].get("name", "")), int(roster[ri].get("team", -1)) == _local_team]
+	var v: Array = info.call(victim_ri)
+	var k: Array = info.call(killer_ri)
+	if v[0] != "":
+		hud.add_kill(k[0], k[1], v[0], v[1])
 
 func _spawn_mechs_mp() -> void:
 	var roster: Array = Game.mp_active_match["roster"]
