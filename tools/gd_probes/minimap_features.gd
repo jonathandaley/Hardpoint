@@ -17,7 +17,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	var counts := []
 	for c in [["res://resources/maps/City.tres", Vector2(28, 6), Vector2(52, 6)],
-			["res://resources/maps/Corvette.tres", Vector2(0, 40.75), Vector2(0, 0)]]:
+			["res://resources/maps/Corvette.tres", Vector2(0, 28.5), Vector2(0, 0)]]:  # T303: the hull block was at 40.75 (x 0.7)
 		Game.mp_active_match["roster"] = []
 		Game.loadout["team_size"] = 1
 		Game.loadout["map_def"] = load(c[0])
