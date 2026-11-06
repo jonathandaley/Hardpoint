@@ -79,6 +79,8 @@ func _minimap_corner() -> void:
 # T203: the minimap, full size in the middle, with a numbered button on each of the
 # team's spawn points (world positions). Emits spawn_selected(index).
 signal spawn_selected(idx: int)
+signal spawn_back  # T322: BACK from the spawn picker to the mech picker
+var _squad_args: Array = []  # T322: the last squad picker's [squad, slot_used, heading]
 const SPAWN_MAP_PX := 280.0
 var _spawn_ui: Array = []
 
@@ -104,6 +106,20 @@ func show_spawn_picker(points: Array) -> void:
 	sb.set_corner_radius_all(4)
 	var sb_hover := sb.duplicate() as StyleBoxFlat
 	sb_hover.bg_color = minimap.ALLY.lightened(0.35)
+	# T322 (HUMAN_FOUND 2026-11-05: "During a match, the spawnpoint picker should have a back
+	# button that goes back to the mech picker")
+	if not _squad_args.is_empty():
+		var back := Button.new()
+		back.name = "SpawnBack"
+		back.text = "< BACK"
+		back.add_theme_font_size_override("font_size", 12)
+		back.position = Vector2(6, SPAWN_MAP_PX - 30.0)
+		back.pressed.connect(func() -> void:
+			hide_spawn_picker()
+			spawn_back.emit()
+			show_squad_picker_mp(_squad_args[0], _squad_args[1], _squad_args[2]))
+		minimap.add_child(back)
+		_spawn_ui.append(back)
 	for i in points.size():
 		var b := Button.new()
 		b.name = "Spawn%d" % i
@@ -432,6 +448,7 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 
 func show_squad_picker_mp(squad: Array, slot_used: Array, heading := "SELECT NEXT MECH") -> void:
 	hide_squad_picker_mp()
+	_squad_args = [squad, slot_used, heading]  # T322: BACK from the spawn picker reopens this
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	var backdrop := ColorRect.new()
 	backdrop.color = Color(0.0, 0.0, 0.0, 0.85)

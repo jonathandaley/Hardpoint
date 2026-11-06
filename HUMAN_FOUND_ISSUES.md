@@ -46,8 +46,6 @@ Targeting reticule should aim for center mass, instead of the current spot (appe
 
 Redwood trees texture should be coarsened and made higher contrast. If feasible, lengthening the texture vertically somewhat would be great. I'm not exactly sure how to describe it; the goal is a tree bark-like texture, so aligning the dark and light parts vertically for a few pixels at a time, not necessarily straight up-and-down but just generally. Is that relatively easy?
 
-During a match, the spawnpoint picker should have a back button that goes back to the mech picker.
-
 The mech picker for matches should look like a miniature version of the hangar, without any of the fancy parts; no light cones, drones, etc. Just enough to see what weapons they have equipped so you can tell the difference between mechs with the same name in the squad.
 
 Top left of HUD, under the ability marker, should have a readout, small text, listing kills and chat. Chat as a stub; kills very simple. Should take up very little space and not be distracting.

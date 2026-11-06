@@ -177,3 +177,4 @@ date|task|outcome|commit|finding|suite
 2026-11-06|T317 verify|DONE|-|suite 106/106, sweep 60/60; queued T332 (MP pilot skills read the server profile for remote players)|106/106 + net 60/60
 2026-11-06|T280|DONE|batch 7 (local commit)|capture count per pilot (mechs in the zone at the flip), not the team total on every row; probe capture_credit red before|batch suite pending
 2026-11-06|T301|DONE (no bug)|batch 7 (local commit)|jump heal fires once per jump (+80 flat, 16 s cd = 27% of Pegasus HP); probe jump_heal_once guards it (red with cooldown 0); Q6 asks whether to lower; found T332 on the way|batch suite pending
+2026-11-06|T322|DONE|batch 7 (local commit)|spawn picker BACK -> mech picker (pending pick dropped); probe spawn_back red before; spawn_points probe skips the BACK button|batch suite pending

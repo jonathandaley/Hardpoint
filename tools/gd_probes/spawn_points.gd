@@ -26,7 +26,7 @@ func _ready() -> void:
 	# 1. mech pick -> spawn picker (big minimap, a button on each spawn), still paused
 	hud.squad_slot_selected.emit(0)
 	await get_tree().process_frame
-	var btns: Array = hud.get("_spawn_ui").filter(func(n) -> bool: return n is Button)
+	var btns: Array = hud.get("_spawn_ui").filter(func(n) -> bool: return n is Button and String(n.name) != "SpawnBack")  # T322 BACK is not a spawn
 	if btns.size() != pts.size():
 		_fail("spawn picker shows %d buttons for %d spawns" % [btns.size(), pts.size()])
 	if mm.size.x < 200.0 or not get_tree().paused:
