@@ -32,6 +32,11 @@ func _do_fire() -> void:
 	proj.splash_damage = splash_damage
 	proj.owner_body = owner_mech
 	proj.source_weapon = self
+	proj.explode = true  # T258
 	proj.on_hit = func(body, pos): _emit_hit_if_visible(body, pos)
 	get_tree().current_scene.add_child(proj)
 	proj.global_transform = Transform3D(Basis(), global_position).looking_at(aim_point)
+	# T258: clients saw no missiles at all (this override skipped ProjectileGun's ghost send).
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_rpc_spawn_ghost.rpc(global_position, proj.global_transform.basis,
+			proj.speed, proj.lifetime, proj.team)
