@@ -223,3 +223,4 @@ date|task|outcome|commit|finding|suite
 2026-11-06|batch 12|DONE|T295, T320, T244|suite 129/130: factory_no_zfight builds Factory under an environment with no sky -> T320 recolour hit null; guarded (no sky: make one, as before); both probes green|129/130 -> fixed
 2026-11-06|T329|DONE|solo (snapshot field)|guns tilt with aim on every peer (hardpoint pitch = aim - level pitch, clamped 0.45 rad), pitch rides the snapshot, interpolated for remote mechs; probe weapon_tilt red before (first try a false red: process_frame fires before the nodes _process); render-checked|suite + sweep pending
 2026-11-06|T329 verify|DONE|-|suite 131/131, sweep 60/60|131/131 + net 60/60
+2026-11-06|T323|DONE|local commit|in-match picker = mini hangar cards (3D mech + its slot weapons + weapon names), shared arm_display; first render: same-mech cards too alike at that size -> weapon names line, lighter bg, picker over the name tags; probe squad_minibay red before|suite pending
