@@ -6,8 +6,6 @@ Gun shells should stick around longer, at least at higher graphics settings. I d
 
 Check for rocket launcher accuracy? Didn't work in Sydney, not sure what was up with that. 
 
-Badlands should have some decrepit windows in the buildings.
-
 Don't spawn the first mech until it's picked (currently spawns the first mech then switches)
 
 Death match (no beacon) match option
