@@ -1322,7 +1322,7 @@ func _update_account_profiles(winner_team: int, stats: Array) -> void:
 		if pid < 2 or email == "":
 			continue
 		var before: Dictionary = account_server.profile(email)
-		var after := _apply_match_to(before, int(entry.get("team", -1)), winner_team, stats)
+		var after := _apply_match_to(before, int(entry.get("team", -1)), winner_team, stats, pid)
 		account_server.save_profile(email, after)
 		print("[Server] account %s: elo %d -> %d" % [email, int(before.get("elo", 0)), int(after.get("elo", 0))])
 		_rpc_account_profile.rpc_id(pid, after)
@@ -1382,20 +1382,20 @@ func _update_mp_profile(winner_team: int, stats: Array) -> void:
 			break
 	if my_team == -1 or not account.is_empty():
 		return  # T207: a signed-in player's result is applied on the server (_rpc_account_profile)
-	_apply_match(my_team, winner_team, stats)
+	_apply_match(my_team, winner_team, stats, my_peer_id)
 	save_profile()
 
 # T207: the same result math on an account's profile (server side).
 # ponytail: borrows `profile` for the call, so the skill/level helpers need no profile arg.
-func _apply_match_to(prof: Dictionary, my_team: int, winner_team: int, stats: Array) -> Dictionary:
+func _apply_match_to(prof: Dictionary, my_team: int, winner_team: int, stats: Array, pid := 0) -> Dictionary:
 	var keep := profile
 	profile = prof.duplicate(true)
-	_apply_match(my_team, winner_team, stats)
+	_apply_match(my_team, winner_team, stats, pid)
 	var out := profile
 	profile = keep
 	return out
 
-func _apply_match(my_team: int, winner_team: int, stats: Array) -> void:
+func _apply_match(my_team: int, winner_team: int, stats: Array, my_pid := 0) -> void:
 	var won: bool = winner_team == my_team
 	var wl := "wins" if won else "losses"
 	profile[wl] = profile.get(wl, 0) + 1
@@ -1417,6 +1417,9 @@ func _apply_match(my_team: int, winner_team: int, stats: Array) -> void:
 	_check_level_up()
 	# Coins.
 	var base_coins: int = 75 if won else 20
+	for e in stats:  # T264: + the coins this player picked up from destroyed bots
+		if int(e.get("peer_id", -1)) == my_pid and my_pid > 0:
+			base_coins += int(e.get("coins", 0))
 	profile["coins"] = profile.get("coins", 0) + apply_coin_pickup_bonus(base_coins)
 
 @rpc("any_peer", "call_remote", "reliable")

@@ -459,6 +459,10 @@ func request_damage(amount: float, source: Node3D = null) -> void:
 			var dist: float = (source as Node3D).global_position.distance_to(global_position)
 			if dist > src_range * 1.2:
 				return
+	# T264 damage boost pickup: the shooter's hits count x1.5 (after validation, server side)
+	var shooter := _owning_mech(source) if source != null else null
+	if shooter != null and float(shooter.get("damage_boost_s")) > 0.0:
+		amount *= DAMAGE_BOOST
 	_apply_damage(amount, source)
 
 func _apply_damage(amount: float, source: Node3D = null) -> void:
@@ -696,7 +700,38 @@ func _physics_process(delta: float) -> void:
 	_physics_process_impl(delta)
 	Game.prof_add("mech", Time.get_ticks_usec() - t0)
 
+# ---- T264 pickups: boosts run on every peer (the owner predicts with the speed) ----
+const DAMAGE_BOOST := 1.5
+const SPEED_BOOST := 1.3
+var damage_boost_s := 0.0
+var speed_boost_s := 0.0
+
+@rpc("authority", "call_local", "reliable")
+func _rpc_boost(kind: String, secs: float) -> void:
+	if kind == "damage":
+		damage_boost_s = secs
+	elif kind == "speed":
+		speed_boost_s = secs
+		apply_modifier("walk_speed", SPEED_BOOST)
+
+func _tick_boosts(delta: float) -> void:
+	if damage_boost_s > 0.0:
+		damage_boost_s = maxf(damage_boost_s - delta, 0.0)
+	if speed_boost_s > 0.0:
+		speed_boost_s = maxf(speed_boost_s - delta, 0.0)
+		if speed_boost_s == 0.0:
+			remove_modifier("walk_speed")
+
+## T264 ammo pickup: every weapon full, any reload finished (server; ammo syncs to clients).
+func refill_ammo() -> void:
+	for w in get_weapons():
+		if int(w.get("max_ammo")) >= 0:
+			w.set("ammo", w.get("max_ammo"))
+		w.set("_reloading", false)
+		w.set("_reload_timer", 0.0)
+
 func _physics_process_impl(delta: float) -> void:
+	_tick_boosts(delta)
 	# V38: non-server peers skip all local simulation; transforms driven by snapshot interp.
 	# T205: except the client's own mech, which predicts its movement (V37).
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():

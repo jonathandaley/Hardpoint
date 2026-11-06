@@ -4,10 +4,6 @@ Mech balancing automatically: wide variety of team sizes and maps, weapons. Writ
 
 Gun shells should stick around longer, at least at higher graphics settings. I don't actually see the spent shells at all anymore, where did they go?
 
-Add drops: coins for bots, powerups, 
-
-Bot drops are based on their difficulty
-
 General weapon mount size/weapon size checkup
 
 Bots should eject on death like players

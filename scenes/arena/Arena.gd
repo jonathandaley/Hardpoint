@@ -225,6 +225,7 @@ func _setup_players_mp() -> void:
 			bp.set("lives", _squad_lives(entry))
 			if multiplayer.is_server():
 				mech.died.connect(_on_bot_mech_died.bind(bp, ri))
+				mech.died.connect(_on_bot_drop.bind(mech))  # T264
 		elif entry["peer_id"] == my_id:
 			# T127: squad lives -- count valid slots and set lives; wire squad picker.
 			_make_local_player(t, _squad_lives(entry), mech)
@@ -520,6 +521,7 @@ func _build_mp_stats() -> Array:
 			"captures":     _beacons_captured[t] if t >= 0 and t < _beacons_captured.size() else 0,
 			"pre_elo":      pre_elo,
 			"disconnected": _disconnected_peers.has(peer_id),
+			"coins":        int(coins_picked.get(peer_id, 0)),  # T264: picked up this match
 		})
 	return stats
 
@@ -1063,6 +1065,107 @@ func _on_bot_mech_died(bp: Node, ri: int) -> void:
 	_bot_slot_next[ri] = slot + 1
 	_rpc_spawn_next_bot.rpc(ri, slot, bot_spawn(Game.mp_active_match["roster"][ri]["team"]))
 
+# ---- T264: drops from destroyed bots (HUMAN_FOUND 2026-11-05; user: coins by bot difficulty
+# + powerups repair / ammo / damage boost / speed boost) ----
+# Server-authoritative: the server rolls the drop, every peer shows it (_rpc_spawn_pickup),
+# the server sees a human-piloted mech walk over it, applies it and removes it everywhere.
+# Coins are tallied per peer and paid with the match result (Game._apply_match). Bots
+# don't pick anything up.
+# ponytail: pickups already on the ground aren't in the late-join snapshot; a late joiner
+# sees only drops made after it joined.
+const Pickup := preload("res://scripts/Pickup.gd")
+const DROP_COINS := [2, 4, 6, 10, 16]  # by bot difficulty, EASY .. ELITE
+const POWERUPS := ["repair", "ammo", "damage", "speed"]
+const PICKUP_R := 2.2       # m, horizontal reach of a mech walking over it
+const PICKUP_LIFE_S := 30.0
+var powerup_chance := 0.25  # per bot death (probes set 1.0)
+var coins_picked := {}      # server: peer_id -> coins picked up this match
+var _pickups := {}          # every peer: id -> Pickup
+var _next_pickup_id := 1
+var _drop_rng: RandomNumberGenerator = null  # its own stream: drops don't shift Game.rng
+
+func _on_bot_drop(mech: Node3D) -> void:
+	if _match_over or not multiplayer.is_server():
+		return
+	if _drop_rng == null:
+		_drop_rng = RandomNumberGenerator.new()
+		_drop_rng.seed = hash(["drops", Game.mp_lobby.get("match_seed", 0)])
+	var src: Node = mech.get("_input_source")
+	var diff: int = int(src.get("difficulty")) if src != null and src.get("difficulty") != null and int(src.get("difficulty")) >= 0 \
+		else int(Game.settings.get("bot_difficulty", 1))
+	var at: Vector3 = mech.global_position
+	_rpc_spawn_pickup.rpc(_next_pickup_id, "coin", at + Vector3(1.5, 0, 0), DROP_COINS[clampi(diff, 0, DROP_COINS.size() - 1)])
+	_next_pickup_id += 1
+	if _drop_rng.randf() < powerup_chance:
+		var kind: String = POWERUPS[_drop_rng.randi() % POWERUPS.size()]
+		_rpc_spawn_pickup.rpc(_next_pickup_id, kind, at + Vector3(-1.5, 0, 0), 0)  # 3 m apart: separate pickups (PICKUP_R 2.2)
+		_next_pickup_id += 1
+
+@rpc("authority", "call_local", "reliable")
+func _rpc_spawn_pickup(id: int, kind: String, pos: Vector3, value: int) -> void:
+	var pk := Pickup.new()
+	pk.name = "Pickup_%d" % id
+	pk.setup(kind, value)
+	add_child(pk)
+	pk.global_position = pos
+	_pickups[id] = pk
+
+# Server: drop it here at once, then tell the clients (a call_local RPC from inside the
+# physics loop let the same pickup be collected again -- and touched after its free).
+func _remove_pickup(id: int) -> void:
+	_drop_pickup_local(id)
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_rpc_remove_pickup.rpc(id)
+
+@rpc("authority", "call_remote", "reliable")
+func _rpc_remove_pickup(id: int) -> void:
+	_drop_pickup_local(id)
+
+func _drop_pickup_local(id: int) -> void:
+	var pk = _pickups.get(id)
+	_pickups.erase(id)
+	if is_instance_valid(pk):
+		pk.queue_free()
+
+func _physics_process(_delta: float) -> void:
+	if _pickups.is_empty() or not multiplayer.is_server() or _match_over:
+		return
+	var hits: Array = []  # [id, mech] -- applied after the scan, never mid-iteration
+	var expired: Array = []
+	for id in _pickups:
+		var pk = _pickups[id]
+		if not is_instance_valid(pk) or (pk as Pickup).age > PICKUP_LIFE_S:
+			expired.append(id)
+			continue
+		var p: Vector3 = (pk as Node3D).global_position
+		var taker: Node = null
+		for t in 2:
+			for m in _team_mechs[t]:
+				if taker == null and is_instance_valid(m) and not m.is_dead and int(m.owner_peer_id) > 0:
+					var d: Vector3 = (m as Node3D).global_position - p
+					if Vector2(d.x, d.z).length() < PICKUP_R and absf(d.y) < 4.0:
+						taker = m
+		if taker != null:
+			hits.append([id, taker])
+	for id in expired:
+		_remove_pickup(id)
+	for h in hits:
+		if _pickups.has(h[0]):
+			_collect(h[0], _pickups[h[0]], h[1])
+
+func _collect(id: int, pk: Pickup, m: Node) -> void:
+	var pid: int = int(m.owner_peer_id)
+	match pk.kind:
+		"coin":
+			coins_picked[pid] = int(coins_picked.get(pid, 0)) + pk.value
+		"repair":
+			m.health = minf(m.health + m.max_health * 0.35, m.max_health)
+		"ammo":
+			m.call("refill_ammo")
+		"damage", "speed":
+			m.rpc(&"_rpc_boost", pk.kind, 10.0)  # every peer: the owner predicts with the speed
+	_remove_pickup(id)
+
 # T203: a bot spawns where its team is needed: near beacons the team doesn't hold
 # (neutral, enemy, contested), away from enemies already standing there. Server-only
 # (beacon state + positions are authoritative there), result rides the spawn RPC.
@@ -1118,6 +1221,7 @@ func _rpc_spawn_next_bot(ri: int, slot: int, spawn: int) -> void:
 		m.died.connect(Callable(bp, "on_pawn_destroyed"))
 		if multiplayer.is_server():
 			m.died.connect(_on_bot_mech_died.bind(bp, ri))
+			m.died.connect(_on_bot_drop.bind(m))  # T264
 	_refresh_team_bars(team)
 
 # T203: spawn height = the real floor under the spot. The Penrose terraces don't follow
