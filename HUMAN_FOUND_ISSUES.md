@@ -4,8 +4,6 @@ Mech balancing automatically: wide variety of team sizes and maps, weapons. Writ
 
 Gun shells should stick around longer, at least at higher graphics settings. I don't actually see the spent shells at all anymore, where did they go?
 
-Check for rocket launcher accuracy? Didn't work in Sydney, not sure what was up with that. 
-
 Cesh bots should use stealth more intelligently.
 
 Arc weapon visual is sometimes broken, seems to always work for bots? Flaky error.
@@ -18,25 +16,13 @@ The mech picker for matches should look like a miniature version of the hangar, 
 
 Top left of HUD, under the ability marker, should have a readout, small text, listing kills and chat. Chat as a stub; kills very simple. Should take up very little space and not be distracting.
 
-Bots should be assigned names, which are visible like players (Which I can't remember if they're already visible, but in multiplayer the callsign should be above the health bar). You make a list of names that sound cool and have nothing objectionable in them (this is a shooter game, MurderousMaximus27 etc. is totally fine, but not DeeezGunz69). That way names are assigned from a preset list, but aren't just random. Make the list long enough so that repeats aren't constant. (100-200?)
-
-At elite level, bots will have a much shorter, separate list of names. Only good gamertags; cheesy ones are fine for the basic bots, but not elites. These will have persistent pilot upgrades that are tied to their names, so, e.g. Inexorable always has "health" and the whole "move speed" tree maxed out.
-
 How hard would it be to make the weapons tilt up and down as they aim? If easy, add it to the queue.
 
-
-Make rockets be smarter to avoid hitting obstacles.
-
-
-
 Defer until I decide more: The general texturing applied to most of the maps' floors and obstacles is pretty good in general, but it looks blurry. Probably make the pixels/texels bigger? Like the bot texture, sharp bigger pixels instead of blurry finer detail. Not for every map, though: Redwood's floor is great.
-
-
 
 Harden security for network: Look through the source code for vulnerabilities, and also try to hack it from the outside if possible. Defer for now, but flag it before setting up online stuff.
 
 Make a tutorial - defer, just have the note somewhere. Also a manual in settings.
-
 
 ### Question from Claude (2026-11-05 late)
 
