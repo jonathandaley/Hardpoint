@@ -76,7 +76,7 @@ func _ready() -> void:
 		return
 	var hp0: float = blocker.get("health")
 	w.call("_do_fire")
-	var beam_len: float = (w.get("_beam") as Node3D).scale.z
+	var beam_len: float = (w.get("_beam") as Node3D).global_transform.basis.get_scale().z  # world length (T296)
 	var to_blocker: float = muzzle.distance_to(mid)
 	if beam_len > to_blocker + 1.0:
 		_fail("the laser beam runs %.1f m, through the mech %.1f m away" % [beam_len, to_blocker])
