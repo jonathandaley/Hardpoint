@@ -4,12 +4,6 @@ Mech balancing automatically: wide variety of team sizes and maps, weapons. Writ
 
 Gun shells should stick around longer, at least at higher graphics settings. I don't actually see the spent shells at all anymore, where did they go?
 
-Cesh bots should use stealth more intelligently.
-
-ERROR: Texture with GL ID of 63: leaked 349524 bytes.
-   at: ~Utilities (drivers/gles3/storage/utilities.cpp:77)
-This error appeared after closing the game.
-
 The mech picker for matches should look like a miniature version of the hangar, without any of the fancy parts; no light cones, drones, etc. Just enough to see what weapons they have equipped so you can tell the difference between mechs with the same name in the squad.
 
 How hard would it be to make the weapons tilt up and down as they aim? If easy, add it to the queue.
