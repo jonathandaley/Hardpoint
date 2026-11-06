@@ -764,19 +764,7 @@ func _refresh_diorama_mech() -> void:
 # as Lobby._build_squad_data sends them; default slots otherwise). Props: the weapon
 # nodes don't process (no reload / fire logic in the hangar).
 func _arm_display(m: Node, md: Resource) -> void:
-	var paths: Array = Game.loadout.get("mech_weapon_choices", {}).get(md.resource_path, [])
-	var slots: Array = []
-	for i in md.weapon_slots.size():
-		var sl: Resource = md.weapon_slots[i]
-		if i < paths.size() and paths[i] != "" and ResourceLoader.exists(paths[i]):
-			sl = sl.duplicate()
-			sl.weapon_scene = load(paths[i])
-		slots.append(sl)
-	m.weapon_scale = md.weapon_scale
-	m.configure_weapons(slots)
-	for c in m.get("torso").get_children():
-		if c.name.begins_with("Hardpoint"):
-			c.process_mode = Node.PROCESS_MODE_DISABLED
+	MechVisuals.arm_display(m, md, Game.loadout.get("mech_weapon_choices", {}).get(md.resource_path, []))
 
 func _show_tab(idx: int) -> void:
 	mech_panel.visible = idx == 0

@@ -93,6 +93,22 @@ static func _glow_speckle(tex_path: String, emit: Color, energy: float) -> Stand
 		_speckles[key] = m
 	return _speckles[key]
 
+## A display mech (hangar lineup, T323 in-match picker) carries `paths` (weapon scene per slot,
+## "" = the slot's default), weapons frozen.
+static func arm_display(m: Node, md: Resource, paths: Array) -> void:
+	var slots: Array = []
+	for i in md.weapon_slots.size():
+		var sl: Resource = md.weapon_slots[i]
+		if i < paths.size() and str(paths[i]) != "" and ResourceLoader.exists(str(paths[i])):
+			sl = sl.duplicate()
+			sl.weapon_scene = load(str(paths[i]))
+		slots.append(sl)
+	m.weapon_scale = md.weapon_scale
+	m.configure_weapons(slots)
+	for c in m.get("torso").get_children():
+		if c.name.begins_with("Hardpoint"):
+			c.process_mode = Node.PROCESS_MODE_DISABLED
+
 # ---- accessory factories (added as Torso or Legs children) ----
 
 static func _add_box(parent: Node3D, pos: Vector3, sz: Vector3) -> MeshInstance3D:

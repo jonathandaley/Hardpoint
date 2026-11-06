@@ -474,6 +474,7 @@ func show_squad_picker_mp(squad: Array, slot_used: Array, heading := "SELECT NEX
 	var backdrop := ColorRect.new()
 	backdrop.color = Color(0.0, 0.0, 0.0, 0.85)
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.z_index = 10  # T323: over the name tags / kill feed made after it
 	add_child(backdrop)
 	_squad_picker = backdrop
 	var center := CenterContainer.new()
@@ -487,6 +488,13 @@ func show_squad_picker_mp(squad: Array, slot_used: Array, heading := "SELECT NEX
 	title.add_theme_font_size_override("font_size", 24)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title)
+	# T323 (HUMAN_FOUND 2026-11-05 late): a miniature hangar lineup -- each mech with the weapons
+	# it carries, so two of the same mech can be told apart; no bay dressing (no cones, drones)
+	var row := HBoxContainer.new()
+	row.name = "MechCards"
+	row.add_theme_constant_override("separation", 8)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_child(row)
 	for i in range(squad.size()):
 		var sq: Dictionary = squad[i]
 		var mech_path: String = sq.get("mech", "")
@@ -496,12 +504,78 @@ func show_squad_picker_mp(squad: Array, slot_used: Array, heading := "SELECT NEX
 			continue
 		var md = ResourceLoader.load(mech_path)
 		var label_text: String = md.display_name if md != null and "display_name" in md else mech_path.get_file()
+		var card := VBoxContainer.new()
+		card.name = "Card%d" % i
+		card.add_theme_constant_override("separation", 2)
+		row.add_child(card)
+		var guns: Array = []
+		if md != null and md.get("scene") != null:
+			guns = _mini_bay(card, md, sq.get("weapons", []))
 		var btn := Button.new()
-		btn.text = label_text
-		btn.add_theme_font_size_override("font_size", 18)
+		btn.text = label_text.to_upper()
+		btn.add_theme_font_size_override("font_size", 12)
 		var idx := i
 		btn.pressed.connect(func(): squad_slot_selected.emit(idx))
-		vbox.add_child(btn)
+		card.add_child(btn)
+		var wl := Label.new()  # the loadout in words too: two of a mech differ here at a glance
+		wl.text = " / ".join(guns)
+		wl.add_theme_font_size_override("font_size", 8)
+		wl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		wl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		wl.custom_minimum_size.x = CARD_PX.x
+		card.add_child(wl)
+
+const CARD_PX := Vector2i(108, 140)  # HUD px; the 3D renders at 2x (the window's pixels)
+
+const _Lobby := preload("res://scripts/Lobby.gd")
+
+## A card's 3D view; returns the short names of the weapons the mech carries.
+func _mini_bay(card: Node, md: Resource, weapon_paths: Array) -> Array:
+	var box := SubViewportContainer.new()
+	box.custom_minimum_size = Vector2(CARD_PX)
+	box.stretch = true
+	box.stretch_shrink = 2  # viewport at 2x, shown at HUD scale: weapons stay crisp
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var vp := SubViewport.new()
+	vp.own_world_3d = true
+	vp.size = CARD_PX * 2
+	box.add_child(vp)
+	card.add_child(box)  # in the tree first: the mech's _ready (torso, hardpoints) runs on add
+	var env := Environment.new()
+	env.background_mode = Environment.BG_COLOR
+	env.background_color = Color("#1c212b")  # a touch lighter than the hangar: dark guns read
+	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	env.ambient_light_color = Color(0.55, 0.55, 0.65)
+	env.ambient_light_energy = 0.8
+	var we := WorldEnvironment.new()
+	we.environment = env
+	vp.add_child(we)
+	var sun := DirectionalLight3D.new()
+	sun.rotation_degrees = Vector3(-45.0, 30.0, 0.0)
+	vp.add_child(sun)
+	var m: Node3D = md.scene.instantiate()
+	m.scale = Vector3.ONE * md.body_scale
+	MechVisuals.apply(m, md.display_name)
+	m.rotation_degrees.y = 215.0  # the hangar lineup's 3/4 view (Hangar.LINEUP_YAW)
+	vp.add_child(m)
+	m.set_physics_process(false)
+	m.remove_from_group("mechs")  # a display prop, not a combatant
+	MechVisuals.arm_display(m, md, weapon_paths)
+	var cam := Camera3D.new()
+	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
+	cam.size = 4.2 * maxf(1.0, md.body_scale)
+	vp.add_child(cam)
+	cam.look_at_from_position(Vector3(0.0, 2.6, 8.0) * maxf(1.0, md.body_scale), Vector3(0.0, 1.5 * md.body_scale, 0.0))
+	cam.current = true  # not the mech's own chase camera
+	var names: Array = []
+	for w in m.get_weapons():
+		var p := String(w.scene_file_path)
+		var nm := p.get_file().get_basename()
+		for e in _Lobby.WEAPON_CATALOG:
+			if e["path"] == p:
+				nm = e["name"]
+		names.append(nm)
+	return names
 
 func hide_squad_picker_mp() -> void:
 	if _squad_picker != null and is_instance_valid(_squad_picker):
