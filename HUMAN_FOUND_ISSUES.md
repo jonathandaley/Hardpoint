@@ -10,8 +10,6 @@ Badlands should have some decrepit windows in the buildings.
 
 Don't spawn the first mech until it's picked (currently spawns the first mech then switches)
 
-Bots should pick spawnpoints instead of all spawning together.
-
 Death match (no beacon) match option
 
 Make sure elite bots don't miss, and in fact shoot ahead of moving targets. I want elites to be impossible. Can always add more intermediate levels if necessary.
