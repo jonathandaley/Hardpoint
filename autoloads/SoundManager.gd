@@ -15,6 +15,7 @@ const _SFX_PATHS: Dictionary = {
 	"laser_loop":      "res://audio/sfx/weapons/laser_loop.ogg",
 	"arc_loop":        "res://audio/sfx/weapons/arc_loop.ogg",
 	"hit_impact":      "res://audio/sfx/weapons/hit_impact.wav",
+	"missile_explosion": "res://audio/sfx/weapons/missile_explosion.ogg",  # T331
 	"mech_death":      "res://audio/sfx/mech/death_explosion.wav",
 	"damage_hit":      "res://audio/sfx/mech/damage_hit.wav",
 	"footstep":        "res://audio/sfx/mech/footstep.wav",
