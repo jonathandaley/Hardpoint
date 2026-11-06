@@ -64,5 +64,8 @@ func _ready() -> void:
 			checked += 1
 		arena.queue_free()
 		await get_tree().process_frame
+	if checked == 0:  # a saved death-match loadout once made this pass on nothing
+		_fail("no beacons found on %d maps" % scenes.size())
+		return
 	print("[probe] beacon_ring done (%d beacons on %d maps)" % [checked, scenes.size()])
 	get_tree().quit(0)

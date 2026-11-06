@@ -227,10 +227,9 @@ func _spawn_mechs_mp() -> void:
 		var m: CharacterBody3D = _spawn_one_mech(mech_def, t, team_idx[t], team_counts[t], wpn_paths, "", sp)
 		m.owner_peer_id = entry["peer_id"]
 		m.roster_idx = ri
+		_apply_skills(m)
 		if entry["peer_id"] != 0 and entry["peer_id"] == multiplayer.get_unique_id() and player_mech == null:
 			player_mech = m
-			if multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
-				m.apply_pilot_skills()  # SP only, as before T184
 		if entry["peer_id"] != 0:
 			_peer_slot_used[entry["peer_id"]] = [true, false, false, false, false]
 			if _picks_at_start(squad):
@@ -316,6 +315,16 @@ func _make_local_player(t: int, lives: int, mech: Node) -> void:
 
 ## T217: (alive, total) players on `team`: one per roster entry however many mechs it
 ## has used; alive = its current mech is in the fight.
+# T332: every mech flies with its own pilot's skills (the roster entry: players' sanitized,
+# ELITE bots' named builds), applied alike on every peer -- before, only SP applied them, and
+# MP regen / ability recharge read the server's own profile for everyone.
+func _apply_skills(m: Node) -> void:
+	var roster: Array = Game.mp_active_match["roster"]
+	var ri: int = int(m.get("roster_idx"))
+	if ri >= 0 and ri < roster.size():
+		m.set("pilot_skills", roster[ri].get("skills", {}))
+	m.call("apply_pilot_skills")
+
 # T285: alive + unspent squad mechs of `team` (Player.lives counts the live one). Server.
 func mechs_left(team: int) -> int:
 	var n := 0
@@ -704,6 +713,7 @@ func _apply_late_state(st: Dictionary) -> void:
 		var owner: int = int(e["owner"])
 		m.owner_peer_id = me if old > 0 and owner == old else owner
 		m.roster_idx = int(e["ri"])
+		_apply_skills(m)
 		m.health = float(e["hp"])
 		m.position = e["pos"]
 		if e["dead"]:
@@ -973,11 +983,10 @@ func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int, spawn: int) ->
 		"Mech_r%d_s%d" % [roster_idx, slot_idx], spawn)
 	new_mech.owner_peer_id = peer_id
 	new_mech.roster_idx = roster_idx
+	_apply_skills(new_mech)
 	var my_id := multiplayer.get_unique_id()
 	if peer_id == my_id:
 		player_mech = new_mech
-		if multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
-			new_mech.apply_pilot_skills()
 		_player.call("possess", new_mech)
 		# T185 (B76): before _on_local_mech_died_mp, which reads the lives this decrements.
 		# Missing, only the first squad mech cost a life: the picker came back after the
@@ -1318,10 +1327,12 @@ func _collect(id: int, pk: Pickup, m: Node) -> void:
 			coins_picked[pid] = int(coins_picked.get(pid, 0)) + pk.value
 		"repair":
 			m.health = minf(m.health + m.max_health * 0.35, m.max_health)
+			if multiplayer.has_multiplayer_peer():
+				m.rpc(&"_sync_health", m.health)  # snapshots carry no health (clients kept the old HP)
 		"ammo":
 			m.call("refill_ammo")
-		"damage", "speed":
-			m.rpc(&"_rpc_boost", pk.kind, 10.0)  # every peer: the owner predicts with the speed
+		"damage", "speed":  # T332: powerup_duration is the pilot's own skill
+			m.rpc(&"_rpc_boost", pk.kind, 10.0 * (1.0 + float(m.call("skill", "powerup_duration"))))
 	_remove_pickup(id)
 
 # T203: a bot spawns where its team is needed: near beacons the team doesn't hold
@@ -1372,6 +1383,7 @@ func _rpc_spawn_next_bot(ri: int, slot: int, spawn: int) -> void:
 		entry["squad"][slot].get("weapons", []), "Mech_r%d_s%d" % [ri, slot], spawn)
 	m.owner_peer_id = 0
 	m.roster_idx = ri
+	_apply_skills(m)
 	var bp: Node = get_node_or_null("BotPlayer_%d_%d" % [team, tidx])
 	if bp != null:
 		_add_nav_agent(m)

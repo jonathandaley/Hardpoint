@@ -755,6 +755,7 @@ func _rpc_request_meta() -> void:
 		"pilot_name": profile.get("pilot_name", "Pilot"),
 		"elo":        profile.get("elo", 1000),
 		"level":      profile.get("level", 1),
+		"skills":     profile.get("skills", {}),  # T332
 	}
 	_rpc_send_meta.rpc_id(1, meta)
 
@@ -775,6 +776,7 @@ func _rpc_send_meta(meta: Dictionary) -> void:
 	entry["pilot_name"] = str(meta.get("pilot_name", "Pilot"))
 	entry["elo"]        = int(meta.get("elo", 1000))
 	entry["level"]      = int(meta.get("level", 1))
+	entry["skills"]     = sanitize_skills(meta.get("skills", {}), entry["level"])  # T332
 	broadcast_lobby()
 
 func _on_mp_peer_disconnected(id: int) -> void:
@@ -961,6 +963,22 @@ func account_skill(op: String, key: String) -> bool:
 func get_skill_effect(key: String) -> float:
 	var def: Dictionary = SKILL_TREE.get(key, {})
 	return float(skill_level(key)) * float(def.get("per_level", 0.0))
+
+## T332: a pilot's skill effect from its own skills (the roster entry), not this machine's profile.
+static func skill_effect_in(skills: Dictionary, key: String) -> float:
+	var def: Dictionary = SKILL_TREE.get(key, {})
+	return float(clampi(int(skills.get(key, 0)), 0, 12)) * float(def.get("per_level", 0.0))
+
+## T332 / V41: skills as a client reports them -- known keys, levels 1..12, no more unlocks
+## than its level allows (skill_points_available). Accounts' come from the server profile.
+static func sanitize_skills(raw, level: int) -> Dictionary:
+	var out := {}
+	if not raw is Dictionary:
+		return out
+	for k in raw:
+		if SKILL_TREE.has(str(k)) and out.size() < maxi(0, level):
+			out[str(k)] = clampi(int(raw[k]), 1, 12)
+	return out
 
 func _load_settings() -> void:
 	var cfg := ConfigFile.new()
