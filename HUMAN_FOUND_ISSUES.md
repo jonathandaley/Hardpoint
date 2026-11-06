@@ -62,8 +62,6 @@ Remove debug mech and the "e" mark set key. Archive the code just in case. The w
 
 Sign up screen isn't scrollable, so currently makes it so you have to exit the game to leave the screen. Both login and signup have a "server" field, what is that for? That's not a normal thing with other games, so if that's necessary for some reason it should probably be moved somewhere else.
 
-Beacon takeover ring should double in diameter.
-
 ERROR: Texture with GL ID of 63: leaked 349524 bytes.
    at: ~Utilities (drivers/gles3/storage/utilities.cpp:77)
 This error appeared after closing the game.

@@ -118,11 +118,17 @@ func build() -> void:
 		var mi := MeshInstance3D.new()
 		var pm := PrismMesh.new()
 		pm.size = Vector3(rng.randf_range(1.0, 2.2), rng.randf_range(0.5, 1.2), rng.randf_range(1.0, 2.2))
+		var yaw := rng.randf() * PI
+		# T314: a clearing around each beacon -- a fern on the (now 6 m) capture ring hid it.
+		# Skipped after its draws, so every other fern / the layout stays where it was.
+		if BEACONS.any(func(b): return q.distance_to(b) < Beacon.CIRCLE_RADIUS + 1.2):
+			mi.free()
+			continue
 		mi.mesh = pm
 		mi.material_override = fern
 		add_child(mi)
 		mi.position = Vector3(q.x, ground_y(q.x, q.y) + pm.size.y * 0.4, q.y)
-		mi.rotation.y = rng.randf() * PI
+		mi.rotation.y = yaw
 
 func _trunk(p: Vector2, r: float, h: float, bark: Material, leaf: Material) -> void:
 	var y0 := ground_y(p.x, p.y) - 0.5

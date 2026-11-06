@@ -153,3 +153,4 @@ date|task|outcome|commit|finding|suite
 2026-11-05|batch 2|DONE|T283+T308, T300+T302|suite green over the stack|94/94
 2026-11-05|T309|DONE|batch 3 (local commit)|crosshair concave taper to a hairline (fractional AA segments), rim on the outer half only; probe crosshair_wedges rewritten for it, red before|batch suite pending
 2026-11-05|T311+T313|DONE|batch 3 (local commit)|Patience camera shake 0; sniper shake halved (0.02/0.025 -> 0.01/0.0125); probe weapon_feel red before|batch suite pending
+2026-11-05|T314|DONE|batch 3 (local commit)|beacon ring + capture zone radius 3 -> 6; beacon_ring probe refined to the ring band (red check: 17 hits with the ring on the floor); Forest ferns cleared from beacon rings (draws kept: layout unchanged, stuck check same); probe beacon_ring_size red before|batch suite pending
