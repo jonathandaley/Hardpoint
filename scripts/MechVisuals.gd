@@ -55,18 +55,43 @@ static func _paint(mi: MeshInstance3D, mat: StandardMaterial3D) -> void:
 	if mi:
 		mi.set_surface_override_material(0, mat)
 
-# T255 attempt 2 (user 2026-11-05: "slight variations in the glowing/emissive parts of the
-# mechs that are already glowing. No adding anything new"): each existing glow box takes one
-# of four nearby shades in turn -- brightness x0.86-1.08, hue +-0.02 -- instead of one flat
-# colour. Same boxes, same count; order-based, so every peer sees the same mech.
-const GLOW_SHADES := [[1.0, 0.0], [0.86, 0.02], [1.08, -0.015], [0.93, 0.01]]  # [brightness, hue shift]
+# T255 / T310 (user: "slight variations in the glowing/emissive parts ... No adding anything
+# new"; then on attempt 2's four flat shades: "each block of glow is the same color; I meant to
+# texture it like the non-emissive parts of the mech (speckle?)"): the glow parts wear the
+# mech's own armor speckle -- its tile's brightness squeezed into 0.7-1.0 and tinted the glow
+# colour -- with the armor's mapping and pixel size. Same boxes; nothing added.
+const GLOW_FLOOR := 0.7
+static var _speckles := {}
 
-static func _glow_shades(emit: Color, energy: float) -> Array:
-	var out: Array = []
-	for sh in GLOW_SHADES:
-		var c := Color.from_hsv(fposmod(emit.h + sh[1], 1.0), emit.s, clampf(emit.v * sh[0], 0.0, 1.0), emit.a)
-		out.append(_mat_e(c, energy * sh[0]))
-	return out
+static func _glow_speckle(tex_path: String, emit: Color, energy: float) -> StandardMaterial3D:
+	var key := "%s|%s" % [tex_path, emit.to_html()]
+	if not _speckles.has(key):
+		var img: Image = (load(tex_path) as Texture2D).get_image()
+		if img.is_compressed():
+			img.decompress()
+		img.convert(Image.FORMAT_RGB8)
+		var lo := 1.0
+		var hi := 0.0
+		for y in img.get_height():
+			for x in img.get_width():
+				var l := img.get_pixel(x, y).get_luminance()
+				lo = minf(lo, l)
+				hi = maxf(hi, l)
+		for y in img.get_height():
+			for x in img.get_width():
+				var t := (img.get_pixel(x, y).get_luminance() - lo) / maxf(hi - lo, 0.001)
+				var k := GLOW_FLOOR + (1.0 - GLOW_FLOOR) * t
+				img.set_pixel(x, y, Color(emit.r * k, emit.g * k, emit.b * k))
+		var m := _mat_e(Color.WHITE, energy)
+		var tex := ImageTexture.create_from_image(img)
+		m.albedo_texture = tex
+		m.emission = emit
+		m.emission_texture = tex
+		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+		m.uv1_triplanar = true
+		m.uv1_scale = Vector3.ONE / TEX_M
+		_speckles[key] = m
+	return _speckles[key]
 
 # ---- accessory factories (added as Torso or Legs children) ----
 
@@ -99,13 +124,10 @@ static func _kit(mech: Node3D, k: Dictionary, tex: String) -> void:
 		"MO": _mat(_KIT_MOUNT), "SO": _mat(_KIT_SOCKET),
 		"E": _mat_e(k["emis"], k["energy"]) if k["energy"] > 0.0 else detail,
 	}
-	var shades: Array = _glow_shades(k["emis"], k["energy"]) if k["energy"] > 0.0 else []
-	var n_glow := [0]  # boxed: the lambda below must mutate it
+	if k["energy"] > 0.0:  # T310: glow parts speckled like the armor
+		mats["E"] = _glow_speckle("res://assets/hardpoint/textures/%s-armor.png" % tex, k["emis"], k["energy"])
 	var pick := func(key: String) -> StandardMaterial3D:
-		if key != "E" or shades.is_empty():
-			return mats[key]
-		n_glow[0] += 1
-		return shades[(n_glow[0] - 1) % shades.size()]
+		return mats[key]
 	var t := mech.get_node_or_null("Torso") as Node3D
 	if t:
 		# T218: the physical shield's placeholder too -- the kit model carries its own shield;
