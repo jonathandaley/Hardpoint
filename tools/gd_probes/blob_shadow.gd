@@ -1,7 +1,7 @@
 extends Node
-# T193 probe: Settings -> Shadows BLOB (default) turns the sun's shadows off and puts a
-# disc on the ground under every mech (hidden while stealthed); FULL keeps the pre-T193
-# sun shadows and no discs.
+# T193 probe: the sun casts no shadows and a disc sits on the ground under every mech
+# (hidden while stealthed). T315: blob is the only mode -- a profile that saved the old
+# "full" setting gets the same.
 
 func _fail(msg: String) -> void:
 	push_error("[probe] blob_shadow: " + msg)
@@ -28,7 +28,6 @@ func _blob(m: Node) -> MeshInstance3D:
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	Game.loadout["team_size"] = 2
-	Game.settings["shadows"] = "blob"
 	var arena: Node = await _arena()
 	if arena.get_node("Sun").shadow_enabled:
 		_fail("BLOB mode left the sun casting shadows")
@@ -52,13 +51,12 @@ func _ready() -> void:
 	m0.set("is_stealthy", false)
 	arena.queue_free()
 	await get_tree().process_frame
-	Game.settings["shadows"] = "full"
+	Game.settings["shadows"] = "full"  # an old profile's saved FULL: ignored since T315
 	arena = await _arena()
-	if not arena.get_node("Sun").shadow_enabled:
-		_fail("FULL mode lost the sun's shadows")
-	for m in get_tree().get_nodes_in_group("mechs"):
-		if _blob(m) != null:
-			_fail("FULL mode still adds blob shadows (%s)" % m.name)
-			break
+	if arena.get_node("Sun").shadow_enabled:
+		_fail("an old saved FULL setting brought the sun's shadows back")
+	if not get_tree().get_nodes_in_group("mechs").all(func(m): return _blob(m) != null):
+		_fail("an old saved FULL setting dropped the blob shadows")
+	Game.settings.erase("shadows")
 	print("[probe] blob_shadow done (%d mechs with discs)" % checked)
 	get_tree().quit(0)

@@ -37,7 +37,9 @@ func _ready() -> void:
 	pause_menu.quit_requested.connect(_on_pause_quit)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_apply_map_theme()
-	$Sun.shadow_enabled = Game.settings.get("shadows", "blob") == "full"  # T193: BLOB = discs instead
+	# T315 (user 2026-11-05: remove the FULL shadows option, "I don't want to have to deal with
+	# troubleshooting it"): no sun shadows, a blob disc under every mech (T193), always.
+	$Sun.shadow_enabled = false
 	# T184: SP is a local MP match (Game.start_sp_match); opened directly (tools, F6) = SP defaults
 	if Game.mp_active_match["roster"].is_empty():
 		Game.setup_sp_match()
@@ -155,11 +157,11 @@ func _spawn_one_mech(mech_def, team: int, idx: int, count: int, weapon_paths: Ar
 	m.leg_rotation_speed = mech_def.leg_rotation_speed
 	MechVisuals.apply(m, mech_def.display_name)
 	add_child(m)
-	if Game.settings.get("shadows", "blob") == "blob":  # T193
-		var blob := MeshInstance3D.new()
-		blob.set_script(_BlobShadow)
-		blob.radius = 1.1 * mech_def.body_scale
-		m.add_child(blob)
+	# T193 blob disc under each mech (T315: the only shadow mode now)
+	var blob := MeshInstance3D.new()
+	blob.set_script(_BlobShadow)
+	blob.radius = 1.1 * mech_def.body_scale
+	m.add_child(blob)
 	m.configure_legs(mech_def.leg_hip_sweep, mech_def.leg_bob_magnitude, mech_def.leg_cycle_rate)
 	m.configure_shield(mech_def.has_shields, mech_def.shield_max_hp)
 	m.configure_energy_shield(mech_def.has_energy_shield, mech_def.energy_shield_max_hp,
