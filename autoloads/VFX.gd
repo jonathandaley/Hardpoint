@@ -19,15 +19,16 @@ func _rpc_muzzle_flash(pos: Vector3, color: Color) -> void:
 		return
 	muzzle_flash(pos, color)
 
-func tracer(from: Vector3, to: Vector3, color: Color = Color(0.75, 0.5, 1.0), duration: float = 0.35, broadcast: bool = false) -> void:
+# T260: width (m) for thick beams; the beam holds, then fades out (alpha) and thins.
+func tracer(from: Vector3, to: Vector3, color: Color = Color(0.75, 0.5, 1.0), duration: float = 0.35, broadcast: bool = false, width: float = 0.04) -> void:
 	var dist := from.distance_to(to)
 	if dist < 0.01:
 		return
 	if broadcast and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
-		_rpc_tracer.rpc(from, to, color, duration)
+		_rpc_tracer.rpc(from, to, color, duration, width)
 	var mi := MeshInstance3D.new()
 	var box := BoxMesh.new()
-	box.size = Vector3(0.04, 0.04, dist)
+	box.size = Vector3(width, width, dist)
 	mi.mesh = box
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = color
@@ -35,20 +36,24 @@ func tracer(from: Vector3, to: Vector3, color: Color = Color(0.75, 0.5, 1.0), du
 	mat.emission_enabled = true
 	mat.emission = color
 	mat.emission_energy_multiplier = 4.0
-	mi.set_surface_override_material(0, mat)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	get_tree().current_scene.add_child(mi)
 	mi.global_position = (from + to) * 0.5
 	var up := Vector3.UP if abs((to - from).normalized().dot(Vector3.UP)) < 0.99 else Vector3.RIGHT
 	mi.look_at(to, up)
-	var tw := mi.create_tween()
+	var tw := mi.create_tween().set_parallel()
 	tw.tween_method(func(v: float) -> void: mat.emission_energy_multiplier = v, 4.0, 0.0, duration)
-	tw.tween_callback(mi.queue_free)
+	tw.tween_property(mat, "albedo_color:a", 0.0, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tw.tween_property(mi, "scale", Vector3(0.3, 0.3, 1.0), duration)
+	tw.chain().tween_callback(mi.queue_free)
 
 @rpc("authority", "unreliable")
-func _rpc_tracer(from: Vector3, to: Vector3, color: Color, duration: float) -> void:
+func _rpc_tracer(from: Vector3, to: Vector3, color: Color, duration: float, width: float) -> void:
 	if multiplayer.is_server():
 		return
-	tracer(from, to, color, duration)
+	tracer(from, to, color, duration, false, width)
 
 func hit_sparks(pos: Vector3, color: Color = Color(1.0, 0.55, 0.15), broadcast: bool = false) -> void:
 	if broadcast and multiplayer.has_multiplayer_peer() and multiplayer.is_server():

@@ -90,4 +90,6 @@ func _do_fire() -> void:
 
 	_charge_time = 0.0
 	_charge_visual.visible = false
-	VFX.tracer(global_position, aim_point, Color(0.75, 0.5, 1.0), 0.35)
+	# T260 (HUMAN_FOUND_ISSUES 2026-11-05 "thick beam that fades slowly"): thicker with
+	# charge, lingers 1.6 s, and clients see it too (it was server-only).
+	VFX.tracer(global_position, aim_point, Color(0.75, 0.5, 1.0), 1.6, true, lerpf(0.15, 0.4, t))
