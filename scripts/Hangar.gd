@@ -101,6 +101,7 @@ var _prog_nodes_container: Control = null
 func _ready() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	weapon_slot_label.visible = false
+	_opaque_tooltips()
 	var pilot_name: String = Game.profile.get("pilot_name", "Pilot")
 	pilot_label.text = pilot_name
 	pilot_name_label.text = "NAME: " + pilot_name.to_upper()
@@ -797,6 +798,18 @@ func _on_matchmaking_pressed() -> void:
 	SoundManager.play_sfx_2d("ui_click")
 	_on_matchmaking_reset()
 	$FindMatchPanel.visible = true
+
+# T336 (user on the T283 weapon tooltip: "Make the box background opaque so it's easier to
+# read"): the hangar's tooltips sit on a solid dark box (the engine default is see-through).
+func _opaque_tooltips() -> void:
+	var box := StyleBoxFlat.new()
+	box.bg_color = Color(0.07, 0.08, 0.09, 1.0)
+	box.border_color = Color(0.45, 0.5, 0.55, 1.0)
+	box.set_border_width_all(1)
+	box.set_content_margin_all(6)
+	var t := Theme.new()
+	t.set_stylebox("panel", "TooltipPanel", box)
+	theme = t
 
 # T228: SINGLE PLAYER -> pick the map (was buried in Settings) -> the match starts.
 func _on_find_sp_pressed() -> void:

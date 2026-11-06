@@ -1,7 +1,8 @@
 extends Node
 # T283 + T308 probe (user 2026-11-05: weapon range "in a drop-down mouseover menu", not the
 # name; mech stats "partially occluded by the mech visual, fix that by using more of the space
-# under the weapon picker"): every weapon in the hangar picker has a hover tooltip with its
+# under the weapon picker"; T336 "Make the box background opaque"): every weapon in the hangar
+# picker has a hover tooltip (on an opaque box) with its
 # range (and the label takes the mouse, so the tooltip can show); for every roster mech the
 # stats text sits under the picker and every line fits inside the picker's width.
 
@@ -27,6 +28,10 @@ func _ready() -> void:
 			continue
 		for lbl in picker.find_children("Weapon", "Label", true, false):
 			var tip: String = (lbl as Label).tooltip_text
+			var box = (lbl as Label).get_theme_stylebox("panel", "TooltipPanel")  # T336: opaque box
+			if not (box is StyleBoxFlat) or (box as StyleBoxFlat).bg_color.a < 1.0:
+				_fail("%s: the weapon tooltip box isn't opaque (%s)" % [path.get_file(), box])
+				bad = true
 			if not tip.contains("RANGE") or not tip.contains(" m") or (lbl as Label).mouse_filter == Control.MOUSE_FILTER_IGNORE:
 				_fail("%s: weapon %s has no range tooltip (tip '%s', mouse_filter %d)" % [path.get_file(), (lbl as Label).text, tip, (lbl as Label).mouse_filter])
 				bad = true
