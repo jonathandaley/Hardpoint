@@ -420,6 +420,9 @@ func _cycle_spectator() -> void:
 
 func _process(_delta: float) -> void:
 	_check_host_silence()  # T214
+	if is_instance_valid(_ride_cam) and not _ride_cam.current:  # T267: the next mech took over
+		_ride_cam.queue_free()
+		_ride_cam = null
 	if _spec_pivot == null or _spectated_mech == null or not is_instance_valid(_spectated_mech):
 		return
 	# Position pivot at the mech's camera-arm world position for a stable anchor.
@@ -790,6 +793,11 @@ func _on_local_mech_died_mp() -> void:
 	var my_id := multiplayer.get_unique_id()
 	if not _peer_slot_used.has(my_id):
 		return
+	var pod = player_mech.get("ejected_pod") if is_instance_valid(player_mech) else null
+	if is_instance_valid(pod):
+		await _ride_pod(pod)  # T267: up with the canister first, then the picker
+		if _match_over or not is_inside_tree():
+			return
 	var squad: Array = []
 	for entry in Game.mp_active_match["roster"]:
 		if entry.get("peer_id", 0) == my_id:
@@ -797,6 +805,36 @@ func _on_local_mech_died_mp() -> void:
 			break
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	hud.show_squad_picker_mp(squad, _peer_slot_used[my_id])
+
+# T267 (user 2026-11-05: "When a player dies, camera should launch upward with it for .5-1
+# seconds before switching to the mech picker"): a camera starts from the dead mech's view and
+# climbs with the canister, looking at it, for POD_RIDE_S; it stays put under the picker and
+# is freed once the next mech's camera takes over (_process).
+const POD_RIDE_S := 0.75
+var _ride_cam: Camera3D = null
+
+func _ride_pod(pod: Node3D) -> void:
+	var from: Camera3D = player_mech.get("camera") if is_instance_valid(player_mech) else null
+	if is_instance_valid(_ride_cam):
+		_ride_cam.queue_free()
+	_ride_cam = Camera3D.new()
+	_ride_cam.name = "PodRideCam"
+	add_child(_ride_cam)
+	if from != null:
+		_ride_cam.global_transform = from.global_transform
+		_ride_cam.fov = from.fov
+	_ride_cam.current = true
+	var last := pod.global_position
+	var t0 := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 < int(POD_RIDE_S * 1000.0) and is_instance_valid(pod) and is_instance_valid(_ride_cam):
+		await get_tree().process_frame
+		if not is_instance_valid(pod) or not is_instance_valid(_ride_cam):
+			break
+		var p := pod.global_position
+		_ride_cam.global_position += (p - last) * 0.9  # ride up with it, a touch behind
+		last = p
+		if _ride_cam.global_position.distance_to(p) > 0.5:
+			_ride_cam.look_at(p, Vector3.UP)
 
 # Server-side validation and dispatch for squad slot selection (V35, V41).
 func _process_pick_next_mech(sender: int, slot_idx: int, spawn: int) -> void:
