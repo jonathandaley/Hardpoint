@@ -36,7 +36,7 @@ Bots should pick spawnpoints instead of all spawning together.
 
 Guns should list their range in the description
 
-Bogged down status effect should have a HUD icon and slowdown % listed
+Bogged down status effect should have a HUD icon and slowdown % listed. This should go under the minimap.
 
 Death match (no beacon) match option
 
@@ -76,8 +76,6 @@ Corvette feels very spread out, shrink it by 30%.
 
 Remove debug mech and the "e" mark set key. Archive the code just in case. The window currently says "Hardpoint (DEBUG)" on the title bar, that's probably not necessary anymore.
 
-The general texturing applied to most of the maps' floors and obstacles is pretty good in general, but it looks blurry. Probably make the pixels/texels bigger? Like the bot texture, sharp bigger pixels instead of blurry finer detail.
-
 Sign up screen isn't scrollable, so currently makes it so you have to exit the game to leave the screen. Both login and signup have a "server" field, what is that for? That's not a normal thing with other games, so if that's necessary for some reason it should probably be moved somewhere else.
 
 Beacon takeover ring should double in diameter.
@@ -88,7 +86,38 @@ This error appeared after closing the game.
 
 Minimap, both for picking spawnpoints and in the HUD, should be rotated 90 degrees counterclockwise.
 
+Reduce sniper recoil/screen shudder by 50%.
+
+Make sure muzzle flash is actually at the end of the barrel and not at its base.
+
+The impact sound of bullets hitting a mech should not play for laser, arc, or patience. Any raycast weapons added in the future, either.
+
+Targeting reticule should aim for center mass, instead of the current spot (appears constant, so it's a little low on a pegasus and very low on a vesuvius).
+
+Redwood trees texture should be coarsened and made higher contrast. If feasible, lengthening the texture vertically somewhat would be great. I'm not exactly sure how to describe it; the goal is a tree bark-like texture, so aligning the dark and light parts vertically for a few pixels at a time, not necessarily straight up-and-down but just generally. Is that relatively easy?
+
+During a match, the spawnpoint picker should have a back button that goes back to the mech picker.
+
+The mech picker for matches should look like a miniature version of the hangar, without any of the fancy parts; no light cones, drones, etc. Just enough to see what weapons they have equipped so you can tell the difference between mechs with the same name in the squad.
+
+Top left of HUD, under the ability marker, should have a readout, small text, listing kills and chat. Chat as a stub; kills very simple. Should take up very little space and not be distracting.
+
+Bots should be assigned names, which are visible like players (Which I can't remember if they're already visible, but in multiplayer the callsign should be above the health bar). You make a list of names that sound cool and have nothing objectionable in them (this is a shooter game, MurderousMaximus27 etc. is totally fine, but not DeeezGunz69). That way names are assigned from a preset list, but aren't just random. Make the list long enough so that repeats aren't constant. (100-200?)
+
+At elite level, bots will have a much shorter, separate list of names. Only good gamertags; cheesy ones are fine for the basic bots, but not elites. These will have persistent pilot upgrades that are tied to their names, so, e.g. Inexorable always has "health" and the whole "move speed" tree maxed out.
+
+Pilot upgrades will be the difference between hard and elite. Hard will have no intentional bad strategy/aiming errors, elite will be that plus upgrades.
+
+Remove the "full" shadows option. I don't want to have to deal with troubleshooting it, somebody can make a shader mod if they really want to.
+
+
+
+
 Don't change anything, but how computationally expensive would it be to double the resolution again? Some things, most notably the crosshair, are visually annoying at this resolution. Remember that this wants to be able to run in a web browser eventually. Just answer after this question.
+
+A (Claude): almost free to run -- 640x360 is only the 2D layout grid; the window stretches it and the 3D world already renders at full window resolution, so doubling adds no 3D cost (fine for web). The cost is work: every UI position / font size is hard-coded in 640x360 units across many files. Cheaper fix for what bugs you: fractional line widths (0.5 unit = 1-1.5 screen px) -- doing that on the crosshair in T309.
+
+Defer until I decide more: The general texturing applied to most of the maps' floors and obstacles is pretty good in general, but it looks blurry. Probably make the pixels/texels bigger? Like the bot texture, sharp bigger pixels instead of blurry finer detail. Not for every map, though: Redwood's floor is great.
 
 
 
