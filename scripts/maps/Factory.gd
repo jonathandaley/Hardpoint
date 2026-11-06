@@ -151,7 +151,10 @@ func _sky(rng: RandomNumberGenerator) -> void:
 	sm.sky_horizon_color = Color("#c8582a")
 	sm.ground_horizon_color = Color("#9c4420")
 	sm.ground_bottom_color = Color("#2a0f08")
-	_sky_restore = [env.sky, env.sky.sky_material]
+	if env.sky == null:  # an environment without a sky (tools): give it one
+		env.sky = Sky.new()
+	else:
+		_sky_restore = [env.sky, env.sky.sky_material]
 	env.sky.sky_material = sm
 	env.background_mode = Environment.BG_SKY
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
