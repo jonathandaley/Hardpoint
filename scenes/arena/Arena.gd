@@ -183,6 +183,7 @@ func _spawn_mechs_mp() -> void:
 		if t == 0 or t == 1:
 			team_counts[t] += 1
 	var team_idx := [0, 0]
+	var bot_start_idx := [0, 0]  # T281
 	for ri in roster.size():
 		var entry: Dictionary = roster[ri]
 		var t: int = entry["team"]
@@ -198,7 +199,15 @@ func _spawn_mechs_mp() -> void:
 			push_error("[Arena] MP: cannot load mech_def '%s'" % mech_path)
 			continue
 		var wpn_paths: Array = squad[0].get("weapons", [])
-		var m: CharacterBody3D = _spawn_one_mech(mech_def, t, team_idx[t], team_counts[t], wpn_paths)
+		# T281 (HUMAN_FOUND 2026-11-05: "Bots should pick spawnpoints instead of all spawning
+		# together"): match-start bots go round-robin over their team's spawn points (humans
+		# start at the first and choose in the start pick). Roster order is the same on every
+		# peer, so every peer places them alike.
+		var sp := 0
+		if entry["peer_id"] == 0:
+			sp = bot_start_idx[t] % spawn_points(t).size()
+			bot_start_idx[t] += 1
+		var m: CharacterBody3D = _spawn_one_mech(mech_def, t, team_idx[t], team_counts[t], wpn_paths, "", sp)
 		m.owner_peer_id = entry["peer_id"]
 		m.roster_idx = ri
 		if entry["peer_id"] != 0 and entry["peer_id"] == multiplayer.get_unique_id() and player_mech == null:
