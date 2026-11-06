@@ -6,8 +6,6 @@ Gun shells should stick around longer, at least at higher graphics settings. I d
 
 The mech picker for matches should look like a miniature version of the hangar, without any of the fancy parts; no light cones, drones, etc. Just enough to see what weapons they have equipped so you can tell the difference between mechs with the same name in the squad.
 
-How hard would it be to make the weapons tilt up and down as they aim? If easy, add it to the queue.
-
 Defer until I decide more: The general texturing applied to most of the maps' floors and obstacles is pretty good in general, but it looks blurry. Probably make the pixels/texels bigger? Like the bot texture, sharp bigger pixels instead of blurry finer detail. Not for every map, though: Redwood's floor is great.
 
 Harden security for network: Look through the source code for vulnerabilities, and also try to hack it from the outside if possible. Defer for now, but flag it before setting up online stuff.

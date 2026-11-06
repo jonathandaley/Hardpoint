@@ -222,3 +222,4 @@ date|task|outcome|commit|finding|suite
 2026-11-06|T244|DONE|batch 12 (local commit)|7 root .md files -> docs/ (git mv), path mentions rewritten incl. memory; root = the 8 per-session files|batch suite pending
 2026-11-06|batch 12|DONE|T295, T320, T244|suite 129/130: factory_no_zfight builds Factory under an environment with no sky -> T320 recolour hit null; guarded (no sky: make one, as before); both probes green|129/130 -> fixed
 2026-11-06|T329|DONE|solo (snapshot field)|guns tilt with aim on every peer (hardpoint pitch = aim - level pitch, clamped 0.45 rad), pitch rides the snapshot, interpolated for remote mechs; probe weapon_tilt red before (first try a false red: process_frame fires before the nodes _process); render-checked|suite + sweep pending
+2026-11-06|T329 verify|DONE|-|suite 131/131, sweep 60/60|131/131 + net 60/60
