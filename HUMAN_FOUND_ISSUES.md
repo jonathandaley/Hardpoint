@@ -66,8 +66,6 @@ Minimap, both for picking spawnpoints and in the HUD, should be rotated 90 degre
 
 Make sure muzzle flash is actually at the end of the barrel and not at its base. Make its size proportional to the barrel.
 
-The impact sound of bullets hitting a mech should not play for laser, arc, or patience. Any raycast weapons added in the future, either.
-
 Targeting reticule should aim for center mass, instead of the current spot (appears constant, so it's a little low on a pegasus and very low on a vesuvius).
 
 Redwood trees texture should be coarsened and made higher contrast. If feasible, lengthening the texture vertically somewhat would be great. I'm not exactly sure how to describe it; the goal is a tree bark-like texture, so aligning the dark and light parts vertically for a few pixels at a time, not necessarily straight up-and-down but just generally. Is that relatively easy?

@@ -137,7 +137,10 @@ func start_reload_cosmetic() -> void:
 	if reload_start_sound_key != "":
 		SoundManager.play_sfx(reload_start_sound_key, global_position)
 
-func _emit_hit_if_visible(target: Node, hit_pos: Vector3 = Vector3.ZERO) -> void:
+# T316 (user 2026-11-05: the bullet impact sound "should not play for laser, arc, or patience. Any
+# raycast weapons added in the future, either"): only a projectile's hit plays it -- projectile
+# weapons pass by_projectile from their on_hit; any raycast weapon is silent by default.
+func _emit_hit_if_visible(target: Node, hit_pos: Vector3 = Vector3.ZERO, by_projectile := false) -> void:
 	if target != null and target.get("is_stealthy"):
 		return
 	hit_confirmed.emit()
@@ -150,7 +153,7 @@ func _emit_hit_if_visible(target: Node, hit_pos: Vector3 = Vector3.ZERO) -> void
 		if owner_peer > 1 and owner_peer in multiplayer.get_peers():
 			var slot: int = owner_mech.get_weapons().find(self)
 			owner_mech.rpc_id(owner_peer, &"_sync_hit_confirmed", slot)
-	if impact_sound_enabled:
+	if impact_sound_enabled and by_projectile:
 		var sfx_pos := hit_pos if hit_pos != Vector3.ZERO else (target as Node3D).global_position
 		SoundManager.play_sfx("hit_impact", sfx_pos, _bc)
 	var spark_pos := hit_pos if hit_pos != Vector3.ZERO \

@@ -41,7 +41,7 @@ func _do_fire() -> void:
 	proj._exclude_rids = owner_mech.get_exclude_rids()
 	proj.source_weapon = self
 
-	proj.on_hit = func(body, pos): _emit_hit_if_visible(body, pos)
+	proj.on_hit = func(body, pos): _emit_hit_if_visible(body, pos, true)
 	get_tree().current_scene.add_child(proj)
 	# looking_at() orients -Z toward aim_point, matching Projectile's movement axis
 	proj.global_transform = Transform3D(Basis(), global_position).looking_at(aim_point)

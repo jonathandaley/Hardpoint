@@ -53,7 +53,7 @@ func _do_fire() -> void:
 		proj.source_weapon = self
 		proj.damage_override = func(dist: float) -> float:
 			return lerpf(dc, df, clampf(dist / r, 0.0, 1.0))
-		proj.on_hit = func(body, pos): _emit_hit_if_visible(body, pos)
+		proj.on_hit = func(body, pos): _emit_hit_if_visible(body, pos, true)
 		get_tree().current_scene.add_child(proj)
 		proj.global_transform = Transform3D(Basis(), global_position).looking_at(aim_point)
 		ghost_aims.append(aim_point)
