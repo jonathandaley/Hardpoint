@@ -70,6 +70,15 @@ func _do_fire() -> void:
 		return
 	var hit_pos: Vector3 = ray["pos"]
 	var result: Dictionary = ray["result"]
+	# T299 (user: "Laser and arc should not go through targets, but stop when hitting a mech"):
+	# the beam leaves the muzzle, not the camera -- a mech (or shield) on the way to the crosshair
+	# point stops it and takes the hit. Walls there keep the old crosshair behaviour.
+	var mq := PhysicsRayQueryParameters3D.create(global_position, hit_pos)
+	mq.exclude = owner_mech.get_exclude_rids()
+	var mr := get_world_3d().direct_space_state.intersect_ray(mq)
+	if mr and mr.collider != (result.collider if result else null) and mr.collider.has_method("take_damage"):
+		result = mr
+		hit_pos = mr.position
 	if result:
 		if result.collider.has_method("take_damage"):
 			var target_team: int = result.collider.get("team") if "team" in result.collider else -1
