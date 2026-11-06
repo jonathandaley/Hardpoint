@@ -176,7 +176,7 @@ func fire() -> void:
 		# Audit #10: this override dropped the broadcast flag WeaponBase.fire()
 		# passes, so remote peers never saw MG muzzle flashes.
 		var _bc: bool = multiplayer.has_multiplayer_peer() and multiplayer.is_server()
-		VFX.muzzle_flash(global_position - global_transform.basis.z * 0.4 * visual_scale, muzzle_color, _bc)
+		_muzzle_flash(_bc)
 	if shake_magnitude > 0.0 and owner_mech != null and owner_mech.has_method("apply_camera_shake"):
 		owner_mech.apply_camera_shake(shake_magnitude)
 	if max_ammo >= 0:

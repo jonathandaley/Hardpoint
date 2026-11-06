@@ -48,6 +48,43 @@ static func apply(weapon: Node3D, mult := 1.0) -> void:
 		weapon.add_child(mi)
 	if "visual_scale" in weapon:
 		weapon.set("visual_scale", mult)  # muzzle flash at the bigger barrel's end
+	# T317 (HUMAN_FOUND 2026-11-05: muzzle flash "actually at the end of the barrel and not at
+	# its base. Make its size proportional to the barrel"): the model's real muzzle + width
+	var mz: Array = _muzzle(key)
+	var s := (HEAVY_SCALE if heavy else LIGHT_SCALE) * mult
+	weapon.set("muzzle_local", (mz[0] as Vector3) * s)
+	weapon.set("barrel_w", float(mz[1]) * s)
+
+static var _muzzles := {}
+
+## [muzzle point, barrel width] in kit units. The front plane's boxes (within 2 cm of the most
+## forward point) make the muzzle: the centre of their outline (a missile pod's tube grid ->
+## the pod's centre), barrel width = the widest of them (one tube, one barrel).
+static func _muzzle(key: String) -> Array:
+	if _muzzles.has(key):
+		return _muzzles[key]
+	var boxes: Array = WeaponKit.DATA[key]
+	var front := INF
+	for b in boxes:
+		front = minf(front, _front_z(b))
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	var w := 0.0
+	for b in boxes:
+		if _front_z(b) <= front + 0.01:
+			lo = Vector2(minf(lo.x, float(b[3])), minf(lo.y, float(b[4])))
+			hi = Vector2(maxf(hi.x, float(b[3])), maxf(hi.y, float(b[4])))
+			w = maxf(w, maxf(float(b[0]), float(b[1])))
+	var c := (lo + hi) * 0.5
+	var out := [Vector3(c.x, c.y, front), w]
+	_muzzles[key] = out
+	return out
+
+## The box's most forward z (kit boxes can be rotated: Aerial Strike's fins).
+static func _front_z(b: Array) -> float:
+	var r := Basis(Quaternion(float(b[6]), float(b[7]), float(b[8]), float(b[9])))
+	var hz := absf(r.x.z) * float(b[0]) * 0.5 + absf(r.y.z) * float(b[1]) * 0.5 + absf(r.z.z) * float(b[2]) * 0.5
+	return float(b[5]) - hz
 
 static func _parts(key: String, s: float) -> Array:
 	var ck := "%s@%s" % [key, s]

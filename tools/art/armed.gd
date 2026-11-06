@@ -2,13 +2,17 @@ extends Node3D
 # T265 art review: each mech with its default weapons at its real weapon_scale, close up,
 # from the front-left 3/4 and from the side, one PNG per mech:
 #   xvfb-run -a -s "-screen 0 1280x720x24" ~/bin/godot --resolution 1280x720 \
-#     res://tools/art/armed.tscn -- <out_dir> [Mech ...]   (default: the 9 roster mechs)
+#     res://tools/art/armed.tscn -- <out_dir> [flash] [Mech ...]   (default: the 9 roster mechs;
+#     "flash" fires every weapon's muzzle flash just before the capture -- T317)
 const ROSTER := ["Everest", "Kestrel", "Pegasus", "Seeker", "Hornet", "Vesuvius", "Slip", "Hippogriff", "Cesh"]
 
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	var out: String = args[0]
-	var names: Array = args.slice(1) if args.size() > 1 else ROSTER
+	var flash := args.size() > 1 and args[1] == "flash"
+	var names: Array = args.slice(2 if flash else 1)
+	if names.is_empty():
+		names = ROSTER
 	var env := WorldEnvironment.new()
 	env.environment = Environment.new()
 	env.environment.background_mode = Environment.BG_COLOR
@@ -41,6 +45,12 @@ func _ready() -> void:
 		cam.position = Vector3(0, h * 0.9, 7.5 * md.body_scale)
 		cam.look_at(Vector3(0, h * 0.62, 0))
 		for i in 4:
+			await get_tree().process_frame
+		if flash:
+			get_tree().current_scene = self  # flashes go under the current scene
+			for m in holder.get_children():
+				for w in m.call("get_weapons"):
+					w.call("_muzzle_flash", false)
 			await get_tree().process_frame
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png("%s/%s.png" % [out, n])
