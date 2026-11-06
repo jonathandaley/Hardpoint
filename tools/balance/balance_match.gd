@@ -7,7 +7,10 @@ extends Node
 # T285: mode=deathmatch (timer off: the natural length) map=<MapDef path> diff=<0..4, Elite>
 # Prints one line per mech life, then the match:
 #   [bal] {"mech", "wpn", "team", "dealt", "taken", "kills", "alive_s", "won"}
-#   [bal-match] {"winner", "t"}
+#   [bal-match] {"winner", "t", "map", "size"}
+# T243: also every attacker (mech) -> victim (mech) pair: damage traded and kills, and each
+# life's stall share (census samples alive but not moving):
+#   [bal-pair] {"att", "vic", "dmg", "kills"}
 
 const Lobby := preload("res://scripts/Lobby.gd")
 const AI := preload("res://scripts/AIInputSource.gd")
@@ -15,6 +18,26 @@ const AI := preload("res://scripts/AIInputSource.gd")
 var _arg := {"seed": "1", "size": "3", "max_s": "420", "mode": "beacons", "map": "", "diff": "4"}
 var _born: Dictionary = {}  # mech -> tick first seen
 var _gone: Dictionary = {}  # mech -> tick first seen dead
+var _map_name := "?"
+var _pairs: Dictionary = {}  # "att|vic" -> [damage, kills]
+var _still: Dictionary = {}  # mech -> [census samples alive, of them not moving, last pos]
+
+static func _mech_name(m: Node) -> String:
+	if m == null or not is_instance_valid(m):
+		return "?"
+	var spawn: Resource = load(m.get_meta("spawn", [""])[0]) if m.has_meta("spawn") else null
+	return String(spawn.display_name) if spawn != null else String(m.name)
+
+func _on_damage(amount: float, source: Node, victim: Node) -> void:
+	var att: Node = source
+	while att != null and is_instance_valid(att) and not att.is_in_group("mechs") and att.get("owner_mech") == null:
+		att = att.get_parent()
+	if att != null and is_instance_valid(att) and att.get("owner_mech") != null:
+		att = att.get("owner_mech")
+	var key := "%s|%s" % [_mech_name(att), _mech_name(victim)]
+	var p: Array = _pairs.get(key, [0.0, 0])
+	p[0] += amount
+	_pairs[key] = p
 
 func _ready() -> void:
 	for kv in OS.get_cmdline_user_args():
@@ -29,6 +52,8 @@ func _ready() -> void:
 	if _arg["map"] != "":
 		Game.loadout["map_def"] = load(_arg["map"])
 	Game.setup_sp_match()
+	var md0 = Game.loadout.get("map_def")
+	_map_name = String(md0.map_name) if md0 != null else "?"
 	for e in Game.mp_active_match["roster"]:
 		e["peer_id"] = 0  # the human slot plays as a bot too
 		var squad: Array = []
@@ -56,6 +81,10 @@ func _ready() -> void:
 		for m in arena.get("_team_mechs")[team]:
 			if is_instance_valid(m) and m.is_dead and is_instance_valid(m.last_attacker):
 				kills[m.last_attacker] = int(kills.get(m.last_attacker, 0)) + 1
+				var key := "%s|%s" % [_mech_name(m.last_attacker), _mech_name(m)]
+				var p: Array = _pairs.get(key, [0.0, 0])
+				p[1] += 1
+				_pairs[key] = p
 	for team in 2:
 		for m in arena.get("_team_mechs")[team]:
 			if not is_instance_valid(m) or not _born.has(m):
@@ -67,8 +96,15 @@ func _ready() -> void:
 			print("[bal] " + JSON.stringify({"mech": spawn.display_name if spawn != null else String(m.name),
 				"wpn": wpn, "team": team, "dealt": snappedf(m.damage_dealt_total, 0.1),
 				"taken": snappedf(m.damage_taken_total, 0.1), "kills": int(kills.get(m, 0)),
-				"alive_s": snappedf((int(_gone.get(m, t)) - int(_born[m])) / 60.0, 0.1), "won": won[0] == team}))
-	print("[bal-match] " + JSON.stringify({"winner": won[0], "t": snappedf(t / 60.0, 0.1)}))
+				"alive_s": snappedf((int(_gone.get(m, t)) - int(_born[m])) / 60.0, 0.1), "won": won[0] == team,
+				"stall": snappedf(float(_still[m][1]) / maxf(1.0, float(_still[m][0])), 0.01) if _still.has(m) else 0.0,
+				"map": _map_name}))
+	for key in _pairs:
+		var ab: PackedStringArray = String(key).split("|")
+		print("[bal-pair] " + JSON.stringify({"att": ab[0], "vic": ab[1], "dmg": snappedf(_pairs[key][0], 0.1),
+			"kills": _pairs[key][1], "map": _map_name}))
+	print("[bal-match] " + JSON.stringify({"winner": won[0], "t": snappedf(t / 60.0, 0.1), "map": _map_name,
+		"size": int(_arg["size"])}))
 	get_tree().quit(0)
 
 func _census(arena: Node, t: int) -> void:
@@ -78,5 +114,13 @@ func _census(arena: Node, t: int) -> void:
 				continue
 			if not _born.has(m) and not m.is_dead:
 				_born[m] = t
+				m.damage_event.connect(_on_damage.bind(m))
+			if not m.is_dead and _born.has(m):  # stall share: alive, < 0.15 m since the last census
+				var st: Array = _still.get(m, [0, 0, m.global_position])
+				st[0] += 1
+				if (m.global_position - (st[2] as Vector3)).length() < 0.15:
+					st[1] += 1
+				st[2] = m.global_position
+				_still[m] = st
 			if m.is_dead and _born.has(m) and not _gone.has(m):
 				_gone[m] = t

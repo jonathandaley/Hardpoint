@@ -225,3 +225,4 @@ date|task|outcome|commit|finding|suite
 2026-11-06|T329 verify|DONE|-|suite 131/131, sweep 60/60|131/131 + net 60/60
 2026-11-06|T323|DONE|local commit|in-match picker = mini hangar cards (3D mech + its slot weapons + weapon names), shared arm_display; first render: same-mech cards too alike at that size -> weapon names line, lighter bg, picker over the name tags; probe squad_minibay red before|suite pending
 2026-11-06|T323 verify|DONE|-|suite 132/132|132/132
+2026-11-06|T243 (tooling)|DONE|local commit|Mech.damage_event(amount, source); balance_match logs attacker->victim pairs (damage, kills), stall share per life, map per life / match; balance_eval --maps all --sizes 1,3,5: per mech / weapon / map tables + stalled column + mech-vs-mech matchup table (kill share Wilson CI, ! where it excludes 50%) + raw JSON; selftest covers matchups; smoke run 2 matches ok|suite pending, then the long run
