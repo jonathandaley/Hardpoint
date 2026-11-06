@@ -14,6 +14,16 @@ func _ring_y(b: Node3D) -> float:
 			return (c as MeshInstance3D).global_position.y
 	return -INF
 
+## Does the box's XZ footprint reach the ring's band around p (some point at r in [R-0.18, R])?
+func _meets_band(box: AABB, p: Vector3) -> bool:
+	var nx := clampf(p.x, box.position.x, box.end.x) - p.x
+	var nz := clampf(p.z, box.position.z, box.end.z) - p.z
+	var near := sqrt(nx * nx + nz * nz)
+	var fx := maxf(absf(box.position.x - p.x), absf(box.end.x - p.x))
+	var fz := maxf(absf(box.position.z - p.z), absf(box.end.z - p.z))
+	var far := sqrt(fx * fx + fz * fz)
+	return near <= Beacon.CIRCLE_RADIUS and far >= Beacon.CIRCLE_RADIUS - 0.18
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	var scenes := {}
@@ -42,12 +52,12 @@ func _ready() -> void:
 		for b in get_tree().get_nodes_in_group("beacons"):
 			var ry := _ring_y(b)
 			var p: Vector3 = (b as Node3D).global_position
-			var foot := AABB(Vector3(p.x - Beacon.CIRCLE_RADIUS, -1000, p.z - Beacon.CIRCLE_RADIUS),
-				Vector3(Beacon.CIRCLE_RADIUS * 2, 2000, Beacon.CIRCLE_RADIUS * 2))
 			for box in flats:
 				# a pad buries the ring if it lies at its height (bottom at or under it, top over
-				# it); a thin light strip on a 10 m ceiling (Corvette) doesn't
-				if (box as AABB).intersects(foot) and (box as AABB).position.y <= ry and (box as AABB).end.y >= ry - 0.02:
+				# it); a thin light strip on a 10 m ceiling (Corvette) doesn't. T314: only where
+				# its footprint meets the ring's band (r = R - 0.18 .. R) -- the old square around
+				# the whole disc flagged rocks wholly inside / outside the 6 m ring
+				if _meets_band(box, p) and (box as AABB).position.y <= ry and (box as AABB).end.y >= ry - 0.02:
 					_fail("%s beacon (%.0f, %.0f): ring at y %.2f, a flat mesh's top at %.2f covers it" % [
 						String(sp).get_file(), p.x, p.z, ry, (box as AABB).end.y])
 					break

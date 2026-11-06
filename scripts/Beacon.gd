@@ -20,7 +20,7 @@ const _PROGRESS_BROADCAST_INTERVAL := 0.15
 var _contested_hold_timer: float = 0.0
 
 const BEAM_HEIGHT := 30.0
-const CIRCLE_RADIUS := 3.0
+const CIRCLE_RADIUS := 6.0  # T314 (HUMAN_FOUND 2026-11-05: takeover ring "double in diameter"); = the CaptureZone radius
 const RING_Y := 0.25  # T229: clears every map's beacon pads (probe beacon_ring)
 
 @onready var _cap_mesh: MeshInstance3D = $Visual/Cap
