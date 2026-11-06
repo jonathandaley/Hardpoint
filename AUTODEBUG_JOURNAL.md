@@ -180,3 +180,4 @@ date|task|outcome|commit|finding|suite
 2026-11-06|T322|DONE|batch 7 (local commit)|spawn picker BACK -> mech picker (pending pick dropped); probe spawn_back red before; spawn_points probe skips the BACK button|batch suite pending
 2026-11-06|T298|DONE|batch 7 (local commit)|Patience max_damage 62.5 -> 160 (damage too, V28 clamp): 2.7x a sniper shot, ~10 DPS at full charge (sniper ~13); probe patience_damage red before|batch suite pending
 2026-11-06|batch 7|DONE|T280, T301, T322, T298|suite green over the stack|110/110
+2026-11-06|T318|DONE|batch 8 (local commit)|minimap rotated 90 deg CCW (to_map + heading arrow), spawn picker follows; minimap probe axes red before|batch suite pending
