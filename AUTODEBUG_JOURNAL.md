@@ -146,3 +146,4 @@ date|task|outcome|commit|finding|suite
 2026-11-05|T262|DONE|batch 1 (local commit)|MG barrel + muzzle glow additive shell, ramps with fire rate, clients via _remote_firing; probe mg_glow red before (no get_heat)|batch suite pending
 2026-11-05|T272|DONE|batch 1 (local commit)|missile fireball 0.8x (0.4 r), bursts at max range with splash (server) / visual (ghost); splash = linear to splash_radius, measured to mech feet (answer in NEEDS_HUMAN); probe missile_range_burst red before|batch suite pending
 2026-11-05|T275|DONE|batch 1 (local commit)|hangar TEAM SIZE picker removed (loadout.team_size stays the SP fill default; sp_bots probe green); probe hangar_no_team_size red before|batch suite pending
+2026-11-05|T286|DONE|batch 1 (local commit)|the two big stationary drones = T208 welder drones over the repair bays; removed (swarm drones stay, fancy_hangar green); probe hangar_no_welders red before|batch suite pending
