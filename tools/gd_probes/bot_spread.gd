@@ -6,7 +6,10 @@ extends Node
 # slot runs a Hornet (2.1 m/s): the roster's 5v5 puts the slow heavies (Everest 0.75 m/s)
 # all on one side, and spacing would measure walk speed instead of the AI.
 
-const MAX_SHARE := 2.6    # mean of the per-sample maximum bots on one beacon (old AI: 3-4)
+const MAX_SHARE := 2.8    # mean of the per-sample maximum bots on one beacon (old AI: 3-4).
+                          # B121: 2.6 was tuned to every bot starting at spawn 0; since T281 spreads
+                          # them over the spawn points they reach 2.5-2.7 here, while their spacing
+                          # went 7-27 m -> 44-49 m (the T189 failure was the opposite: one blob)
 const MIN_SPACING := 10.0  # m, mean pairwise teammate distance, both teams averaged (old AI:
                            # 6-8; new: 16-17 -- on MathTemple one team's two pairs share the
                            # route past the centre for a while, the other spreads ~25 m).
