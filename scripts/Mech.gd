@@ -230,11 +230,15 @@ func _process(delta: float) -> void:
 		if _flash_timer_es == 0.0:
 			for mesh in _body_meshes:
 				mesh.material_override = null
-	if _input_source != null and _input_source.has_method("is_human_input") and _input_source.is_human_input():
+	var repair_eff: float = skill("repair_rate")  # T332: any pilot with the skill, bots too
+	if repair_eff > 0.0 and (not multiplayer.has_multiplayer_peer() or multiplayer.is_server()):
 		_no_damage_timer += delta
-		var repair_eff: float = Game.get_skill_effect("repair_rate")
-		if _no_damage_timer >= 3.0 and repair_eff > 0.0 and health > 0.0:
+		if _no_damage_timer >= 3.0 and health > 0.0 and health < max_health:
 			health = minf(health + repair_eff * delta, max_health)
+			_regen_sync_t += delta
+			if multiplayer.has_multiplayer_peer() and (_regen_sync_t >= 0.25 or health >= max_health):
+				_regen_sync_t = 0.0
+				_sync_health.rpc(health)  # snapshots carry no health: clients see the repair here
 
 func apply_camera_shake(magnitude: float) -> void:
 	_shake_intensity = magnitude
@@ -287,15 +291,23 @@ func _rpc_shield_broken() -> void:
 	if is_instance_valid(_shield) and _shield.visible:
 		_shield.call("_break")
 
+# T332: this mech's pilot's skills (its roster entry, Arena._apply_skills) -- on a server the
+# local profile (Game.get_skill_effect) is the host's own, not the pilot's.
+var pilot_skills: Dictionary = {}
+var _regen_sync_t := 0.0
+
+func skill(key: String) -> float:
+	return Game.skill_effect_in(pilot_skills, key)
+
 func apply_pilot_skills() -> void:
-	max_health      *= 1.0 + Game.get_skill_effect("health")
+	max_health      *= 1.0 + skill("health")
 	health           = max_health
-	base_walk_speed *= 1.0 + Game.get_skill_effect("move_speed")
-	_lock_time      *= maxf(0.1, 1.0 - Game.get_skill_effect("lock_speed"))
-	var dmg_eff:    float = Game.get_skill_effect("damage")
-	var spd_eff:    float = Game.get_skill_effect("projectile_speed")
-	var rl_eff:     float = Game.get_skill_effect("reload_speed")
-	var spread_eff: float = Game.get_skill_effect("spread_reduction")
+	base_walk_speed *= 1.0 + skill("move_speed")
+	_lock_time      *= maxf(0.1, 1.0 - skill("lock_speed"))
+	var dmg_eff:    float = skill("damage")
+	var spd_eff:    float = skill("projectile_speed")
+	var rl_eff:     float = skill("reload_speed")
+	var spread_eff: float = skill("spread_reduction")
 	for weapon in _weapons:
 		if not is_instance_valid(weapon):
 			continue
@@ -307,7 +319,7 @@ func apply_pilot_skills() -> void:
 			if weapon is MachineGun:
 				weapon.spread_angle *= maxf(0.0, 1.0 - spread_eff)
 	if is_instance_valid(_energy_shield) and _energy_shield.get("_active") == true:
-		_energy_shield.max_shield_hp *= 1.0 + Game.get_skill_effect("shield_capacity")
+		_energy_shield.max_shield_hp *= 1.0 + skill("shield_capacity")
 		_energy_shield.shield_hp      = _energy_shield.max_shield_hp
 
 func has_lock_weapon() -> bool:
@@ -1330,9 +1342,7 @@ func _activate_ability(ability: Resource) -> void:
 	if ability.duration > 0.0:
 		_ability_active_timers[ability.effect_key] = ability.duration
 	else:
-		var cd: float = ability.cooldown
-		if _input_source.has_method("is_human_input") and _input_source.is_human_input():
-			cd *= maxf(0.0, 1.0 - Game.get_skill_effect("ability_recharge"))
+		var cd: float = ability.cooldown * maxf(0.0, 1.0 - skill("ability_recharge"))  # T332
 		_ability_cooldowns[ability.effect_key] = cd
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		var slot := _abilities.find(ability)
@@ -1346,9 +1356,7 @@ func _deactivate_ability(key: String) -> void:
 			_apply_stealth_visual(false)
 	for ability in _abilities:
 		if ability.effect_key == key:
-			var cd: float = ability.cooldown
-			if _input_source != null and _input_source.has_method("is_human_input") and _input_source.is_human_input():
-				cd *= maxf(0.0, 1.0 - Game.get_skill_effect("ability_recharge"))
+			var cd: float = ability.cooldown * maxf(0.0, 1.0 - skill("ability_recharge"))  # T332
 			_ability_cooldowns[key] = cd
 			if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 				_rpc_ability_deactivated.rpc(_abilities.find(ability))

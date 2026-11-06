@@ -120,6 +120,7 @@ static func _local_peer_meta() -> Dictionary:
 		"pilot_name": Game.profile.get("pilot_name", "Pilot"),
 		"elo":        Game.profile.get("elo", 1000),
 		"level":      Game.profile.get("level", 1),
+		"skills":     Game.profile.get("skills", {}),  # T332
 		"squad":      _build_squad_data(),
 		"ready":      false,
 	}
@@ -329,15 +330,20 @@ static func _build_roster() -> Array:
 				team_counts[team] += 1
 				bot_id += 1
 
-	# T325: callsigns ride the roster to every peer -- players keep theirs, bots draw from the deck
+	# T325: callsigns ride the roster to every peer -- players keep theirs, bots draw from the deck.
+	# T332: so do pilot skills -- players' (sanitized), ELITE bots' named builds (T335), others none.
 	var taken: Array = []
+	var elite: bool = int(Game.settings.get("bot_difficulty", 1)) >= 4
 	for e in roster:
 		if int(e["peer_id"]) != 0:
-			e["name"] = str(Game.mp_lobby["peers"].get(e["peer_id"], {}).get("pilot_name", "Pilot"))
+			var meta: Dictionary = Game.mp_lobby["peers"].get(e["peer_id"], {})
+			e["name"] = str(meta.get("pilot_name", "Pilot"))
+			e["skills"] = Game.sanitize_skills(meta.get("skills", {}), int(meta.get("level", 1)))
 			taken.append(e["name"])
 	for e in roster:
 		if int(e["peer_id"]) == 0:
-			e["name"] = BotNames.next_name(taken)
+			e["name"] = BotNames.next_name(taken, elite)
+			e["skills"] = (BotNames.ELITE.get(e["name"], {}) as Dictionary).duplicate()
 			taken.append(e["name"])
 	return roster
 

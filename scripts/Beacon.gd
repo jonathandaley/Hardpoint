@@ -75,15 +75,13 @@ func _process(delta: float) -> void:
 		return
 	_update_capture(delta)
 
-func _player_team_in_zone() -> int:
-	for t in _capturers:
-		for body in _capturers[t]:
-			if not is_instance_valid(body):
-				continue
-			var src: Node = body.get("_input_source")
-			if src != null and src.has_method("is_human_input") and src.is_human_input():
-				return int(t)
-	return -1
+# T332: the best of team `t`'s pilots in the zone at `key` (each mech's own pilot skills).
+func _best_skill(t, key: String) -> float:
+	var best := 0.0
+	for body in _capturers.get(t, []):
+		if is_instance_valid(body) and body.has_method("skill"):
+			best = maxf(best, float(body.skill(key)))
+	return best
 
 func _update_capture(delta: float) -> void:
 	for t in _capturers:
@@ -91,8 +89,9 @@ func _update_capture(delta: float) -> void:
 	var teams := _teams_present()
 
 	if teams.size() > 1:
-		var player_t: int = _player_team_in_zone()
-		var hold: float = Game.get_skill_effect("contested_hold") if player_t >= 0 else 0.0
+		var hold: float = 0.0  # T332: the best pilot in the zone (its own skills), not the host's
+		for t in _capturers:
+			hold = maxf(hold, _best_skill(t, "contested_hold"))
 		if hold > 0.0:
 			if _contested_hold_timer == 0.0:
 				_contested_hold_timer = hold
@@ -123,9 +122,7 @@ func _update_capture(delta: float) -> void:
 		_capturing_team = team
 		_capture_progress = 0.0
 
-	var cap_delta: float = delta
-	if _player_team_in_zone() == team:
-		cap_delta *= 1.0 + Game.get_skill_effect("beacon_capture")
+	var cap_delta: float = delta * (1.0 + _best_skill(team, "beacon_capture"))  # T332
 	# B87: clamp -- the capturing tick overshot (1.002) and the stream sent that before the reset
 	_capture_progress = minf(_capture_progress + cap_delta / capture_time, 1.0)
 	_stream_progress(delta, false)
