@@ -185,6 +185,36 @@ func _block(size: Vector3, pos: Vector3, rot_y: float, mat: Material, tilt := Ve
 	body.add_child(mi)
 	add_child(body)
 
+# T288 (HUMAN_FOUND 2026-11-05: "Badlands should have some decrepit windows in the buildings"):
+# some tall wall segments are built around a window hole -- sill, two side piers, and a lintel
+# that has fallen out of some (a ragged notch). Its own RNG per segment (hash of the spot), so
+# the rest of the map's layout stream is untouched. Returns false when the segment stays solid.
+func _window_wall(c: Vector3, along: Vector3, x_long: bool, seg_len: float, h: float, rot: float, mat: Material) -> bool:
+	if h < 5.0 or seg_len < 3.0:
+		return false
+	var wr := RandomNumberGenerator.new()
+	wr.seed = hash([snappedf(c.x, 0.01), snappedf(c.z, 0.01)])
+	if wr.randf() > 0.6:
+		return false
+	var g := ground_y(c.x, c.z) - 0.3
+	var sill := wr.randf_range(2.2, 2.8)
+	var ww := minf(seg_len * wr.randf_range(0.35, 0.5), 2.0)  # window width
+	var wh := minf(h - sill - 0.6, wr.randf_range(1.4, 2.2))  # window height
+	var pier := (seg_len - ww) * 0.5
+	var dims := func(len_along: float, height: float) -> Vector3:
+		return Vector3(len_along, height, 0.7) if x_long else Vector3(0.7, height, len_along)
+	_block(dims.call(seg_len, sill), Vector3(c.x, g + sill * 0.5, c.z), rot, mat)  # sill wall
+	for sgn in [-1.0, 1.0]:  # piers either side of the hole
+		var pc: Vector3 = c + along * sgn * (ww * 0.5 + pier * 0.5)
+		_block(dims.call(pier, wh), Vector3(pc.x, g + sill + wh * 0.5, pc.z), rot, mat)
+	var top := h - sill - wh
+	if top > 0.3 and wr.randf() > 0.35:  # lintel + wall above; missing on ~1 in 3: a broken notch
+		_block(dims.call(seg_len, top), Vector3(c.x, g + sill + wh + top * 0.5, c.z), rot, mat)
+	window_count += 1
+	return true
+
+var window_count := 0  # T288: how many window holes this build cut (probe)
+
 func _ruin(at: Vector2, rng: RandomNumberGenerator) -> void:
 	var w := rng.randf_range(12.0, 22.0)
 	var d := rng.randf_range(10.0, 18.0)
@@ -207,8 +237,9 @@ func _ruin(at: Vector2, rng: RandomNumberGenerator) -> void:
 			var h := full_h * rng.randf_range(0.25, 1.0)
 			var seg_len := length / segs - 0.15
 			var c := Vector3(at.x, 0, at.y) + off + along * ((float(k) + 0.5) / segs - 0.5) * length
-			_block(Vector3(seg_len, h, 0.7) if side % 2 == 0 else Vector3(0.7, h, seg_len),
-				Vector3(c.x, ground_y(c.x, c.z) + h * 0.5 - 0.3, c.z), rot, wall_mat)
+			if not _window_wall(c, along, side % 2 == 0, seg_len, h, rot, wall_mat):
+				_block(Vector3(seg_len, h, 0.7) if side % 2 == 0 else Vector3(0.7, h, seg_len),
+					Vector3(c.x, ground_y(c.x, c.z) + h * 0.5 - 0.3, c.z), rot, wall_mat)
 	if rng.randf() < 0.6:  # collapsed roof: a slab resting on one wall, tilted to the ground
 		var tilt := deg_to_rad(rng.randf_range(14.0, 26.0))
 		_block(Vector3(w * 0.8, 0.45, d * 0.6), Vector3(at.x, base + full_h * 0.45, at.y), rot,
