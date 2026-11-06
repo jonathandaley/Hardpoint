@@ -231,3 +231,10 @@ date|task|outcome|commit|finding|suite
 2026-11-06|T243|DONE (report)|-|96-match all-map run: no win rate shown off; Vesuvius dominates pairings, Everest beats lights, aerial/rocket/arc weak, Kestrel takes least; proposals in NEEDS_HUMAN (no stat changes)|-
 2026-11-06|T328 verify + T293 trial 1|DONE|-|suite with --scen-jobs 2: 133/133 in 512 s (serial ~13 min)|133/133
 2026-11-06|T293 trial + B124|DONE (T293 opt-in)|-|parallel suite 133/133 in 8.5 min; parallel sweep 58/60 (arc_audio@bad = B124 exit leaks, also serial; dedicated_server@bad transform 6 m, serial green) -> --scen-jobs stays opt-in; B124 harness quits clean (sync log off, audio stopped, 1 s settle): arc_audio@bad 4/4|full suite + sweep pending
+2026-11-06|B124 verify|DONE|-|harness clean quit + server-lost guard: suite 133/133, sweep 60/60 (a bot_lock@bad 3 s reliable-resend tail in the previous sweep, 3/3 reruns green)|133/133 + net 60/60
+2026-11-06|T293|DONE (opt-in)|-|--scen-jobs stays opt-in (parallel net sweep flaked once on load); serial default|-
+2026-11-06|T285|BLOCKED|-|time limit: user to pick (15:00 proposed in NEEDS_HUMAN; 10:00 placeholder live)|-
+2026-11-06|T266|BLOCKED|-|true online waits on Q4 (security review T290 first?)|-
+2026-11-06|T263|BLOCKED|-|spent shells: Q5 (what was seen?)|-
+2026-11-06|T290 T291 T326|BLOCKED|-|parked / tentative by the user (security review, tutorial + manual, indoor-map picker)|-
+2026-11-06|queue empty|-|-|everything else done; open user calls in NEEDS_HUMAN (DM limit, balance proposals, music, menu stretching, Q6 heal) and HUMAN_FOUND (Q4, Q5)|-
