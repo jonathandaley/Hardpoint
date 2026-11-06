@@ -145,6 +145,9 @@ func _explode_at(pos: Vector3) -> void:
 		_boom_mesh.height = 1.0
 		_boom_mesh.radial_segments = 16
 		_boom_mesh.rings = 8
+	# T331 (HUMAN_FOUND 2026-11-05: new "missile_explosion" sound): each peer plays it at its own
+	# fireball (real shot or client ghost), so no RPC.
+	SoundManager.play_sfx("missile_explosion", pos)
 	var boom := Node3D.new()
 	boom.name = "Explosion"
 	get_tree().current_scene.add_child(boom)

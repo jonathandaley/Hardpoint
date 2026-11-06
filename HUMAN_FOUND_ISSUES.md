@@ -86,7 +86,6 @@ How hard would it be to make the weapons tilt up and down as they aim? If easy, 
 
 Game lagged when shot at close range with three heavy shotguns at once. Too many particles? Want to make sure that doesn't happen.
 
-New "missile_explosion" sound in audio/import, played when a missile explodes.
 
 Make rockets be smarter to avoid hitting obstacles.
 
