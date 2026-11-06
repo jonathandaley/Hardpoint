@@ -32,8 +32,6 @@ Death match (no beacon) match option
 
 Make sure elite bots don't miss, and in fact shoot ahead of moving targets. I want elites to be impossible. Can always add more intermediate levels if necessary.
 
-Arc weapon should be unable to fire until it's within range.
-
 All lock-on weapons should not lock on until the weapon is within range. Square reticle should still be visible at any range. 
 
 Kestrel shield is too strong.

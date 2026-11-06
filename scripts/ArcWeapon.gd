@@ -80,6 +80,12 @@ func fire() -> void:
 	if owner_mech == null or owner_mech.get("locked_target") == null:
 		_hide_beam()
 		return
+	# T273 (HUMAN_FOUND 2026-11-05: "Arc weapon should be unable to fire until it's within
+	# range"): out of range nothing is spent -- no cooldown, ammo, beam or sound.
+	var t := owner_mech.get("locked_target") as Node3D
+	if not is_instance_valid(t) or global_position.distance_to(t.global_position) > range:
+		_hide_beam()
+		return
 	if max_ammo >= 0 and ammo <= 0:
 		_hide_beam()
 	super.fire()
