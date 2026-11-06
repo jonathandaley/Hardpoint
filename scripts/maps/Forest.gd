@@ -77,7 +77,8 @@ func build() -> void:
 		env.ambient_light_energy = 0.55
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 223
-	var bark := _mat(BARK)
+	var bark := _bark_mat()  # T321: streaky pixel bark on the standing trunks
+	var log_bark := _mat(BARK)  # fallen logs lie sideways: vertical streaks would run across them
 	var moss_rock := _mat(Color("#55644a"))
 	var leaf := _mat(Color("#1f3a1c"))
 	# giant trunks, placed in symmetric pairs
@@ -100,7 +101,7 @@ func build() -> void:
 		var yaw := rng.randf() * PI
 		for q in [p, -p]:
 			_blocked.append([q, length * 0.5])
-			_log(q, length, r, yaw + (PI if q != p else 0.0), bark)
+			_log(q, length, r, yaw + (PI if q != p else 0.0), log_bark)
 	# mossy boulders
 	for k in 80:
 		var p := Vector2(rng.randf_range(-HALF, HALF), rng.randf_range(-HALF, HALF))
@@ -207,3 +208,41 @@ func _rock(p: Vector2, s: float, yaw: float, mat: Material) -> void:
 	mi.material_override = mat
 	body.add_child(mi)
 	add_child(body)
+
+# T321 (HUMAN_FOUND 2026-11-05: Redwood bark "coarsened and made higher contrast ... aligning the
+# dark and light parts vertically for a few pixels at a time, not necessarily straight
+# up-and-down"): a 16 x 48 texel tile -- each column in vertical runs of 3-9 texels at clearly
+# different shades, a run now and then stepping one column sideways -- at 0.25 m per texel,
+# world-triplanar so every trunk gets the same coarse grain. Its own RNG: the layout stream is
+# untouched. (Having a texture keeps MapScene.add_surface_detail's soft noise off it.)
+const BARK_W := 16
+const BARK_H := 48
+const BARK_TEXEL := 0.25
+const BARK_SHADES := [0.5, 0.75, 1.0, 1.25]
+
+static func bark_image() -> Image:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2321
+	var img := Image.create(BARK_W, BARK_H, false, Image.FORMAT_RGB8)
+	for x in BARK_W:
+		var y := 0
+		var phase := rng.randi_range(0, BARK_H - 1)  # each column wraps at its own height: no seam line
+		while y < BARK_H:
+			var run := rng.randi_range(3, 9)
+			var k: float = BARK_SHADES[rng.randi() % BARK_SHADES.size()]
+			var step := rng.randi_range(-1, 1) if rng.randf() < 0.25 else 0
+			var c := Color(BARK.r * k, BARK.g * k, BARK.b * k).clamp()
+			for yy in range(y, mini(y + run, BARK_H)):
+				img.set_pixel(posmod(x + (step if yy >= y + run / 2 else 0), BARK_W), (yy + phase) % BARK_H, c)
+			y += run
+	return img
+
+func _bark_mat() -> StandardMaterial3D:
+	var m := _mat(Color.WHITE)
+	m.albedo_texture = ImageTexture.create_from_image(bark_image())
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	m.uv1_triplanar = true
+	m.uv1_world_triplanar = true
+	m.uv1_scale = Vector3(1.0 / (BARK_W * BARK_TEXEL), 1.0 / (BARK_H * BARK_TEXEL), 1.0 / (BARK_W * BARK_TEXEL))
+	return m
+
