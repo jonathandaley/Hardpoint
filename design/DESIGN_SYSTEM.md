@@ -25,10 +25,10 @@ Everything below was distilled from the project repository:
 
 - **GitHub:** [github.com/jonathandaley/Hardpoint](https://github.com/jonathandaley/Hardpoint) — private, default branch `main`.
   - `README.md` — controls, mech roster, project layout
-  - `DESIGN.md` — architecture + locked non-goals (no normal maps, no transparent materials, pixel-art atlases, blob shadows only)
+  - `docs/DESIGN.md` — architecture + locked non-goals (no normal maps, no transparent materials, pixel-art atlases, blob shadows only)
   - `SPEC.md` — invariants V1–V41, tasks T1–T132, bug log; the canonical "why + what"
-  - `GRAPHICS_PLAN.md` — graphics tasks, draw-call budgets, palette rules
-  - `MP_PLAN.md` — multiplayer phase plan
+  - `docs/GRAPHICS_PLAN.md` — graphics tasks, draw-call budgets, palette rules
+  - `docs/MP_PLAN.md` — multiplayer phase plan
   - `icon.svg` — project icon → `assets/logo-mark.svg`
   - `scenes/ui/*.tscn` — `TitleScreen`, `Hangar`, `HUD`, `Lobby`, `Settings`, `MPEntry`, `PauseMenu`, `SignIn`
   - `scripts/HUD.gd` — HUD layout numbers, color constants, bar geometries

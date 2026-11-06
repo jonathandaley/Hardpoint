@@ -58,7 +58,7 @@ This file is the resumable state. If session dies, restart from "Next up".
 32. ~~**Settings.gd:34 and Game.gd:354 use `master_volume` fallback 1.0**~~ FIXED (see #2).
 33. ~~**Arena.gd:5289 SP win counter uses `winning_team == 0`**~~ FIXED (see #3).
 34. ~~**HUD._process dereferences `_player_mech.health` with only a null check**~~ FIXED: changed to `is_instance_valid`.
-35. **`.uid` files for Lobby.gd / MPEntry.gd / NetworkInputSource.gd are untracked** (git status). Godot 4.4+ uid sidecars should be committed, or references can break across checkouts. Also untracked: MP_AUTODEBUG_PLAN.md, MP_M0_BRIEF.md, error screenshot.
+35. **`.uid` files for Lobby.gd / MPEntry.gd / NetworkInputSource.gd are untracked** (git status). Godot 4.4+ uid sidecars should be committed, or references can break across checkouts. Also untracked: docs/MP_AUTODEBUG_PLAN.md, docs/MP_M0_BRIEF.md, error screenshot.
 
 ### Dead code / cleanup
 4. ~~**autoloads/AIDirector.gd is dead.**~~ FIXED: deleted (+ .uid).
