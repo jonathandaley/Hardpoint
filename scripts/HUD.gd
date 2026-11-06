@@ -513,6 +513,7 @@ func _process(delta: float) -> void:
 				fg.offset_left  = entry.right - entry.max_w * pct
 
 	_update_ability_label()
+	_update_bog_status()
 	_update_bot_bar()
 	_update_beacon_bars()
 	_update_team_counts()
@@ -548,6 +549,49 @@ func _update_rangefinder() -> void:
 	rangefinder.text = "%d m" % roundi(target.global_position.distance_to((_player_mech as Node3D).global_position))
 	rangefinder.position = get_viewport().get_visible_rect().size * 0.5 + Vector2(10, 5)
 	rangefinder.visible = true
+
+# T284 (HUMAN_FOUND 2026-11-05: "Bogged down status effect should have a HUD icon and
+# slowdown % listed. This should go under the minimap"): while terrain slows our mech (swamp
+# wading, Mech.terrain_speed < 1) a small water icon + "BOGGED -N%" sits under the minimap.
+var bog_status: Control = null
+
+class BogIcon extends Control:  # three wavy water lines
+	func _draw() -> void:
+		for k in 3:
+			var pts := PackedVector2Array()
+			for x in 9:
+				pts.append(Vector2(x * 1.25, 2.5 + k * 3.0 + sin(x * 1.6) * 0.9))
+			draw_polyline(pts, Color(0.55, 0.75, 0.45, 0.95), 1.0, true)
+
+func _update_bog_status() -> void:
+	if bog_status == null:
+		bog_status = HBoxContainer.new()
+		bog_status.name = "BogStatus"
+		bog_status.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bog_status.add_theme_constant_override("separation", 3)
+		var icon := BogIcon.new()
+		icon.name = "BogIcon"
+		icon.custom_minimum_size = Vector2(11, 10)
+		bog_status.add_child(icon)
+		var lbl := Label.new()
+		lbl.name = "BogLabel"
+		lbl.add_theme_font_size_override("font_size", 9)
+		lbl.add_theme_color_override("font_color", Color(0.75, 0.9, 0.6))
+		lbl.add_theme_constant_override("outline_size", 2)
+		lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+		bog_status.add_child(lbl)
+		add_child(bog_status)
+	var slow := 0.0
+	if is_instance_valid(_player_mech) and not _player_mech.get("is_dead"):
+		slow = 1.0 - float(_player_mech.get("terrain_speed"))
+	var pct := roundi(slow * 100.0)
+	if pct <= 0 or minimap == null or not minimap.visible:
+		bog_status.visible = false
+		return
+	(bog_status.get_node("BogLabel") as Label).text = "BOGGED -%d%%" % pct
+	var r := minimap.get_global_rect()
+	bog_status.position = Vector2(r.position.x, r.end.y + 3.0)
+	bog_status.visible = true
 
 const ELIGIBLE_HALF := 9.5
 

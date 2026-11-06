@@ -165,3 +165,4 @@ date|task|outcome|commit|finding|suite
 2026-11-06|T274|DONE|batch 5 (local commit)|rangefinder shows only the reticle enemy range (locked / soft-lock target, no LOS needed), no raycast; probe rangefinder red before (135 m off terrain); probe needed is_human_input (soft-lock updates only for human pilots)|batch suite pending
 2026-11-06|T273|DONE|batch 5 (local commit)|arc spends nothing while its locked target is out of range; probe arc_range red before (cooldown/ammo spent at 105 m, range 90)|batch suite pending
 2026-11-06|T277|DONE|batch 5 (local commit)|SP map picker: a map button only selects, PLAY starts; sp_map_pick red before, sp_bots presses PLAY|batch suite pending
+2026-11-06|T284|DONE|batch 5 (local commit)|bogged-down icon + slowdown % under the minimap from terrain_speed; probe bog_status red before|batch suite pending
