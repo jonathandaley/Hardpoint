@@ -131,7 +131,7 @@ func _ready() -> void:
 	var rifle: Node = load("res://scenes/weapons/RifleLight.tscn").instantiate()
 	ai.set("_target", a)
 	(a as CharacterBody3D).velocity = Vector3(3.0, 0.0, 0.0)
-	var centre: Vector3 = a3.to_global(Vector3.UP)
+	var centre: Vector3 = a3.call("center_mass")  # T319: bots aim at centre mass
 	var led: Vector3 = ai.call("_aim_point", e, rifle, 1.0)
 	var want: float = 3.0 * (e as Node3D).global_position.distance_to(centre) / 55.0
 	if absf((led - centre).x - want) > want * 0.15 + 0.05:
