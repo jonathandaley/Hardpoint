@@ -53,7 +53,7 @@ func _spawn_rocket(lock_target: Node3D) -> void:
 	proj.turn_rate = turn_rate
 	proj.splash_radius = splash_radius
 	proj.splash_damage = splash_damage
-	proj.on_hit = func(body, pos): _emit_hit_if_visible(body, pos)
+	proj.on_hit = func(body, pos): _emit_hit_if_visible(body, pos, true)
 
 	get_tree().current_scene.add_child(proj)
 	var fwd_point := global_position - global_transform.basis.z
