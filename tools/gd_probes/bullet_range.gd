@@ -8,8 +8,9 @@ extends Node
 const SlotDef := preload("res://scripts/WeaponSlotDef.gd")
 const HOMING := preload("res://scripts/HomingProjectile.gd")
 const NEEDS_LOCK := ["RocketLauncherLight", "AerialStrikeHeavy"]  # fire only at a locked target: same lifetime code, not fired here
+# PatienceHeavy left out since T307: an instant hitscan shot, no projectile (probe patience_hitscan)
 const WEAPONS := ["RifleLight", "RifleHeavy", "SniperLight", "SniperHeavy", "MachineGunLight", "MachineGunHeavy",
-	"ShotgunLight", "ShotgunHeavy", "MissileLauncherLight", "MissileLauncherHeavy", "PatienceHeavy",
+	"ShotgunLight", "ShotgunHeavy", "MissileLauncherLight", "MissileLauncherHeavy",
 	"RocketLauncherLight", "AerialStrikeHeavy"]
 
 class AimSrc extends "res://scripts/InputSource.gd":

@@ -20,8 +20,8 @@ Plan of record: `MP_AUTODEBUG_PLAN.md` §9. Queue: SPEC.md §T.
      expect_fail (strict xfail in sync_compare) so the suite stays green; the fix
      task removes the xfail.
    - Bug found → backprop skill (§B row, §V if it would catch recurrence).
-4. **Verify.** `python3 tools/run_suite.py` all green (~8 min: 21 scenarios + 3 gd_probes as of
-   2026-11-01). Sim or RNG code touched → also `python3 tools/selftest.py`. Netcode touched
+4. **Verify.** `python3 tools/run_suite.py` all green (~13 min: 29 scenarios + ~57 gd_probes, probes
+   6-wide since T292). Sim or RNG code touched → also `python3 tools/selftest.py`. Netcode touched
    (RPCs, snapshots, sync, transitions) → also `python3 tools/run_suite.py --net wifi,bad --no-probes`
    (~15 min, must stay green). Long-run / perf / leak work → `python3 tools/run_suite.py --soak --only
    soak_match` (~15 min).
@@ -33,6 +33,15 @@ Plan of record: `MP_AUTODEBUG_PLAN.md` §9. Queue: SPEC.md §T.
 6. **Journal.** Append to `AUTODEBUG_JOURNAL.md`: date, task, outcome
    (DONE / BLOCKED / REVERTED), commit hash, one-line finding, suite result.
 7. **Next.** `ScheduleWakeup` 60s with the same prompt.
+
+**Easy-task batches** (user 2026-11-05: "do several things that are easy all at once, and then run
+the suite ... for anything tricky, it's better to be careful"). Up to 4 EASY rows from the next ~8
+in the queue may share one suite run: small visual / UI / text / map / tuning changes with an
+obvious fix. Never batched: netcode (anything that needs the --net sweep), bugs with an unknown
+cause, sim/RNG, multi-system features. Each task in a batch still gets its own red-before-green
+probe run, then is committed LOCALLY (its own SPEC/journal lines) before the next starts -- so
+tasks may share a file. Then one suite run over the stack; green -> push the commits together;
+red -> bisect the local commits (git stash / checkout), fix or drop the culprit (journal), rerun.
 
 ## Guardrails
 
