@@ -1273,8 +1273,9 @@ func _apply_stealth_visual(active: bool) -> void:
 			mat = fb
 		for mesh in all_meshes:
 			# B75: T178 leaves the default Waist/Body/Head nodes mesh-less (kit boxes replace
-			# them); a surface override on an empty MeshInstance is an engine error.
-			if mesh is MeshInstance3D and mesh.mesh != null:
+			# them); a surface override on an empty MeshInstance is an engine error. B111: so is
+			# one on a mesh with no surfaces yet (T259's arc bolt before its first draw).
+			if mesh is MeshInstance3D and mesh.mesh != null and mesh.mesh.get_surface_count() > 0:
 				_stealth_saved_mats[mesh] = mesh.get_surface_override_material(0)
 				mesh.set_surface_override_material(0, mat)
 	else:
