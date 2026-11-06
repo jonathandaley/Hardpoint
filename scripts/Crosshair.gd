@@ -35,23 +35,25 @@ func _process(delta: float) -> void:
 		_hit_timer -= delta
 		queue_redraw()
 
+# T276 (HUMAN_FOUND 2026-11-05, top priority: "too hard to see through. Make it only the
+# current width at the edges, and narrow it to a point in the middle"): no centre dot; each
+# arm is a wedge, LINE_WIDTH wide at its outer end (where the old arm ended) tapering to a
+# point at the centre, so the aim point itself is open. Outline wedges drawn first.
+static func arm_wedges(c: Vector2, rim := 0.0) -> Array[PackedVector2Array]:
+	var reach := LINE_WIDTH * 0.5 + GAP + LINE_LEN + rim
+	var hw := LINE_WIDTH * 0.5 + rim
+	var out: Array[PackedVector2Array] = []
+	for d: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
+		var side := Vector2(-d.y, d.x) * hw
+		out.append(PackedVector2Array([c + d * reach + side, c + d * reach - side, c]))
+	return out
+
 func _draw() -> void:
-	# T168: pixel-aligned + symmetric. The old version centred 1-px marks on a pixel
-	# corner (blurry dot) and offset the gaps 2/1 px, so the cross looked shifted.
-	var w := LINE_WIDTH
-	var p := (size * 0.5 - Vector2(w, w) * 0.5).floor()  # top-left of the centre dot
-	var c := p + Vector2(w, w) * 0.5                    # geometric centre (brackets, hit X)
-	var marks: Array[Rect2] = [
-		Rect2(p.x, p.y, w, w),                          # centre dot
-		Rect2(p.x, p.y - GAP - LINE_LEN, w, LINE_LEN),  # up
-		Rect2(p.x, p.y + w + GAP, w, LINE_LEN),         # down
-		Rect2(p.x - GAP - LINE_LEN, p.y, LINE_LEN, w),  # left
-		Rect2(p.x + w + GAP, p.y, LINE_LEN, w),         # right
-	]
-	for r in marks:
-		draw_rect(r.grow(1.0), OUTLINE)
-	for r in marks:
-		draw_rect(r, COLOR)
+	var c := size * 0.5
+	for poly in arm_wedges(c, 1.0):
+		draw_colored_polygon(poly, OUTLINE)
+	for poly in arm_wedges(c):
+		draw_colored_polygon(poly, COLOR)
 
 	if _lock_progress > 0.0:
 		var dist := lerpf(LOCK_DIST_FAR, LOCK_DIST_NEAR, _lock_progress)
