@@ -12,17 +12,19 @@ func _ready() -> void:
 	_beam_pivot = Node3D.new()
 	add_child(_beam_pivot)
 
-	var box := BoxMesh.new()
-	box.size = Vector3(0.045, 0.045, 1.0)
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(0.0, 1.0, 0.88)
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.emission_enabled = true
 	mat.emission = Color(0.0, 1.0, 0.88)
 	mat.emission_energy_multiplier = 5.0
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var mi := MeshInstance3D.new()
-	mi.mesh = box
-	mi.set_surface_override_material(0, mat)
+	mi.mesh = ImmediateMesh.new()  # T259: the bolt, rebuilt every frame it shows
+	# B112: the colour lives on the mesh surface -- Mech's shield flash sets and then nulls
+	# material_override on every torso mesh, which left a material_override bolt grey.
+	_bolt_mat = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_beam_pivot.add_child(mi)
 	_beam_mesh = mi
 	_beam_mesh.visible = false
@@ -41,6 +43,38 @@ func _physics_process_impl(delta: float) -> void:
 		_beam_age += delta
 		if _beam_age > BEAM_HOLD_S:
 			_hide_beam()
+
+# T259 (HUMAN_FOUND_ISSUES 2026-11-05 "lightning arc (continuous)"): the beam is a jagged
+# bolt, pinned at the muzzle and the target and kinked most mid-way, re-drawn every frame
+# while it shows; two crossed ribbons so it reads from any side without billboarding.
+const BOLT_SEGS := 10
+const BOLT_JITTER := 0.3  # m, widest sideways kink
+const BOLT_WIDTH := 0.07
+static var _bolt_rng := RandomNumberGenerator.new()  # cosmetic; keeps the global RNG untouched
+var _beam_len := 1.0
+var _bolt_mat: StandardMaterial3D = null
+var _bolt_points := PackedVector3Array()
+
+func _process(_delta: float) -> void:
+	if _beam_mesh != null and _beam_mesh.visible:
+		_redraw_bolt()
+
+func _redraw_bolt() -> void:
+	_bolt_points.resize(BOLT_SEGS + 1)
+	for i in BOLT_SEGS + 1:
+		var f := float(i) / BOLT_SEGS
+		var j := BOLT_JITTER * sin(PI * f)
+		_bolt_points[i] = Vector3(_bolt_rng.randf_range(-j, j), _bolt_rng.randf_range(-j, j), -_beam_len * f)
+	var im := _beam_mesh.mesh as ImmediateMesh
+	im.clear_surfaces()
+	im.surface_begin(Mesh.PRIMITIVE_TRIANGLES, _bolt_mat)
+	for side: Vector3 in [Vector3(BOLT_WIDTH * 0.5, 0, 0), Vector3(0, BOLT_WIDTH * 0.5, 0)]:
+		for i in BOLT_SEGS:
+			var a := _bolt_points[i]
+			var b := _bolt_points[i + 1]
+			for v: Vector3 in [a - side, a + side, b + side, a - side, b + side, b - side]:
+				im.surface_add_vertex(v)
+	im.surface_end()
 
 func fire() -> void:
 	if owner_mech == null or owner_mech.get("locked_target") == null:
@@ -100,8 +134,7 @@ func _do_fire() -> void:
 func _beam_fx(target_pos: Vector3) -> void:
 	var dist := maxf(0.01, global_position.distance_to(target_pos))
 	_beam_pivot.look_at(target_pos, Vector3.UP)
-	_beam_mesh.position = Vector3(0.0, 0.0, -dist * 0.5)
-	_beam_mesh.scale.z = dist
+	_beam_len = dist
 	_beam_age = 0.0  # T247
 	var was_visible := _beam_mesh.visible
 	_beam_mesh.visible = true

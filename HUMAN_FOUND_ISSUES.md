@@ -6,16 +6,12 @@ Patterned emissives, on the mech textures, also probably a toggle, as the glow p
 
 ### after this are random notes that may or may not be intelligible, I'll edit them when I have time.
 
-Arc weapon animation: lightning arc (continuous)
-
 Patience shot: thick beam that fades slowly
 
 Tracer rounds?
 
 Machine gun barrel should start glowing as ramp-up increases, red-hot at max speed.
 Mech balance auto
-
-Arc weapon animation: lightning arc (continuous)
 
 Patience shot: thick beam that fades slowly
 
@@ -47,3 +43,59 @@ General weapon mount size/weapon size checkup
 Bots should eject on death like players
 
 ### end random notes
+
+Team size should not be in hangar- I think that's entirely stale as it's part of setting up a match now.
+
+Rangefinder should activate at the same time as the targeting reticle
+
+Always-on rangefinder should be available as a pilot skill, only one level. Once bought, togglable. R?
+
+Check for rocket launcher accuracy? Didn't work in Sydney, not sure what was up with that. 
+
+Crosshair is too hard to see through. Make it only the current width at the edges, and narrow it to a point in the middle for greater visibility.
+
+Map picker in singleplayer should have a play button so that picking a map doesn't immediately start it.
+
+Badlands should have some decrepit windows in the buildings.
+
+Self destruct option in esc menu, just kill the current mech.
+
+Don't spawn the first mech until it's picked (currently spawns the first mech then switches)
+
+Beacon capture count at end of match is wrong (only tried singleplayer)
+
+Bots should pick spawnpoints instead of all spawning together.
+
+Guns should list their range in the description
+
+Bogged down status effect should have a HUD icon and slowdown % listed
+
+Death match (no beacon) match option
+
+Make sure elite bots don't miss, and in fact shoot ahead of moving targets. I want elites to be impossible. Can always add more intermediate levels if necessary.
+
+Remove the two big stationary drones in the hangar.
+
+Arc weapon should be unable to fire until it's within range.
+
+Kestrel shield is too strong.
+
+Missile explosion visual is 20% too big.
+
+Cesh bots should use stealth more intelligently.
+
+Missiles should explode once they hit maximum range, regardless of whether they hit anything.
+
+Arc weapon visual is sometimes broken, seems to always work for bots? Flaky error.
+
+Beacon contested in stealth stays contested indefinitely.
+
+Rangefinder toggle is actually not what I wanted. Remove everything about the pilot skill; instead, make the only rangefinder be always-active, and only show distance to an enemy that's in the targeting reticle. So no range shown looking at a wall, unless there's an enemy behind it.
+
+
+
+
+Harden security for network: Look through the source code for vulnerabilities, and also try to hack it from the outside if possible. Defer for now, but flag it before setting up online stuff.
+
+Make a tutorial - defer, just have the note somewhere. Also a manual in settings.
+
