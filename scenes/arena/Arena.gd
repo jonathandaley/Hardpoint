@@ -17,6 +17,7 @@ var _spectated_mech: Node = null    # mech whose camera is currently active
 var _local_team: int = 0            # local player's team index (set in setup)
 var _match_over: bool = false
 var _beacons_captured: Array[int] = [0, 0]
+var _captures_by_ri := {}  # T280: roster idx -> beacons its mechs were in the zone for when they flipped
 var _disconnected_peers: Dictionary = {}  # peer_id -> true; set on mid-match disconnect
 var _peer_slot_used: Dictionary = {}      # peer_id -> Array[bool] of 5 squad slot used flags
 var _nav_region: NavigationRegion3D = null
@@ -329,7 +330,20 @@ func _wire_beacons() -> void:
 			var n3d := child as Node3D
 			n3d.position.y = _map.ground_y(n3d.position.x, n3d.position.z)
 			match_node.register_beacon(child)
-			child.captured.connect(func(team: int): _beacons_captured[team] += 1)
+			child.captured.connect(_on_beacon_captured.bind(child))
+
+# T280 (HUMAN_FOUND 2026-11-05: the match-end capture count was wrong, "everyone on each team
+# gets counted for every beacon"): the team total stays, and each pilot is credited only for
+# the beacons its mechs stood in when they flipped (server; captures run there).
+func _on_beacon_captured(team: int, beacon: Node) -> void:
+	_beacons_captured[team] += 1
+	var credited := {}
+	for body in (beacon.get("_capturers") as Dictionary).get(team, []):
+		if is_instance_valid(body) and not body.get("is_dead") and body.get("roster_idx") != null:
+			var ri: int = int(body.get("roster_idx"))
+			if ri >= 0 and not credited.has(ri):
+				credited[ri] = true
+				_captures_by_ri[ri] = int(_captures_by_ri.get(ri, 0)) + 1
 
 # Attach a NavigationAgent3D directly to the mech so path queries use its position.
 func _add_nav_agent(mech: Node) -> void:
@@ -517,7 +531,7 @@ func _build_mp_stats() -> Array:
 			"team":         t,
 			"dealt":        dealt,
 			"taken":        taken,
-			"captures":     _beacons_captured[t] if t >= 0 and t < _beacons_captured.size() else 0,
+			"captures":     int(_captures_by_ri.get(ri, 0)),  # T280: this pilot's, not the team's
 			"pre_elo":      pre_elo,
 			"disconnected": _disconnected_peers.has(peer_id),
 			"coins":        int(coins_picked.get(peer_id, 0)),  # T264: picked up this match
