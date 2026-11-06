@@ -22,7 +22,6 @@ const STEEL_2 := Color("#20232b")
 const STEEL_3 := Color("#2a2e37")
 
 var _pools: Array = []      # floor light pool materials, per bay
-var _drones: Array = []     # [node, base y, phase]
 var _parts: Array = []      # conveyor parts
 var _status_light: StandardMaterial3D
 var _t := 0.0
@@ -59,8 +58,6 @@ func set_bay_mech(i: int, mech_name: String) -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
-	for d in _drones:
-		(d[0] as Node3D).position.y = float(d[1]) + sin(_t * 2.1 + float(d[2])) * 0.08
 	for p in _parts:
 		var n: Node3D = p
 		n.position.x += delta * 0.9
@@ -176,8 +173,8 @@ func _bay(i: int, x: float) -> void:
 		_repair_pools.append(pm)
 	for side in [-1.0, 1.0]:  # umbilical cables, beam -> mech back
 		_cable(Vector3(x + side * 0.9, beam_y - 0.1, -1.0), Vector3(x + side * 0.45, 1.9, -0.55), 0.5)
-	if repairing:
-		_welder(Vector3(x + 1.05, 2.45, 0.35), -1.0)
+	# T286 (HUMAN_FOUND 2026-11-05: "Remove the two big stationary drones in the hangar"): no
+	# welder drones over the repair bays any more; the T254 swarm drones still roam.
 
 func _cable(a: Vector3, b: Vector3, sag: float) -> void:
 	var mat := _mat(STEEL_0)
@@ -199,63 +196,6 @@ func _cable(a: Vector3, b: Vector3, sag: float) -> void:
 		var side := up.cross(Vector3.FORWARD).normalized() if absf(up.dot(Vector3.FORWARD)) < 0.99 else Vector3.RIGHT
 		seg.global_transform.basis = Basis(side, up, side.cross(up)).orthonormalized()
 		prev = p
-
-func _welder(pos: Vector3, facing: float) -> void:
-	var drone := Node3D.new()
-	drone.position = pos
-	drone.scale = Vector3.ONE * 1.6  # readable at the lineup's size
-	add_child(drone)
-	var body := MeshInstance3D.new()
-	var bm := BoxMesh.new()
-	bm.size = Vector3(0.42, 0.22, 0.36)
-	body.mesh = bm
-	body.material_override = _mat(STEEL_3)
-	drone.add_child(body)
-	for side in [-1.0, 1.0]:  # rotor pods
-		var pod := MeshInstance3D.new()
-		var pm := BoxMesh.new()
-		pm.size = Vector3(0.16, 0.06, 0.16)
-		pod.mesh = pm
-		pod.position = Vector3(side * 0.3, 0.12, 0)
-		pod.material_override = _mat(STEEL_2)
-		drone.add_child(pod)
-	var eye := MeshInstance3D.new()
-	var em := BoxMesh.new()
-	em.size = Vector3(0.12, 0.05, 0.02)
-	eye.mesh = em
-	eye.position = Vector3(0, 0.02, 0.19)
-	eye.material_override = _mat(Color("#ffd27a"), true, 3.0)
-	drone.add_child(eye)
-	var arm := MeshInstance3D.new()  # torch arm reaching to the hull
-	var am := BoxMesh.new()
-	am.size = Vector3(0.45, 0.05, 0.05)
-	arm.mesh = am
-	arm.position = Vector3(facing * 0.36, -0.12, 0.05)
-	arm.rotation_degrees = Vector3(0, 0, facing * -25.0)
-	arm.material_override = _mat(STEEL_2)
-	drone.add_child(arm)
-	var sparks := CPUParticles3D.new()
-	sparks.position = Vector3(facing * 0.58, -0.24, 0.05)
-	sparks.amount = 24
-	sparks.lifetime = 0.55
-	sparks.explosiveness = 0.15
-	sparks.direction = Vector3(facing * 0.4, -1, 0.3)
-	sparks.spread = 55.0
-	sparks.initial_velocity_min = 1.2
-	sparks.initial_velocity_max = 2.6
-	sparks.gravity = Vector3(0, -6.0, 0)
-	var spark_mesh := BoxMesh.new()
-	spark_mesh.size = Vector3(0.035, 0.035, 0.035)
-	spark_mesh.material = _mat(Color("#fff3c4"), true, 6.0)
-	sparks.mesh = spark_mesh
-	drone.add_child(sparks)
-	var flash := OmniLight3D.new()  # the weld's glow on the hull
-	flash.position = sparks.position
-	flash.light_color = Color("#ffd27a")
-	flash.light_energy = 1.4
-	flash.omni_range = 1.6
-	drone.add_child(flash)
-	_drones.append([drone, pos.y, randf() * TAU])
 
 func _conveyor() -> void:
 	var y := 1.75  # behind the mechs: parts show between the bays
