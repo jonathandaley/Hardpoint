@@ -401,7 +401,7 @@ func _pref_range(w: Node) -> float:
 ## T172: where to aim -- target centre plus `lead` x its motion over the shot's flight time.
 ## Homing (lock) weapons and beams don't lead.
 func _aim_point(bot_mech: Node3D, w: Node, lead: float) -> Vector3:
-	var c: Vector3 = _target.to_global(Vector3.UP)
+	var c: Vector3 = _target.call("center_mass") if _target.has_method("center_mass") else _target.to_global(Vector3.UP)  # T319
 	if lead <= 0.0 or w == null or not ("projectile_speed" in w) or w.requires_lock:
 		return c
 	var spd: float = maxf(float(w.projectile_speed), 1.0)

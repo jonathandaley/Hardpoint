@@ -621,7 +621,8 @@ func _update_eligible_indicator() -> void:
 	if camera == null or not camera.is_position_in_frustum(target.global_position):
 		eligible_indicator.visible = false
 		return
-	var screen_pos := camera.unproject_position(target.global_position + BOT_BAR_HEAD_OFFSET * 0.20)
+	var aim: Vector3 = target.call("center_mass") if target.has_method("center_mass") else target.global_position + BOT_BAR_HEAD_OFFSET * 0.20
+	var screen_pos := camera.unproject_position(aim)  # T319: centre mass, not a fixed height
 	eligible_indicator.position = screen_pos - Vector2(ELIGIBLE_HALF, ELIGIBLE_HALF)
 	eligible_indicator.size = Vector2(ELIGIBLE_HALF * 2.0, ELIGIBLE_HALF * 2.0)
 	eligible_indicator.visible = true

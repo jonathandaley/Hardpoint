@@ -143,6 +143,28 @@ const CENTER_PITCH := 0.6   # clear down to this pitch (rad)
 var _arm_y := -1.0           # the scene's arm height (shoulder view)
 var _center_y := -1.0
 
+# T319 (HUMAN_FOUND 2026-11-05: "Targeting reticule should aim for center mass, instead of the
+# current spot (appears constant, so it's a little low on a pegasus and very low on a
+# vesuvius)"): the middle of the mech's visible body, kept in its own space (scale and yaw
+# carried by to_global); the soft-lock box, homing rockets, the arc, bot aim and lock-on all
+# aim here instead of each using its own fixed height.
+var _cm_local := Vector3.INF
+
+func center_mass() -> Vector3:
+	if _cm_local == Vector3.INF:
+		var inv := global_transform.affine_inverse()
+		var box := AABB()
+		var first := true
+		for mi in find_children("*", "MeshInstance3D", true, false):
+			var n := mi as MeshInstance3D
+			if n.mesh == null or not n.visible or n.get_script() != null:  # the blob shadow has a script
+				continue
+			var b: AABB = inv * n.global_transform * n.get_aabb()
+			box = b if first else box.merge(b)
+			first = false
+		_cm_local = box.get_center() if not first else Vector3.UP
+	return to_global(_cm_local)
+
 func _center_pivot_y() -> float:
 	if _center_y < 0.0:
 		var top := 0.0
@@ -305,6 +327,7 @@ var weapon_scale := 1.0  # T191: MechDef.weapon_scale, set before configure_weap
 func configure_weapons(slots: Array) -> void:
 	if slots.is_empty():
 		return
+	_cm_local = Vector3.INF  # T319: recomputed with the new guns
 	for child in torso.get_children():
 		if child.name.begins_with("Hardpoint"):
 			# B102: detach first -- a queued-but-attached "Hardpoint0" made the new one get
@@ -1083,7 +1106,7 @@ const _LOCK_RANGE  := 200.0
 
 ## Crosshair-ray miss distance to target's centre in target-scale units; INF if behind camera.
 func _lock_miss(target: Node3D, cam_pos: Vector3, cam_fwd: Vector3) -> float:
-	var to := target.to_global(Vector3.UP) - cam_pos  # capsule centre (CollisionShape3D at y=1)
+	var to: Vector3 = (target.call("center_mass") if target.has_method("center_mass") else target.to_global(Vector3.UP)) - cam_pos  # T319
 	var along := to.dot(cam_fwd)
 	if along <= 0.0:
 		return INF
