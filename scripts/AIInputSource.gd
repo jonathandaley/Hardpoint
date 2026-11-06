@@ -579,7 +579,7 @@ func _physics_process_impl(delta: float) -> void:
 			# Fire when aimed closely enough, in range, in burst window, and LOS is clear.
 			_firing = ready and abs(angle_h) < AIM_THRESHOLD
 	if tactics:
-		_use_abilities(bot_mech, has_target and dist < fire_range, own_hp_pct)
+		_use_abilities(bot_mech, has_target and dist < fire_range, own_hp_pct, has_target, dist, fire_range)
 		if not has_target:
 			_reload_press = _wants_reload(bot_mech)
 
@@ -681,7 +681,8 @@ func _shot_worth_taking(bot_mech: Node3D, w: Node, aim_p: Vector3) -> bool:
 
 ## T172 tactics: jump-heal when it heals in full (or when hurt in a fight), cloak to
 ## ambush or escape. Presses only off cooldown (each press is a sync-log event).
-func _use_abilities(bot_mech: Node3D, fighting: bool, own_hp_pct: float) -> void:
+func _use_abilities(bot_mech: Node3D, fighting: bool, own_hp_pct: float, has_target := false,
+		dist := INF, fire_range := 0.0) -> void:
 	var cds: Dictionary = bot_mech.get("_ability_cooldowns")
 	var active: Dictionary = bot_mech.get("_ability_active_timers")
 	for ab in bot_mech.get("_abilities"):
@@ -692,7 +693,33 @@ func _use_abilities(bot_mech: Node3D, fighting: bool, own_hp_pct: float) -> void
 			"jump_heal":
 				_ability_press = bot_mech.health <= bot_mech.max_health - 80.0 or (fighting and own_hp_pct < 0.6)
 			"stealth":
-				_ability_press = fighting or own_hp_pct < 0.4
+				_ability_press = stealth_wanted(bot_mech, has_target, dist, fire_range, own_hp_pct)
+
+## T295 (HUMAN_FOUND 2026-11-05 late: "Cesh bots should use stealth more intelligently"): cloak
+## for a reason, not whenever a fight is on (24 s on, 24 s off) -- to close in on a target still
+## out of range, to shake an enemy lock (built or building), to slip away hurt, or to cross open
+## ground to a beacon the team doesn't hold. Trading shots in range at good health: stay visible.
+const STEALTH_CLOSE_K := 2.5     # approach: target within this x weapon range, not yet in range
+const STEALTH_LOCK_PROGRESS := 0.4
+const STEALTH_BEACON_M := Vector2(25.0, 90.0)
+
+func stealth_wanted(bot_mech: Node3D, has_target: bool, dist: float, fire_range: float,
+		own_hp_pct: float) -> bool:
+	if own_hp_pct < 0.4 and has_target:
+		return true
+	if has_target and dist > fire_range and dist < fire_range * STEALTH_CLOSE_K:
+		return true
+	for m in get_tree().get_nodes_in_group("mechs"):
+		if m == bot_mech or not _is_live_enemy(m):
+			continue
+		if m.get("locked_target") == bot_mech:
+			return true
+		if m.get("_lock_candidate") == bot_mech and float(m.get("lock_progress")) >= STEALTH_LOCK_PROGRESS:
+			return true
+	if not has_target and is_instance_valid(_claimed_beacon) and _claimed_beacon.get("owner_team") != _own_team:
+		var d := bot_mech.global_position.distance_to(_claimed_beacon.global_position)
+		return d > STEALTH_BEACON_M.x and d < STEALTH_BEACON_M.y
+	return false
 
 ## T172 tactics: top up a fixed magazine below half while nothing is in sight.
 func _wants_reload(bot_mech: Node) -> bool:
