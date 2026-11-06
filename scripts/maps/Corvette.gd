@@ -9,15 +9,19 @@ extends MapScene
 # Jumps and arcing shots meet the ceiling; the shoulder camera's spring arm (mask 1) is
 # kept out of walls and ceiling by the same colliders.
 
-const HX := 92.0                # hull half length (x)
-const HZ := 46.0                # hull half width (z)
+# T303 (HUMAN_FOUND 2026-11-05: "Corvette feels very spread out, shrink it by 30%"): the whole
+# floor plan -- hull, corridors (11 -> 7.7 m), blocks, beacons, spawns, set pieces -- is the
+# T235 layout scaled by S; the ceiling height and the props' own sizes stay.
+const S := 0.7
+const HX := 92.0 * S            # hull half length (x)
+const HZ := 46.0 * S            # hull half width (z)
 const H := 10.0                 # ceiling height
-const W := 11.0                 # corridor width
-const ROWS := [-30.0, 0.0, 30.0]          # corridor centre lines along x (z values)
-const COLS := [-60.0, -20.0, 20.0, 60.0]  # cross corridor centre lines along z (x values)
-const BEACONS := [Vector2(0, 0), Vector2(-40, -37), Vector2(40, -37), Vector2(-40, 37), Vector2(40, 37)]
-const SPAWNS := [[Vector2(-80, -25), Vector2(-82, 0), Vector2(-80, 25)],
-	[Vector2(80, -25), Vector2(82, 0), Vector2(80, 25)]]
+const W := 11.0 * S             # corridor width
+const ROWS := [-30.0 * S, 0.0, 30.0 * S]                  # corridor centre lines along x (z values)
+const COLS := [-60.0 * S, -20.0 * S, 20.0 * S, 60.0 * S]  # cross corridor centre lines along z (x values)
+const BEACONS := [Vector2(0, 0), Vector2(-40, -37) * S, Vector2(40, -37) * S, Vector2(-40, 37) * S, Vector2(40, 37) * S]
+const SPAWNS := [[Vector2(-80, -25) * S, Vector2(-82, 0) * S, Vector2(-80, 25) * S],
+	[Vector2(80, -25) * S, Vector2(82, 0) * S, Vector2(80, 25) * S]]
 
 var _wall_mat: StandardMaterial3D
 
@@ -100,11 +104,11 @@ static func _spans(lines: Array, half: float) -> Array:
 func _open(xs: Array, zs: Array) -> bool:
 	var cx := (float(xs[0]) + float(xs[1])) * 0.5
 	var cz := (float(zs[0]) + float(zs[1])) * 0.5
-	if absf(cx) > 70.0:  # the end columns: spawn halls
+	if absf(cx) > 70.0 * S:  # the end columns: spawn halls
 		return true
-	if absf(cx) < 1.0 and absf(cz) < 20.0:  # centre column, inner rows: the reactor room
+	if absf(cx) < 1.0 and absf(cz) < 20.0 * S:  # centre column, inner rows: the reactor room
 		return true
-	if absf(absf(cx) - 40.0) < 1.0 and absf(cz) > 35.0:  # beacon alcoves off the outer corridors
+	if absf(absf(cx) - 40.0 * S) < 1.0 and absf(cz) > 35.0 * S:  # beacon alcoves off the outer corridors
 		return true
 	return false
 
@@ -165,7 +169,7 @@ func _lights() -> void:
 		_box(Vector3(1.2, 0.1, HZ * 2.0 - 4.0), Vector3(x, H - 0.06, 0), lamp, false)
 	var stripe := _glow(Color("#c03030"))
 	for s in [-1.0, 1.0]:  # red door-frame stripes where the halls open onto the corridors
-		_box(Vector3(0.3, 0.3, HZ * 2.0), Vector3(s * 70.0, H - 0.4, 0), stripe, false)
+		_box(Vector3(0.3, 0.3, HZ * 2.0), Vector3(s * 70.0 * S, H - 0.4, 0), stripe, false)
 
 # Cover: consoles in the reactor room, crates and pillars in the spawn halls, a console
 # in each beacon alcove -- >= 9 m from walls and each other, beacons and spawns clear.
@@ -174,9 +178,9 @@ func _dressing() -> void:
 	var crate := _mat(Color("#8a8f96"), _panel_texture(Color("#8a8f96"), Color("#5c6168")), 2.0)
 	var core := _glow(Color("#5ab0ff"))
 	for s in [-1.0, 1.0]:
-		_box(Vector3(6, 1.4, 2), Vector3(0, 0.7, s * 18.0), console)
-		_box(Vector3(5.5, 0.1, 1.4), Vector3(0, 1.45, s * 18.0), core, false)
+		_box(Vector3(6, 1.4, 2), Vector3(0, 0.7, s * 18.0 * S), console)
+		_box(Vector3(5.5, 0.1, 1.4), Vector3(0, 1.45, s * 18.0 * S), core, false)
 		for t in [-1.0, 1.0]:
-			_box(Vector3(2.4, 2.4, 2.4), Vector3(s * 74.0, 1.2, t * 12.0), crate)  # hall pillars of crates
-			_box(Vector3(2.4, 4.8, 2.4), Vector3(s * 74.0, 2.4, t * 38.0), crate)
-			_box(Vector3(4, 1.2, 1.6), Vector3(s * 40.0, 0.6, t * (HZ - 0.8)), console)  # alcove consoles flush on the hull wall (no slot behind)
+			_box(Vector3(2.4, 2.4, 2.4), Vector3(s * 74.0 * S, 1.2, t * 12.0 * S), crate)  # hall pillars of crates
+			_box(Vector3(2.4, 4.8, 2.4), Vector3(s * 74.0 * S, 2.4, t * 38.0 * S), crate)
+			_box(Vector3(4, 1.2, 1.6), Vector3(s * 40.0 * S, 0.6, t * (HZ - 0.8)), console)  # alcove consoles flush on the hull wall (no slot behind)

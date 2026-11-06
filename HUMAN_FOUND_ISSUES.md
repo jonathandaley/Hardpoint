@@ -22,8 +22,6 @@ Arc weapon visual is sometimes broken, seems to always work for bots? Flaky erro
 
 Laser and arc should not go through targets, but stop when hitting a mech.
 
-Corvette feels very spread out, shrink it by 30%.
-
 ERROR: Texture with GL ID of 63: leaked 349524 bytes.
    at: ~Utilities (drivers/gles3/storage/utilities.cpp:77)
 This error appeared after closing the game.

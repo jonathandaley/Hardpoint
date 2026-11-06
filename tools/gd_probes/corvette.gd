@@ -1,5 +1,6 @@
 extends Node
-# T235 probe (ship interior, roofed): the map loads with 5 beacons and 3 spawns a side, and
+# T235 probe (ship interior, roofed; T303: 30% smaller): the map loads with 5 beacons and 3
+# spawns a side, all inside the hull, and
 # the shoulder camera never ends up in or touching a wall / the ceiling: with the mech's
 # back to a corridor wall, looking steeply down under the ceiling, and dropping from 5 m,
 # the camera keeps CLEAR m from every solid (a ray-only spring arm parks it 1 cm off the
@@ -30,6 +31,20 @@ func _ready() -> void:
 		arena.get("hud").spawn_selected.emit(0)
 	if get_tree().get_nodes_in_group("beacons").size() != 5 or arena.spawn_points(0).size() != 3 or arena.spawn_points(1).size() != 3:
 		_fail("want 5 beacons and 3 spawns a side")
+	# T303 (user 2026-11-05: "feels very spread out, shrink it by 30%"): the hull is 0.7 x the
+	# T235 184 x 92 m, and every beacon and spawn is inside it
+	var map: Node = arena.get("_map")
+	var hx: float = map.get("HX")
+	var hz: float = map.get("HZ")
+	if absf(hx * 2.0 - 184.0 * 0.7) > 0.5 or absf(hz * 2.0 - 92.0 * 0.7) > 0.5:
+		_fail("hull %.1f x %.1f m, want 0.7 x 184 x 92" % [hx * 2.0, hz * 2.0])
+	var inside: Array = []
+	for b in get_tree().get_nodes_in_group("beacons"):
+		inside.append((b as Node3D).global_position)
+	inside.append_array(arena.spawn_points(0) + arena.spawn_points(1))
+	for p in inside:
+		if absf(p.x) > hx or absf(p.z) > hz:
+			_fail("%s is outside the %.1f x %.1f m hull" % [p, hx * 2.0, hz * 2.0])
 	for t in 2:
 		for m in arena.get("_team_mechs")[t]:
 			m.invincible = true
