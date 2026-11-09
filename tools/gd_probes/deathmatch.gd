@@ -40,8 +40,8 @@ func _ready() -> void:
 		_fail("beacons in a death match")
 		return
 	var mn: Node = arena.get("match_node")
-	if float(mn.get("time_limit")) <= 0.0:
-		_fail("no match timer")
+	if float(mn.get("time_limit")) != 900.0:
+		_fail("death match limit %.0f s, the user picked 15:00 (T338)" % float(mn.get("time_limit")))
 		return
 	var hud: Node = arena.get("hud")
 	if arena.get("_start_pick_open"):

@@ -17,10 +17,10 @@ var _spectated_mech: Node = null    # mech whose camera is currently active
 var _local_team: int = 0            # local player's team index (set in setup)
 var _match_over: bool = false
 # T285 death match: each team runs out of lives, last one standing wins; at DM_TIME_S the team
-# with more mechs left wins, equal = draw. DM_TIME_S is a placeholder until the user picks one
-# from the measured bot match lengths (NEEDS_HUMAN).
+# with more mechs left wins, equal = draw. 15:00 is the user's pick from the measured bot match
+# lengths (T338); multiplayer playtests may still move it.
 var deathmatch := false
-const DM_TIME_S := 600.0
+const DM_TIME_S := 900.0
 var _beacons_captured: Array[int] = [0, 0]
 var _captures_by_ri := {}  # T280: roster idx -> beacons its mechs were in the zone for when they flipped
 var _disconnected_peers: Dictionary = {}  # peer_id -> true; set on mid-match disconnect
