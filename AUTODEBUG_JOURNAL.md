@@ -243,3 +243,4 @@ date|task|outcome|commit|finding|suite
 2026-11-08|T263 verify|DONE|-|suite 134/134|134/134
 2026-11-08|T337|DONE|local commit|casings through the body: ports at mid-gun (receiver, 45% to the muzzle), outward from left guns, centre guns lower/shorter, Hippogriff + Vesuvius centre guns 0.35 / 0.2 m forward (kit_port SLOT_FORWARD); probe casing_clearance over 68 gun/slot combos red on T263 (15 slots) -> green; renders checked|suite pending
 2026-11-08|decisions|-|-|user: DM limit 15:00, bots keep fleeing (T338); music waits for their files (T29); T243 balance changes wait for a lock-on usage check (T339); menus fine as they are|-
+2026-11-08|T337 verify|DONE|-|suite 135/135|135/135
