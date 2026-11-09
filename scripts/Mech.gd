@@ -554,7 +554,11 @@ func _apply_damage(amount: float, source: Node3D = null) -> void:
 		last_attacker = src_mech
 	damaged.emit()
 	damage_event.emit(actual, source)
-	if Engine.get_physics_frames() - _last_hurt_sfx >= 3:  # T330: one per blast, not per pellet
+	# T360 (HUMAN_FOUND 2026-11-08 late: "Impact sound still plays when hit by arc weapon"): the
+	# hurt clank fired on every arc / laser damage tick (~10 a second); weapons that turn the
+	# impact sound off (T316: laser, arc, Patience) don't sound it here either
+	var quiet: bool = source != null and is_instance_valid(source) and source.get("impact_sound_enabled") == false
+	if not quiet and Engine.get_physics_frames() - _last_hurt_sfx >= 3:  # T330: one per blast, not per pellet
 		_last_hurt_sfx = Engine.get_physics_frames()
 		SoundManager.play_sfx("damage_hit", global_position)
 	print("[Mech] %s  %.0f / %.0f HP" % [name, health, max_health])
