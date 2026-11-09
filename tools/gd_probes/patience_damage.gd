@@ -13,8 +13,17 @@ func _ready() -> void:
 	var msg := ""
 	if full < sniper * 2.5:
 		msg = "full charge %.1f vs a sniper shot %.1f (want >= 2.5x)" % [full, sniper]
+	elif not p.has_method("charge_damage"):
+		msg = "no charge_damage() (T348)"
 	elif absf(float(p.get("damage")) - full) > 0.01:
 		msg = "damage %.1f != max_damage %.1f: full-charge hits over 1.5x damage are dropped" % [float(p.get("damage")), full]
+	if msg == "":  # T348: damage grows with charge squared -- half a charge, a quarter of the way
+		var lo: float = p.get("min_damage")
+		for c in [[0.5, lo + (full - lo) * 0.25], [1.0, full], [0.0, lo]]:
+			p.set("_charge_time", float(p.get("max_charge_time")) * float(c[0]))
+			var got: float = p.call("charge_damage")
+			if absf(got - float(c[1])) > 0.01:
+				msg = "%.0f%% charge hits %.1f, want %.1f (charge squared)" % [float(c[0]) * 100.0, got, float(c[1])]
 	p.free()
 	s.free()
 	if msg != "":

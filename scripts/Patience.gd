@@ -52,6 +52,12 @@ func _physics_process(delta: float) -> void:
 	_charge_visual.scale = Vector3.ONE * lerpf(0.3, 1.4, t)
 	_charge_mat.emission_energy_multiplier = lerpf(2.0, 8.0, t)
 
+## T348 (HUMAN_FOUND 2026-11-08: damage should scale exponentially with charge, same max):
+## charge squared -- half a charge hits a quarter of the way up, a full one still max_damage.
+func charge_damage() -> float:
+	var t := _charge_time / max_charge_time
+	return lerpf(min_damage, max_damage, t * t)
+
 func get_charge_progress() -> float:
 	return _charge_time / max_charge_time
 
@@ -59,7 +65,7 @@ func _do_fire() -> void:
 	if owner_mech == null:
 		return
 	var t := _charge_time / max_charge_time
-	var actual_damage := lerpf(min_damage, max_damage, t)
+	var actual_damage := charge_damage()
 
 	var cam := owner_mech.get("camera") as Camera3D
 	if cam == null:
