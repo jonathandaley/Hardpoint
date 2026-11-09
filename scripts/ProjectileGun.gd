@@ -46,6 +46,7 @@ func _do_fire() -> void:
 	# looking_at() orients -Z toward aim_point, matching Projectile's movement axis
 	proj.global_transform = Transform3D(Basis(), global_position).looking_at(aim_point)
 
+	VFX.casing(self)  # T263 (rifle, sniper; missiles have their own _do_fire)
 	# T100: broadcast ghost to clients when server in MP.
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		_rpc_spawn_ghost.rpc(global_position, proj.global_transform.basis,
@@ -68,6 +69,8 @@ func _rpc_spawn_ghost(pos: Vector3, basis: Basis, speed: float, lifetime: float,
 		if owner_mech != null:
 			ghost._exclude_rids = owner_mech.get_exclude_rids()
 	get_tree().current_scene.add_child(ghost)
+	if get("splash_radius") == null:  # T263: a bullet's casing on this client too (missiles have none)
+		VFX.casing(self)
 	var actual_basis := basis
 	if owner_mech != null and owner_mech.get("owner_peer_id") == multiplayer.get_unique_id():
 		var cam := owner_mech.get("camera") as Camera3D

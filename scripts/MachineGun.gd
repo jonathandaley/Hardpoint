@@ -45,6 +45,7 @@ func _do_fire() -> void:
 	proj.on_hit = func(body, pos): _emit_hit_if_visible(body, pos, true)
 	get_tree().current_scene.add_child(proj)
 	proj.global_transform = Transform3D(Basis(), global_position).looking_at(aim_point)
+	VFX.casing(self)  # T263
 	# B110: this override skipped ProjectileGun's T100 ghost send, so clients never saw MG rounds.
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		_rpc_spawn_ghost.rpc(global_position, proj.global_transform.basis,

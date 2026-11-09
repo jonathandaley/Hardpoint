@@ -167,6 +167,20 @@ func _explode_sphere(pos: Vector3, radius: float, color: Color, emission: float,
 # built a new SphereMesh + StandardMaterial3D (~0.6 ms per hit_sparks call).
 # shared=true reuses one mesh + material per (radius, color, emission); only for
 # callers that never modify the material (explosion chunks tween emission -> unique).
+# T263: spent casings -- one shared pool per arena (scripts/Casings.gd), made on first use;
+# cosmetic, local on every peer; none on a dedicated server (nothing renders there).
+var _casings: Node = null
+
+func casing(weapon: Node3D, shell := false) -> void:
+	var scene := get_tree().current_scene
+	if scene == null or Game.dedicated or not is_instance_valid(weapon) or not weapon.is_inside_tree():
+		return
+	if not is_instance_valid(_casings) or _casings.get_parent() != scene:
+		_casings = load("res://scripts/Casings.gd").new()
+		_casings.cap = 1000 if bool(Game.settings.get("casings_long", true)) else 150
+		scene.add_child(_casings)
+	_casings.eject(weapon, shell)
+
 var _shared_sphere: Dictionary = {}
 
 func _sphere(radius: float, color: Color, emission: float, shared: bool = false) -> MeshInstance3D:

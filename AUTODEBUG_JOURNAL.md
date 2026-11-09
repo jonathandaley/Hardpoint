@@ -239,3 +239,4 @@ date|task|outcome|commit|finding|suite
 2026-11-06|T290 T291 T326|BLOCKED|-|parked / tentative by the user (security review, tutorial + manual, indoor-map picker)|-
 2026-11-06|queue empty|-|-|everything else done; open user calls in NEEDS_HUMAN (DM limit, balance proposals, music, menu stretching, Q6 heal) and HUMAN_FOUND (Q4, Q5)|-
 2026-11-08|T263|UNBLOCKED|-|user: build real casings (pooled MultiMesh, scripted two-bounce + tumble, local, pool size by graphics setting); Patience has none; Q5 removed from HUMAN_FOUND|-
+2026-11-08|T263|DONE|local commit|real casings: one MultiMesh pool per arena, scripted two-bounce + tumble + roll, ray landing, ring cap by GRAPHICS toggle (1000/150), hooks in rifle/sniper/MG/shotgun + client ghosts, none for Patience/laser/missiles; probe casings red before (first: headless dummy renderer cannot read MultiMesh transforms back -> probe reads the pool state); 300 airborne in ~0.95 ms; render-checked|suite pending

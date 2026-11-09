@@ -61,6 +61,7 @@ func _do_fire() -> void:
 		get_tree().current_scene.add_child(proj)
 		proj.global_transform = Transform3D(Basis(), global_position).looking_at(aim_point)
 		ghost_aims.append(aim_point)
+	VFX.casing(self, true)  # T263: one shell per blast, not per pellet
 	# Audit #15: pellets were server-only; remote peers saw nothing. One RPC per
 	# shot carrying every pellet's aim point; clients spawn visual-only ghosts.
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
@@ -70,6 +71,7 @@ func _do_fire() -> void:
 func _rpc_pellet_ghosts(aim_points: Array) -> void:
 	if multiplayer.is_server():
 		return
+	VFX.casing(self, true)  # T263
 	for i in aim_points.size():
 		var ap = aim_points[i]
 		var ghost := PROJECTILE_SCENE.instantiate() as Projectile
