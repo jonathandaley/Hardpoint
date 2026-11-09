@@ -3,14 +3,16 @@ extends Node
 # idle"): an Elite bot already on a far enemy (60 m, hurt to 40%, picked earlier) with a
 # fresh one standing 25 m away in the open must switch to the near one within one target
 # refresh (2 s). (T190 covers point-blank, < 15 m; this is the range between, where the
-# +2 switching hysteresis kept the old far target.)
+# +2 switching hysteresis kept the old far target.) Runs at Hard: the same AI as Elite, fixed rosters.
 
 func _fail(msg: String) -> void:
 	push_error("[probe] idle_target: " + msg)
 
 func _ready() -> void:
 	Game.loadout["team_size"] = 2
-	Game.settings["bot_difficulty"] = 4
+	# B133: Hard, not Elite -- the same AI (T282), but Elite rosters now draw the pilots' kits (T350):
+	# random mechs per run, and an Everest subject found no clear 60 m sight line at all (1 run in 6)
+	Game.settings["bot_difficulty"] = 3
 	Game.mp_active_match["roster"] = []
 	var arena: Node = load("res://scenes/arena/Arena.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(arena)
@@ -29,7 +31,11 @@ func _ready() -> void:
 	var far: Node3D = arena.get("_team_mechs")[0][1]
 	for e in [near, far]:
 		e.invincible = true
-		e.process_mode = Node.PROCESS_MODE_DISABLED  # stand still, never shoot
+		# stand still, never shoot -- an inert input, not a disabled node: a process-disabled body
+		# leaves physics, and the sight-line rays went straight through it (B133; cf. B126)
+		var src: Node = load("res://scripts/InputSource.gd").new()
+		add_child(src)
+		e.set_input_source(src)
 	subj.process_mode = Node.PROCESS_MODE_DISABLED  # park the subject in the open centre
 	subj.global_position = Vector3(5.1, 1.0, 11.2)
 	var fwd := -subj.global_transform.basis.z
@@ -42,7 +48,14 @@ func _ready() -> void:
 		if ai._los_to(subj, near):
 			break
 	if not ai._los_to(subj, near) or not ai._los_to(subj, far):
-		_fail("setup: no clear sight line to both enemies")
+		var why: Array = []
+		for e in [near, far]:
+			var q := PhysicsRayQueryParameters3D.create(subj.global_position + Vector3(0, 2.0, 0), e.global_position + Vector3(0, 1.5, 0))
+			q.exclude = subj.get_exclude_rids()
+			var hit := subj.get_world_3d().direct_space_state.intersect_ray(q)
+			why.append("%s %s at %s: ray hits %s" % [e.name, String(e.get_meta("spawn", ["?"])[0]).get_file(), e.global_position.snapped(Vector3.ONE * 0.1),
+				(hit["collider"] as Node).name if not hit.is_empty() else "nothing"])
+		_fail("setup: no clear sight line to both enemies (subject %s; %s)" % [String(subj.get_meta("spawn", ["?"])[0]).get_file(), "; ".join(why)])
 	far.health = far.max_health * 0.4
 	ai.set("_target", far)  # what it had been watching
 	ai.set("_target_refresh", 0.0)
