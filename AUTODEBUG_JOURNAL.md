@@ -268,3 +268,4 @@ date|task|outcome|commit|finding|suite
 2026-11-09|batch 13 verify|DONE|-|suite 141/141|141/141
 2026-11-09|T343|DONE|local commit|Pegasus 20% -> full: stacked repair kits all taken in one tick (bot deaths close together); one kit per mech per 2 s; probe repair_stack red at HEAD (20% -> 100%), green 20% -> 55% -> 90%; bot_drops exit leak line seen once = allowed teardown noise (crash_scan allow-list), no change|-
 2026-11-09|T361|DONE|local commit|skill rows show numbers: per level while locked, now -> next, total at max (Game.skill_effect_text); probe skill_numbers red first|-
+2026-11-09|T343 T361 verify|DONE|-|suite 143/143|143/143
