@@ -288,3 +288,4 @@ date|task|outcome|commit|finding|suite
 2026-11-09|T359 B128 T350 verify|DONE|-|suite 148/148, net sweep 62/62|148/148, net 62/62
 2026-11-09|T357|DONE|local commit|difficulty steps: probe difficulty_steps (damage on a strafer; 6 duels, Normal / Medium doubled to beat their noise) red with the old presets (Normal 38-55); Normal aim up, Medium gets tactics + a little drift; bot_eval pairs 16-2 / 12-6 / 14-4|-
 2026-11-09|T347|DONE|local commit|skill tree view (rows by depth, parent-ordered, lit edges, click to buy / upgrade); a rebuild renamed the new tree while the old one waited to be freed (detach first); render docs/review/T347|-
+2026-11-09|B129|DONE|local commit|point_blank flake from T350 kits: a cloaked Cesh sneak is untargetable by design (2/16 old-probe runs, exactly the cloaked ones); probe uncloaks it, 8/8|-

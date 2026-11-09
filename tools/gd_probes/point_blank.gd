@@ -23,6 +23,7 @@ func _ready() -> void:
 	far.process_mode = Node.PROCESS_MODE_DISABLED
 	var sneak: Node3D = arena.get("_team_mechs")[0][1]  # team 0's bot
 	sneak.process_mode = Node.PROCESS_MODE_DISABLED  # walks up silently, never shoots
+	sneak.set("is_stealthy", false)  # T350: Elites fly kits -- a Cesh sneak was camouflaged (untargetable by design)
 	var subj_p: Node = arena.get_node("BotPlayer_1_0")
 	var mate_p: Node = arena.get_node("BotPlayer_1_1")
 	var subj: Node3D = subj_p.get("pawn")
