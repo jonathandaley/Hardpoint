@@ -81,6 +81,7 @@ var settings: Dictionary = {
 	"master_volume": 0.5,
 	"view": "center",   # T252: "center" (raised, crosshair over the mech) or "shoulder"
 	"fancy_hangar": true,  # T254: the animated repair bay (GRAPHICS > FANCY HANGAR)
+	"casings_long": true,  # T263: spent casings pool 1000 (ON) or 150 (GRAPHICS > LONG-LASTING CASINGS)
 }
 
 # M0.1: central seeded RNG for all gameplay randomness (weapon spread, etc.).
@@ -989,6 +990,7 @@ func _load_settings() -> void:
 	settings["master_volume"]     = cfg.get_value("settings", "master_volume",     settings["master_volume"])
 	settings["view"]              = cfg.get_value("settings", "view",              settings["view"])
 	settings["fancy_hangar"]      = cfg.get_value("settings", "fancy_hangar",      settings["fancy_hangar"])
+	settings["casings_long"]      = cfg.get_value("settings", "casings_long",      settings["casings_long"])
 	shoulder = 0.0 if settings["view"] == "center" else 1.0  # T252
 	apply_volume(settings["master_volume"])
 
@@ -1094,6 +1096,7 @@ func save_settings() -> void:
 	cfg.set_value("settings", "master_volume",     settings.get("master_volume",     0.5))
 	cfg.set_value("settings", "view",              settings.get("view",              "center"))
 	cfg.set_value("settings", "fancy_hangar",      settings.get("fancy_hangar",      true))
+	cfg.set_value("settings", "casings_long",      settings.get("casings_long",      true))
 	cfg.save(_SETTINGS_PATH)
 
 func apply_volume(linear: float) -> void:

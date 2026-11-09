@@ -207,6 +207,7 @@ func _build_graphics_page() -> void:
 	title.add_theme_font_size_override("font_size", 18)
 	graphics_box.add_child(title)
 	_build_toggle_section(graphics_box, "FANCY HANGAR", "fancy_hangar", "Fancy")  # T254
+	_build_toggle_section(graphics_box, "LONG-LASTING CASINGS", "casings_long", "Casings")  # T263: 1000 / 150
 	var back := Button.new()
 	back.offset_left = 200.0
 	back.offset_top = 316.0
