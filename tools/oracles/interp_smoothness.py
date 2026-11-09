@@ -18,20 +18,22 @@ DEFAULTS = {"interp_min_move": 0.02, "interp_max_stall": 0.15, "interp_min_sampl
             "interp_onset_ticks": 12}
 
 
-def stall_ratios(server, client, min_move, warmup=30, live=None, onset=12):
+def stall_ratios(server, client, min_move, warmup=30, live=None, onset=12, end=None):
     """{mech_id: (moving_ticks, stalled_ticks)} for one client. The first
     `warmup` ticks after streaming begins are skipped: the interpolation buffer
     starts empty then (T162: mechs start moving right then). Streaming begins at
     the later of the mech's first client tick and the server's `live` tick (V52;
     B56: a client that loads early idles un-streamed until live). A tick counts
     only once the server mech has been moving for `onset` ticks: a mech that
-    starts from rest shows on the client latency + INTERP_DELAY later (B60)."""
+    starts from rest shows on the client latency + INTERP_DELAY later (B60). B127: ticks past
+    the scenario's `end` (duration_ticks) are teardown, not the match -- a server that quit a
+    moment later than its clients walked a mech on its last held input while they were leaving."""
     out = {}
     for mid in client.mech_ids:
         moving = stalled = 0
         first = next((t for t in client.ticks if client.at(t, mid) is not None), None)
         for t in client.ticks:
-            if first is None or t < max(first, live or first) + warmup:
+            if first is None or t < max(first, live or first) + warmup or (end is not None and t >= end):
                 continue
             a, b = client.at(t, mid), client.at(t + 1, mid)
             sa, sb = server.at(t, mid), server.at(t + 1, mid)
@@ -55,7 +57,8 @@ def run(ctx):
         for mid, (moving, stalled) in stall_ratios(primary["server"], primary[role], float(th["interp_min_move"]),
                                                    int(th["interp_warmup_ticks"]),
                                                    fair_start.live_tick(ctx.get("run_dir")),
-                                                   int(th["interp_onset_ticks"])).items():
+                                                   int(th["interp_onset_ticks"]),
+                                                   (ctx.get("scenario") or {}).get("duration_ticks")).items():
             if moving < int(th["interp_min_samples"]):
                 continue
             checked += 1

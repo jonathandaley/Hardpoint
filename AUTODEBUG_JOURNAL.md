@@ -277,3 +277,5 @@ date|task|outcome|commit|finding|suite
 2026-11-09|B126|DONE|local commit|bot_lock_weapons flake in the T362 suite: a target "frozen" by pausing its AI node kept walking on the stale move; targets now get an inert InputSource (6/6)|-
 2026-11-09|T351|DONE|local commit|pickup polish: icons + labels, collect pop, toast with the effect, sound hook, 60 s; bot_drops red at HEAD (no label / pop / toast); render docs/review/T351/pickups.png (speed chevrons flipped to point up after the first render)|-
 2026-11-09|T352|DONE|local commit|bots fetch powerups (repair when hurt, others when idle), take them, never coins; probe bot_pickups red at HEAD|-
+2026-11-09|T362 T351 T352 verify|DONE|-|suite 145/145; net sweep 61/62 -- arc_audio@bad interp_smoothness on post-end teardown ticks (B127, oracle now stops at duration_ticks; 4/4 reruns green, the failing run re-judged green)|145/145, net 61/62 + B127
+2026-11-09|B127|DONE|local commit|interp_smoothness ignores ticks past the scenario's duration (server's late quit walked a mech on held input)|-
