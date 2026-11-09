@@ -291,7 +291,7 @@ func _refresh_lineup_mechs() -> void:
 			_bay.set_bay_mech(i, String(md.display_name))
 		m.set_physics_process(false)
 		m.remove_from_group("mechs")  # T176: a display prop, not a combatant (sync log, AI scans)
-		_arm_display(m, md)
+		_arm_display(m, md, i)
 		_squad_nodes.append(m)
 
 func _refresh_slot_btn_labels() -> void:
@@ -455,7 +455,8 @@ func _init_weapon_overrides() -> void:
 		return
 	var slots: Array = md.weapon_slots
 	_weapon_indices.resize(slots.size())
-	var saved: Array = Game.loadout.get("mech_weapon_choices", {}).get(md.resource_path, [])
+	var saved: Array = Game.slot_weapons(_detail_slot) if _detail_slot >= 0 \
+		else Game.loadout.get("mech_weapon_choices", {}).get(md.resource_path, [])  # T345: this slot's picks
 	var overrides: Array = []
 	for i in slots.size():
 		var slot = slots[i]
@@ -508,6 +509,7 @@ func _on_roster_selected(idx: int) -> void:
 		_squad_mechs[_detail_slot] = _mechs[idx]
 		_squad_paths[_detail_slot] = _mechs[idx].resource_path
 		Game.loadout["squad"] = _squad_paths
+		Game.set_slot_weapons(_detail_slot, [])  # T345: a new mech here starts from its own last picks
 		_refresh_slot_btn_labels()
 	_init_weapon_overrides()
 	Game.save_loadout()
@@ -670,7 +672,19 @@ func _on_weapon_cycle(slot_idx: int, direction: int) -> void:
 		var paths: Array = []
 		for o in overrides:
 			paths.append(o.resource_path if o != null else "")
-		choices[md.resource_path] = paths
+		if _detail_slot >= 0:
+			# T345: other slots of this mech that never had their own picks follow the mech's last
+			# picks -- pin them to what they carry now, then change this slot only
+			var sw: Array = Game.loadout.get("squad_weapons", [])
+			for j in _squad_paths.size():
+				if j != _detail_slot and _squad_paths[j] == md.resource_path \
+						and (j >= sw.size() or (sw[j] as Array).is_empty()):
+					var now: Array = Game.slot_weapons(j)
+					if now.is_empty():
+						now = md.weapon_slots.map(func(sl) -> String: return sl.weapon_scene.resource_path if sl.weapon_scene != null else "")
+					Game.set_slot_weapons(j, now)
+			Game.set_slot_weapons(_detail_slot, paths)
+		choices[md.resource_path] = paths  # the mech's last picks: a new slot of it starts here
 		Game.loadout["mech_weapon_choices"] = choices
 		Game.save_loadout()
 
@@ -757,14 +771,15 @@ func _refresh_diorama_mech() -> void:
 	_diorama_spin.add_child(m)
 	m.set_physics_process(false)
 	m.remove_from_group("mechs")  # T176: a display prop, not a combatant
-	_arm_display(m, md)
+	_arm_display(m, md, _detail_slot)
 	_diorama_mech_node = m
 
 # T188: display mechs carry the weapons this mech will fight with (its saved choices,
 # as Lobby._build_squad_data sends them; default slots otherwise). Props: the weapon
 # nodes don't process (no reload / fire logic in the hangar).
-func _arm_display(m: Node, md: Resource) -> void:
-	MechVisuals.arm_display(m, md, Game.loadout.get("mech_weapon_choices", {}).get(md.resource_path, []))
+func _arm_display(m: Node, md: Resource, slot := -1) -> void:
+	MechVisuals.arm_display(m, md, Game.slot_weapons(slot) if slot >= 0 \
+		else Game.loadout.get("mech_weapon_choices", {}).get(md.resource_path, []))  # T345: per slot
 
 func _show_tab(idx: int) -> void:
 	mech_panel.visible = idx == 0

@@ -106,10 +106,9 @@ func _mech_short_name(path: String) -> String:
 
 static func _build_squad_data() -> Array:
 	var squad_paths: Array = Game.loadout.get("squad", [])
-	var choices: Dictionary = Game.loadout.get("mech_weapon_choices", {})
 	var result: Array = []
-	for path in squad_paths:
-		result.append({"mech": path, "weapons": choices.get(path, [])})
+	for i in squad_paths.size():
+		result.append({"mech": squad_paths[i], "weapons": Game.slot_weapons(i)})  # T345: per slot
 	while result.size() < 5:
 		var fallback: String = ROSTER[0] if ROSTER.size() > 0 else ""
 		result.append({"mech": fallback, "weapons": []})

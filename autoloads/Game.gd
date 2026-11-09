@@ -63,7 +63,8 @@ var loadout: Dictionary = {
 	"mech_def": null,
 	"bot_def": preload("res://resources/mechs/Hippogriff.tres"),
 	"weapon_overrides": [],        # Array[PackedScene|null], parallel to mech_def.weapon_slots
-	"mech_weapon_choices": {},     # {mech_resource_path: [weapon_scene_path, ...]}
+	"mech_weapon_choices": {},     # {mech_resource_path: [weapon_scene_path, ...]} -- a mech's last picks
+	"squad_weapons": [],           # T345: per squad slot [weapon paths]; empty = that mech's last picks
 	"team_size": 1,                # mechs per team (1 = 1v1, 5 = 5v5)
 	"squad": [],                   # Array of 5 mech resource paths (slot 0 = player mech)
 	"presets": {},                 # T177: {name: {"squad": [mech paths], "weapons": {mech path: [weapon paths]}}}
@@ -1019,6 +1020,7 @@ func _load_loadout() -> void:
 		if md != null:
 			loadout["mech_def"] = md
 	loadout["mech_weapon_choices"] = _migrate_weapons(cfg.get_value("loadout", "mech_weapon_choices", {}))
+	loadout["squad_weapons"] = _migrate_weapons(cfg.get_value("loadout", "squad_weapons", []))  # T345
 	var bot_path: String = cfg.get_value("loadout", "bot_path", "")
 	if bot_path != "":
 		var bd = load(bot_path)
@@ -1058,6 +1060,7 @@ func save_loadout() -> void:
 	var mech_def = loadout.get("mech_def")
 	cfg.set_value("loadout", "mech_path", mech_def.resource_path if mech_def != null else "")
 	cfg.set_value("loadout", "mech_weapon_choices", loadout.get("mech_weapon_choices", {}))
+	cfg.set_value("loadout", "squad_weapons", loadout.get("squad_weapons", []))  # T345
 	var bot_def = loadout.get("bot_def")
 	cfg.set_value("loadout", "bot_path", bot_def.resource_path if bot_def != null else "")
 	cfg.set_value("loadout", "team_size", loadout.get("team_size", 1))
@@ -1069,8 +1072,25 @@ func save_loadout() -> void:
 	cfg.set_value("loadout", "mode", loadout.get("mode", "beacons"))  # T285
 	cfg.save(_SAVE_PATH)
 
+## T345 (HUMAN_FOUND 2026-11-08: "two of the same mech in a squad can't carry different weapons --
+## changing one changes all"): each squad slot keeps its own picks; a slot never set falls back to
+## that mech's last picks (mech_weapon_choices), so a mech new to the squad starts as you left it.
+func slot_weapons(i: int) -> Array:
+	var sw: Array = loadout.get("squad_weapons", [])
+	if i < sw.size() and sw[i] is Array and not (sw[i] as Array).is_empty():
+		return sw[i]
+	var squad: Array = loadout.get("squad", [])
+	return loadout.get("mech_weapon_choices", {}).get(squad[i], []) if i >= 0 and i < squad.size() else []
+
+func set_slot_weapons(i: int, paths: Array) -> void:
+	var sw: Array = loadout.get("squad_weapons", [])
+	while sw.size() <= i:
+		sw.append([])
+	sw[i] = paths.duplicate()
+	loadout["squad_weapons"] = sw
+
 ## T177: hangar squad presets -- the whole squad (5 mech paths) plus the weapon choices
-## of the mechs in it, under a typed name. Same name = overwrite.
+## of the mechs in it, under a typed name. Same name = overwrite. T345: and each slot's own picks.
 func save_preset(pname: String) -> void:
 	var choices: Dictionary = loadout.get("mech_weapon_choices", {})
 	var weapons := {}
@@ -1078,7 +1098,11 @@ func save_preset(pname: String) -> void:
 		if choices.has(path):
 			weapons[path] = (choices[path] as Array).duplicate()
 	var presets: Dictionary = loadout.get("presets", {})
-	presets[pname] = {"squad": (loadout.get("squad", []) as Array).duplicate(), "weapons": weapons}
+	var per_slot: Array = []
+	for i in (loadout.get("squad", []) as Array).size():
+		per_slot.append(slot_weapons(i).duplicate())
+	presets[pname] = {"squad": (loadout.get("squad", []) as Array).duplicate(), "weapons": weapons,
+		"slot_weapons": per_slot}
 	loadout["presets"] = presets
 	save_loadout()
 
@@ -1092,6 +1116,7 @@ func load_preset(pname: String) -> bool:
 	for path in p["weapons"]:
 		choices[path] = (p["weapons"][path] as Array).duplicate()
 	loadout["mech_weapon_choices"] = choices
+	loadout["squad_weapons"] = (p.get("slot_weapons", []) as Array).duplicate(true)  # T345 (older presets: per mech)
 	if not loadout["squad"].is_empty():
 		var md = load(loadout["squad"][0])
 		if md != null:
