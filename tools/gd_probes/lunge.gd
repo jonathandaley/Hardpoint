@@ -143,10 +143,11 @@ func _ready() -> void:
 			f_done_at = t
 		if b_lunge_at < 0.0 and b.get("lunging"):
 			b_lunge_at = t
-	# B again within its 5.5 s cooldown? watch 3 more seconds after its first lunge ends
+	# B again within its cooldown? watch until the cooldown since its first PRESS is about to end -- a
+	# long first lunge put a legal second one inside a fixed 3 s window (T365: random mechs, other timings)
 	if b_lunge_at >= 0.0:
 		var was: bool = b.get("lunging")
-		for k in int(3.0 * wf):
+		for k in int(maxf(0.0, b_lunge_at + float(Lunge.cooldown) - 0.1 - 3.5) * wf):
 			await get_tree().physics_frame
 			var now: bool = b.get("lunging")
 			if now and not was:
