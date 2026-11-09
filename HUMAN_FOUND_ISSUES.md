@@ -31,8 +31,6 @@ Elites should have a modified AI with personality.
 
 Elites should have a hangar that makes sense with their abilities and playstyles.
 
-
-
 Some kind of indicator when picking up drops, including their effect.
 
 Bots should go for powerups, but can't pick up coins.
@@ -42,27 +40,6 @@ Visually, bots appear to aim high? Also players. Make sure level camera means le
 Any bots with cesh should use stealth intelligently. Remove it from the roster at lower difficulties.
 
 New mechs: 
-
-Bot new rule:
-Mechs without weapons aren't picked by bots when team size <4.
-
-
-
-Sapper: lays proximity mines, visually subtle. Medium speed, low health, no regular weapons. Mines do area damage. Ability recharge 7s. can have 5 mines active at a time. Placing a 6th deletes the oldest one with no explosion. Visually resembles a miner: brown, squat, wide domed mining hat with front light. Like a really bulky star wars pit droid.
-
-
-
-Medic: small, medium-fast, low health, one light. ability: heal all allies within the same radius as a beacon. Green circle denoting range, visible only to medic, painted on the ground if feasible (so that it adapts to uneven terrain). Grey with green cross emblem, green emissive accents.
-
-
-
-Davone: medium size, medium speed, low health, no weapons. Passive: heal all allies with a slow heal-over-time, rate dropping linearly with distance. Active: inverter shield: apply "Inverter Shield" effect to ally closest to crosshair, for 2 seconds. Inverter shield makes all damage recieved heal proportionally instead. 20s recharge.
-
-Has a built-in "weapon" equipped that shoots slow-moving green canisters that heal the first ally they hit.
-
-White with green accents. Has two antennae pointing backward at an angle. Health gun is a green emissive bump in center of chest.
-
-
 
 Taurus: medium size, very low speed*, medium health, two lights.
 
@@ -77,7 +54,4 @@ The general texturing applied to most of the maps' floors and obstacles is prett
 Harden security for network: Look through the source code for vulnerabilities, and also try to hack it from the outside if possible. Defer for now, but flag it before setting up online stuff. Network check goes before network setup.
 
 Make a tutorial. Also a manual in settings.
-
-
-
 
