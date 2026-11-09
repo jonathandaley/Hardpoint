@@ -79,6 +79,12 @@ func _ready() -> void:
 		var want: int = Game.apply_coin_pickup_bonus(75 + int(mine[0].get("coins", 0)) + int(mine[0]["kill_coins"]))
 		if int(after.get("coins", 0)) != want:
 			bad.append("the payout gave %d, want %d (win + pickups + kills)" % [int(after.get("coins", 0)), want])
+	# B124: our death started the pod ride (an await) and death sounds -- let them finish before quitting
+	await get_tree().create_timer(1.5, true).timeout
+	for n in get_tree().root.find_children("*", "", true, false):
+		if n is AudioStreamPlayer3D or n is AudioStreamPlayer:
+			n.stop()
+	await get_tree().create_timer(0.3, true).timeout
 	if not bad.is_empty():
 		_fail("; ".join(bad))
 		return
