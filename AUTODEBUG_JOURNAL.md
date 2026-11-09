@@ -276,3 +276,4 @@ date|task|outcome|commit|finding|suite
 2026-11-09|T362|DONE|local commit|coins on kill (Arena.kill_coins) + powerups from the map (navmesh random point, 15 s, cap 4), bots drop coins only; bot_drops red at HEAD, green x2|-
 2026-11-09|B126|DONE|local commit|bot_lock_weapons flake in the T362 suite: a target "frozen" by pausing its AI node kept walking on the stale move; targets now get an inert InputSource (6/6)|-
 2026-11-09|T351|DONE|local commit|pickup polish: icons + labels, collect pop, toast with the effect, sound hook, 60 s; bot_drops red at HEAD (no label / pop / toast); render docs/review/T351/pickups.png (speed chevrons flipped to point up after the first render)|-
+2026-11-09|T352|DONE|local commit|bots fetch powerups (repair when hurt, others when idle), take them, never coins; probe bot_pickups red at HEAD|-
