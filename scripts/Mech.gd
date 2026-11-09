@@ -164,6 +164,15 @@ func center_mass() -> Vector3:
 			box = b if first else box.merge(b)
 			first = false
 		_cm_local = box.get_center() if not first else Vector3.UP
+		# B125 (T339): keep it inside the hit capsule -- a big forward-hung gun (Seeker's heavy MG)
+		# pulled the mesh centre 0.84 m out in front, where rays aimed at it (arc, bots) met nothing
+		var cs := get_node_or_null("CollisionShape3D") as CollisionShape3D
+		if cs != null and cs.shape is CapsuleShape3D:
+			var cap := cs.shape as CapsuleShape3D
+			var axis := Vector2(cs.position.x, cs.position.z)
+			var h := axis + (Vector2(_cm_local.x, _cm_local.z) - axis).limit_length(cap.radius * 0.6)
+			var half := cap.height * 0.5 - cap.radius * 0.4
+			_cm_local = Vector3(h.x, clampf(_cm_local.y, cs.position.y - half, cs.position.y + half), h.y)
 	return to_global(_cm_local)
 
 func _center_pivot_y() -> float:
