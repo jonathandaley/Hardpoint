@@ -207,7 +207,7 @@ func _update_visuals() -> void:
 # T105: periodic progress sync so clients see capture bar move in real-time (V33).
 @rpc("authority", "unreliable_ordered")
 func _sync_progress(progress: float, capturing_team: int) -> void:
-	if multiplayer.is_server():
+	if not is_inside_tree() or multiplayer.is_server():  # V50 / B130: a straggler for a node already out of the tree
 		return
 	_capture_progress = progress
 	_capturing_team = capturing_team

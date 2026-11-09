@@ -508,7 +508,7 @@ func take_damage(amount: float, source: Node3D = null) -> void:
 # Server-side RPC receiver for damage (T40: validate amount server-side before applying).
 @rpc("any_peer", "reliable")
 func _take_damage_rpc(amount: float, src_path: NodePath) -> void:
-	if not multiplayer.is_server():
+	if not is_inside_tree() or not multiplayer.is_server():  # V50 / B130
 		return
 	var sender := multiplayer.get_remote_sender_id()
 	if not Game.mp_lobby["peers"].has(sender):
@@ -922,6 +922,7 @@ func _reconcile(entry: Dictionary) -> void:
 		if k >= 0 and k < _pred_hist.size() and server_pos.distance_to(_pred_hist[k][2]) \
 				< server_pos.distance_to(_pred_hist[i][2]):
 			i = k
+	_lunge_sync(entry, _pred_hist.size() - 1 - i)  # B131
 	var err: Vector3 = server_pos - (_pred_hist[i][2] as Vector3)
 	if not _pred_synced:
 		# The first snapshot (the starting point) was already up to a round trip old; the
@@ -1550,6 +1551,25 @@ func _rpc_lunge(seq: int, n: int, dir: Vector3) -> void:
 		_pred_hist[k][2] = Vector3(base.x + off.x, rec.y, base.z + off.z)
 	if idx + 1 < _pred_hist.size():
 		global_position = Vector3(base.x + off.x, global_position.y, base.z + off.z)
+
+## B131 (lunge_net@bad: 3 snaps in one dash): on a lossy link the reliable _rpc_lunge can land
+## after later snapshots -- and reconcile has trimmed the history record it needs by then -- so the
+## owner started its lunge late. Each snapshot of our mech carries the server's lunge clock ("lt",
+## at the record it acks): start from it if we missed the start, keep our clock on it, and stop
+## when the server's lunge stopped (a ram) before ours. `ahead` = our records after that one.
+func _lunge_sync(entry: Dictionary, ahead: int) -> void:
+	var dt := 1.0 / float(Engine.physics_ticks_per_second)
+	var slt: float = float(entry.get("lt", -1.0))
+	if slt >= 0.0:
+		var want := slt + float(ahead) * dt
+		if want >= LUNGE_TOTAL_S:
+			return
+		if not lunging:
+			_lunge_begin(entry.get("ld", _lunge_facing()), want)
+		elif absf(lunge_t - want) > 1.5 * dt:
+			lunge_t = want
+	elif lunging and lunge_t > float(ahead + 1) * dt:  # ours began before that record; the server's is over
+		_lunge_stop()
 
 ## Leg pose for BipedLegs: x = crouch (the windup), y = stride (the dash).
 func lunge_pose() -> Vector2:

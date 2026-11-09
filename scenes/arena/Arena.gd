@@ -1590,6 +1590,9 @@ func _snapshot_tick() -> void:
 			if m.owner_peer_id > 1:  # T205: a client's mech -> its prediction's reference
 				e["ack"] = m.input_ack
 				e["ackt"] = m.input_ack_ticks
+				if m.get("lunging"):  # B131: the owner's lunge clock rides the snapshot too
+					e["lt"] = m.get("lunge_t")
+					e["ld"] = m.get("_lunge_dir")
 			snapshots.append(e)
 	if snapshots.is_empty():
 		return

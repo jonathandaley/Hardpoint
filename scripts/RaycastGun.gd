@@ -51,7 +51,7 @@ func _shot_fx(hit_pos: Vector3) -> void:
 
 @rpc("authority", "unreliable")
 func _rpc_shot_fx(hit_pos: Vector3) -> void:
-	if multiplayer.is_server():
+	if not is_inside_tree() or multiplayer.is_server():  # V50 / B130: a straggler for a node already out of the tree
 		return
 	_shot_fx(hit_pos)
 
