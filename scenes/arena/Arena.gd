@@ -1273,6 +1273,11 @@ const DROP_COINS := [2, 4, 6, 10, 16]  # by bot difficulty, EASY .. ELITE
 const POWERUPS := ["repair", "ammo", "damage", "speed"]
 const PICKUP_R := 2.2       # m, horizontal reach of a mech walking over it
 const PICKUP_LIFE_S := 30.0
+# T343 (HUMAN_FOUND Q6, user: Pegasus "healed full from 20% ... Only happened once"): bots dying
+# close together leave several repair kits within one step's reach, and every kit in reach was
+# taken the same tick -- three kits = +105%. A mech takes one repair kit per REPAIR_GAP_S; the
+# rest stay on the ground.
+const REPAIR_GAP_S := 2.0
 var powerup_chance := 0.25  # per bot death (probes set 1.0)
 var coins_picked := {}      # server: peer_id -> coins picked up this match
 var _pickups := {}          # every peer: id -> Pickup
@@ -1346,6 +1351,9 @@ func _physics_process(_delta: float) -> void:
 		_remove_pickup(id)
 	for h in hits:
 		if _pickups.has(h[0]):
+			if (_pickups[h[0]] as Pickup).kind == "repair" and Engine.get_physics_frames() \
+					- int(h[1].get_meta("repair_frame", -1000000)) < int(REPAIR_GAP_S * Engine.physics_ticks_per_second):
+				continue  # T343: one kit at a time
 			_collect(h[0], _pickups[h[0]], h[1])
 
 func _collect(id: int, pk: Pickup, m: Node) -> void:
@@ -1354,6 +1362,7 @@ func _collect(id: int, pk: Pickup, m: Node) -> void:
 		"coin":
 			coins_picked[pid] = int(coins_picked.get(pid, 0)) + pk.value
 		"repair":
+			m.set_meta("repair_frame", Engine.get_physics_frames())  # T343
 			m.health = minf(m.health + m.max_health * 0.35, m.max_health)
 			if multiplayer.has_multiplayer_peer():
 				m.rpc(&"_sync_health", m.health)  # snapshots carry no health (clients kept the old HP)
