@@ -293,3 +293,4 @@ date|task|outcome|commit|finding|suite
 2026-11-09|B130|DONE|local commit|11 RPC handlers used multiplayer before is_inside_tree (V50); guarded; static probe rpc_tree_guard; dedicated_server@bad 2/2|-
 2026-11-09|B131|DONE|local commit|lunge clock rides the owner's snapshots (late start RPC on a lossy link); lunge_net@bad 6/6 0 snaps|-
 2026-11-09|T357 T347 B129 B130 B131 verify|DONE|-|suite 151/151, net sweep 62/62|151/151, net 62/62
+2026-11-09|T346|BLOCKED|-|leak not reproducible here (tools/leak_check/path.gd, 6 paths with real GL under Xvfb: 0 leak lines); user last recorded a session on this machine 2026-11-03 -> NEEDS_HUMAN asks for machine / build / steps / console|-
