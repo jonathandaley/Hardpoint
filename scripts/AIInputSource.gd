@@ -387,7 +387,8 @@ func _fire_range(bot_mech: Node) -> float:
 	var r := 0.0 if tactics else ENGAGE_DIST + 15.0
 	for w in bot_mech.get_weapons():
 		if is_instance_valid(w) and "range" in w:
-			r = maxf(r, float(w.range) * (0.95 if tactics else 0.5))
+			# T339: a lock (built only inside the weapon's range, T334) is reason enough to fire
+			r = maxf(r, float(w.range) * (0.95 if tactics or w.get("requires_lock") == true else 0.5))
 	return r
 
 ## T172: distance a bot with this weapon fights from (shotgun close, sniper far).
