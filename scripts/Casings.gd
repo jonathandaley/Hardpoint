@@ -61,16 +61,54 @@ func _ready() -> void:
 	_roll.resize(cap)
 	_bounce.resize(cap)
 
+# T337 (user 2026-11-08: shells shot through the body of mechs that hold their guns from behind;
+# picked "eject from mid-gun"): the casing leaves the gun's receiver, RECEIVER_K of the way from the
+# gun's origin (its back end on those mechs, inside the shoulder block) to the kit model's muzzle.
+const RECEIVER_K := 0.45
+
+## Casing size factor for `weapon` (heavy guns x1.4, the gun's own scale).
+static func casing_scale(weapon: Node3D) -> float:
+	var heavy: bool = int(weapon.get("slot_size")) == 1 if weapon.get("slot_size") != null else false
+	return (1.4 if heavy else 1.0) * clampf(weapon.global_transform.basis.get_scale().x, 0.5, 2.0)
+
+## Which way casings fly sideways: outward -- a gun on the mech's left throws them to its left
+## (a casing thrown right from there crossed the whole torso); centre and right guns to the right.
+static func side(weapon: Node3D) -> float:
+	var m = weapon.get("owner_mech")
+	if m == null or not is_instance_valid(m) or not (m is Node3D):
+		return 1.0
+	return -1.0 if (m as Node3D).to_local(weapon.global_position).x < -0.05 else 1.0
+
+## A centre-line gun (Hippogriff's under the chest plate, Vesuvius's on top) throws its casings
+## lower and shorter: thrown like a shoulder gun's they flew up into the plate / across onto the
+## shoulder block.
+static func centre(weapon: Node3D) -> bool:
+	var m = weapon.get("owner_mech")
+	return m != null and is_instance_valid(m) and m is Node3D and absf((m as Node3D).to_local(weapon.global_position).x) <= 0.05
+
+## A casing's launch velocity from `weapon`: outward, up, a bit back. `jitter` 0..1 picks across
+## the spread (0.5 = the mean, what the clearance probe checks).
+static func launch(weapon: Node3D, jitter_side: float, jitter_up: float, back: float) -> Vector3:
+	var b := weapon.global_transform.basis
+	var c := 0.55 if centre(weapon) else 1.0
+	var u := 0.35 if centre(weapon) else 1.0
+	return b.x.normalized() * side(weapon) * lerpf(2.5, 4.0, jitter_side) * c \
+		+ b.y.normalized() * lerpf(2.0, 3.5, jitter_up) * u + b.z.normalized() * back
+
+## Where a casing leaves `weapon` (world space).
+static func port(weapon: Node3D) -> Vector3:
+	var b := weapon.global_transform.basis
+	var s := casing_scale(weapon)
+	var mz = weapon.get("muzzle_local")
+	var base := weapon.to_global(mz * RECEIVER_K) if mz is Vector3 and mz != Vector3.ZERO else weapon.global_position
+	return base + b.x.normalized() * 0.12 * s * side(weapon) + b.y.normalized() * 0.05 * s
+
 ## One casing out of `weapon` (shell = a shotgun shell).
 func eject(weapon: Node3D, shell := false) -> void:
 	var b := weapon.global_transform.basis
-	var right := b.x.normalized()
-	var up := b.y.normalized()
-	var back := b.z.normalized()
-	var heavy: bool = int(weapon.get("slot_size")) == 1 if weapon.get("slot_size") != null else false
-	var s: float = (1.4 if heavy else 1.0) * clampf(b.get_scale().x, 0.5, 2.0)
-	var p := weapon.global_position + right * 0.12 * s + up * 0.05 * s
-	var v := right * _rng.randf_range(2.5, 4.0) + up * _rng.randf_range(2.0, 3.5) + back * _rng.randf_range(0.0, 1.0)
+	var s := casing_scale(weapon)
+	var p := port(weapon)
+	var v := launch(weapon, _rng.randf(), _rng.randf(), _rng.randf_range(0.0, 1.0))
 	var i := _next
 	_next = (_next + 1) % cap
 	_used = mini(_used + 1, cap)

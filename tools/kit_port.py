@@ -259,6 +259,11 @@ def hardpoints(m):
     return [[sum(w[i] for w in gr) / len(gr) for i in range(3)] for gr in groups]
 
 
+# T337 (user 2026-11-08): casings shot through the body; most fixed by ejecting mid-gun + outward
+# (Casings.gd), these centre guns also sit a little forward of their mount (slot index -> metres).
+SLOT_FORWARD = {"Hippogriff": {1: 0.35}, "Vesuvius": {1: 0.2}}
+
+
 def move_slots(mechs):
     for name, m in mechs.items():
         path = os.path.join(ROOT, "resources", "mechs", name + ".tres")
@@ -270,11 +275,13 @@ def move_slots(mechs):
             continue
         free = list(mounts)
         new = src
-        for s in slots:
+        for k, s in enumerate(slots):
             cur = [float(x) for x in s.group(1).split(",")]
             best = min(free, key=lambda v: sum((a - b) ** 2 for a, b in zip(v, cur)))
             free.remove(best)
-            new = new.replace(s.group(0), "position = Vector3(%s)" % ", ".join(f(x) for x in best), 1)
+            fwd = SLOT_FORWARD.get(name, {}).get(k, 0.0)
+            placed = (best[0], best[1], best[2] - fwd)  # forward = -z
+            new = new.replace(s.group(0), "position = Vector3(%s)" % ", ".join(f(x) for x in placed), 1)
         open(path, "w").write(new)
         print("  %-10s %d slots -> kit mounts" % (name, len(slots)))
 
