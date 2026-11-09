@@ -36,8 +36,12 @@ const CHASE_DIST    := 80.0  # T172: follow a target that broke line of sight
 # juke = reverse the strafe the moment we're hit (beats an opponent leading the shot).
 const DIFFICULTY_PRESETS: Array = [
 	{"aim_jitter": 0.18,  "turn_scale": 0.55, "lead": 0.0, "reaction": 0.70, "pause": 1.0,  "tactics": false, "team": false},  # Easy
-	{"aim_jitter": 0.055, "turn_scale": 1.00, "lead": 0.5, "reaction": 0.45, "pause": 1.0,  "tactics": false, "team": false},  # Normal
-	{"aim_jitter": 0.015, "turn_scale": 1.50, "lead": 0.8, "reaction": 0.30, "pause": 0.6,  "tactics": false, "team": true},   # Medium
+	# T357 (user on T282: "shift Normal and medium up a little so that the steps are fairly even"):
+	# against a strafing target Normal hit ~1/5 as often as Medium (aim drift), and Medium -> Hard was
+	# all play (Hard moves, jukes, picks its shots). Normal aims better; Medium plays Hard's tactics
+	# with a little drift and slower reactions. Measured in tools/gd_probes/difficulty_steps.gd.
+	{"aim_jitter": 0.025, "turn_scale": 1.40, "lead": 0.8, "reaction": 0.33, "pause": 0.7,  "tactics": false, "team": false},  # Normal
+	{"aim_jitter": 0.012, "turn_scale": 2.20, "lead": 0.9, "reaction": 0.22, "pause": 0.35, "tactics": true,  "team": true},   # Medium
 	# T282 (user 2026-11-05: "Hard will have no intentional bad strategy/aiming errors, elite will be
 	# that plus upgrades"; "elite bots don't miss, and in fact shoot ahead of moving targets"): Hard
 	# now plays exactly like Elite did -- no aim drift, full lead, no burst pauses, jukes; ELITE is
