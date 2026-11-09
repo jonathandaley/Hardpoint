@@ -190,6 +190,9 @@ func _process(_delta: float) -> void:
 		if entry["weapon"].has_method("get_charge_progress"):
 			var cp: float = entry["weapon"].get_charge_progress()
 			entry["charge_fg"].offset_right = entry["bar_left"] + SLOT_W * cp
+			# T349: purple once full (the sniper's purple), yellow while charging
+			entry["charge_fg"].color = Color(0.85, 0.3, 1.0, 0.85) if cp >= 1.0 \
+					else Color(UIColors.CAUTION, 0.72)
 
 		# Cooldown overlay (Sniper only)
 		var wpath: String = entry["weapon"].get_script().resource_path
