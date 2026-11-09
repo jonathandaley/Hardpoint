@@ -507,7 +507,10 @@ func _physics_process_impl(delta: float) -> void:
 
 	var own_max_hp: float = maxf(bot_mech.get("max_health") if bot_mech.get("max_health") != null else 1.0, 1.0)
 	var own_hp_pct: float = clampf(bot_mech.health / own_max_hp, 0.0, 1.0)
-	if tactics:
+	var pickup := wanted_pickup(bot_mech, has_target, dist, fire_range, own_hp_pct, tactics)
+	if pickup != null:
+		_move_dir = _steer_to(bot_mech, pickup.global_position)  # T352
+	elif tactics:
 		_move_dir = _tactical_move(bot_mech, has_target, dist, fire_range, weapon, own_hp_pct, delta)
 	else:
 		_move_dir = _legacy_move(bot_mech, has_target, dist, own_hp_pct, delta)
@@ -583,6 +586,35 @@ func _physics_process_impl(delta: float) -> void:
 		_use_abilities(bot_mech, has_target and dist < fire_range, own_hp_pct, has_target, dist, fire_range)
 		if not has_target:
 			_reload_press = _wants_reload(bot_mech)
+
+## T352 (HUMAN_FOUND 2026-11-08: "bots go for powerups but can't pick up coins"): a bot detours
+## to a powerup close by -- a repair kit when hurt (Hard / Elite from further, even mid-fight), any
+## other one when nothing is in range to fight. Coins are left for the players.
+const PICKUP_SEEK_M := 25.0
+const REPAIR_SEEK_M := 45.0
+
+func wanted_pickup(bot_mech: Node3D, has_target: bool, dist: float, fire_range: float,
+		own_hp_pct: float, tactics: bool) -> Node3D:
+	var fighting := has_target and dist < fire_range
+	var best: Node3D = null
+	var best_d := INF
+	for p in bot_mech.get_tree().get_nodes_in_group("pickups"):
+		var kind: String = p.get("kind")
+		if kind == "coin" or p.get("collected"):
+			continue
+		var reach := 0.0
+		if kind == "repair":
+			if own_hp_pct < 0.6:
+				reach = REPAIR_SEEK_M if tactics else PICKUP_SEEK_M
+			elif own_hp_pct < 0.95 and not fighting:
+				reach = PICKUP_SEEK_M
+		elif not fighting:
+			reach = PICKUP_SEEK_M if tactics else PICKUP_SEEK_M * 0.6
+		var d := bot_mech.global_position.distance_to((p as Node3D).global_position)
+		if d < reach and d < best_d:
+			best = p
+			best_d = d
+	return best
 
 ## Pre-T172 movement (Easy..Medium): beacon routing, back off when crowded, flee when low.
 func _legacy_move(bot_mech: Node3D, has_target: bool, dist: float, own_hp_pct: float, delta: float) -> Vector2:

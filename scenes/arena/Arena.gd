@@ -1269,9 +1269,9 @@ func _on_bot_mech_died(bp: Node, ri: int) -> void:
 # ---- T264: drops from destroyed bots (HUMAN_FOUND 2026-11-05; user: coins by bot difficulty
 # + powerups repair / ammo / damage boost / speed boost) ----
 # Server-authoritative: the server rolls the drop, every peer shows it (_rpc_spawn_pickup),
-# the server sees a human-piloted mech walk over it, applies it and removes it everywhere.
-# Coins are tallied per peer and paid with the match result (Game._apply_match). Bots
-# don't pick anything up.
+# the server sees a mech walk over it, applies it and removes it everywhere. Coins are
+# tallied per peer and paid with the match result (Game._apply_match); bots take powerups
+# but never coins (T352).
 # ponytail: pickups already on the ground aren't in the late-join snapshot; a late joiner
 # sees only drops made after it joined.
 const Pickup := preload("res://scripts/Pickup.gd")
@@ -1386,7 +1386,9 @@ func _physics_process(_delta: float) -> void:
 		var taker: Node = null
 		for t in 2:
 			for m in _team_mechs[t]:
-				if taker == null and is_instance_valid(m) and not m.is_dead and int(m.owner_peer_id) > 0:
+				# T352: bots take powerups too; coins are for players only
+				if taker == null and is_instance_valid(m) and not m.is_dead \
+						and (int(m.owner_peer_id) > 0 or (pk as Pickup).kind != "coin"):
 					var d: Vector3 = (m as Node3D).global_position - p
 					if Vector2(d.x, d.z).length() < PICKUP_R and absf(d.y) < 4.0:
 						taker = m
