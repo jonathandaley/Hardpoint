@@ -1286,7 +1286,7 @@ const KILL_COINS_PLAYER := 10   # coins for killing a player's mech (a bot's = i
 var powerup_every_s := POWERUP_EVERY_S  # probes shorten it
 var _powerup_t := 0.0
 const PICKUP_R := 2.2       # m, horizontal reach of a mech walking over it
-const PICKUP_LIFE_S := 30.0
+const PICKUP_LIFE_S := 60.0  # T351 (user: "make them last longer on the ground (60s?)")
 # T343 (HUMAN_FOUND Q6, user: Pegasus "healed full from 20% ... Only happened once"): bots dying
 # close together leave several repair kits within one step's reach, and every kit in reach was
 # taken the same tick -- three kits = +105%. A mech takes one repair kit per REPAIR_GAP_S; the
@@ -1393,7 +1393,7 @@ func _physics_process(_delta: float) -> void:
 		if taker != null:
 			hits.append([id, taker])
 	for id in expired:
-		_remove_pickup(id)
+		_remove_pickup(id)  # expired: just gone
 	for h in hits:
 		if _pickups.has(h[0]):
 			if (_pickups[h[0]] as Pickup).kind == "repair" and Engine.get_physics_frames() \
@@ -1415,7 +1415,29 @@ func _collect(id: int, pk: Pickup, m: Node) -> void:
 			m.call("refill_ammo")
 		"damage", "speed":  # T332: powerup_duration is the pilot's own skill
 			m.rpc(&"_rpc_boost", pk.kind, 10.0 * (1.0 + float(m.call("skill", "powerup_duration"))))
-	_remove_pickup(id)
+	# T351: taken, not expired -- every peer plays the pop, the taker gets the toast and the sound.
+	# Server: at once here (no call_local RPC inside the physics loop, see _remove_pickup), then the clients.
+	_pickups.erase(id)
+	_collect_fx(pk, pid, pk.kind, pk.value)
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_rpc_collect_pickup.rpc(id, pid, pk.kind, pk.value)
+
+@rpc("authority", "call_remote", "reliable")
+func _rpc_collect_pickup(id: int, taker_peer: int, kind: String, value: int) -> void:
+	var pk = _pickups.get(id)
+	_pickups.erase(id)
+	_collect_fx(pk, taker_peer, kind, value)
+
+func _collect_fx(pk, taker_peer: int, kind: String, value: int) -> void:
+	if is_instance_valid(pk):
+		pk.call("collect")
+		SoundManager.play_sfx("pickup", (pk as Node3D).global_position)  # T351 hook: silent until the file arrives
+	if taker_peer > 0 and taker_peer == multiplayer.get_unique_id() and hud != null:
+		hud.call("pickup_toast", PICKUP_TOASTS.get(kind, kind.to_upper()) if kind != "coin" else "+%d COINS" % value,
+			Pickup.COLORS.get(kind, Color.WHITE))
+
+const PICKUP_TOASTS := {"repair": "REPAIR  +35% HP", "ammo": "AMMO REFILLED", "damage": "DAMAGE x1.5  (10 s)",
+	"speed": "SPEED x1.3  (10 s)"}
 
 # T203: a bot spawns where its team is needed: near beacons the team doesn't hold
 # (neutral, enemy, contested), away from enemies already standing there. Server-only

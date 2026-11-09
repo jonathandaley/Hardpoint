@@ -841,6 +841,33 @@ func add_kill(killer: String, killer_ally: bool, victim: String, victim_ally: bo
 static func _bb(t: String) -> String:
 	return t.replace("[", "[lb]")
 
+## T351 (HUMAN_FOUND 2026-11-08: "Some kind of indicator when picking up drops, including their
+## effect"): a short line above the weapon panel, in the pickup's colour, fading out.
+const TOAST_S := 2.2
+var _toast: Label = null
+
+func pickup_toast(text: String, color: Color) -> void:
+	if _toast == null or not is_instance_valid(_toast):
+		_toast = Label.new()
+		_toast.name = "PickupToast"
+		_toast.add_theme_font_size_override("font_size", 16)
+		_toast.add_theme_constant_override("outline_size", 4)
+		_toast.add_theme_color_override("font_outline_color", Color.BLACK)
+		_toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_toast.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+		_toast.offset_top = -120.0
+		_toast.offset_bottom = -96.0
+		_toast.offset_left = -200.0
+		_toast.offset_right = 200.0
+		_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_toast)
+	_toast.text = text
+	_toast.add_theme_color_override("font_color", color)
+	_toast.modulate.a = 1.0
+	var tw := _toast.create_tween()
+	tw.tween_interval(TOAST_S * 0.6)
+	tw.tween_property(_toast, "modulate:a", 0.0, TOAST_S * 0.4)
+
 ## Chat stub: nothing sends chat yet; a message shows in the feed like a kill.
 func add_chat(sender: String, text: String) -> void:
 	_feed_add("[color=#dddddd]%s:[/color] %s" % [_bb(sender), _bb(text)])
