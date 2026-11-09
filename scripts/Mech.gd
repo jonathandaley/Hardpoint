@@ -252,16 +252,30 @@ func _process(delta: float) -> void:
 				_sync_health.rpc(health)  # snapshots carry no health: clients see the repair here
 
 # T329 (user 2026-11-05: "make the weapons tilt up and down as they aim"): every hardpoint pitches
-# with the aim -- level at the camera's level-aim pitch (the raised view looks down TILT_NEUTRAL),
-# clamped to TILT_MAX. Remote mechs get the pitch in the snapshot. Muzzles and shot spawns follow.
-const TILT_NEUTRAL := -0.3
+# with the aim, clamped to TILT_MAX. Remote mechs get the pitch in the snapshot (their camera
+# follows it). Muzzles and shot spawns follow.
+# T353 (HUMAN_FOUND 2026-11-08: guns "aimed high, bots and players ... Make sure level camera means
+# level gun. Actual bullets fire correctly, it's just the visual"): T329 tilted by a fixed offset
+# from the raised view's usual pitch, so a level camera put every gun 0.3 rad high. Each hardpoint
+# now points at what the crosshair is on (the camera ray's hit, or TILT_RAY_M out) -- the point
+# ProjectileGun fires at.
 const TILT_MAX := 0.45
+const TILT_RAY_M := 200.0
 
 func _tilt_guns() -> void:
-	var tilt := clampf(_camera_pitch - TILT_NEUTRAL, -TILT_MAX, TILT_MAX)
+	if camera == null or not is_inside_tree():
+		return
+	var from := camera.global_position
+	var fwd := -camera.global_transform.basis.z
+	var q := PhysicsRayQueryParameters3D.create(from, from + fwd * TILT_RAY_M)
+	q.exclude = get_exclude_rids()
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	var aim: Vector3 = hit.position if not hit.is_empty() else from + fwd * TILT_RAY_M
+	var inv := torso.global_transform.basis.orthonormalized().inverse()
 	for hp in torso.get_children():
 		if hp is Node3D and String(hp.name).begins_with("Hardpoint"):
-			(hp as Node3D).rotation.x = tilt
+			var d: Vector3 = inv * (aim - (hp as Node3D).global_position)
+			(hp as Node3D).rotation.x = clampf(atan2(d.y, maxf(-d.z, 0.5)), -TILT_MAX, TILT_MAX)
 
 func apply_camera_shake(magnitude: float) -> void:
 	_shake_intensity = magnitude
