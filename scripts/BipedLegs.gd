@@ -47,13 +47,23 @@ const TUCK_HIP_L  := 0.55   # rad forward of rest; left leg leads (a jump, not a
 const TUCK_HIP_R  := 0.30
 const TUCK_KNEE   := 0.70   # rad extra knee flex
 
+# T342 (Taurus lunge, user: "How hard to animate the legs for a crouch-lunge motion?"): pose.x =
+# crouch (the windup: knees fold, hips swing forward, the body drops), pose.y = stride (the dash:
+# a longer, faster stride). Visual only -- the torso carries the camera, so no lean.
+const CROUCH_HIP  := 0.45   # rad forward of rest, both legs (left a touch more)
+const CROUCH_KNEE := 0.95   # rad extra knee flex
+const CROUCH_DROP := 0.22   # m the body sinks
+const STRIDE_SWEEP_K := 0.8 # hip sweep x (1 + this) at full dash speed
+
 var _torso: Node3D = null
+var _pose := Vector2.ZERO
 var _phase: float = 0.0
 var _air_time: float = 0.0
 var _air: float = 0.0  # 0 = walking .. 1 = tucked
 
 func update_gait(velocity: Vector3, mech_basis: Basis, rot_speed: float, walk_speed: float, delta: float,
-		airborne: bool = false) -> void:
+		airborne: bool = false, lunge_pose: Vector2 = Vector2.ZERO) -> void:
+	_pose = lunge_pose
 	if _torso == null:
 		_torso = get_parent().get_node_or_null("Torso") as Node3D
 	_air_time = _air_time + delta if airborne else 0.0
@@ -64,7 +74,8 @@ func update_gait(velocity: Vector3, mech_basis: Basis, rot_speed: float, walk_sp
 func _animate_walk(velocity: Vector3, delta: float) -> void:
 	var horiz := Vector3(velocity.x, 0.0, velocity.z)
 	var speed  := horiz.length()
-	var no_slide_rate := 1.0 / (_J * maxf(hip_sweep_amount, 0.01))
+	var sweep := hip_sweep_amount * (1.0 + STRIDE_SWEEP_K * _pose.y)  # T342: the dash's long stride
+	var no_slide_rate := 1.0 / (_J * maxf(sweep, 0.01))
 	if _air_time <= AIR_DELAY:  # T174: no stepping on thin air
 		_phase = fposmod(_phase + speed * no_slide_rate * cycle_rate * delta, TAU)
 
@@ -75,12 +86,14 @@ func _animate_walk(velocity: Vector3, delta: float) -> void:
 
 	# Body bob - torso dips at transition points (inverted-pendulum walk).
 	if _torso != null:
-		_torso.position.y = -bob_magnitude * abs(sl) * t * (1.0 - _air)
+		_torso.position.y = -bob_magnitude * abs(sl) * t * (1.0 - _air) - CROUCH_DROP * _pose.x
 
 	# Hip drive: -cos separates fore/aft sweep from the lift.
 	# phase=0: back(liftoff)  phase=PI/2: neutral  phase=PI: forward(heel-strike)
-	left_hip.rotation.x  = lerpf(REST_HIP - cos(_phase) * hip_sweep_amount * t, REST_HIP + TUCK_HIP_L, _air)
-	right_hip.rotation.x = lerpf(REST_HIP - cos(_phase + PI) * hip_sweep_amount * t, REST_HIP + TUCK_HIP_R, _air)
+	left_hip.rotation.x  = lerpf(lerpf(REST_HIP - cos(_phase) * sweep * t, REST_HIP + TUCK_HIP_L, _air),
+		REST_HIP + CROUCH_HIP * 1.15, _pose.x)
+	right_hip.rotation.x = lerpf(lerpf(REST_HIP - cos(_phase + PI) * sweep * t, REST_HIP + TUCK_HIP_R, _air),
+		REST_HIP + CROUCH_HIP * 0.85, _pose.x)
 
 	# Swing lift: sin arch peaks at mid-swing when hip is at neutral.
 	# Foot is at apex while leg is mid-arc, plants at max extension.
@@ -91,8 +104,8 @@ func _animate_walk(velocity: Vector3, delta: float) -> void:
 	var stance_l: float = maxf(0.0, -sl) * STANCE_FLEX * t
 	var stance_r: float = maxf(0.0, -sr) * STANCE_FLEX * t
 
-	var flex_l: float = lerpf(swing_l * KNEE_LIFT + stance_l, TUCK_KNEE, _air)
-	var flex_r: float = lerpf(swing_r * KNEE_LIFT + stance_r, TUCK_KNEE, _air)
+	var flex_l: float = lerpf(lerpf(swing_l * KNEE_LIFT + stance_l, TUCK_KNEE, _air), CROUCH_KNEE, _pose.x)
+	var flex_r: float = lerpf(lerpf(swing_r * KNEE_LIFT + stance_r, TUCK_KNEE, _air), CROUCH_KNEE, _pose.x)
 
 	left_knee1.rotation.x  = REST_KNEE1 - flex_l
 	right_knee1.rotation.x = REST_KNEE1 - flex_r
