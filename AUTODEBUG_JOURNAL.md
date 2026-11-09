@@ -297,3 +297,4 @@ date|task|outcome|commit|finding|suite
 2026-11-09|queue empty|-|-|all open rows wait on the user: T363 (Taurus roster OK), T346 (leak setup), T266 (security review), parked T29 / T212 / T261 / T290 / T291 / T305 / T326 + old backlog; NEEDS_HUMAN has the questions and defaults to tune|-
 2026-11-09|T364|DONE|local commit|kills tracked per pilot + bounties (half of each kill this life), paid at match end (stats kills / kill_coins); results KILLS column + coin breakdown; probe kill_bounty red first; bot_drops updated|-
 2026-11-09|T364 verify|FIX|-|suite 151/152: kill_bounty quit mid pod-ride (Pages in use at exit, B124 class) -> probe waits out the ride + stops audio (6/6 clean); sweep 62/62|151/152, net 62/62
+2026-11-09|B133|DONE|local commit|idle_target flake from T350 kits (Elite = random mechs; Everest subject had no clear 60 m line): probe runs at Hard (same AI) with inert-input targets, 12/12; my first theory (_los_to aim point) tested and reverted|-
