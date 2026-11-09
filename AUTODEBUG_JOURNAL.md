@@ -238,3 +238,4 @@ date|task|outcome|commit|finding|suite
 2026-11-06|T263|BLOCKED|-|spent shells: Q5 (what was seen?)|-
 2026-11-06|T290 T291 T326|BLOCKED|-|parked / tentative by the user (security review, tutorial + manual, indoor-map picker)|-
 2026-11-06|queue empty|-|-|everything else done; open user calls in NEEDS_HUMAN (DM limit, balance proposals, music, menu stretching, Q6 heal) and HUMAN_FOUND (Q4, Q5)|-
+2026-11-08|T263|UNBLOCKED|-|user: build real casings (pooled MultiMesh, scripted two-bounce + tumble, local, pool size by graphics setting); Patience has none; Q5 removed from HUMAN_FOUND|-
