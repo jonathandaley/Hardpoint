@@ -55,7 +55,12 @@ const EJECTORS := [["RifleLight", "SniperLight", "MachineGunLight", "ShotgunLigh
 func _ready() -> void:
 	var bad := []
 	var rows := []
-	for path in Lobby.ROSTER:
+	var mechs: Array = Lobby.ROSTER.duplicate()
+	for f in DirAccess.get_files_at("res://tools/kit_mechs/"):  # T341: code-built mechs before the roster too
+		var p := "res://resources/mechs/%s.tres" % f.get_basename().capitalize()
+		if f.ends_with(".js") and not f.get_basename() in ["lynx", "warhog"] and ResourceLoader.exists(p) and not mechs.has(p):
+			mechs.append(p)  # (lynx / warhog: T181 placeholder stubs)
+	for path in mechs:
 		var md: Resource = load(path)
 		var checked := 0
 		for i in md.weapon_slots.size():  # every casing gun that fits each slot
