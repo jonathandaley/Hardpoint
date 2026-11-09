@@ -966,6 +966,21 @@ func get_skill_effect(key: String) -> float:
 	return float(skill_level(key)) * float(def.get("per_level", 0.0))
 
 ## T332: a pilot's skill effect from its own skills (the roster entry), not this machine's profile.
+## T361 (HUMAN_FOUND 2026-11-08 late: "Skill tree should show what it does ... so that the numbers
+## are visible"): a skill's total effect at `level`, as the player reads it -- "+6%", "+1.5 HP/s".
+static func skill_effect_text(key: String, level: int) -> String:
+	var v: float = float(level) * float(SKILL_TREE.get(key, {}).get("per_level", 0.0))
+	var unit := "%"
+	match key:
+		"repair_rate":
+			unit = " HP/s"
+		"contested_hold":
+			unit = " s"
+		_:
+			v *= 100.0
+	var n := ("%d" % roundi(v)) if is_equal_approx(v, roundf(v)) else ("%.1f" % v)
+	return "+%s%s" % [n, unit]
+
 static func skill_effect_in(skills: Dictionary, key: String) -> float:
 	var def: Dictionary = SKILL_TREE.get(key, {})
 	return float(clampi(int(skills.get(key, 0)), 0, 12)) * float(def.get("per_level", 0.0))
