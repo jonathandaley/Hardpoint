@@ -70,5 +70,15 @@ func _ready() -> void:
 	if not is_instance_valid(cam) or cam.global_position.y - y0 < 3.0:
 		_fail("the death camera didn't climb with the canister (%.1f m)" % ((cam.global_position.y - y0) if is_instance_valid(cam) else -1.0))
 		return
+	# T356 (user on T267: "make them disappear at the top of the arc instead of starting to fall
+	# back down"): the bot's canister is gone by its apex, never seen falling
+	var vy := 0.0
+	t0 = Time.get_ticks_msec()
+	while is_instance_valid(pod) and Time.get_ticks_msec() - t0 < 7000:
+		vy = float(pod.get("vel").y)
+		await get_tree().process_frame
+	if is_instance_valid(pod) or vy < -1.0:
+		_fail("bot canister %s, last seen moving %.1f m/s up (want gone at the top of its arc)" % ["still there" if is_instance_valid(pod) else "fell back", vy])
+		return
 	print("[probe] pilot_eject done (bot canister +%.1f m / %.2f m sideways; picker after %d ms)" % [d.y, Vector2(d.x, d.z).length(), picker_at])
 	get_tree().quit(0)

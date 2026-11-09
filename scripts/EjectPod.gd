@@ -3,12 +3,12 @@ extends Node3D
 # explosion launches a rocket canister skyward at a slight curved angle, leaving a trail of
 # smoke"): every destroyed mech fires its pilot's canister on every peer (cosmetic; the death
 # itself is replicated). It boosts for BOOST_S with a sideways push that bends the climb, then
-# coasts over under gravity and is freed after LIFE_S. Script-driven, not a RigidBody: nothing
-# for it to collide with.
+# coasts up under gravity and vanishes in a last puff at the top of its arc (T356, user: "make them
+# disappear at the top of the arc instead of starting to fall back down"). Script-driven, not a
+# RigidBody: nothing for it to collide with.
 
 const BOOST_S := 0.9
 const BOOST_ACC := 30.0  # m/s^2 up while the motor burns
-const LIFE_S := 6.0
 
 var vel := Vector3.ZERO
 var drift := Vector3.ZERO  # sideways acceleration while boosting: the curve
@@ -76,7 +76,8 @@ func _process(delta: float) -> void:
 		while _puff_t >= PUFF_EVERY:
 			_puff_t -= PUFF_EVERY
 			_puff(global_transform * Vector3(0, -0.6, 0))
-	if age > LIFE_S:
+	if not boosting and vel.y <= 0.0:  # the apex
+		_puff(global_position)
 		queue_free()
 
 func _puff(at: Vector3) -> void:
