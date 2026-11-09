@@ -134,7 +134,6 @@ func _toggle_overhead() -> void:
 	_overhead_cam.current = not _overhead_cam.current
 
 # Perpendicular to the SW-NE team axis; mechs fan out along this direction.
-const _SPAWN_SPACING := 8.0   # metres between mechs in a team line
 
 func _slots_with_weapon_paths(slots: Array, weapon_paths: Array) -> Array:
 	if weapon_paths.is_empty():
@@ -160,16 +159,25 @@ const DEBUG_OVERHEAD := false  # F5 overhead camera (was DEBUG_PENROSE)
 func spawn_points(team: int) -> Array:
 	return _map.spawn_points(team)
 
+## Where mech `idx` of a `count`-strong team stands at `spawn`: a line across the facing (team 1
+## mirrored, which keeps the pre-T203 slot order), `spawn_spacing` apart, kept clear by the map (T358).
+func spawn_position(team: int, idx: int, count: int, spawn: int) -> Vector3:
+	var base: Vector3 = spawn_points(team)[spawn]
+	var perp := Basis(Vector3.UP, deg_to_rad(_spawn_facing(base))).x * (1.0 if team == 0 else -1.0)
+	var perp_offset: float = (float(idx) - float(count - 1) * 0.5) * float(_map.get("spawn_spacing"))
+	return _map.clamp_spawn(Vector3(base.x + perp.x * perp_offset, 0.0, base.z + perp.z * perp_offset))
+
+func _spawn_facing(base: Vector3) -> float:
+	var to_c: Vector2 = _map.center - Vector2(base.x, base.z)
+	return rad_to_deg(atan2(-to_c.x, -to_c.y))  # face the map centre
+
 func _spawn_one_mech(mech_def, team: int, idx: int, count: int, weapon_paths: Array = [], mech_name := "",
 		spawn := 0) -> CharacterBody3D:
-	var perp_offset: float = (float(idx) - float(count - 1) * 0.5) * _SPAWN_SPACING
 	var base: Vector3 = spawn_points(team)[spawn]
-	var to_c: Vector2 = _map.center - Vector2(base.x, base.z)
-	var facing_y: float = rad_to_deg(atan2(-to_c.x, -to_c.y))  # face the map centre
-	# the line runs across the facing; team 1 mirrored, which keeps the pre-T203 slot order
-	var perp := Basis(Vector3.UP, deg_to_rad(facing_y)).x * (1.0 if team == 0 else -1.0)
-	var sx: float = base.x + perp.x * perp_offset
-	var sz: float = base.z + perp.z * perp_offset
+	var facing_y: float = _spawn_facing(base)
+	var at := spawn_position(team, idx, count, spawn)
+	var sx: float = at.x
+	var sz: float = at.z
 	var m: CharacterBody3D = mech_def.scene.instantiate()
 	m.name = mech_name if mech_name != "" else "Mech_%d_%d" % [team, idx]
 	m.set_meta("spawn", [mech_def.resource_path, weapon_paths])  # T206: rebuilt by late joiners

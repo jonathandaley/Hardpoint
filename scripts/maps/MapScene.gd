@@ -7,6 +7,7 @@ extends Node3D
 
 var center := Vector2.ZERO   # world XZ: spawns face it, minimap centre
 var minimap_half := 100.0    # metres from center to the minimap edge
+var spawn_spacing := 8.0     # T358: metres between mechs in a team's spawn line
 
 func build() -> void:
 	pass
@@ -14,6 +15,11 @@ func build() -> void:
 ## World positions of `team`'s spawn points (y = ground_y there).
 func spawn_points(_team: int) -> Array:
 	return []
+
+## T358: a spot in a team's spawn line, kept somewhere a mech fits (maps with tight spawn rooms
+## override it; pure geometry, so every peer places the mech alike).
+func clamp_spawn(p: Vector3) -> Vector3:
+	return p
 
 ## Floor height before the floor colliders exist (the match-start spawn runs first).
 func ground_y(_x: float, _z: float) -> float:

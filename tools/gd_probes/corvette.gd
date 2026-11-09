@@ -29,8 +29,32 @@ func _ready() -> void:
 	if arena.get("_start_pick_open"):
 		arena.get("hud").squad_slot_selected.emit(0)
 		arena.get("hud").spawn_selected.emit(0)
-	if get_tree().get_nodes_in_group("beacons").size() != 5 or arena.spawn_points(0).size() != 3 or arena.spawn_points(1).size() != 3:
-		_fail("want 5 beacons and 3 spawns a side")
+	if get_tree().get_nodes_in_group("beacons").size() != 5 or arena.spawn_points(0).size() != 2 or arena.spawn_points(1).size() != 2:
+		_fail("want 5 beacons and 2 spawns a side (T358)")
+	# T358 (user on T303: spawns "partly inside the wall ... Make sure mechs can't stick into the
+	# walls"): every spot of a full 6-mech team line at every spawn has room for the biggest mech
+	# (Everest: capsule r 0.5 x 1.25) -- no wall, crate or other team spot in it
+	await get_tree().physics_frame
+	var room := CapsuleShape3D.new()
+	room.radius = 0.5 * 1.25 + 0.3
+	room.height = 2.0 * 1.25
+	var rq := PhysicsShapeQueryParameters3D.new()
+	rq.shape = room
+	rq.collision_mask = 1
+	var sspace: PhysicsDirectSpaceState3D = arena.get_world_3d().direct_space_state
+	for t in 2:
+		for sp in arena.spawn_points(t).size():
+			var spots: Array = []
+			for idx in 6:
+				var p: Vector3 = arena.spawn_position(t, idx, 6, sp)
+				rq.transform = Transform3D(Basis(), p + Vector3.UP * (room.height * 0.5 + 0.05))
+				for h in sspace.intersect_shape(rq, 4):
+					if not (h["collider"] as Node).is_in_group("mechs"):
+						_fail("team %d spawn %d slot %d at %s is inside %s" % [t, sp, idx, p, (h["collider"] as Node).name])
+				for q2 in spots:
+					if Vector2(p.x - q2.x, p.z - q2.z).length() < 2.6:
+						_fail("team %d spawn %d: two slots %.1f m apart at %s" % [t, sp, Vector2(p.x - q2.x, p.z - q2.z).length(), p])
+				spots.append(p)
 	# T303 (user 2026-11-05: "feels very spread out, shrink it by 30%"): the hull is 0.7 x the
 	# T235 184 x 92 m, and every beacon and spawn is inside it
 	var map: Node = arena.get("_map")
