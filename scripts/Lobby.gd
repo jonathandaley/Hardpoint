@@ -343,6 +343,9 @@ static func _build_roster() -> Array:
 		if int(e["peer_id"]) == 0:
 			e["name"] = BotNames.next_name(taken, elite)
 			e["skills"] = (BotNames.ELITE.get(e["name"], {}) as Dictionary).duplicate()
+			if elite and BotNames.ELITE_KIT.has(e["name"]):  # T350: the pilot's own hangar and style
+				e["squad"] = kit_squad(BotNames.ELITE_KIT[e["name"]]["squad"])
+				e["personality"] = (BotNames.ELITE_KIT[e["name"]]["personality"] as Dictionary).duplicate()
 			taken.append(e["name"])
 	return roster
 
@@ -353,6 +356,26 @@ static func bot_roster() -> Array:
 	if int(Game.settings.get("bot_difficulty", 1)) >= 3:
 		return ROSTER
 	return ROSTER.filter(func(p) -> bool: return not String(p).ends_with("/Cesh.tres"))
+
+## T350: [[mech name, weapon family], ...] -> squad entries; a slot size the family lacks gets the rifle.
+static func kit_squad(kit: Array) -> Array:
+	var out: Array = []
+	for k in kit:
+		var md: Resource = load("res://resources/mechs/%s.tres" % k[0])
+		var weapons: Array = []
+		for sl in md.weapon_slots:
+			var pick := ""
+			var rifle := ""
+			for w in WEAPON_CATALOG:
+				if int(w["slot_size"]) != int(sl.slot_size):
+					continue
+				if String(w["name"]).get_slice(" ", 0) == String(k[1]):
+					pick = w["path"]
+				elif String(w["name"]).begins_with("RIFLE"):
+					rifle = w["path"]
+			weapons.append(pick if pick != "" else rifle)
+		out.append({"mech": md.resource_path, "weapons": weapons})
+	return out
 
 static func _default_bot_squad(bot_id: int) -> Array:
 	var pool := bot_roster()
