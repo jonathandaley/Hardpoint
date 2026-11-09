@@ -280,3 +280,4 @@ date|task|outcome|commit|finding|suite
 2026-11-09|T362 T351 T352 verify|DONE|-|suite 145/145; net sweep 61/62 -- arc_audio@bad interp_smoothness on post-end teardown ticks (B127, oracle now stops at duration_ticks; 4/4 reruns green, the failing run re-judged green)|145/145, net 61/62 + B127
 2026-11-09|B127|DONE|local commit|interp_smoothness ignores ticks past the scenario's duration (server's late quit walked a mech on held input)|-
 2026-11-09|T358|DONE|local commit|Corvette: 2 spawns a side, 5 m line, clamp_spawn keeps slots in the hall clear of walls / crates; red with the old spacing and no clamp (slots inside the hull wall)|-
+2026-11-09|T358 verify|DONE|-|suite 145/145 (net sweep rides with the next batch)|145/145
