@@ -21,6 +21,7 @@ var _gone: Dictionary = {}  # mech -> tick first seen dead
 var _map_name := "?"
 var _pairs: Dictionary = {}  # "att|vic" -> [damage, kills]
 var _still: Dictionary = {}  # mech -> [census samples alive, of them not moving, last pos]
+var _lock: Dictionary = {}  # T339: lock-weapon mech -> [samples a lock was possible, of them locked]
 
 static func _mech_name(m: Node) -> String:
 	if m == null or not is_instance_valid(m):
@@ -98,7 +99,8 @@ func _ready() -> void:
 				"taken": snappedf(m.damage_taken_total, 0.1), "kills": int(kills.get(m, 0)),
 				"alive_s": snappedf((int(_gone.get(m, t)) - int(_born[m])) / 60.0, 0.1), "won": won[0] == team,
 				"stall": snappedf(float(_still[m][1]) / maxf(1.0, float(_still[m][0])), 0.01) if _still.has(m) else 0.0,
-				"map": _map_name}))
+				"map": _map_name, "lock_opp_s": (_lock[m][0] * 0.5) if _lock.has(m) else 0.0,
+				"lock_s": (_lock[m][1] * 0.5) if _lock.has(m) else 0.0}))
 	for key in _pairs:
 		var ab: PackedStringArray = String(key).split("|")
 		print("[bal-pair] " + JSON.stringify({"att": ab[0], "vic": ab[1], "dmg": snappedf(_pairs[key][0], 0.1),
@@ -122,5 +124,17 @@ func _census(arena: Node, t: int) -> void:
 					st[1] += 1
 				st[2] = m.global_position
 				_still[m] = st
+				# T339: a lock is possible when the bot's target is in sight and inside lock range
+				if m.has_lock_weapon():
+					var src: Node = m.get("_input_source")
+					var tg = src.get("_target") if src != null else null
+					if tg != null and is_instance_valid(tg) and src.get("_has_clear_shot") \
+							and m.global_position.distance_to(tg.global_position) <= m.lock_weapon_range():
+						var lk: Array = _lock.get(m, [0, 0])
+						lk[0] += 1
+						var lt = m.get("locked_target")
+						if lt != null and is_instance_valid(lt):
+							lk[1] += 1
+						_lock[m] = lk
 			if m.is_dead and _born.has(m) and not _gone.has(m):
 				_gone[m] = t
