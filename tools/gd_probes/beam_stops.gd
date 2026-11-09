@@ -46,6 +46,8 @@ func _ready() -> void:
 		return
 	var target: Node3D = foes[0]
 	var blocker: Node3D = foes[1]
+	_unshield(target)
+	_unshield(blocker)
 	for t in 2:
 		for m in arena.get("_team_mechs")[t]:
 			if m != me:
@@ -107,3 +109,11 @@ func _ready() -> void:
 		return
 	print("[probe] beam_stops done (laser %.1f m / blocker %.1f m, arc %.1f m / target %.1f m)" % [beam_len, to_blocker, arc_len, rng])
 	get_tree().quit(0)
+
+static func _unshield(m: Node) -> void:  # T365: squads are random -- a shielded target soaked the test hits
+	var es: Node = m.get("_energy_shield")
+	if es != null:
+		es.set("_active", false)
+	var ps: Node = m.get("_shield")
+	if is_instance_valid(ps) and ps.visible:
+		ps.call("_break")

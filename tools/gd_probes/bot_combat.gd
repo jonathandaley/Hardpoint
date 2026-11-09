@@ -72,6 +72,7 @@ func _ready() -> void:
 	var c: Node = others[1]
 	for m in [e, a, b, c]:
 		m.invincible = false
+	_unshield(e)
 	ai.set("_target", a)
 	ai.set("_retaliate_cd", 0.0)
 	# shooters within weapon range of E and hits <= 1.5x weapon damage (min 0.6), or
@@ -154,3 +155,11 @@ func _ready() -> void:
 		_fail("teammate 15 m away never heard who shot E")
 	print("[probe] bot_combat done (weapons seen: %d, locked: %s, roles: %s, nav polys: %d)" % [paths.size(), locked, roles, polys])
 	get_tree().quit(0)
+
+static func _unshield(m: Node) -> void:  # T365: squads are random -- a shielded target soaked the test hits
+	var es: Node = m.get("_energy_shield")
+	if es != null:
+		es.set("_active", false)
+	var ps: Node = m.get("_shield")
+	if is_instance_valid(ps) and ps.visible:
+		ps.call("_break")
