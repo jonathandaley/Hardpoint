@@ -107,7 +107,7 @@ func _hide_beam() -> void:
 
 @rpc("authority", "reliable")
 func _rpc_hide_beam() -> void:
-	if multiplayer.is_server():
+	if not is_inside_tree() or multiplayer.is_server():  # V50 / B130: a straggler for a node already out of the tree
 		return
 	_hide_beam()
 
@@ -160,7 +160,7 @@ func _beam_fx(target_pos: Vector3) -> void:
 
 @rpc("authority", "unreliable_ordered")
 func _rpc_beam_fx(target_pos: Vector3) -> void:
-	if multiplayer.is_server():
+	if not is_inside_tree() or multiplayer.is_server():  # V50 / B130: a straggler for a node already out of the tree
 		return
 	_beam_fx(target_pos)
 

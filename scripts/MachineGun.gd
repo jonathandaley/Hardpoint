@@ -151,7 +151,7 @@ func _bc_loop(on: bool) -> void:
 
 @rpc("authority", "reliable")
 func _rpc_mg_loop(on: bool) -> void:
-	if multiplayer.is_server():
+	if not is_inside_tree() or multiplayer.is_server():  # V50 / B130: a straggler for a node already out of the tree
 		return
 	_remote_firing = on  # T262
 	if on:

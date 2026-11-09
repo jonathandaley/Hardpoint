@@ -69,7 +69,7 @@ func _do_fire() -> void:
 
 @rpc("authority", "unreliable")
 func _rpc_pellet_ghosts(aim_points: Array) -> void:
-	if multiplayer.is_server():
+	if not is_inside_tree() or multiplayer.is_server():  # V50 / B130: a straggler for a node already out of the tree
 		return
 	VFX.casing(self, true)  # T263
 	for i in aim_points.size():

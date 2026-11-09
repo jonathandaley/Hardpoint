@@ -72,7 +72,7 @@ func _spawn_rocket(lock_target: Node3D) -> void:
 func _rpc_spawn_ghost(pos: Vector3, basis: Basis, speed: float, lifetime: float, team: int,
 		p_arc_time: float, p_arc_up: float, p_turn: float, p_jitter: Vector3,
 		target_path: NodePath) -> void:
-	if multiplayer.is_server():
+	if not is_inside_tree() or multiplayer.is_server():  # V50 / B130: a straggler for a node already out of the tree
 		return
 	var ghost := HOMING_SCENE.instantiate() as HomingProjectile
 	ghost.is_ghost = true

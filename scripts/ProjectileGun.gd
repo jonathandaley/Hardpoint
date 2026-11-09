@@ -56,7 +56,7 @@ func _do_fire() -> void:
 # a dropped ghost is one invisible tracer round, not worth retransmit overhead.
 @rpc("authority", "unreliable")
 func _rpc_spawn_ghost(pos: Vector3, basis: Basis, speed: float, lifetime: float, team: int) -> void:
-	if multiplayer.is_server():
+	if not is_inside_tree() or multiplayer.is_server():  # V50 / B130: a straggler for a node already out of the tree
 		return
 	var ghost := PROJECTILE_SCENE.instantiate() as Projectile
 	ghost.is_ghost = true
