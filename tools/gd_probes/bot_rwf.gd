@@ -100,12 +100,16 @@ func _ready() -> void:
 		if c[k][0] <= 0.16:
 			c_low = k
 			break
+	var c_far := 0.0  # the farthest it got during the hold (a strafe flip or a stuck-escape can stall it for a moment)
+	if c_low >= 0:
+		for k in range(c_low, mini(c_low + 240, c.size())):
+			c_far = maxf(c_far, c[k][1])
 	if c_low < 0 or c_low + 180 >= c.size():
 		bad.append("C never reached its hold (min ammo %.2f)" % c.reduce(func(m, x): return minf(m, x[0]), 1.0))
-	elif c[c_low + 180][1] < c[c_low][1] + 1.0:
-		bad.append("C held %.1f -> %.1f m from a sniper while refilling (want it backing off)" % [c[c_low][1], c[c_low + 180][1]])
+	elif c_far < c[c_low][1] + 1.0:
+		bad.append("C stayed within %.1f -> %.1f m of a sniper while refilling (want it backing off)" % [c[c_low][1], c_far])
 	if not bad.is_empty():
 		_fail("; ".join(bad))
 		return
-	print("[probe] bot_rwf done (A low at %.1f s, B min %.0f%%, C %.1f -> %.1f m)" % [low_at / 60.0, b_min * 100.0, c[c_low][1], c[c_low + 180][1]])
+	print("[probe] bot_rwf done (A low at %.1f s, B min %.0f%%, C %.1f -> %.1f m)" % [low_at / 60.0, b_min * 100.0, c[c_low][1], c_far])
 	get_tree().quit(0)
