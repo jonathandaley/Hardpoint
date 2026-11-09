@@ -695,6 +695,23 @@ func _use_abilities(bot_mech: Node3D, fighting: bool, own_hp_pct: float, has_tar
 				_ability_press = bot_mech.health <= bot_mech.max_health - 80.0 or (fighting and own_hp_pct < 0.6)
 			"stealth":
 				_ability_press = stealth_wanted(bot_mech, has_target, dist, fire_range, own_hp_pct)
+			"lunge":
+				_ability_press = lunge_wanted(bot_mech, has_target, dist)
+
+## T342: ram a target that's straight ahead inside the dash's reach (~15 m) with a clear line
+## (the LoS check doubles as "no wall in the way"); not point-blank, where the windup wastes it.
+const LUNGE_MIN_M := 5.0
+const LUNGE_MAX_M := 15.0
+const LUNGE_AIM_RAD := 0.12
+
+func lunge_wanted(bot_mech: Node3D, has_target: bool, dist: float) -> bool:
+	if not has_target or not _has_clear_shot or dist < LUNGE_MIN_M or dist > LUNGE_MAX_M:
+		return false
+	var to := _target.global_position - bot_mech.global_position
+	to.y = 0.0
+	var fwd: Vector3 = -(bot_mech.get_aim_basis() as Basis).z
+	fwd.y = 0.0
+	return to.length() > 0.01 and fwd.angle_to(to) < LUNGE_AIM_RAD
 
 ## T295 (HUMAN_FOUND 2026-11-05 late: "Cesh bots should use stealth more intelligently"): cloak
 ## for a reason, not whenever a fight is on (24 s on, 24 s off) -- to close in on a target still

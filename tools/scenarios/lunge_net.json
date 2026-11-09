@@ -1,0 +1,140 @@
+{
+  "name": "lunge_net",
+  "seed": 3420,
+  "port": 8953,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Taurus.tres",
+  "net": {
+    "latency_ms": 160,
+    "jitter_ms": 10,
+    "loss": 0.01
+  },
+  "duration_ticks": 1000,
+  "oracles": [
+    "prediction_recon",
+    "transform_desync",
+    "health_desync",
+    "input_delivery",
+    "spawn_join",
+    "team_assignment",
+    "crash_scan",
+    "log_flood",
+    "rpc_integrity"
+  ],
+  "thresholds": {
+    "pred_snap_frac": 0.0
+  },
+  "_comment": "T342: both peers fly Taurus and press LUNGE twice (ticks 150/180 and 600/640, past the 5.5 s cooldown) while walking and turning. The client's own lunge is predicted from the input tick the server ran it on (_rpc_lunge): prediction_recon must stay in its usual bounds (a lunge started a round trip late would put the owner ~1 m off = a snap); the server's copy and the client's view must agree (transform_desync); any ram damage must replicate (health_desync). Own link: 160 ms each way (320 ms round trip, longer than the 0.2 s windup), so the owner's catch-up (_rpc_lunge rewrites the ticks it ran past the server's start) is what keeps it in bounds; on wifi / bad the windup alone hides the delay. Zero snaps allowed: without the catch-up the client's lunge peaked at 1.16 m with 2 snaps (a rubber-band; the run's p95 still passed), with it 0.02 m, none.",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 100,
+            "look": [
+              2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 110,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 500,
+            "look": [
+              -2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 510,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "pulses": [
+          {
+            "tick": 150,
+            "action": "ability"
+          },
+          {
+            "tick": 600,
+            "action": "ability"
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 100,
+            "look": [
+              -2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 110,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 500,
+            "look": [
+              2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 510,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "pulses": [
+          {
+            "tick": 180,
+            "action": "ability"
+          },
+          {
+            "tick": 640,
+            "action": "ability"
+          }
+        ]
+      }
+    }
+  }
+}

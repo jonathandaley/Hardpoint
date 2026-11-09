@@ -781,6 +781,7 @@ func _physics_process_impl(delta: float) -> void:
 			_update_legs(delta)
 			return
 		_apply_snapshot_interp()
+		_lunge_visual_tick(delta)  # T342: crouch / stride pose + glow only
 		if _input_source != null and owner_peer_id == multiplayer.get_unique_id():
 			_handle_look()   # camera still tracks local mouse
 			_maybe_forward_input()
@@ -823,6 +824,7 @@ func _slide(delta: float) -> void:
 		_step_up_remaining -= lift
 	move_and_slide()
 	_try_step_up_from_collisions()
+	_lunge_contacts()  # T342
 
 # ---- T205: client-side prediction of the own mech ----
 # The owning client moves its mech from local input every tick (same code as the
@@ -989,7 +991,8 @@ func _update_legs(delta: float) -> void:
 		airborne = get_world_3d().direct_space_state.intersect_ray(q).is_empty()
 	else:
 		airborne = not is_on_floor() and _step_up_remaining <= 0.0
-	legs.call("update_gait", velocity, global_transform.basis, leg_rotation_speed, walk_speed, delta, airborne)
+	legs.call("update_gait", velocity, global_transform.basis, leg_rotation_speed, walk_speed, delta, airborne,
+		lunge_pose())
 
 # T150 (B48) / V37: render remote AND own mechs INTERP_DELAY behind the newest
 # server state, interpolating between the two buffered snapshots around that
@@ -1118,6 +1121,8 @@ func _handle_look() -> void:
 	# camera_arm.rotation.x is owned by _process (shake + pitch combined)
 
 func _handle_movement(delta: float) -> void:
+	if _lunge_step(delta):  # T342: the lunge drives the legs, no steering
+		return
 	var dir2d: Vector2 = _input_source.get_move_direction()
 	if not is_on_floor() and _step_up_remaining <= 0.0:
 		if dir2d != Vector2.ZERO:
@@ -1368,6 +1373,11 @@ func _activate_ability(ability: Resource) -> void:
 		"stealth":
 			is_stealthy = true
 			_apply_stealth_visual(true)
+		"lunge":
+			_lunge_begin(_lunge_facing())
+			if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+				# the owner lines its prediction up on the tick this input ran (T205)
+				_rpc_lunge.rpc(input_ack, input_ack_ticks + 1, _lunge_dir)
 	if ability.duration > 0.0:
 		_ability_active_timers[ability.effect_key] = ability.duration
 	else:
@@ -1390,6 +1400,157 @@ func _deactivate_ability(key: String) -> void:
 			if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 				_rpc_ability_deactivated.rpc(_abilities.find(ability))
 			break
+
+# ---- T342: Taurus LUNGE (ability effect_key "lunge") ----
+# User 2026-11-08 (picked over a held-SPACE charge): press -> a short crouch in place, then a
+# straight dash along the facing at the press that speeds up along a fixed curve, holds, and
+# stops quickly. No steering. Ramming an enemy mech (or its front shield) deals
+# max(RAM_FLOOR, RAM_K x closing speed) and ends the lunge; a wall met face-on ends it with no
+# damage. The server and the owner's prediction (T205) run the same tick curve; the owner lines
+# up on the input tick the server ran it on (_rpc_lunge). Other peers only run the clock for
+# the leg pose and the glow, INTERP_DELAY late to match the motion they're shown.
+const LUNGE_WINDUP_S := 0.2
+const LUNGE_DASH_S := 2.0
+const LUNGE_STOP_S := 0.25
+const LUNGE_RAMP_S := 0.8    # s from standing to LUNGE_PEAK, then held
+const LUNGE_PEAK := 10.0     # m/s -- calibration knob (Taurus walks 0.9)
+const RAM_FLOOR := 60.0      # ~1/3 of a light mech -- calibration knob
+const RAM_K := 9.0           # damage per m/s of closing speed -- calibration knob
+const LUNGE_GLOW_K := 2.5    # extra glow at full speed (x the palette's energy)
+const LUNGE_TOTAL_S := LUNGE_WINDUP_S + LUNGE_DASH_S + LUNGE_STOP_S
+var lunging := false
+var lunge_t := 0.0
+var _lunge_dir := Vector3.ZERO
+var _lunge_glow: Array = []  # [material, base energy] -- this mech's own copies
+
+static func lunge_speed(t: float) -> float:
+	if t < LUNGE_WINDUP_S:
+		return 0.0
+	var d := t - LUNGE_WINDUP_S
+	if d < LUNGE_DASH_S:
+		var u := minf(d / LUNGE_RAMP_S, 1.0)
+		return LUNGE_PEAK * u * u
+	return LUNGE_PEAK * maxf(0.0, 1.0 - (d - LUNGE_DASH_S) / LUNGE_STOP_S)
+
+func _lunge_facing() -> Vector3:
+	var f := -torso.global_transform.basis.z
+	f.y = 0.0
+	return f.normalized() if f.length_squared() > 0.0001 else Vector3.FORWARD
+
+func _lunge_begin(dir: Vector3, t0 := 0.0) -> void:
+	lunging = true
+	lunge_t = t0
+	_lunge_dir = dir
+
+func _lunge_end() -> void:
+	lunging = false
+	_set_lunge_glow(0.0)
+
+## Server + owner: advance the curve one tick and drive the horizontal velocity; false = no lunge.
+func _lunge_step(delta: float) -> bool:
+	if not lunging:
+		return false
+	lunge_t += delta
+	if lunge_t >= LUNGE_TOTAL_S:
+		_lunge_end()
+		return false
+	var sp := lunge_speed(lunge_t)
+	velocity.x = _lunge_dir.x * sp
+	velocity.z = _lunge_dir.z * sp
+	_set_lunge_glow(sp / LUNGE_PEAK)
+	return true
+
+## Other peers: the clock for the pose and glow only.
+func _lunge_visual_tick(delta: float) -> void:
+	if not lunging:
+		return
+	lunge_t += delta
+	if lunge_t >= LUNGE_TOTAL_S:
+		_lunge_end()
+	else:
+		_set_lunge_glow(lunge_speed(lunge_t) / LUNGE_PEAK)
+
+## After each move: a mech (or its shield) or a wall in the dash's way ends the lunge; the
+## server deals the ram. The owner's prediction stops the same way, without the damage.
+func _lunge_contacts() -> void:
+	if not lunging or lunge_t < LUNGE_WINDUP_S or lunge_t >= LUNGE_WINDUP_S + LUNGE_DASH_S:
+		return
+	for i in get_slide_collision_count():
+		var col := get_slide_collision(i)
+		var c := col.get_collider() as Node
+		var m := _owning_mech(c)
+		if m != null and m != self:
+			var server := not multiplayer.has_multiplayer_peer() or multiplayer.is_server()
+			if server and m.get("team") != team and c.has_method("take_damage"):
+				var mv: Vector3 = m.get("velocity") if m.get("velocity") != null else Vector3.ZERO
+				var closing := lunge_speed(lunge_t) - mv.dot(_lunge_dir)
+				c.call("take_damage", maxf(RAM_FLOOR, RAM_K * closing), self)
+			_lunge_stop()
+			return
+		if col.get_normal().dot(-_lunge_dir) > 0.6 and _step_up_remaining <= 0.0:  # a step lifts it instead
+			_lunge_stop()
+			return
+
+func _lunge_stop() -> void:
+	_lunge_end()
+	velocity.x = 0.0
+	velocity.z = 0.0
+
+## Owner: the server started the lunge after its tick (seq, n). Ticks this client already ran
+## past that record get the dash they missed (horizontal), records included, so the next
+## snapshots compare like with like. Not in the history -> start now; reconcile eases the rest.
+@rpc("authority", "reliable")
+func _rpc_lunge(seq: int, n: int, dir: Vector3) -> void:
+	if not _predicting():
+		_lunge_begin(dir, -INTERP_DELAY)
+		return
+	var idx := -1
+	for k in range(_pred_hist.size() - 1, -1, -1):
+		var h: Array = _pred_hist[k]
+		if int(h[0]) == seq and int(h[1]) <= n:
+			idx = k
+			break
+		if int(h[0]) < seq:
+			break
+	_lunge_begin(dir)
+	if idx < 0:
+		return
+	var dt := 1.0 / float(Engine.physics_ticks_per_second)
+	var base: Vector3 = _pred_hist[idx][2]
+	var off := Vector3.ZERO
+	for k in range(idx + 1, _pred_hist.size()):
+		lunge_t += dt
+		off += dir * lunge_speed(lunge_t) * dt
+		var rec: Vector3 = _pred_hist[k][2]
+		_pred_hist[k][2] = Vector3(base.x + off.x, rec.y, base.z + off.z)
+	if idx + 1 < _pred_hist.size():
+		global_position = Vector3(base.x + off.x, global_position.y, base.z + off.z)
+
+## Leg pose for BipedLegs: x = crouch (the windup), y = stride (the dash).
+func lunge_pose() -> Vector2:
+	if not lunging or lunge_t < 0.0:
+		return Vector2.ZERO
+	if lunge_t < LUNGE_WINDUP_S:
+		return Vector2(lunge_t / LUNGE_WINDUP_S, 0.0)
+	var d := lunge_t - LUNGE_WINDUP_S
+	return Vector2(maxf(0.0, 1.0 - d / 0.15), clampf(lunge_speed(lunge_t) / LUNGE_PEAK, 0.0, 1.0))
+
+## Glow parts brighten with speed: this mech's own copies of its (shared, T310) glow materials.
+func _set_lunge_glow(k: float) -> void:
+	if _lunge_glow.is_empty():
+		if k <= 0.0:
+			return
+		for mi in find_children("*", "MeshInstance3D", true, false):
+			var n := mi as MeshInstance3D
+			if n.mesh == null or n.mesh.get_surface_count() == 0:  # B75 / B111: no surface, no override
+				continue
+			var mat := n.get_surface_override_material(0) as StandardMaterial3D
+			if mat != null and mat.emission_enabled and n.get_parent() != null and not n.get_parent().name.begins_with("Hardpoint"):
+				var own := mat.duplicate() as StandardMaterial3D
+				n.set_surface_override_material(0, own)
+				_lunge_glow.append([own, own.emission_energy_multiplier])
+	for g in _lunge_glow:
+		(g[0] as StandardMaterial3D).emission_energy_multiplier = float(g[1]) * (1.0 + LUNGE_GLOW_K * k)
 
 func _jump_launch() -> void:
 	velocity.y = 15.0
