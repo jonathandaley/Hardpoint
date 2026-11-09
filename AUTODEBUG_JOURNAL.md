@@ -287,3 +287,4 @@ date|task|outcome|commit|finding|suite
 2026-11-09|T350|DONE|local commit|Elite kits + personalities (BotNames.ELITE_KIT, Lobby.kit_squad, AI personality: role / range_k / retreat_hp); probe elite_kits red at HEAD; bot_names / pilot_skills / sp_bots / bot_roster / bot_combat / hard_bots / bot_squad green|-
 2026-11-09|T359 B128 T350 verify|DONE|-|suite 148/148, net sweep 62/62|148/148, net 62/62
 2026-11-09|T357|DONE|local commit|difficulty steps: probe difficulty_steps (damage on a strafer; 6 duels, Normal / Medium doubled to beat their noise) red with the old presets (Normal 38-55); Normal aim up, Medium gets tactics + a little drift; bot_eval pairs 16-2 / 12-6 / 14-4|-
+2026-11-09|T347|DONE|local commit|skill tree view (rows by depth, parent-ordered, lit edges, click to buy / upgrade); a rebuild renamed the new tree while the old one waited to be freed (detach first); render docs/review/T347|-
