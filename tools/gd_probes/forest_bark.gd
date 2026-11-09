@@ -45,6 +45,9 @@ func _ready() -> void:
 			bad.append("streaks not vertical (run %.1f down vs %.1f across)" % [vr, hr])
 		if sd < 0.05:
 			bad.append("low contrast (luma sd %.3f)" % sd)
+		var texel := 1.0 / (bark.uv1_scale.x * img.get_width())  # T355: user wants 15 cm pixels
+		if absf(texel - 0.15) > 0.005:
+			bad.append("bark texels %.2f m, not 0.15" % texel)
 	if not bad.is_empty():
 		push_error("[probe] forest_bark FAIL: " + "; ".join(bad))
 		get_tree().quit(1)
