@@ -271,3 +271,4 @@ date|task|outcome|commit|finding|suite
 2026-11-09|T343 T361 verify|DONE|-|suite 143/143|143/143
 2026-11-09|T345|DONE|local commit|per-slot weapons: squad_weapons + Game.slot_weapons; first try left untouched siblings following the mech-wide last picks (probe red) -> pin siblings before a pick; red at HEAD (no per-slot data at all; it was never per slot)|-
 2026-11-09|T345 verify|DONE|-|suite 144/144|144/144
+2026-11-09|T353|DONE|local commit|guns aim at the crosshair point (camera ray) instead of pitch - 0.3; weapon_tilt red at HEAD (level camera -> 0.30 rad high); beam_reach / beam_stops / casing_clearance / patience_hitscan still green|-
