@@ -523,12 +523,19 @@ func show_squad_picker_mp(squad: Array, slot_used: Array, heading := "SELECT NEX
 		card.add_theme_constant_override("separation", 2)
 		row.add_child(card)
 		var guns: Array = []
+		var idx := i
 		if md != null and md.get("scene") != null:
 			guns = _mini_bay(card, md, sq.get("weapons", []))
+			# T344 (HUMAN_FOUND 2026-11-08): the picture picks the mech too, not just its name
+			var pic := card.get_child(card.get_child_count() - 1) as Control
+			pic.mouse_filter = Control.MOUSE_FILTER_STOP
+			pic.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+			pic.gui_input.connect(func(ev: InputEvent) -> void:
+				if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+					squad_slot_selected.emit(idx))
 		var btn := Button.new()
 		btn.text = label_text.to_upper()
 		btn.add_theme_font_size_override("font_size", 12)
-		var idx := i
 		btn.pressed.connect(func(): squad_slot_selected.emit(idx))
 		card.add_child(btn)
 		var wl := Label.new()  # the loadout in words too: two of a mech differ here at a glance
