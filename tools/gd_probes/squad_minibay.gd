@@ -62,5 +62,18 @@ func _ready() -> void:
 	if picked[0] != 1:
 		_fail("card 1's button picked slot %d" % picked[0])
 		return
+	# T344: clicking a card's picture picks that slot too
+	picked[0] = -1
+	var pic := cards[0].find_children("*", "SubViewportContainer", true, false)[0] as Control
+	for down in [true, false]:
+		var ev := InputEventMouseButton.new()
+		ev.button_index = MOUSE_BUTTON_LEFT
+		ev.pressed = down
+		ev.position = pic.get_global_rect().get_center()
+		ev.global_position = ev.position
+		get_viewport().push_input(ev, true)
+	if picked[0] != 0:
+		_fail("clicking card 0's picture picked slot %d (want 0)" % picked[0])
+		return
 	print("[probe] squad_minibay done (%s | %s)" % [g0, g1])
 	get_tree().quit(0)
