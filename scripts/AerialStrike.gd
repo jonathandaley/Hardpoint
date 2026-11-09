@@ -41,7 +41,9 @@ func _spawn_rocket(lock_target: Node3D) -> void:
 	var proj := HOMING_SCENE.instantiate() as Node3D
 	proj.damage = damage
 	proj.speed = projectile_speed
-	proj.lifetime = range / projectile_speed
+	# T339: the climb (arc_time) and the turn back down cost flight time: range / speed alone
+	# expired missiles short of targets they had locked inside their range
+	proj.lifetime = range / projectile_speed + 2.0 * arc_time
 	proj.team = owner_mech.get("team") if owner_mech.get("team") != null else 0
 	proj._exclude_rids = owner_mech.get_exclude_rids()
 	proj.target = lock_target
