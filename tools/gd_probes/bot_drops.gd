@@ -11,8 +11,11 @@ extends Node
 func _fail(msg: String) -> void:
 	push_error("[probe] bot_drops FAIL: " + msg)
 
-func _pickups(arena: Node) -> Array:
-	return arena.get_children().filter(func(n): return String(n.name).begins_with("Pickup_"))
+func _pickups(arena: Node) -> Array:  # on the ground (a taken one pops for a moment first, T351)
+	return arena.get_children().filter(func(n): return String(n.name).begins_with("Pickup_") and not n.get("collected"))
+
+func _new_since(arena: Node, pre: Array) -> Array:
+	return _pickups(arena).filter(func(n): return not pre.has(n))
 
 func _walk_to(me: Node3D, p: Vector3) -> void:
 	me.global_position = Vector3(p.x, me.global_position.y, p.z)
@@ -60,13 +63,13 @@ func _ready() -> void:
 	for k in foes.size():
 		var foe: Node3D = foes[k]
 		foe.global_position = me.global_position + Vector3(12.0 + 6.0 * k, 0, 0)
-		var before := _pickups(arena).size()
+		var pre := _pickups(arena)
 		var pre_kill: int = int(arena.get("coins_picked").get(pid, 0))
 		foe.set("last_attacker", me)  # our kill
 		foe.call("take_damage", 99999.0, null)
 		for i in 10:
 			await get_tree().physics_frame
-		var drops: Array = _pickups(arena).slice(before)
+		var drops: Array = _new_since(arena, pre)
 		var coin = drops.filter(func(p): return p.get("kind") == "coin")
 		var pw = drops.filter(func(p): return p.get("kind") != "coin")
 		if coin.size() != 1 or int(coin[0].get("value")) != want_coin or pw.size() != 0:
@@ -92,13 +95,13 @@ func _ready() -> void:
 		await get_tree().physics_frame
 	var nav_map: RID = arena.get_world_3d().navigation_map
 	for kind in arena.get_script().get_script_constant_map()["POWERUPS"]:
-		var before := _pickups(arena).size()
+		var pre := _pickups(arena)
 		if not arena.call("spawn_map_powerup", kind):
 			_fail("no map powerup (navmesh missing?)")
 			bad = true
 			break
 		await get_tree().physics_frame
-		var pw: Array = _pickups(arena).slice(before)
+		var pw: Array = _new_since(arena, pre)
 		if pw.size() != 1:
 			_fail("spawning a %s put %d pickups down" % [kind, pw.size()])
 			bad = true
@@ -112,9 +115,22 @@ func _ready() -> void:
 		me.set("health", 10.0)
 		if int(w.get("max_ammo")) > 0:
 			w.set("ammo", 0)
+		var labels: Array = (pw[0] as Node).find_children("*", "Label3D", true, false)
+		if labels.is_empty() or (labels[0] as Label3D).text == "":
+			_fail("a %s pickup has no label saying what it does (T351)" % kind)
+			bad = true
+		var node: Node = pw[0]
 		me.global_position = pw_at + Vector3.UP * 0.6  # it may be on a ledge: stand right on it
 		for i in 6:
 			await get_tree().physics_frame
+		# T351: taken -> it pops (still there, collected) and the toast names the effect
+		if not is_instance_valid(node) or not node.get("collected"):
+			_fail("a taken %s vanished without its pop" % kind)
+			bad = true
+		var toast: Label = arena.get("hud").get("_toast")
+		if toast == null or not toast.text.to_upper().contains(kind.to_upper()):
+			_fail("no toast for the %s (%s)" % [kind, toast.text if toast != null else "none"])
+			bad = true
 		match kind:
 			"repair":
 				if float(me.get("health")) <= 10.0:
@@ -132,6 +148,9 @@ func _ready() -> void:
 				if float(me.get("speed_boost_s")) <= 0.0 or absf(float(me.get("walk_speed")) - float(me.get("base_walk_speed")) * 1.3 * float(me.get("terrain_speed"))) > 0.01:
 					_fail("speed boost not active (walk %.2f)" % float(me.get("walk_speed")))
 					bad = true
+	if float(arena.get_script().get_script_constant_map()["PICKUP_LIFE_S"]) != 60.0:
+		_fail("pickups last %s s on the ground, the user asked for 60 (T351)" % arena.get_script().get_script_constant_map()["PICKUP_LIFE_S"])
+		bad = true
 	# the timer, capped
 	arena.set("powerup_every_s", 0.05)
 	for i in 90:
