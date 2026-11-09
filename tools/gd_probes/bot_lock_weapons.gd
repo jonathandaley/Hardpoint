@@ -17,6 +17,7 @@ const LONG_CASE_S := 22.0
 const WEAPONS := ["RocketLauncherLight", "AerialStrikeHeavy", "ArcWeaponLight", "ArcWeaponHeavy"]
 const DIFF_NAMES := ["Easy", "Normal", "Medium", "Hard", "Elite"]
 const SlotDef := preload("res://scripts/WeaponSlotDef.gd")
+const InputSource := preload("res://scripts/InputSource.gd")
 const DECK_Y := 400.0
 const EASY := 0
 const NORMAL := 1
@@ -62,9 +63,10 @@ func _ready() -> void:
 	var shooters: Array = arena.get("_team_mechs")[1]
 	var targets: Array = arena.get("_team_mechs")[0]
 	for t in targets:  # the targets stand still, never shoot back, and carry no shields
-		var src: Node = t.get("_input_source")
-		if src != null:
-			src.process_mode = Node.PROCESS_MODE_DISABLED
+		# an inert input: a disabled AI node still hands the mech its last move (it kept walking)
+		var src: Node = InputSource.new()
+		add_child(src)
+		t.call("set_input_source", src)
 		var es: Node = t.get("_energy_shield")
 		if es != null:
 			es.set("_active", false)

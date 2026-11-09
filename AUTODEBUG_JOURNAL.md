@@ -274,3 +274,4 @@ date|task|outcome|commit|finding|suite
 2026-11-09|T353|DONE|local commit|guns aim at the crosshair point (camera ray) instead of pitch - 0.3; weapon_tilt red at HEAD (level camera -> 0.30 rad high); beam_reach / beam_stops / casing_clearance / patience_hitscan still green|-
 2026-11-09|T353 verify|DONE|-|suite 144/144|144/144
 2026-11-09|T362|DONE|local commit|coins on kill (Arena.kill_coins) + powerups from the map (navmesh random point, 15 s, cap 4), bots drop coins only; bot_drops red at HEAD, green x2|-
+2026-11-09|B126|DONE|local commit|bot_lock_weapons flake in the T362 suite: a target "frozen" by pausing its AI node kept walking on the stale move; targets now get an inert InputSource (6/6)|-
