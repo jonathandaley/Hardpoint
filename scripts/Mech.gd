@@ -699,6 +699,13 @@ func _die() -> void:
 
 func _die_impl() -> void:
 	is_dead = true
+	# B128: every lock on us goes now -- the killing shot often lands after the shooter's own lock
+	# update in the same tick, which left the shooter locked on a corpse for a tick (lock_target
+	# oracle; a rocket fired then would home on the wreck)
+	for m in get_tree().get_nodes_in_group("mechs"):
+		if m != self and m.get("locked_target") == self:
+			m.call("_set_locked_target", null)
+			m.set("lock_progress", 0.0)
 	Game.ai_director_clear_intent(self)
 	print("[Mech] %s destroyed" % name)
 	SoundManager.play_sfx("mech_death", global_position)

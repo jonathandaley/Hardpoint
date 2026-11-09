@@ -282,3 +282,5 @@ date|task|outcome|commit|finding|suite
 2026-11-09|T358|DONE|local commit|Corvette: 2 spawns a side, 5 m line, clamp_spawn keeps slots in the hall clear of walls / crates; red with the old spacing and no clamp (slots inside the hull wall)|-
 2026-11-09|T358 verify|DONE|-|suite 145/145 (net sweep rides with the next batch)|145/145
 2026-11-09|T359|DONE|local commit|RWF bots: fire to 15%, hold to 40%, press on a target under 25%, back off from FIXED-magazine targets while holding; probe bot_rwf red at HEAD; bot_combat / bot_lock_weapons / hard_bots / bot_pickups / stealth_ai green|-
+2026-11-09|T358 T359 verify|DONE|-|suite 146/146; net sweep 61/62 -- bot_lock@wifi lock_target: one-tick lock on a mech killed that tick (B128, fixed, 3/3 reruns)|146/146, net 61/62 + B128
+2026-11-09|B128|DONE|local commit|_die drops every lock on the dying mech the same frame; probe lock_on_death red at HEAD|-
