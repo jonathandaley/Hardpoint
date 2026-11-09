@@ -1104,14 +1104,14 @@ func _build_progression_nodes() -> void:
 					var needed_parents: Array = parents.filter(func(p): return Game.skill_level(p) == 0)
 					needs = "  (needs: %s)" % ", ".join(needed_parents.map(
 						func(p): return Game.SKILL_TREE[p].get("label", p)))
-			info_lbl.text = "%s — LOCKED%s" % [label_str, needs]
+			info_lbl.text = "%s — LOCKED  (%s per level)%s" % [label_str, Game.skill_effect_text(key, 1), needs]  # T361
 			info_lbl.add_theme_color_override("font_color", Color(0.55, 0.55, 0.55))
 		elif lv >= 12:
-			info_lbl.text = "%s — LV %d/12  MAX" % [label_str, lv]
+			info_lbl.text = "%s — LV %d/12  %s  MAX" % [label_str, lv, Game.skill_effect_text(key, lv)]
 			info_lbl.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5))
 		else:
-			info_lbl.text = "%s — LV %d/12  (%d coins to upgrade)" % [
-				label_str, lv, Game._SKILL_FIB_COSTS[lv - 1]]
+			info_lbl.text = "%s — LV %d/12  %s -> %s  (%d coins to upgrade)" % [
+				label_str, lv, Game.skill_effect_text(key, lv), Game.skill_effect_text(key, lv + 1), Game._SKILL_FIB_COSTS[lv - 1]]
 			info_lbl.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
 		row.add_child(info_lbl)
 
