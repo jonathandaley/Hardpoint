@@ -507,6 +507,8 @@ func _physics_process_impl(delta: float) -> void:
 
 	var own_max_hp: float = maxf(bot_mech.get("max_health") if bot_mech.get("max_health") != null else 1.0, 1.0)
 	var own_hp_pct: float = clampf(bot_mech.health / own_max_hp, 0.0, 1.0)
+	if tactics:
+		_update_rwf(weapon)  # T359: hold / press on / back off with a reload-while-firing gun
 	var pickup := wanted_pickup(bot_mech, has_target, dist, fire_range, own_hp_pct, tactics)
 	if pickup != null:
 		_move_dir = _steer_to(bot_mech, pickup.global_position)  # T352
@@ -578,7 +580,7 @@ func _physics_process_impl(delta: float) -> void:
 				_burst_timer = BURST_FIRE if _in_burst else pause
 		var ready: bool = _in_burst and dist < fire_range and _has_clear_shot and _react_timer <= 0.0
 		if tactics:
-			_firing = ready and _shot_worth_taking(bot_mech, weapon, aim_p)
+			_firing = ready and _shot_worth_taking(bot_mech, weapon, aim_p) and not rwf_hold  # T359
 		else:
 			# Fire when aimed closely enough, in range, in burst window, and LOS is clear.
 			_firing = ready and abs(angle_h) < AIM_THRESHOLD
@@ -615,6 +617,38 @@ func wanted_pickup(bot_mech: Node3D, has_target: bool, dist: float, fire_range: 
 			best = p
 			best_d = d
 	return best
+
+## T359 (user 2026-11-08: bots "continue firing with reload-while-firing weapons that are empty ...
+## should probably only be for hard and elite"; then "RWF bots shouldn't always wait until they are
+## full, rather, be smart about it (press forward if enemy has low health, hide if enemy has a
+## reload-while-empty weapon, burst for a few shots, etc.)"): with a REFILLING gun, Hard / Elite fire
+## down to RWF_LOW, then hold fire until it's back to RWF_RESUME (a burst's worth, not full) -- unless
+## the target is nearly dead (press on). While holding against a target with a FIXED (reload-when-
+## empty) gun they also give ground (the retreat strafe), out of its next full magazine.
+const RWF_LOW := 0.15
+const RWF_RESUME := 0.4      # calibration knob
+const RWF_FINISH_HP := 0.25  # target health share that's worth emptying the gun for
+var rwf_hold := false
+var rwf_cover := false
+
+func _update_rwf(w: Node) -> void:
+	rwf_cover = false
+	if w == null or not is_instance_valid(w) or int(w.get("max_ammo")) <= 0 or int(w.get("magazine_type")) != 1:
+		rwf_hold = false
+		return
+	var t_ok := _target != null and is_instance_valid(_target)
+	if t_ok and float(_target.get("health")) < RWF_FINISH_HP * maxf(float(_target.get("max_health")), 1.0):
+		rwf_hold = false  # nearly dead: press on
+		return
+	var frac := float(w.get("ammo")) / float(w.get("max_ammo"))
+	if not rwf_hold and frac <= RWF_LOW:
+		rwf_hold = true
+	elif rwf_hold and frac >= RWF_RESUME:
+		rwf_hold = false
+	if rwf_hold and t_ok and _target.has_method("get_weapons"):
+		for tw in _target.get_weapons():
+			if is_instance_valid(tw) and int(tw.get("max_ammo")) > 0 and int(tw.get("magazine_type")) == 0:
+				rwf_cover = true
 
 ## Pre-T172 movement (Easy..Medium): beacon routing, back off when crowded, flee when low.
 func _legacy_move(bot_mech: Node3D, has_target: bool, dist: float, own_hp_pct: float, delta: float) -> Vector2:
@@ -666,7 +700,7 @@ func _tactical_move(bot_mech: Node3D, has_target: bool, dist: float, fire_range:
 				return _to_move(bot_mech, to_b.normalized() + side * 0.6) if to_b.length() > 2.0 else _to_move(bot_mech, side)
 		var pref := _pref_range(weapon)
 		var radial := 0.0
-		var retreat := own_hp_pct < 0.3 or ally != null  # T189: outnumbered -> give ground too
+		var retreat := own_hp_pct < 0.3 or ally != null or rwf_cover  # T189: outnumbered -> give ground too; T359
 		if retreat:
 			radial = -1.0
 		elif dist < pref * 0.7:

@@ -281,3 +281,4 @@ date|task|outcome|commit|finding|suite
 2026-11-09|B127|DONE|local commit|interp_smoothness ignores ticks past the scenario's duration (server's late quit walked a mech on held input)|-
 2026-11-09|T358|DONE|local commit|Corvette: 2 spawns a side, 5 m line, clamp_spawn keeps slots in the hall clear of walls / crates; red with the old spacing and no clamp (slots inside the hull wall)|-
 2026-11-09|T358 verify|DONE|-|suite 145/145 (net sweep rides with the next batch)|145/145
+2026-11-09|T359|DONE|local commit|RWF bots: fire to 15%, hold to 40%, press on a target under 25%, back off from FIXED-magazine targets while holding; probe bot_rwf red at HEAD; bot_combat / bot_lock_weapons / hard_bots / bot_pickups / stealth_ai green|-
