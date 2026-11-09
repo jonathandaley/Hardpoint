@@ -261,3 +261,4 @@ date|task|outcome|commit|finding|suite
 2026-11-09|T339 B125 verify|DONE|-|suite 138/138; next: the balance re-run of the lock weapons|138/138
 2026-11-09|T339|DONE|-|balance re-run of the T243 grid (96 matches, 21 min): rocket 106 / aerial 76 / arc 154 dealt per life, still the weakest; lock census (16 matches): locked 81-89% of the time a lock is possible, a lock possible 32-43% of a life -> bots fine, weapon numbers weak; T243 proposals back to the user in NEEDS_HUMAN|-
 2026-11-09|T342|PAUSED|-|design written to docs/T342_LUNGE_DESIGN.md (no code yet); paused at 90% of the 5-hour usage window (resets 02:30) at a clean point -- everything pushed|-
+2026-11-09|queue|-|-|HUMAN_FOUND 2026-11-08 late (user file still unsaved in git, untouched): arc impact sound -> T360, skill numbers -> T361, coins on kill + powerups spawn on the map -> T362|-
