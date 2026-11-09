@@ -214,12 +214,16 @@ func _spawn_one_mech(mech_def, team: int, idx: int, count: int, weapon_paths: Ar
 func _on_mech_killed(m: Node) -> void:
 	var killer = m.get("last_attacker")  # untyped: may be freed
 	var kri: int = int(killer.get("roster_idx")) if is_instance_valid(killer) else -1
-	# T362 (HUMAN_FOUND 2026-11-08 late: "coins should be awarded to players on kill, in addition to
-	# dropping coins"): the killer's player banks the victim's coin value at once (a bot's by its
-	# difficulty, a player's at KILL_COINS_PLAYER), paid with the match result like picked-up coins
-	if is_instance_valid(killer) and int(killer.get("owner_peer_id")) > 0 and killer.get("team") != m.get("team"):
-		var pid: int = int(killer.get("owner_peer_id"))
-		coins_picked[pid] = int(coins_picked.get(pid, 0)) + kill_coins(m)
+	# T362 / T364 (user 2026-11-09: kills "tracked separately", coins paid at match end; "Bots coin
+	# values are good, but players are 0: and both players and bots are worth extra coins depending
+	# on what they've killed this life"): the server counts the killer's kill and the victim's worth
+	# (kill_coins: base + bounty) for its pilot -- paid with the match result -- and the killer's
+	# bounty grows by KILL_BOUNTY_SHARE of it. A new life is a new mech: its bounty starts at 0.
+	if is_instance_valid(killer) and killer.get("team") != m.get("team"):
+		var worth := kill_coins(m)
+		kills_by_ri[kri] = int(kills_by_ri.get(kri, 0)) + 1
+		kill_coins_by_ri[kri] = int(kill_coins_by_ri.get(kri, 0)) + worth
+		killer.set("bounty", int(killer.get("bounty")) + roundi(worth * KILL_BOUNTY_SHARE))
 	_rpc_kill_feed.rpc(int(m.get("roster_idx")), kri)
 
 @rpc("authority", "call_local", "reliable")
@@ -648,7 +652,8 @@ func _build_mp_stats() -> Array:
 		stats.append({
 			"peer_id":      peer_id,
 			"name":         str(entry.get("name", "")),  # T325
-			"kills":        0,
+			"kills":        int(kills_by_ri.get(ri, 0)),       # T364
+			"kill_coins":   int(kill_coins_by_ri.get(ri, 0)),  # T364: paid with the result
 			"team":         t,
 			"dealt":        dealt,
 			"taken":        taken,
@@ -1294,7 +1299,9 @@ const POWERUPS := ["repair", "ammo", "damage", "speed"]
 # walk) every POWERUP_EVERY_S, never more than POWERUP_CAP on the ground. Bots still drop coins.
 const POWERUP_EVERY_S := 15.0   # calibration knob
 const POWERUP_CAP := 4          # calibration knob
-const KILL_COINS_PLAYER := 10   # coins for killing a player's mech (a bot's = its DROP_COINS)
+const KILL_BOUNTY_SHARE := 0.5  # T364: share of a kill's worth the killer adds to its own bounty (calibration knob)
+var kills_by_ri := {}       # T364 server: roster idx -> kills this match
+var kill_coins_by_ri := {}  # T364 server: roster idx -> coins its kills are worth (paid at match end)
 var powerup_every_s := POWERUP_EVERY_S  # probes shorten it
 var _powerup_t := 0.0
 const PICKUP_R := 2.2       # m, horizontal reach of a mech walking over it
@@ -1322,14 +1329,16 @@ func _on_bot_drop(mech: Node3D) -> void:
 	_rpc_spawn_pickup.rpc(_next_pickup_id, "coin", at + Vector3(1.5, 0, 0), DROP_COINS[clampi(diff, 0, DROP_COINS.size() - 1)])
 	_next_pickup_id += 1
 
-## T362: a mech's worth to its killer -- a bot's by its difficulty, a player's KILL_COINS_PLAYER.
+## T362 / T364: a mech's worth to its killer -- its base (a bot's by its difficulty, a player's 0)
+## plus the bounty it built up this life.
 func kill_coins(victim: Node) -> int:
+	var bounty: int = int(victim.get("bounty")) if victim.get("bounty") != null else 0
 	if int(victim.get("owner_peer_id")) > 0:
-		return KILL_COINS_PLAYER
+		return bounty
 	var src: Node = victim.get("_input_source")
 	var diff: int = int(src.get("difficulty")) if src != null and src.get("difficulty") != null and int(src.get("difficulty")) >= 0 \
 		else int(Game.settings.get("bot_difficulty", 1))
-	return DROP_COINS[clampi(diff, 0, DROP_COINS.size() - 1)]
+	return DROP_COINS[clampi(diff, 0, DROP_COINS.size() - 1)] + bounty
 
 ## T362: one powerup (`kind`, or a random one) at a random walkable spot. Server. False when
 ## there's no navmesh to place it on (yet).

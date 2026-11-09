@@ -65,6 +65,8 @@ func _ready() -> void:
 		foe.global_position = me.global_position + Vector3(12.0 + 6.0 * k, 0, 0)
 		var pre := _pickups(arena)
 		var pre_kill: int = int(arena.get("coins_picked").get(pid, 0))
+		var my_ri: int = int(me.get("roster_idx"))
+		var pre_kc: int = int(arena.get("kill_coins_by_ri").get(my_ri, 0))
 		foe.set("last_attacker", me)  # our kill
 		foe.call("take_damage", 99999.0, null)
 		for i in 10:
@@ -77,8 +79,9 @@ func _ready() -> void:
 			bad = true
 			continue
 		var banked: int = int(arena.get("coins_picked").get(pid, 0))
-		if banked != pre_kill + want_coin:
-			_fail("our kill banked %d coins, want %d (T362)" % [banked - pre_kill, want_coin])
+		var kc: int = int(arena.get("kill_coins_by_ri").get(my_ri, 0)) - pre_kc
+		if kc != want_coin or banked != pre_kill:  # T364: counted as a kill, paid at match end -- not a pickup
+			_fail("our kill counted %d kill coins (want %d) and moved the pickups %d -> %d (T364)" % [kc, want_coin, pre_kill, banked])
 			bad = true
 		await _walk_to(me, (coin[0] as Node3D).global_position)
 		if arena.get("_pickups").values().has(coin[0]):
@@ -169,8 +172,8 @@ func _ready() -> void:
 		bad = true
 	else:
 		var after: Dictionary = Game._apply_match_to({"coins": 0, "elo": 1000}, int(me.get("team")), int(me.get("team")), stats, pid)
-		if int(after.get("coins", 0)) != Game.apply_coin_pickup_bonus(75 + int(mine[0]["coins"])):
-			_fail("match result paid %d coins, want 75 + %d picked" % [int(after.get("coins", 0)), int(mine[0]["coins"])])
+		if int(after.get("coins", 0)) != Game.apply_coin_pickup_bonus(75 + int(mine[0]["coins"]) + int(mine[0].get("kill_coins", 0))):
+			_fail("match result paid %d coins, want 75 + %d picked + %d kills" % [int(after.get("coins", 0)), int(mine[0]["coins"]), int(mine[0].get("kill_coins", 0))])
 			bad = true
 	# expiry
 	var left: Array = _pickups(arena)

@@ -1445,6 +1445,7 @@ const RAM_K := 9.0           # damage per m/s of closing speed -- calibration kn
 const LUNGE_GLOW_K := 2.5    # extra glow at full speed (x the palette's energy)
 const LUNGE_TOTAL_S := LUNGE_WINDUP_S + LUNGE_DASH_S + LUNGE_STOP_S
 var lunging := false
+var bounty := 0  # T364 (server): coins this mech is worth on top of its base -- half of what it killed this life
 var lunge_t := 0.0
 var _lunge_dir := Vector3.ZERO
 var _lunge_glow: Array = []  # [material, base energy] -- this mech's own copies
