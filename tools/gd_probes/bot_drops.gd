@@ -1,9 +1,12 @@
 extends Node
 # T264 probe (HUMAN_FOUND 2026-11-05: drops from destroyed bots; user: coins scaled by bot
-# difficulty + powerups repair / ammo / damage boost / speed boost): a destroyed bot drops a
-# coin worth its difficulty's value (and, at powerup_chance 1, a powerup); our mech walking
-# over the coin banks it for the match result (paid with the match-end coins); every powerup
-# kind does its job; the damage boost multiplies our hits; a pickup left alone expires.
+# difficulty + powerups repair / ammo / damage boost / speed boost) + T362 (2026-11-08 late:
+# "coins should be awarded to players on kill, in addition to dropping coins. Powerups should
+# randomly spawn on the battlefield, not be dropped by bots"): our kill banks the bot's coin
+# value at once; the destroyed bot drops one coin worth the same and no powerup; walking over
+# the coin banks it too (all paid with the match result); powerups appear on the navmesh on a
+# timer, never more than the cap; every powerup kind does its job; the damage boost multiplies
+# our hits; a pickup left alone expires.
 
 func _fail(msg: String) -> void:
 	push_error("[probe] bot_drops FAIL: " + msg)
@@ -37,7 +40,7 @@ func _ready() -> void:
 			m.invincible = m == me
 			if m != me:
 				m.set_physics_process(false)  # parked, still solid
-	arena.set("powerup_chance", 1.0)
+	arena.set("powerup_every_s", 1000.0)  # T362: no map powerups until the timer check below
 	var bad := false
 	# the damage boost multiplies our hits (server-side, after validation) -- on a live enemy
 	# (a real hit: the weapon's own damage, within its range -- request_damage validates both)
@@ -58,19 +61,22 @@ func _ready() -> void:
 		var foe: Node3D = foes[k]
 		foe.global_position = me.global_position + Vector3(12.0 + 6.0 * k, 0, 0)
 		var before := _pickups(arena).size()
+		var pre_kill: int = int(arena.get("coins_picked").get(pid, 0))
+		foe.set("last_attacker", me)  # our kill
 		foe.call("take_damage", 99999.0, null)
 		for i in 10:
 			await get_tree().physics_frame
 		var drops: Array = _pickups(arena).slice(before)
 		var coin = drops.filter(func(p): return p.get("kind") == "coin")
 		var pw = drops.filter(func(p): return p.get("kind") != "coin")
-		if coin.size() != 1 or int(coin[0].get("value")) != want_coin or pw.size() != 1:
-			_fail("bot %d dropped %s, want one %d-coin + one powerup" % [k, drops.map(func(p): return "%s:%s" % [p.get("kind"), p.get("value")]), want_coin])
+		if coin.size() != 1 or int(coin[0].get("value")) != want_coin or pw.size() != 0:
+			_fail("bot %d dropped %s, want one %d-coin and no powerup (T362)" % [k, drops.map(func(p): return "%s:%s" % [p.get("kind"), p.get("value")]), want_coin])
 			bad = true
 			continue
-		var kind: String = pw[0].get("kind")  # read before walking: a collected pickup is freed
-		var pw_at: Vector3 = (pw[0] as Node3D).global_position
 		var banked: int = int(arena.get("coins_picked").get(pid, 0))
+		if banked != pre_kill + want_coin:
+			_fail("our kill banked %d coins, want %d (T362)" % [banked - pre_kill, want_coin])
+			bad = true
 		await _walk_to(me, (coin[0] as Node3D).global_position)
 		if arena.get("_pickups").values().has(coin[0]):
 			_fail("walking over the coin didn't pick it up")
@@ -78,12 +84,37 @@ func _ready() -> void:
 		elif int(arena.get("coins_picked").get(pid, 0)) != banked + want_coin:
 			_fail("coin not banked (%d -> %d)" % [banked, int(arena.get("coins_picked").get(pid, 0))])
 			bad = true
+	# T362: powerups come from the map -- on the navmesh, on a timer, under the cap
+	var nr: NavigationRegion3D = arena.get("_nav_region")
+	for i in 600:
+		if nr != null and nr.navigation_mesh.get_polygon_count() > 0 and i > 5:
+			break
+		await get_tree().physics_frame
+	var nav_map: RID = arena.get_world_3d().navigation_map
+	for kind in arena.get_script().get_script_constant_map()["POWERUPS"]:
+		var before := _pickups(arena).size()
+		if not arena.call("spawn_map_powerup", kind):
+			_fail("no map powerup (navmesh missing?)")
+			bad = true
+			break
+		await get_tree().physics_frame
+		var pw: Array = _pickups(arena).slice(before)
+		if pw.size() != 1:
+			_fail("spawning a %s put %d pickups down" % [kind, pw.size()])
+			bad = true
+			continue
+		var pw_at: Vector3 = (pw[0] as Node3D).global_position
+		if NavigationServer3D.map_get_closest_point(nav_map, pw_at).distance_to(pw_at) > 0.6:
+			_fail("a map %s sits off the navmesh at %s" % [kind, pw_at])
+			bad = true
 		kinds_seen[kind] = true
 		var w: Node = me.get_weapons()[0]
 		me.set("health", 10.0)
 		if int(w.get("max_ammo")) > 0:
 			w.set("ammo", 0)
-		await _walk_to(me, pw_at)
+		me.global_position = pw_at + Vector3.UP * 0.6  # it may be on a ledge: stand right on it
+		for i in 6:
+			await get_tree().physics_frame
 		match kind:
 			"repair":
 				if float(me.get("health")) <= 10.0:
@@ -101,6 +132,16 @@ func _ready() -> void:
 				if float(me.get("speed_boost_s")) <= 0.0 or absf(float(me.get("walk_speed")) - float(me.get("base_walk_speed")) * 1.3 * float(me.get("terrain_speed"))) > 0.01:
 					_fail("speed boost not active (walk %.2f)" % float(me.get("walk_speed")))
 					bad = true
+	# the timer, capped
+	arena.set("powerup_every_s", 0.05)
+	for i in 90:
+		await get_tree().physics_frame
+	arena.set("powerup_every_s", 1000.0)
+	var cap: int = arena.get_script().get_script_constant_map()["POWERUP_CAP"]
+	var on_ground: int = _pickups(arena).filter(func(p): return p.get("kind") != "coin").size()
+	if on_ground < 1 or on_ground > cap:
+		_fail("%d map powerups on the ground after a fast timer, want 1..%d" % [on_ground, cap])
+		bad = true
 	# paid with the match result
 	var stats: Array = arena.call("_build_mp_stats")
 	var mine = stats.filter(func(e): return int(e.get("peer_id", -1)) == pid)
