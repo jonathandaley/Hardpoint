@@ -20,14 +20,33 @@ const W := 11.0 * S             # corridor width
 const ROWS := [-30.0 * S, 0.0, 30.0 * S]                  # corridor centre lines along x (z values)
 const COLS := [-60.0 * S, -20.0 * S, 20.0 * S, 60.0 * S]  # cross corridor centre lines along z (x values)
 const BEACONS := [Vector2(0, 0), Vector2(-40, -37) * S, Vector2(40, -37) * S, Vector2(-40, 37) * S, Vector2(40, 37) * S]
-const SPAWNS := [[Vector2(-80, -25) * S, Vector2(-82, 0) * S, Vector2(-80, 25) * S],
-	[Vector2(80, -25) * S, Vector2(82, 0) * S, Vector2(80, 25) * S]]
+# T358 (user on T303: "Reduce to two spawnpoint, neither of them partly inside the wall like they
+# are now. Make sure mechs can't stick into the walls"): the team's spawn line (8 m apart, up to
+# +-20 m) ran into the hull walls and the crate pillars. Two spawns a side, a 5 m line, and
+# clamp_spawn keeps every spot in the open hall, SPAWN_CLEAR m off the walls and the crates.
+const SPAWNS := [[Vector2(-82, -20) * S, Vector2(-82, 20) * S], [Vector2(82, -20) * S, Vector2(82, 20) * S]]
+const SPAWN_CLEAR := 2.5
+const CRATES_X := 74.0 * S
+const CRATES_Z := [-38.0 * S, -12.0 * S, 12.0 * S, 38.0 * S]
+const CRATE_HALF := 1.2
 
 var _wall_mat: StandardMaterial3D
 
 func _init() -> void:
 	center = Vector2.ZERO
 	minimap_half = HX + 4.0
+	spawn_spacing = 5.0  # T358
+
+func clamp_spawn(p: Vector3) -> Vector3:
+	var side := signf(p.x) if p.x != 0.0 else 1.0
+	var inner: float = COLS[COLS.size() - 1] + W * 0.5  # the hall's inner edge
+	var x := side * clampf(absf(p.x), inner + SPAWN_CLEAR, HX - SPAWN_CLEAR)
+	var z := clampf(p.z, -HZ + SPAWN_CLEAR, HZ - SPAWN_CLEAR)
+	if absf(absf(x) - CRATES_X) < CRATE_HALF + SPAWN_CLEAR:  # in a crate column: step out along x
+		for cz in CRATES_Z:
+			if absf(z - float(cz)) < CRATE_HALF + SPAWN_CLEAR:
+				x = side * (CRATES_X + CRATE_HALF + SPAWN_CLEAR)  # the hull side of the crates: open floor
+	return Vector3(x, p.y, z)
 
 func spawn_points(team: int) -> Array:
 	var out: Array = []
