@@ -7,9 +7,22 @@ extends SceneTree
 const SRC := "res://design/assets/textures/"
 const DST := "res://assets/hardpoint/textures/"
 const KIT := ["cesh", "everest", "hippogriff", "hornet", "kestrel", "pegasus", "seeker", "slip", "vesuvius", "weapon-steel"]
-const DERIVED := {"lynx": ["#2F5C3A", "#1E3D27"], "warhog": ["#5C4A33", "#7A6342"]}
+# T340: every code-built mech (tools/kit_mechs/<name>.js) gets its tiles from its own
+# "// palette: armor #..., detail #..." line -- tools/new_mech.py runs this for a new one.
+var DERIVED := {}
+
+func _palettes() -> void:
+	var dir := "res://tools/kit_mechs/"
+	var re := RegEx.create_from_string("palette: armor (#\\w+), detail (#\\w+)")
+	for f in DirAccess.get_files_at(dir):
+		if not f.ends_with(".js"):
+			continue
+		var m := re.search(FileAccess.get_file_as_string(dir + f))
+		if m != null:
+			DERIVED[f.get_basename()] = [m.get_string(1), m.get_string(2)]
 
 func _init() -> void:
+	_palettes()
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(DST))
 	for n in KIT:
 		for ch in ["armor", "detail"]:

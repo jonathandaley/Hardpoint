@@ -1,10 +1,12 @@
 extends Node3D
 # T178 art review: renders the mech roster in a row (half "a" or "b") to a PNG.
 #   xvfb-run -a -s "-screen 0 1280x720x24" ~/bin/godot --resolution 1280x720 \
-#     res://tools/art/lineup.tscn -- <out.png> <yaw deg, 180 = facing camera> <a|b>
+#     res://tools/art/lineup.tscn -- <out.png> <yaw deg, 180 = facing camera> <a|b|Name,Name,...>
+# T340: a comma list renders exactly those mechs (tools/new_mech.py: a new one among the roster).
 func _ready() -> void:
 	var all := ["Slip", "Cesh", "Seeker", "Hornet", "Hippogriff", "Kestrel", "Pegasus", "Everest", "Vesuvius", "Lynx", "Warhog"]
-	var names: Array = all.slice(0, 5) if OS.get_cmdline_user_args()[2] == "a" else all.slice(5)
+	var pick: String = OS.get_cmdline_user_args()[2]
+	var names: Array = all.slice(0, 5) if pick == "a" else all.slice(5) if pick == "b" else Array(pick.split(","))
 	var env := WorldEnvironment.new()
 	env.environment = Environment.new()
 	env.environment.background_mode = Environment.BG_COLOR
