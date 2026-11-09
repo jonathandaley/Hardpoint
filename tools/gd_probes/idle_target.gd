@@ -10,10 +10,16 @@ func _fail(msg: String) -> void:
 
 func _ready() -> void:
 	Game.loadout["team_size"] = 2
-	# B133: Hard, not Elite -- the same AI (T282), but Elite rosters now draw the pilots' kits (T350):
-	# random mechs per run, and an Everest subject found no clear 60 m sight line at all (1 run in 6)
+	# B133: Hard, not Elite -- the same AI (T282), but Elite rosters draw the pilots' kits (T350) and
+	# (T365) regular ones random mechs: an Everest subject found no clear 60 m sight line at all (1 run
+	# in 6). So every bot flies a fixed squad here: Pegasus with rifles.
 	Game.settings["bot_difficulty"] = 3
-	Game.mp_active_match["roster"] = []
+	Game.loadout["mode"] = "beacons"
+	Game.setup_sp_match()
+	for e in Game.mp_active_match["roster"]:
+		if int(e["peer_id"]) == 0:
+			var peg := "res://resources/mechs/Pegasus.tres"
+			e["squad"] = range(5).map(func(_i): return {"mech": peg, "weapons": ["res://scenes/weapons/RifleLight.tscn", "res://scenes/weapons/RifleLight.tscn"]})
 	var arena: Node = load("res://scenes/arena/Arena.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(arena)
 	for i in 2:

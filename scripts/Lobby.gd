@@ -377,21 +377,41 @@ static func kit_squad(kit: Array) -> Array:
 		out.append({"mech": md.resource_path, "weapons": weapons})
 	return out
 
-static func _default_bot_squad(bot_id: int) -> Array:
+## T365 (user 2026-11-09: "Regular difficulties have random mechs, with weapons weighted to make sense
+## with the mech. Elites each have a custom roster that makes sense with their abilities" -- Elites:
+## T350): a regular bot's 5 squad slots are each a random mech from the difficulty's pool, each with
+## a weapon family drawn by BOT_WEAPON_WEIGHTS. `bot_id` is unused now (was: one mech per bot slot).
+static func _default_bot_squad(_bot_id: int) -> Array:
 	var pool := bot_roster()
-	var mech_path: String = pool[bot_id % pool.size()]
-	var mech_def: Resource = load(mech_path)
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()  # roster is broadcast, so peers never re-derive it (no determinism needed)
 	var result: Array = []
 	for _i in 5:
-		result.append({"mech": mech_path, "weapons": bot_weapon_paths(mech_def, rng)})
+		var mech_path: String = pool[rng.randi() % pool.size()]
+		result.append({"mech": mech_path, "weapons": bot_weapon_paths(load(mech_path), rng)})
 	return result
+
+## T365: how much each mech suits each weapon family (the user: "weapons weighted to make sense
+## with the mech"); a family missing here weighs 1, 0 rules it out. Fast lights snipe or brawl, the
+## stealth Cesh ambushes up close, Seeker's single heavy mount carries the big guns, mediums take
+## all-rounders by their gimmick (Pegasus jumps in with rifles / shotguns, Kestrel's shield holds a
+## laser on target, Hippogriff's three mounts fire missiles), heavies hose MG and drop strikes.
+const BOT_WEAPON_WEIGHTS := {
+	"Slip":       {"SNIPER": 4, "RIFLE": 3, "SHOTGUN": 2, "MG": 2},
+	"Cesh":       {"SHOTGUN": 4, "MG": 3, "ARC": 2, "ROCKET": 2, "SNIPER": 0},
+	"Seeker":     {"SNIPER": 4, "AERIAL": 3, "PATIENCE": 3, "RIFLE": 2, "SHOTGUN": 0},
+	"Hornet":     {"MG": 3, "MISSILE": 3, "RIFLE": 2, "SHOTGUN": 2, "LASER": 2},
+	"Hippogriff": {"MISSILE": 4, "MG": 3, "RIFLE": 2, "LASER": 2},
+	"Kestrel":    {"LASER": 4, "RIFLE": 3, "ARC": 2, "MG": 2},
+	"Pegasus":    {"RIFLE": 4, "SHOTGUN": 3, "LASER": 2, "MG": 2},
+	"Everest":    {"MG": 4, "LASER": 3, "AERIAL": 2, "PATIENCE": 2, "RIFLE": 2},
+	"Vesuvius":   {"MG": 3, "MISSILE": 3, "AERIAL": 3, "PATIENCE": 2, "RIFLE": 2, "LASER": 2},
+}
 
 ## T171: random bot loadout -- ONE weapon family (RIFLE, MG, ...) in every slot of
 ## `mech_def`, sized per slot; mixed loadouts fight worse (ranges, lead, lock all differ).
 ## Only families that exist in every slot size the mech has (AERIAL/PATIENCE: heavy only).
-## ponytail: uniform random family; weight by mech (speed, HP, slot size) when it matters.
+## T365: the family is drawn by the mech's BOT_WEAPON_WEIGHTS, not uniformly.
 static func bot_weapon_paths(mech_def: Resource, rng: RandomNumberGenerator) -> Array:
 	var fams := {}  # "RIFLE" -> {slot_size: path}
 	for w in WEAPON_CATALOG:
@@ -403,7 +423,19 @@ static func bot_weapon_paths(mech_def: Resource, rng: RandomNumberGenerator) -> 
 		return mech_def.weapon_slots.all(func(sl) -> bool: return fams[f].has(sl.slot_size)))
 	if fits.is_empty():
 		return mech_def.weapon_slots.map(func(_sl) -> String: return "")
-	var fam: Dictionary = fams[fits[rng.randi() % fits.size()]]
+	var weights: Dictionary = BOT_WEAPON_WEIGHTS.get(String(mech_def.display_name), {})
+	var total := 0.0
+	for f in fits:
+		total += float(weights.get(f, 1))
+	var pick: String = fits[rng.randi() % fits.size()]  # all weights 0: fall back to uniform
+	if total > 0.0:
+		var roll := rng.randf() * total
+		for f in fits:
+			roll -= float(weights.get(f, 1))
+			if roll < 0.0:
+				pick = f
+				break
+	var fam: Dictionary = fams[pick]
 	return mech_def.weapon_slots.map(func(sl) -> String: return fam[sl.slot_size])
 
 func _on_back_pressed() -> void:

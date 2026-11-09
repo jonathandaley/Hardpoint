@@ -299,3 +299,4 @@ date|task|outcome|commit|finding|suite
 2026-11-09|T364 verify|FIX|-|suite 151/152: kill_bounty quit mid pod-ride (Pages in use at exit, B124 class) -> probe waits out the ride + stops audio (6/6 clean); sweep 62/62|151/152, net 62/62
 2026-11-09|B133|DONE|local commit|idle_target flake from T350 kits (Elite = random mechs; Everest subject had no clear 60 m line): probe runs at Hard (same AI) with inert-input targets, 12/12; my first theory (_los_to aim point) tested and reverted|-
 2026-11-09|T364 B133 verify|FIX|-|suite 151/152: bot_rwf C back-off flake under suite load (1 in ~12; 9/9 alone) -> judged by the farthest point in the hold window|151/152
+2026-11-09|T365|DONE|local commit|regular bot squads: random mech per slot + per-mech weapon weights; probe bot_loadouts red at HEAD; idle_target gets fixed squads (rosters random at every tier now)|-
