@@ -1083,71 +1083,96 @@ func _skill_depth(key: String) -> int:
 		max_parent_depth = maxi(max_parent_depth, _skill_depth(p))
 	return max_parent_depth + 1
 
+# T347 (HUMAN_FOUND 2026-11-08: "skill tree visual: a real branching tree -- a root system with the
+# lowest tiers at the top, like the Age of Empires II tech tree"): one node per skill, tier by tier
+# (a skill sits one row below its deepest parent), each row ordered under its parents so the
+# lines don't cross; a line from every parent to its child, lit once the parent is owned. A node
+# shows the name, level and (T361) the numbers; clicking it buys / upgrades; the tooltip says all.
+const TREE_NODE := Vector2(86.0, 30.0)
+const TREE_ROW := 38.0
+const TREE_W := 640.0
+
 func _build_progression_nodes() -> void:
 	if _prog_nodes_container == null:
 		return
 	for child in _prog_nodes_container.get_children():
+		_prog_nodes_container.remove_child(child)  # detached now: the new tree keeps its name
 		child.queue_free()
-
-	const INDENT_PX := 14.0
-
+	var rows: Array = []  # depth -> [keys]
 	for key: String in Game.SKILL_TREE.keys():
-		var def: Dictionary = Game.SKILL_TREE[key]
-		var lv: int   = Game.skill_level(key)
-		var depth: int = _skill_depth(key)
-		var label_str: String = def.get("label", key)
+		var d := _skill_depth(key)
+		while rows.size() <= d:
+			rows.append([])
+		rows[d].append(key)
+	var pos := {}  # key -> node top-left
+	for d in rows.size():
+		var row: Array = rows[d]
+		if d > 0:  # under its parents: order by the parents' mean x
+			row.sort_custom(func(p: String, q: String) -> bool: return _parents_x(p, pos) < _parents_x(q, pos))
+		var step := TREE_W / float(row.size())
+		for i in row.size():
+			pos[row[i]] = Vector2(step * (float(i) + 0.5) - TREE_NODE.x * 0.5, 4.0 + TREE_ROW * float(d))
+	var tree := Control.new()
+	tree.name = "SkillTree"
+	tree.custom_minimum_size = Vector2(TREE_W, 8.0 + TREE_ROW * float(rows.size()))
+	_prog_nodes_container.add_child(tree)
+	for key: String in Game.SKILL_TREE.keys():  # the lines first: under the nodes
+		for p: String in Game.SKILL_TREE[key].get("parents", []):
+			var line := Line2D.new()
+			line.name = "Edge_%s_%s" % [p, key]
+			line.width = 1.5
+			line.default_color = Color(0.45, 0.85, 0.5) if Game.skill_level(p) > 0 else Color(0.35, 0.36, 0.4)
+			line.add_point(pos[p] + Vector2(TREE_NODE.x * 0.5, TREE_NODE.y))
+			line.add_point(pos[key] + Vector2(TREE_NODE.x * 0.5, 0.0))
+			tree.add_child(line)
+	for key: String in Game.SKILL_TREE.keys():
+		tree.add_child(_skill_node(key, pos[key]))
 
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 6)
-		_prog_nodes_container.add_child(row)
+func _parents_x(key: String, pos: Dictionary) -> float:
+	var ps: Array = Game.SKILL_TREE[key].get("parents", [])
+	var x := 0.0
+	for p in ps:
+		x += (pos[p] as Vector2).x
+	return x / maxf(1.0, float(ps.size()))
 
-		if depth > 0:
-			var indent := Control.new()
-			indent.custom_minimum_size = Vector2(INDENT_PX * float(depth), 0.0)
-			row.add_child(indent)
-
-		var info_lbl := Label.new()
-		info_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		info_lbl.add_theme_font_size_override("font_size", 11)
-
-		if lv == 0:
-			var parents: Array = def.get("parents", [])
-			var needs: String = ""
-			if not parents.is_empty():
-				var unlocked_parents: Array = parents.filter(func(p): return Game.skill_level(p) > 0)
-				if unlocked_parents.size() < (1 if def.get("any_parent", false) else parents.size()):
-					var needed_parents: Array = parents.filter(func(p): return Game.skill_level(p) == 0)
-					needs = "  (needs: %s)" % ", ".join(needed_parents.map(
-						func(p): return Game.SKILL_TREE[p].get("label", p)))
-			info_lbl.text = "%s — LOCKED  (%s per level)%s" % [label_str, Game.skill_effect_text(key, 1), needs]  # T361
-			info_lbl.add_theme_color_override("font_color", Color(0.55, 0.55, 0.55))
-		elif lv >= 12:
-			info_lbl.text = "%s — LV %d/12  %s  MAX" % [label_str, lv, Game.skill_effect_text(key, lv)]
-			info_lbl.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5))
-		else:
-			info_lbl.text = "%s — LV %d/12  %s -> %s  (%d coins to upgrade)" % [
-				label_str, lv, Game.skill_effect_text(key, lv), Game.skill_effect_text(key, lv + 1), Game._SKILL_FIB_COSTS[lv - 1]]
-			info_lbl.add_theme_color_override("font_color", Color(0.85, 0.85, 0.85))
-		row.add_child(info_lbl)
-
-		if lv == 0:
-			var btn := Button.new()
-			btn.text = "BUY (1 SP)"
-			btn.add_theme_font_size_override("font_size", 11)
-			btn.disabled = not Game.can_unlock(key)
-			if not btn.disabled:
-				btn.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
-			btn.pressed.connect(_on_skill_unlock.bind(key))
-			row.add_child(btn)
-		elif lv < 12:
-			var btn := Button.new()
-			btn.text = "UPGRADE"
-			btn.add_theme_font_size_override("font_size", 11)
-			btn.disabled = not Game.can_upgrade(key)
-			if not btn.disabled:
-				btn.add_theme_color_override("font_color", Color(0.4, 0.9, 1.0))
-			btn.pressed.connect(_on_skill_upgrade.bind(key))
-			row.add_child(btn)
+func _skill_node(key: String, at: Vector2) -> Button:
+	var def: Dictionary = Game.SKILL_TREE[key]
+	var lv: int = Game.skill_level(key)
+	var label_str: String = def.get("label", key)
+	var btn := Button.new()
+	btn.name = "Skill_%s" % key
+	btn.position = at
+	btn.size = TREE_NODE
+	btn.clip_text = true
+	btn.add_theme_font_size_override("font_size", 8 if label_str.length() <= 14 else 7)  # long names fit
+	var tip := label_str
+	if lv == 0:
+		btn.text = "%s\n%s / lv" % [label_str.to_upper(), Game.skill_effect_text(key, 1)]
+		var parents: Array = def.get("parents", [])
+		var needs: Array = parents.filter(func(p): return Game.skill_level(p) == 0)
+		tip += "  --  LOCKED: %s per level" % Game.skill_effect_text(key, 1)
+		if Game.can_unlock(key):
+			tip += "\nClick: BUY (1 SP)"
+			btn.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
+		elif not needs.is_empty():
+			tip += "\nNeeds: %s" % ", ".join(needs.map(func(p): return Game.SKILL_TREE[p].get("label", p)))
+			btn.add_theme_color_override("font_color", Color(0.55, 0.55, 0.55))
+		btn.pressed.connect(_on_skill_unlock.bind(key))
+		btn.disabled = not Game.can_unlock(key)
+	elif lv >= 12:
+		btn.text = "%s\n12/12  %s" % [label_str.to_upper(), Game.skill_effect_text(key, lv)]
+		tip += "  --  LV 12/12  %s  MAX" % Game.skill_effect_text(key, lv)
+		btn.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5))
+		btn.disabled = true
+	else:
+		btn.text = "%s\n%d/12  %s>%s" % [label_str.to_upper(), lv, Game.skill_effect_text(key, lv), Game.skill_effect_text(key, lv + 1)]
+		tip += "  --  LV %d/12  %s -> %s  (%d coins to upgrade)" % [lv, Game.skill_effect_text(key, lv),
+			Game.skill_effect_text(key, lv + 1), Game._SKILL_FIB_COSTS[lv - 1]]
+		btn.add_theme_color_override("font_color", Color(0.4, 0.9, 1.0) if Game.can_upgrade(key) else Color(0.85, 0.85, 0.85))
+		btn.pressed.connect(_on_skill_upgrade.bind(key))
+		btn.disabled = not Game.can_upgrade(key)
+	btn.tooltip_text = tip
+	return btn
 
 func _on_skill_unlock(key: String) -> void:
 	SoundManager.play_sfx_2d("ui_click")
