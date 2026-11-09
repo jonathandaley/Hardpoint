@@ -212,12 +212,12 @@ func _rock(p: Vector2, s: float, yaw: float, mat: Material) -> void:
 # T321 (HUMAN_FOUND 2026-11-05: Redwood bark "coarsened and made higher contrast ... aligning the
 # dark and light parts vertically for a few pixels at a time, not necessarily straight
 # up-and-down"): a 16 x 48 texel tile -- each column in vertical runs of 3-9 texels at clearly
-# different shades, a run now and then stepping one column sideways -- at 0.25 m per texel,
+# different shades, a run now and then stepping one column sideways -- at 0.15 m per texel,
 # world-triplanar so every trunk gets the same coarse grain. Its own RNG: the layout stream is
 # untouched. (Having a texture keeps MapScene.add_surface_detail's soft noise off it.)
 const BARK_W := 16
 const BARK_H := 48
-const BARK_TEXEL := 0.25
+const BARK_TEXEL := 0.15  # T355: user "Reduce to 15cm pixels" (was 0.25)
 const BARK_SHADES := [0.5, 0.75, 1.0, 1.25]
 
 static func bark_image() -> Image:
