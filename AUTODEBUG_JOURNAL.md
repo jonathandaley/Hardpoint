@@ -284,3 +284,4 @@ date|task|outcome|commit|finding|suite
 2026-11-09|T359|DONE|local commit|RWF bots: fire to 15%, hold to 40%, press on a target under 25%, back off from FIXED-magazine targets while holding; probe bot_rwf red at HEAD; bot_combat / bot_lock_weapons / hard_bots / bot_pickups / stealth_ai green|-
 2026-11-09|T358 T359 verify|DONE|-|suite 146/146; net sweep 61/62 -- bot_lock@wifi lock_target: one-tick lock on a mech killed that tick (B128, fixed, 3/3 reruns)|146/146, net 61/62 + B128
 2026-11-09|B128|DONE|local commit|_die drops every lock on the dying mech the same frame; probe lock_on_death red at HEAD|-
+2026-11-09|T350|DONE|local commit|Elite kits + personalities (BotNames.ELITE_KIT, Lobby.kit_squad, AI personality: role / range_k / retreat_hp); probe elite_kits red at HEAD; bot_names / pilot_skills / sp_bots / bot_roster / bot_combat / hard_bots / bot_squad green|-

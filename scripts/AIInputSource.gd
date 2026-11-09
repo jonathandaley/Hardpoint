@@ -53,6 +53,7 @@ const ROLES_TEAM: Array = ["attacker", "attacker", "flanker", "attacker"]
 # Role: "attacker" pushes enemy beacons, "defender" guards own beacons,
 # "flanker" prioritises neutral beacons and approaches from the side.
 var role: String = "attacker"
+var personality: Dictionary = {}  # T350: an Elite pilot's {role, range_k, retreat_hp} (BotNames.ELITE_KIT)
 
 var _target: Node3D = null
 var _prev_target: Node3D = null  # T172: change detector for the reaction delay
@@ -115,6 +116,7 @@ func _find_targets() -> void:
 	_beacons = get_tree().get_nodes_in_group("beacons")
 	var roles: Array = ROLES_TEAM if _preset()["team"] else ROLES_SOLO
 	role = roles[posmod(bot_id - 1, 100) % roles.size()]
+	role = String(personality.get("role", role))  # T350
 	# Re-evaluate target immediately when this bot takes damage (B26).
 	var pawn := get_parent().get("pawn") as Node
 	if pawn != null and pawn.has_signal("damaged"):
@@ -397,7 +399,7 @@ func _pref_range(w: Node) -> float:
 		return 30.0
 	if "pellet_count" in w:
 		return 9.0
-	return clampf(float(w.range) * 0.45, 10.0, 60.0)
+	return clampf(float(w.range) * 0.45, 10.0, 60.0) * float(personality.get("range_k", 1.0))  # T350
 
 ## T172: where to aim -- target centre plus `lead` x its motion over the shot's flight time.
 ## Homing (lock) weapons and beams don't lead.
@@ -700,7 +702,7 @@ func _tactical_move(bot_mech: Node3D, has_target: bool, dist: float, fire_range:
 				return _to_move(bot_mech, to_b.normalized() + side * 0.6) if to_b.length() > 2.0 else _to_move(bot_mech, side)
 		var pref := _pref_range(weapon)
 		var radial := 0.0
-		var retreat := own_hp_pct < 0.3 or ally != null or rwf_cover  # T189: outnumbered -> give ground too; T359
+		var retreat := own_hp_pct < float(personality.get("retreat_hp", 0.3)) or ally != null or rwf_cover  # T189: outnumbered -> give ground too; T359
 		if retreat:
 			radial = -1.0
 		elif dist < pref * 0.7:

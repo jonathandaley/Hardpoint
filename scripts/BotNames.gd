@@ -55,6 +55,38 @@ const ELITE := {
 	"Corsair":    {"damage": 10, "reload_speed": 12, "ability_recharge": 10},
 }
 
+# T350 (HUMAN_FOUND 2026-11-08: "Elites definitely should have preset hangars ... modified AI with
+# personality ... a hangar that makes sense with their abilities and playstyles"): each Elite's
+# squad -- [mech, weapon family (Lobby.WEAPON_CATALOG prefix)] x 5, every family fitting that mech's
+# slots -- and how it fights: role (attacker / flanker / defender), range_k (x its weapon's usual
+# fighting distance: < 1 closes in, > 1 holds off), retreat_hp (health share it gives ground at).
+const ELITE_KIT := {
+	"Inexorable": {"squad": [["Hippogriff", "MG"], ["Everest", "MG"], ["Hornet", "SHOTGUN"], ["Vesuvius", "MG"], ["Hippogriff", "SHOTGUN"]],
+		"personality": {"role": "attacker", "range_k": 0.7, "retreat_hp": 0.12}},   # health + speed + capture: rushes beacons
+	"Vantablack": {"squad": [["Slip", "SNIPER"], ["Seeker", "SNIPER"], ["Hornet", "SNIPER"], ["Slip", "SNIPER"], ["Seeker", "SNIPER"]],
+		"personality": {"role": "attacker", "range_k": 1.8, "retreat_hp": 0.4}},    # damage + accuracy: holds range
+	"Sable":      {"squad": [["Cesh", "ROCKET"], ["Pegasus", "ARC"], ["Cesh", "ARC"], ["Pegasus", "ROCKET"], ["Kestrel", "ROCKET"]],
+		"personality": {"role": "flanker", "range_k": 1.2, "retreat_hp": 0.3}},     # abilities + lock speed: locks from the side
+	"Deadlock":   {"squad": [["Vesuvius", "AERIAL"], ["Hippogriff", "MISSILE"], ["Everest", "AERIAL"], ["Kestrel", "ARC"], ["Seeker", "AERIAL"]],
+		"personality": {"role": "attacker", "range_k": 1.3, "retreat_hp": 0.3}},    # lock weapons
+	"Bastion":    {"squad": [["Kestrel", "LASER"], ["Everest", "LASER"], ["Kestrel", "RIFLE"], ["Everest", "MG"], ["Kestrel", "LASER"]],
+		"personality": {"role": "defender", "range_k": 1.0, "retreat_hp": 0.15}},   # shields + repair: holds what it has
+	"Wraith":     {"squad": [["Cesh", "SHOTGUN"], ["Slip", "SHOTGUN"], ["Cesh", "SHOTGUN"], ["Hornet", "SHOTGUN"], ["Cesh", "MG"]],
+		"personality": {"role": "flanker", "range_k": 0.6, "retreat_hp": 0.25}},    # speed + stealth: ambushes up close
+	"Halcyon":    {"squad": [["Pegasus", "RIFLE"], ["Pegasus", "LASER"], ["Hornet", "RIFLE"], ["Pegasus", "RIFLE"], ["Hippogriff", "RIFLE"]],
+		"personality": {"role": "attacker", "range_k": 1.0, "retreat_hp": 0.45}},   # repair + jump heal: steps out to heal
+	"Nocturne":   {"squad": [["Seeker", "SNIPER"], ["Slip", "RIFLE"], ["Seeker", "SNIPER"], ["Hornet", "SNIPER"], ["Slip", "SNIPER"]],
+		"personality": {"role": "flanker", "range_k": 1.6, "retreat_hp": 0.35}},    # a sniper on the flank
+	"Paragon":    {"squad": [["Pegasus", "RIFLE"], ["Hippogriff", "MISSILE"], ["Hornet", "MG"], ["Kestrel", "LASER"], ["Vesuvius", "RIFLE"]],
+		"personality": {"role": "attacker", "range_k": 1.0, "retreat_hp": 0.3}},    # all-rounder
+	"Tempest":    {"squad": [["Slip", "MG"], ["Seeker", "RIFLE"], ["Slip", "RIFLE"], ["Hornet", "MG"], ["Slip", "MG"]],
+		"personality": {"role": "flanker", "range_k": 0.9, "retreat_hp": 0.3}},     # fast, fast shots
+	"Obsidian":   {"squad": [["Everest", "PATIENCE"], ["Vesuvius", "MG"], ["Everest", "MG"], ["Vesuvius", "PATIENCE"], ["Kestrel", "MG"]],
+		"personality": {"role": "defender", "range_k": 1.1, "retreat_hp": 0.12}},   # a wall that hits hard
+	"Corsair":    {"squad": [["Hippogriff", "MISSILE"], ["Pegasus", "SHOTGUN"], ["Hippogriff", "MG"], ["Hornet", "MISSILE"], ["Pegasus", "MG"]],
+		"personality": {"role": "attacker", "range_k": 0.9, "retreat_hp": 0.3}},    # reloads fast, presses
+}
+
 static var _deck: Array = []
 static var _elite_deck: Array = []
 

@@ -455,6 +455,10 @@ func _spawn_bot_player(mech: CharacterBody3D, team: int, idx: int) -> Node:
 	# T169: unique per bot. Unset, every bot seeded 0 ^ match_seed -> one shared RNG
 	# stream -> the same role for all (all defenders ~1 match in 4: bots camp own beacons).
 	ai_input.bot_id = 1 + team * 100 + idx  # set before add_child: _ready seeds from it
+	var roster: Array = Game.mp_active_match.get("roster", [])  # T350: an Elite pilot's style
+	var ri: int = int(mech.get("roster_idx"))
+	if ri >= 0 and ri < roster.size():
+		ai_input.set("personality", (roster[ri].get("personality", {}) as Dictionary).duplicate())
 	p.add_child(ai_input)
 	p.set("input_source", ai_input)
 	p.call("possess", mech)
