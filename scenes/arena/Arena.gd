@@ -206,6 +206,12 @@ func _spawn_one_mech(mech_def, team: int, idx: int, count: int, weapon_paths: Ar
 func _on_mech_killed(m: Node) -> void:
 	var killer = m.get("last_attacker")  # untyped: may be freed
 	var kri: int = int(killer.get("roster_idx")) if is_instance_valid(killer) else -1
+	# T362 (HUMAN_FOUND 2026-11-08 late: "coins should be awarded to players on kill, in addition to
+	# dropping coins"): the killer's player banks the victim's coin value at once (a bot's by its
+	# difficulty, a player's at KILL_COINS_PLAYER), paid with the match result like picked-up coins
+	if is_instance_valid(killer) and int(killer.get("owner_peer_id")) > 0 and killer.get("team") != m.get("team"):
+		var pid: int = int(killer.get("owner_peer_id"))
+		coins_picked[pid] = int(coins_picked.get(pid, 0)) + kill_coins(m)
 	_rpc_kill_feed.rpc(int(m.get("roster_idx")), kri)
 
 @rpc("authority", "call_local", "reliable")
@@ -1271,6 +1277,14 @@ func _on_bot_mech_died(bp: Node, ri: int) -> void:
 const Pickup := preload("res://scripts/Pickup.gd")
 const DROP_COINS := [2, 4, 6, 10, 16]  # by bot difficulty, EASY .. ELITE
 const POWERUPS := ["repair", "ammo", "damage", "speed"]
+# T362 (HUMAN_FOUND 2026-11-08 late: "Powerups should randomly spawn on the battlefield, not be
+# dropped by bots"): the server puts one at a random spot on the navmesh (somewhere a mech can
+# walk) every POWERUP_EVERY_S, never more than POWERUP_CAP on the ground. Bots still drop coins.
+const POWERUP_EVERY_S := 15.0   # calibration knob
+const POWERUP_CAP := 4          # calibration knob
+const KILL_COINS_PLAYER := 10   # coins for killing a player's mech (a bot's = its DROP_COINS)
+var powerup_every_s := POWERUP_EVERY_S  # probes shorten it
+var _powerup_t := 0.0
 const PICKUP_R := 2.2       # m, horizontal reach of a mech walking over it
 const PICKUP_LIFE_S := 30.0
 # T343 (HUMAN_FOUND Q6, user: Pegasus "healed full from 20% ... Only happened once"): bots dying
@@ -1278,7 +1292,6 @@ const PICKUP_LIFE_S := 30.0
 # taken the same tick -- three kits = +105%. A mech takes one repair kit per REPAIR_GAP_S; the
 # rest stay on the ground.
 const REPAIR_GAP_S := 2.0
-var powerup_chance := 0.25  # per bot death (probes set 1.0)
 var coins_picked := {}      # server: peer_id -> coins picked up this match
 var _pickups := {}          # every peer: id -> Pickup
 var _next_pickup_id := 1
@@ -1296,10 +1309,39 @@ func _on_bot_drop(mech: Node3D) -> void:
 	var at: Vector3 = mech.global_position
 	_rpc_spawn_pickup.rpc(_next_pickup_id, "coin", at + Vector3(1.5, 0, 0), DROP_COINS[clampi(diff, 0, DROP_COINS.size() - 1)])
 	_next_pickup_id += 1
-	if _drop_rng.randf() < powerup_chance:
-		var kind: String = POWERUPS[_drop_rng.randi() % POWERUPS.size()]
-		_rpc_spawn_pickup.rpc(_next_pickup_id, kind, at + Vector3(-1.5, 0, 0), 0)  # 3 m apart: separate pickups (PICKUP_R 2.2)
-		_next_pickup_id += 1
+
+## T362: a mech's worth to its killer -- a bot's by its difficulty, a player's KILL_COINS_PLAYER.
+func kill_coins(victim: Node) -> int:
+	if int(victim.get("owner_peer_id")) > 0:
+		return KILL_COINS_PLAYER
+	var src: Node = victim.get("_input_source")
+	var diff: int = int(src.get("difficulty")) if src != null and src.get("difficulty") != null and int(src.get("difficulty")) >= 0 \
+		else int(Game.settings.get("bot_difficulty", 1))
+	return DROP_COINS[clampi(diff, 0, DROP_COINS.size() - 1)]
+
+## T362: one powerup (`kind`, or a random one) at a random walkable spot. Server. False when
+## there's no navmesh to place it on (yet).
+func spawn_map_powerup(kind := "") -> bool:
+	if _drop_rng == null:
+		_drop_rng = RandomNumberGenerator.new()
+		_drop_rng.seed = hash(["drops", Game.mp_lobby.get("match_seed", 0)])
+	if _nav_region == null or _nav_region.navigation_mesh == null or _nav_region.navigation_mesh.get_polygon_count() == 0:
+		return false
+	var at: Vector3 = NavigationServer3D.map_get_random_point(get_world_3d().navigation_map, 1, true)
+	if kind == "":
+		kind = POWERUPS[_drop_rng.randi() % POWERUPS.size()]
+	_rpc_spawn_pickup.rpc(_next_pickup_id, kind, at, 0)
+	_next_pickup_id += 1
+	return true
+
+func _tick_map_powerups(delta: float) -> void:
+	_powerup_t += delta
+	if _powerup_t < powerup_every_s:
+		return
+	_powerup_t = 0.0
+	var on_ground := _pickups.values().filter(func(p): return is_instance_valid(p) and (p as Pickup).kind != "coin").size()
+	if on_ground < POWERUP_CAP:
+		spawn_map_powerup()
 
 @rpc("authority", "call_local", "reliable")
 func _rpc_spawn_pickup(id: int, kind: String, pos: Vector3, value: int) -> void:
@@ -1328,7 +1370,10 @@ func _drop_pickup_local(id: int) -> void:
 		pk.queue_free()
 
 func _physics_process(_delta: float) -> void:
-	if _pickups.is_empty() or not multiplayer.is_server() or _match_over:
+	if not multiplayer.is_server() or _match_over:
+		return
+	_tick_map_powerups(_delta)  # T362
+	if _pickups.is_empty():
 		return
 	var hits: Array = []  # [id, mech] -- applied after the scan, never mid-iteration
 	var expired: Array = []
