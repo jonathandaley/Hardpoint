@@ -247,3 +247,7 @@ date|task|outcome|commit|finding|suite
 2026-11-08|T340|DONE|local commit|mech builder: tools/new_mech.py (scaffold builder + MechDef, port, tiles, import, slots from mounts, lineup + armed renders, --roster), kit_tiles derives tiles for every builder palette, README, probe kit_mechs (red without a tile); trial Testbuild built and removed; .uid files for 4 new scripts from the import step|suite pending
 2026-11-08|T341 (model)|DONE|local commit|Taurus built live with tools/new_mech.py: 2 render rounds (round 1 too candy-red / big vents / thin legs -> darker palette, smaller vents, thicker legs, black knee caps); casing_clearance now also covers code-built mechs with stats (Taurus 8/8); Charge ability queued as T342; not in the roster yet|suite pending
 2026-11-08|deferred|-|-|user: Sapper, Medic, Davone + the weaponless-bot rule deferred indefinitely -> MAYBE_ADD.md (descriptions verbatim + the risk notes); T342 = Taurus lunge with a crouch-lunge leg animation (user picked the lunge over the held charge)|-
+2026-11-08|loop start|-|-|user: "you start it"; queued T343-T359 from HUMAN_FOUND + every NEEDS_HUMAN answer (NEEDS_HUMAN now empty); T285 closed (limit is T338)|-
+2026-11-08|T261 T305|BLOCKED|-|parked by the user (tracers -> MAYBE_ADD pilot skill; texture look)|-
+2026-11-08|T266 T290|BLOCKED|-|wait on the security review (user on Q4)|-
+2026-11-08|T340 T341 verify|DONE|-|suite rerun on the final builder + Taurus code (new_mech had regenerated MechKit.gd mid-run before)|136/136
