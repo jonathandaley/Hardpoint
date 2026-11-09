@@ -1493,9 +1493,9 @@ func _apply_match(my_team: int, winner_team: int, stats: Array, my_pid := 0) -> 
 	_check_level_up()
 	# Coins.
 	var base_coins: int = 75 if won else 20
-	for e in stats:  # T264: + the coins this player picked up from destroyed bots
+	for e in stats:  # T264: + the coins this player picked up; T364: + what its kills were worth
 		if int(e.get("peer_id", -1)) == my_pid and my_pid > 0:
-			base_coins += int(e.get("coins", 0))
+			base_coins += int(e.get("coins", 0)) + int(e.get("kill_coins", 0))
 	profile["coins"] = profile.get("coins", 0) + apply_coin_pickup_bonus(base_coins)
 
 @rpc("any_peer", "call_remote", "reliable")

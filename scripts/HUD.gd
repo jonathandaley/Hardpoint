@@ -412,7 +412,7 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 	vbox.add_child(HSeparator.new())
 
 	var col_hdr := HBoxContainer.new()
-	for col_text: String in ["PLAYER", "ELO", "DEALT", "TAKEN", "CAPS"]:
+	for col_text: String in ["PLAYER", "ELO", "KILLS", "DEALT", "TAKEN", "CAPS"]:  # T364: KILLS
 		var lbl := Label.new()
 		lbl.text = col_text
 		lbl.add_theme_font_size_override("font_size", 13)
@@ -452,6 +452,7 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 		for cell_text: String in [
 			pilot_name,
 			elo_str,
+			"%d" % int(entry.get("kills", 0)),
 			"%.0f" % entry.get("dealt", 0.0),
 			"%.0f" % entry.get("taken", 0.0),
 			"%d" % entry.get("captures", 0),
@@ -464,6 +465,18 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 		rows.add_child(row)
 
 	vbox.add_child(HSeparator.new())
+	# T364: what this match pays you (Game._apply_match does the same sum, then the coin skill)
+	for entry: Dictionary in stats:
+		if int(entry.get("peer_id", -1)) == multiplayer.get_unique_id() and int(entry.get("peer_id", -1)) > 0:
+			var won := winner_team >= 0 and winner_team == int(entry.get("team", -1))
+			var coins := Label.new()
+			coins.name = "CoinBreakdown"
+			coins.text = "COINS  %s %d  +  KILLS %d  +  PICKUPS %d" % ["WIN" if won else "MATCH", 75 if won else 20,
+				int(entry.get("kill_coins", 0)), int(entry.get("coins", 0))]
+			coins.add_theme_font_size_override("font_size", 13)
+			coins.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			coins.modulate = Color(1.0, 0.85, 0.3)
+			vbox.add_child(coins)
 
 	var btn := Button.new()
 	btn.name = "BackToLobbyBtn"
