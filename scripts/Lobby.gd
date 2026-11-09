@@ -347,8 +347,17 @@ static func _build_roster() -> Array:
 			taken.append(e["name"])
 	return roster
 
+## T354 (HUMAN_FOUND 2026-11-08: "remove Cesh from bot rosters at lower difficulties"): Cesh's
+## camouflage only makes sense with Hard / Elite's stealth tactics (T295); Easy..Medium bots use
+## no abilities, so they get the rest of the roster.
+static func bot_roster() -> Array:
+	if int(Game.settings.get("bot_difficulty", 1)) >= 3:
+		return ROSTER
+	return ROSTER.filter(func(p) -> bool: return not String(p).ends_with("/Cesh.tres"))
+
 static func _default_bot_squad(bot_id: int) -> Array:
-	var mech_path: String = ROSTER[bot_id % ROSTER.size()]
+	var pool := bot_roster()
+	var mech_path: String = pool[bot_id % pool.size()]
 	var mech_def: Resource = load(mech_path)
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()  # roster is broadcast, so peers never re-derive it (no determinism needed)
