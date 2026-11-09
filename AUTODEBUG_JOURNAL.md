@@ -251,3 +251,8 @@ date|task|outcome|commit|finding|suite
 2026-11-08|T261 T305|BLOCKED|-|parked by the user (tracers -> MAYBE_ADD pilot skill; texture look)|-
 2026-11-08|T266 T290|BLOCKED|-|wait on the security review (user on Q4)|-
 2026-11-08|T340 T341 verify|DONE|-|suite rerun on the final builder + Taurus code (new_mech had regenerated MechKit.gd mid-run before)|136/136
+2026-11-08|T338|DONE|f50c68b|death match limit 15:00 (DM_TIME_S 900); deathmatch probe pins it (red on 600)|-
+2026-11-08|T349|DONE|35d1a3b|Patience charge bar purple at full (the sniper's purple), yellow while charging; new probe patience_bar (red: yellow at full)|-
+2026-11-08|T355|DONE|c6e2a8c|Redwood bark texels 0.25 -> 0.15 m; forest_bark probe checks the texel size (red on 0.25)|-
+2026-11-08|T356|DONE|24511e0|eject pods vanish in a last puff at the apex (vel.y <= 0 after the boost), LIFE_S gone; pilot_eject follows the bot's pod (red: seen falling at 9.1 m/s)|-
+2026-11-08|T338 T349 T355 T356 verify|DONE|-|suite 137/137 (one run for the batch)|137/137
