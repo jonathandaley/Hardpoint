@@ -270,3 +270,4 @@ date|task|outcome|commit|finding|suite
 2026-11-09|T361|DONE|local commit|skill rows show numbers: per level while locked, now -> next, total at max (Game.skill_effect_text); probe skill_numbers red first|-
 2026-11-09|T343 T361 verify|DONE|-|suite 143/143|143/143
 2026-11-09|T345|DONE|local commit|per-slot weapons: squad_weapons + Game.slot_weapons; first try left untouched siblings following the mech-wide last picks (probe red) -> pin siblings before a pick; red at HEAD (no per-slot data at all; it was never per slot)|-
+2026-11-09|T345 verify|DONE|-|suite 144/144|144/144
