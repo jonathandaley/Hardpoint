@@ -10,7 +10,12 @@ Actually, the pegasus ability reload time should stay how it is, but reduce the 
 
 Energy shield health should be visible to others, blue bar under the health bar.
 
-A bot (kestrel) fell off the back of Redwood Forest. Debug, and also add something that kills bots that fall off, just in case, to prevent broken matches.
+A bot (kestrel) fell off the back of Redwood Forest. Debug, and also add something that kills bots that fall off, just in case, to prevent broken matches. Looks like the dip in the back can be walked off by any bot.
+
+The skill tree is cramped and messy. Make it only have right angles in the connecting lines, no angled lines. Lines should only go to direct children/parents, not anywhere else.
+Skills that are available should not be greyed out, but have the cost to upgrade in red. Skills that are available to buy should have the SP cost listed, and be red if no SP.
+
+Taurus should have a much snappier response on the lunge start, and go a little faster.
 
 ## Deferred:
 
