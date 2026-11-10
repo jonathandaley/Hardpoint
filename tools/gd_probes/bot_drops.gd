@@ -24,8 +24,11 @@ func _walk_to(me: Node3D, p: Vector3) -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	Game.mp_active_match["roster"] = []
 	Game.loadout["team_size"] = 3
+	Game.setup_sp_match()
+	for e in Game.mp_active_match["roster"]:  # B135: T365 squads are random -- a shield soaked the boosted test hit
+		if int(e["peer_id"]) == 0:
+			e["squad"] = range(5).map(func(_i): return {"mech": "res://resources/mechs/Pegasus.tres", "weapons": ["res://scenes/weapons/RifleLight.tscn", "res://scenes/weapons/RifleLight.tscn"]})
 	var arena: Node = load("res://scenes/arena/Arena.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(arena)
 	for i in 2:
