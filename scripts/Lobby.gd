@@ -21,6 +21,7 @@ const ROSTER: Array = [
 	"res://resources/mechs/Kestrel.tres",
 	"res://resources/mechs/Everest.tres",
 	"res://resources/mechs/Vesuvius.tres",
+	"res://resources/mechs/Taurus.tres",
 ]
 
 const WEAPON_CATALOG: Array = [
@@ -406,6 +407,7 @@ const BOT_WEAPON_WEIGHTS := {
 	"Pegasus":    {"RIFLE": 4, "SHOTGUN": 3, "LASER": 2, "MG": 2},
 	"Everest":    {"MG": 4, "LASER": 3, "AERIAL": 2, "PATIENCE": 2, "RIFLE": 2},
 	"Vesuvius":   {"MG": 3, "MISSILE": 3, "AERIAL": 3, "PATIENCE": 2, "RIFLE": 2, "LASER": 2},
+	"Taurus":     {"SHOTGUN": 4, "MG": 3, "RIFLE": 2, "SNIPER": 0},  # T363: rams in, fights up close
 }
 
 ## T171: random bot loadout -- ONE weapon family (RIFLE, MG, ...) in every slot of

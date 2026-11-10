@@ -39,10 +39,13 @@ func _ready() -> void:
 		m.configure_weapons(md.weapon_slots)
 		var cam: Camera3D = m.get("camera")
 		for side in [0.0, 1.0, -1.0]:  # T252: center view (0) too
+			Game.shoulder = side
+			# the eased swap (6 u/s, <= 3.6 u) settles in 0.6 s; pitch applies next frame. B135: one wait
+			# per side, not per pitch -- 10 mechs x 4.2 s ran past the suite's 6000-frame cap
+			await get_tree().create_timer(0.7).timeout
 			for pitch in [0.0, -0.6]:
-				Game.shoulder = side
 				m.set("_camera_pitch", pitch)
-				await get_tree().create_timer(0.7).timeout  # the eased swap (6 u/s, <= 3.6 u) settles in 0.6 s
+				await get_tree().process_frame
 				await get_tree().process_frame
 				var dir := -cam.global_transform.basis.z
 				var hit := _hits_self(m, cam.global_position, dir)
