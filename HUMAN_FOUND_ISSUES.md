@@ -19,7 +19,7 @@ Taurus should have a much snappier response on the lunge start, and go a little 
 
 Elites should have different hangars based on game mode.
 
-Machine gun barrel doesn't cool down when stop firing, on bots. Works fine on my gun.
+Machine gun barrel doesn't cool down when stop firing, on bots. Works fine on my gun. Figured something out: Glow happens when mouse is pressed, not when gun is actually firing.
 
 Under some circumstances, not sure exactly when, TAB will start spectating from a mech. Might be after switching back to the game window while the game was left running unpaused? It's happened a couple of times but I'm not exactly sure.
 
