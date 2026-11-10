@@ -1435,11 +1435,15 @@ func _deactivate_ability(key: String) -> void:
 # damage. The server and the owner's prediction (T205) run the same tick curve; the owner lines
 # up on the input tick the server ran it on (_rpc_lunge). Other peers only run the clock for
 # the leg pose and the glow, INTERP_DELAY late to match the motion they're shown.
-const LUNGE_WINDUP_S := 0.2
-const LUNGE_DASH_S := 2.0
+# T366 (user 2026-11-09: "Crouch-jump forward-hit with horns ... Very flat trajectory, should not
+# really look like a jump"): the dash is one low leap out of the crouch -- full speed almost at
+# once (a spring, not a run), ~16 m as before; the hop itself is visual only (lunge_pose).
+const LUNGE_WINDUP_S := 0.12  # T366 (user: "much snappier response on the lunge start"; was 0.2)
+const LUNGE_DASH_S := 1.3
 const LUNGE_STOP_S := 0.25
-const LUNGE_RAMP_S := 0.8    # s from standing to LUNGE_PEAK, then held
-const LUNGE_PEAK := 10.0     # m/s -- calibration knob (Taurus walks 0.9)
+const LUNGE_RAMP_S := 0.15   # s from the crouch to LUNGE_PEAK, then held
+const LUNGE_LIFT := 0.18     # m the body rises at mid-leap (visual) -- calibration knob
+const LUNGE_PEAK := 12.0     # m/s -- calibration knob (Taurus walks 0.9; T366 "a little faster": was 10)
 const RAM_FLOOR := 60.0      # ~1/3 of a light mech -- calibration knob
 const RAM_K := 9.0           # damage per m/s of closing speed -- calibration knob
 const LUNGE_GLOW_K := 2.5    # extra glow at full speed (x the palette's energy)
@@ -1573,13 +1577,19 @@ func _lunge_sync(entry: Dictionary, ahead: int) -> void:
 		_lunge_stop()
 
 ## Leg pose for BipedLegs: x = crouch (the windup), y = stride (the dash).
-func lunge_pose() -> Vector2:
+## (crouch 0..1, leap 0..1, lift m) for BipedLegs. T366: the windup crouches; the leap keeps the
+## body low (horns first) on a flat sin arc; the stop lands it back through the crouch.
+func lunge_pose() -> Vector3:
 	if not lunging or lunge_t < 0.0:
-		return Vector2.ZERO
+		return Vector3.ZERO
 	if lunge_t < LUNGE_WINDUP_S:
-		return Vector2(lunge_t / LUNGE_WINDUP_S, 0.0)
+		return Vector3(lunge_t / LUNGE_WINDUP_S, 0.0, 0.0)
 	var d := lunge_t - LUNGE_WINDUP_S
-	return Vector2(maxf(0.0, 1.0 - d / 0.15), clampf(lunge_speed(lunge_t) / LUNGE_PEAK, 0.0, 1.0))
+	if d < LUNGE_DASH_S:
+		var leap := minf(d / 0.1, 1.0)
+		return Vector3(1.0 - 0.15 * leap, leap, LUNGE_LIFT * sin(PI * d / LUNGE_DASH_S))  # torso tops out ~level with standing
+	var s := minf((d - LUNGE_DASH_S) / LUNGE_STOP_S, 1.0)
+	return Vector3(0.85 * (1.0 - s), 1.0 - s, 0.0)
 
 ## Glow parts brighten with speed: this mech's own copies of its (shared, T310) glow materials.
 func _set_lunge_glow(k: float) -> void:
