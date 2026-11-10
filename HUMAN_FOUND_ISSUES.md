@@ -17,6 +17,20 @@ Skills that are available should not be greyed out, but have the cost to upgrade
 
 Taurus should have a much snappier response on the lunge start, and go a little faster.
 
+Elites should have different hangars based on game mode.
+
+Machine gun barrel doesn't cool down when stop firing, on bots. Works fine on my gun.
+
+Under some circumstances, not sure exactly when, TAB will start spectating from a mech. Might be after switching back to the game window while the game was left running unpaused? It's happened a couple of times but I'm not exactly sure.
+
+Slip legs are weird, should probably have a more loping stride. If that's not hard, make its stride frequency like Cesh's, but with a longer step so its speed remains the same.
+
+Aerial strike is a little too big on Seeker. (visually)
+
+Match end results screen is spaced funny; the numbers should not be dependent on the name length, but be in columns.
+
+Increase drop despawning time to 2 minutes.
+
 ## Deferred:
 
 The general texturing applied to most of the maps' floors and obstacles is pretty good in general, but it looks blurry. Probably make the pixels/texels bigger? Like the bot texture, sharp bigger pixels instead of blurry finer detail. Not for every map, though: Redwood's floor is great.
