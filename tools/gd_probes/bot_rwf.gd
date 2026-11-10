@@ -23,9 +23,12 @@ func _arm(m: Node, wname: String) -> void:
 	m.call("configure_weapons", [slot])
 
 func _ready() -> void:
-	Game.mp_active_match["roster"] = []
 	Game.loadout["team_size"] = 3
 	Game.loadout["mode"] = "deathmatch"
+	Game.setup_sp_match()
+	for e in Game.mp_active_match["roster"]:  # B135: T365 squads are random -- a Taurus / Everest C can't back off
+		if int(e["peer_id"]) == 0:
+			e["squad"] = range(5).map(func(_i): return {"mech": "res://resources/mechs/Pegasus.tres", "weapons": ["res://scenes/weapons/RifleLight.tscn", "res://scenes/weapons/RifleLight.tscn"]})
 	var arena: Node = load("res://scenes/arena/Arena.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(arena)
 	for i in 2:
