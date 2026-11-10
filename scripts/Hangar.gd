@@ -14,6 +14,7 @@ const ROSTER: Array = [
 	"res://resources/mechs/Kestrel.tres",
 	"res://resources/mechs/Everest.tres",
 	"res://resources/mechs/Vesuvius.tres",
+	"res://resources/mechs/Taurus.tres",
 ]
 
 const WEAPON_CATALOG: Array = [

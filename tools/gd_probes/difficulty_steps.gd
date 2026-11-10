@@ -6,6 +6,7 @@ extends Node
 # User arg `measure` prints the numbers only.
 
 const SlotDef := preload("res://scripts/WeaponSlotDef.gd")
+const Lobby := preload("res://scripts/Lobby.gd")
 const DECK_Y := 400.0
 const RUN_S := 30.0
 const DUELS := [0, 1, 1, 2, 2, 3]  # difficulty per duel: Normal and Medium twice (Medium swings 130-275 a run)
@@ -23,9 +24,17 @@ func _fail(msg: String) -> void:
 
 func _ready() -> void:
 	var measure := "measure" in OS.get_cmdline_user_args()
-	Game.mp_active_match["roster"] = []
 	Game.loadout["team_size"] = 6
 	Game.loadout["mode"] = "deathmatch"
+	Game.setup_sp_match()
+	# B135: T365 squads are random -- a slow or big strafer swung Normal past Medium. Pin the mix
+	# T357 was measured on (pre-T365: pool[bot_id % pool.size()], the Normal pool).
+	var pool := ["Slip", "Seeker", "Hornet", "Hippogriff", "Pegasus", "Kestrel", "Everest", "Vesuvius"]
+	var rng := RandomNumberGenerator.new()
+	for e in Game.mp_active_match["roster"]:
+		if int(e["peer_id"]) == 0:
+			var mp := "res://resources/mechs/%s.tres" % pool[int(e["bot_id"]) % pool.size()]
+			e["squad"] = range(5).map(func(_i): return {"mech": mp, "weapons": Lobby.bot_weapon_paths(load(mp), rng)})
 	var arena: Node = load("res://scenes/arena/Arena.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(arena)
 	for i in 2:
