@@ -1305,7 +1305,7 @@ var kill_coins_by_ri := {}  # T364 server: roster idx -> coins its kills are wor
 var powerup_every_s := POWERUP_EVERY_S  # probes shorten it
 var _powerup_t := 0.0
 const PICKUP_R := 2.2       # m, horizontal reach of a mech walking over it
-const PICKUP_LIFE_S := 60.0  # T351 (user: "make them last longer on the ground (60s?)")
+const PICKUP_LIFE_S := 120.0  # T351 60 s; T383 (user 2026-11-09: "Increase drop despawning time to 2 minutes")
 # T343 (HUMAN_FOUND Q6, user: Pegasus "healed full from 20% ... Only happened once"): bots dying
 # close together leave several repair kits within one step's reach, and every kit in reach was
 # taken the same tick -- three kits = +105%. A mech takes one repair kit per REPAIR_GAP_S; the

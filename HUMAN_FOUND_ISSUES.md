@@ -27,8 +27,6 @@ Aerial strike is a little too big on Seeker. (visually)
 
 Match end results screen is spaced funny; the numbers should not be dependent on the name length, but be in columns.
 
-Increase drop despawning time to 2 minutes.
-
 ## Deferred:
 
 The general texturing applied to most of the maps' floors and obstacles is pretty good in general, but it looks blurry. Probably make the pixels/texels bigger? Like the bot texture, sharp bigger pixels instead of blurry finer detail. Not for every map, though: Redwood's floor is great.

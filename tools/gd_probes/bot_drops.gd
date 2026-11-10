@@ -154,7 +154,7 @@ func _ready() -> void:
 				if float(me.get("speed_boost_s")) <= 0.0 or absf(float(me.get("walk_speed")) - float(me.get("base_walk_speed")) * 1.3 * float(me.get("terrain_speed"))) > 0.01:
 					_fail("speed boost not active (walk %.2f)" % float(me.get("walk_speed")))
 					bad = true
-	if float(arena.get_script().get_script_constant_map()["PICKUP_LIFE_S"]) != 60.0:
+	if float(arena.get_script().get_script_constant_map()["PICKUP_LIFE_S"]) != 120.0:
 		_fail("pickups last %s s on the ground, the user asked for 60 (T351)" % arena.get_script().get_script_constant_map()["PICKUP_LIFE_S"])
 		bad = true
 	# the timer, capped
