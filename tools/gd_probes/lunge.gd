@@ -129,9 +129,9 @@ func _ready() -> void:
 	for k in int(3.5 * wf):
 		await get_tree().physics_frame
 		var t := (k + 1) / wf
-		if t < 0.19:
+		if t < Mech.LUNGE_WINDUP_S - 0.01:  # T366: windups follow the knob (0.2 -> 0.12 s)
 			windup_move = maxf(windup_move, Vector2(r.global_position.x - r0.x, r.global_position.z - r0.z).length())
-		if t > 0.12 and t < 0.2 and float((r.get("legs") as Node).get("left_knee1").rotation.x) < -2.094 - 0.5:
+		if t > 0.6 * Mech.LUNGE_WINDUP_S and t < Mech.LUNGE_WINDUP_S and float((r.get("legs") as Node).get("left_knee1").rotation.x) < -2.094 - 0.5:
 			crouched = true
 		var d: float = tr.get("damage_taken_total")
 		if d > last_dmg:

@@ -1,9 +1,9 @@
 extends Node3D
-# T342 art review: the Taurus lunge as a frame strip -- standing, mid-crouch, full crouch, and
-# the dash speeding up -- side on, glow included.
+# T342 / T366 art review: the Taurus lunge as a frame strip -- standing, mid-crouch, full crouch,
+# the low leap (start, mid-arc, late) and the landing -- side on, glow included.
 #   xvfb-run -a -s "-screen 0 1280x720x24" ~/bin/godot --resolution 995x560 \
 #     res://tools/art/lunge_strip.tscn -- <out.png> [Name]
-const TIMES := [0.0, 0.1, 0.2, 0.35, 0.7, 1.5]
+const TIMES := [0.0, 0.06, 0.12, 0.3, 0.77, 1.2, 1.55]
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	var mname: String = args[1] if args.size() > 1 else "Taurus"
@@ -53,7 +53,7 @@ func _ready() -> void:
 		lbl.position = Vector3(m.position.x, 3.3, 0)
 		add_child(lbl)
 	var cam := Camera3D.new()
-	cam.position = Vector3(0, 1.3, 11.5)
+	cam.position = Vector3(0, 1.3, 15.0)
 	cam.fov = 40
 	add_child(cam)
 	cam.look_at(Vector3(0, 1.2, 0))
