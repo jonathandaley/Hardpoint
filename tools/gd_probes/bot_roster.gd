@@ -1,7 +1,7 @@
 extends Node
 # T354 probe (HUMAN_FOUND 2026-11-08: "remove Cesh from bot rosters at lower difficulties"):
-# Easy / Normal / Medium bot squads never field Cesh (no stealth tactics below Hard, T295);
-# Hard / Elite still do.
+# Easy / Normal bot squads never field Cesh (no stealth tactics below Medium, T295 / T368);
+# Medium / Hard / Elite do.
 
 const Lobby := preload("res://scripts/Lobby.gd")
 
@@ -17,10 +17,10 @@ func _cesh_count(diff: int) -> int:
 func _ready() -> void:
 	var keep = Game.settings.get("bot_difficulty", 1)
 	var bad: Array = []
-	for d in [0, 1, 2]:
+	for d in [0, 1]:  # T368: Cesh from Medium (was Hard)
 		if _cesh_count(d) > 0:
 			bad.append("difficulty %d bots field Cesh" % d)
-	for d in [3, 4]:
+	for d in [2, 3, 4]:
 		if _cesh_count(d) == 0:
 			bad.append("difficulty %d bots never field Cesh" % d)
 	Game.settings["bot_difficulty"] = keep

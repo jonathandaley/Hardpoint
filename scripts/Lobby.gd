@@ -353,8 +353,10 @@ static func _build_roster() -> Array:
 ## T354 (HUMAN_FOUND 2026-11-08: "remove Cesh from bot rosters at lower difficulties"): Cesh's
 ## camouflage only makes sense with Hard / Elite's stealth tactics (T295); Easy..Medium bots use
 ## no abilities, so they get the rest of the roster.
+## T368 (user on T357: "Medium should get Cesh. Actually, bots with active abilities should start at
+## Medium for all mechs."): Medium has the tactics (abilities) since T357, so Cesh joins from Medium.
 static func bot_roster() -> Array:
-	if int(Game.settings.get("bot_difficulty", 1)) >= 3:
+	if int(Game.settings.get("bot_difficulty", 1)) >= 2:
 		return ROSTER
 	return ROSTER.filter(func(p) -> bool: return not String(p).ends_with("/Cesh.tres"))
 
