@@ -1,5 +1,11 @@
 # This file is for humans to list bugs or other issues where Claude can see them. Not all of these are fixable without discussion, but some of them should be able to be fixed autonomously. Fixed bugs should be deleted, the record can live in SPEC. Don't ask questions in this file; move the task, with your question, to NEEDS_HUMAN.md.
 
+Impact sound still plays when hit by arc weapon.
+
+Skill tree should show what it does (e.g., +5% health, -> 5.5%) so that the numbers are visible. 
+
+New rule: coins should be awarded to players on kill, in addition to dropping coins. Powerups should randomly spawn on the battlefield, not be dropped by bots.
+
 Q6 (T301, from Claude 2026-11-06): Pegasus's jump heals exactly once per jump (checked: mashing the key through a jump gives one heal; the 16 s cooldown blocks the rest) -- but it is a flat +80 HP, 27% of Pegasus's 300 at once, which may be what reads as "too much". Lower it (e.g. +50), make it a % of max HP, or heal over the jump instead of instantly? Leaving it at +80 until you say.
 I'm pretty sure it glitched and healed full from 20%. I may have missed something, but I think that's what happened. Only happened once.
 
