@@ -2,7 +2,7 @@ extends Node
 # T187 probe: the squad picker opens before the first fight (SP: match paused), a pick
 # swaps the slot-0 mech for the chosen one without costing a life, and slot 0 goes back
 # to the pool (offered again at the next death). Squad: Slip 175, Hornet 450, Hippogriff
-# 500, Vesuvius 1000, Pegasus 300 HP -- max_health identifies which mech you're in.
+# 500, Vesuvius 850 (T367), Pegasus 300 HP -- max_health identifies which mech you're in.
 
 const SQUAD := ["Slip", "Hornet", "Hippogriff", "Vesuvius", "Pegasus"]
 
@@ -37,7 +37,7 @@ func _ready() -> void:
 	var used: Array = arena.get("_peer_slot_used")[1]
 	if get_tree().paused:
 		_fail("still paused after the pick")
-	if now == first or now.max_health != 1000.0:
+	if now == first or now.max_health != float(load("res://resources/mechs/Vesuvius.tres").max_health):
 		_fail("pick 3 (Vesuvius) did not swap the mech (now %s HP)" % now.max_health)
 	if first.visible or not first.get("is_dead"):
 		_fail("the slot-0 mech is still in the match")
