@@ -301,3 +301,5 @@ date|task|outcome|commit|finding|suite
 2026-11-09|T364 B133 verify|FIX|-|suite 151/152: bot_rwf C back-off flake under suite load (1 in ~12; 9/9 alone) -> judged by the farthest point in the hold window|151/152
 2026-11-09|T365|DONE|local commit|regular bot squads: random mech per slot + per-mech weapon weights; probe bot_loadouts red at HEAD; idle_target gets fixed squads (rosters random at every tier now)|-
 2026-11-09|T365 verify|FAIL->FIXED|-|suite 150/153: beam_stops, bot_combat (shielded random targets), lunge (cooldown window) -- probe assumptions on fixed squads (B134)|150/153
+2026-11-09|T364 T365 B133 B134 verify|DONE|-|suite 153/153 (T364's net sweep was 62/62; T365 is server-side roster composition)|153/153
+2026-11-09|queue empty|-|-|again: the rest waits on the user (T363 Taurus OK, T346 leak info, T266, NEEDS_HUMAN defaults incl. T364 bounty share and T365 weapon weights)|-
