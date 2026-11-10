@@ -1391,11 +1391,13 @@ func _apply_stealth_visual(active: bool) -> void:
 				mesh.set_surface_override_material(0, _stealth_saved_mats[mesh])
 		_stealth_saved_mats.clear()
 
+const JUMP_HEAL := 40.0  # T372 (user 2026-11-09: keep the 16 s cooldown, halve the heal; was 80)
+
 func _activate_ability(ability: Resource) -> void:
 	match ability.effect_key:
 		"jump_heal":
 			_jump_launch()
-			health = minf(health + 80.0, max_health)
+			health = minf(health + JUMP_HEAL, max_health)
 		"stealth":
 			is_stealthy = true
 			_apply_stealth_visual(true)

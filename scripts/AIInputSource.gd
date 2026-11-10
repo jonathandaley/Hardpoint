@@ -764,7 +764,7 @@ func _use_abilities(bot_mech: Node3D, fighting: bool, own_hp_pct: float, has_tar
 			continue
 		match key:
 			"jump_heal":
-				_ability_press = bot_mech.health <= bot_mech.max_health - 80.0 or (fighting and own_hp_pct < 0.6)
+				_ability_press = bot_mech.health <= bot_mech.max_health - Mech.JUMP_HEAL or (fighting and own_hp_pct < 0.6)
 			"stealth":
 				_ability_press = stealth_wanted(bot_mech, has_target, dist, fire_range, own_hp_pct)
 			"lunge":

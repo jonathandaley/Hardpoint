@@ -11,10 +11,13 @@ func _fail(msg: String) -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	Game.mp_active_match["roster"] = []
 	Game.loadout["team_size"] = 1
 	Game.loadout["sp_bots"] = [0, 2]
 	Game.loadout["mode"] = "beacons"
+	Game.setup_sp_match()
+	for e in Game.mp_active_match["roster"]:  # B135: T365 squads are random -- a shield soaked the 1-damage kill
+		if int(e["peer_id"]) == 0:
+			e["squad"] = range(5).map(func(_i): return {"mech": "res://resources/mechs/Pegasus.tres", "weapons": ["res://scenes/weapons/RifleLight.tscn", "res://scenes/weapons/RifleLight.tscn"]})
 	var arena: Node = load("res://scenes/arena/Arena.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(arena)
 	for i in 2:

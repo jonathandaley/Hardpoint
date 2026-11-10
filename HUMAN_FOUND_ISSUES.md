@@ -6,8 +6,6 @@ Health bars and name tags should be above the targeting reticle, instead of crun
 
 Powerups should have a hud indicator like "bogged down" for the ongoing effect ones.
 
-Actually, the pegasus ability reload time should stay how it is, but reduce the healing to match what it would have been with the longer reload.
-
 Energy shield health should be visible to others, blue bar under the health bar.
 
 A bot (kestrel) fell off the back of Redwood Forest. Debug, and also add something that kills bots that fall off, just in case, to prevent broken matches. Looks like the dip in the back can be walked off by any bot.

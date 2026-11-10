@@ -1,6 +1,6 @@
 extends Node
 # T301 probe (HUMAN_FOUND 2026-11-05: "Pegasus sometimes heals too much in a single jump?"):
-# mashing the ability key through a whole jump heals exactly once, +80, and the 16 s cooldown
+# mashing the ability key through a whole jump heals exactly once, +Mech.JUMP_HEAL, and the 16 s cooldown
 # blocks the rest.
 
 class Src extends "res://scripts/InputSource.gd":
@@ -33,7 +33,7 @@ func _ready() -> void:
 	var src := Src.new()
 	me.add_child(src)
 	me.set_input_source(src)
-	var start: float = float(me.get("max_health")) - 100.0  # room for the +80 under the cap
+	var start: float = float(me.get("max_health")) - 100.0  # room for the heal under the cap
 	me.set("health", start)
 	var heals := 0
 	var last: float = me.get("health")
@@ -46,8 +46,8 @@ func _ready() -> void:
 		last = h
 	var gained: float = float(me.get("health")) - start
 	var msg := ""
-	if heals != 1 or absf(gained - 80.0) > 1.0:
-		msg = "%d heals for %.1f HP in one jump, want one +80" % [heals, gained]
+	if heals != 1 or absf(gained - Mech.JUMP_HEAL) > 1.0:
+		msg = "%d heals for %.1f HP in one jump, want one +%.0f" % [heals, gained, Mech.JUMP_HEAL]
 	if msg != "":
 		push_error("[probe] jump_heal_once FAIL: " + msg)
 		get_tree().quit(1)
