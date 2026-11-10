@@ -24,3 +24,13 @@ Not tasks yet: nothing here is built until the user moves it to HUMAN_FOUND_ISSU
   Has a built-in "weapon" equipped that shoots slow-moving green canisters that heal the first ally they hit.
 
   White with green accents. Has two antennae pointing backward at an angle. Health gun is a green emissive bump in center of chest.
+
+## Taurus charge, v2 (moved from HUMAN_FOUND 2026-11-09)
+
+The user's original Taurus ability, kept as a possible v2 when they picked the lunge (T342) after the risk talk (held input = new network input + steering prediction). The model (T341) follows the look part; the lunge is in the game.
+
+  Taurus: medium size, very low speed*, medium health, two lights.
+
+  Ability: Charge: no recharge time. While spacebar is pressed, lock movement straight forward and disable mech rotation. Accelerate forward linearly, starting at normal (slow) speed and scaling. Releasing spacebar decelerates quickly, not instant. Release instantly unlocks steering and directional movement, so turning quickly and pressing spacebar again can preserve a small amount of the boost.
+
+  While spacebar is pressed, deal moderate damage to colliding mechs based on relative speed. Floor for damage should be pretty high; no minor damage from repeated small hits. Red and maroon with some black. Crimson emissives. Shaped like a hunched minotaur, horns in front. Light weapons instead of arms. While charging, emit red glow that intensifies with speed.
