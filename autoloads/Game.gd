@@ -612,12 +612,14 @@ func host(port: int = 8910) -> void:
 ## T385: signed in and joining the server the account lives on -> fetch a single-use join
 ## ticket over TLS first (the session itself never goes on the unencrypted game
 ## connection, and never to any other server). A coroutine then; callers don't wait.
+## account["game_port"]: where that server's game port is reached when it is not the port
+## signed in to (the harness's chaos proxy stands in front of the game port only).
 var _join_ticket := ""
 
 func join(ip: String, port: int = 8910) -> void:
 	_join_ticket = ""
-	if not account.is_empty() and String(account["host"]).to_lower() == ip.to_lower() and int(account["port"]) == port:
-		var r: Dictionary = await account_request(ip, port, {"op": "ticket", "session": account["session"]})
+	if not account.is_empty() and String(account["host"]).to_lower() == ip.to_lower() and int(account.get("game_port", account["port"])) == port:
+		var r: Dictionary = await account_request(account["host"], int(account["port"]), {"op": "ticket", "session": account["session"]})
 		_join_ticket = r.get("ticket", "") if r.get("ok", false) and r.get("ticket") is String else ""
 		if _join_ticket == "":
 			print("[Game] no join ticket (%s): joining as a guest" % r.get("error", "?"))
