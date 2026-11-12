@@ -272,6 +272,15 @@ func _sync_next_match() -> void:
 		_sync_root = _sync_dir.trim_suffix("/")
 	_sync_dir = _sync_root.path_join("match%d" % _sync_match)
 	DirAccess.make_dir_recursive_absolute(_sync_dir)
+	# T386: a dedicated server is ONE session for as long as it runs (weeks), so the
+	# per-session SESSIONS_KEEP never pruned it: ~5 MB a minute of play until the disk was
+	# full. Keep the newest SESSIONS_KEEP matches (match 1's files sit in the root).
+	var old := _sync_match - SESSIONS_KEEP
+	if _recording and dedicated and old == 1:
+		for f in DirAccess.get_files_at(_sync_root):
+			DirAccess.remove_absolute(_sync_root.path_join(f))
+	elif _recording and dedicated and old > 1:
+		_rm_tree(_sync_root.path_join("match%d" % old))
 
 func _physics_process(_delta: float) -> void:
 	if not prof_on:  # T165 profiling shim (harness sync logging is test-only cost)
