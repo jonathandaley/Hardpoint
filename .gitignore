@@ -22,3 +22,6 @@ sessions_in/
 *~
 \#*\#
 .#*
+
+# local-only notes (e.g. open security findings, T290): never pushed
+*.local.md
