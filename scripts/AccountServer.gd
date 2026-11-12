@@ -64,6 +64,18 @@ func _load_or_make_key() -> CryptoKey:
 	_lock_down(KEY_PATH)
 	return key
 
+## Write-then-rename: a crash or power cut in the middle of a save must leave the old
+## account file, not half of the new one (the store is every account there is). Caller
+## holds _mx.
+func _save_store() -> void:
+	var tmp := STORE + ".tmp"
+	if _store.save(tmp) != OK:
+		push_error("[Accounts] could not write %s" % tmp)
+		return
+	_lock_down(tmp)
+	if DirAccess.rename_absolute(tmp, STORE) != OK:
+		push_error("[Accounts] could not replace %s" % STORE)
+
 ## Owner-only (0600): the TLS private key and the account store are not for other users
 ## of the machine to read.
 func _lock_down(path: String) -> void:
@@ -217,7 +229,7 @@ func handle(line: String, addr: String = "") -> Dictionary:
 			_store.set_value(email, "iter", PBKDF2_ITER)
 			_store.set_value(email, "profile", {"pilot_name": callsign, "elo": 1000, "xp": 0, "level": 1,
 				"coins": 0, "wins": 0, "losses": 0, "skills": {}})
-			_store.save(STORE)
+			_save_store()
 			_mx.unlock()
 			print("[Accounts] signup: %s" % email)
 			return _session_reply(email)
@@ -306,7 +318,7 @@ func profile(email: String) -> Dictionary:
 func save_profile(email: String, prof: Dictionary) -> void:
 	_mx.lock()
 	_store.set_value(email, "profile", prof)
-	_store.save(STORE)
+	_save_store()
 	_mx.unlock()
 
 ## PBKDF2-HMAC-SHA256, one 32-byte block (RFC 8018; dkLen = hLen).

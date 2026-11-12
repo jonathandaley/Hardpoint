@@ -569,7 +569,7 @@ func account_request(host_addr: String, port: int, req: Dictionary) -> Dictionar
 				sent = true
 			if tls.get_available_bytes() > 0:
 				buf.append_array(tls.get_data(tls.get_available_bytes())[1])
-				if buf.find(10) >= 0:
+				if buf.find(10) >= 0 or buf.size() > 65536:  # V61: a server's reply is one short line
 					break
 		elif st != StreamPeerTLS.STATUS_HANDSHAKING:
 			break
@@ -1420,10 +1420,6 @@ func broadcast_lobby() -> void:
 	_dedicated_lobby_changed()  # T204: every lobby change (join, leave, ready, squad)
 
 # ---- Squad RPC (T113) ----
-
-# Infer slot_size from path naming convention: *Heavy* = 1, else 0 (V17).
-func _weapon_size_from_path(path: String) -> int:
-	return 1 if "Heavy" in path else 0
 
 # V17 / V61: one squad entry as a client sent it -> {mech, weapons} rebuilt from the hangar's
 # own lists (Lobby.ROSTER, Lobby.WEAPON_CATALOG), or {} = refused. Nothing the client sent is

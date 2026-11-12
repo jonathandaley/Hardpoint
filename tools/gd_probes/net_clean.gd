@@ -112,6 +112,12 @@ func _ready() -> void:
 		_fail("one address made %d accounts in an hour (limit %d)" % [made, srv.SIGNUPS_PER_HOUR])
 	if not srv.handle(JSON.stringify({"op": "login", "email": "ace@example.com", "password": pw}), "10.7.7.7").get("ok"):
 		_fail("another address was caught by somebody else's budget")
+	# T387: the store is replaced whole (write + rename), never left half-written
+	if FileAccess.file_exists("user://accounts.cfg.tmp"):
+		_fail("a temp account file was left behind")
+	var back := ConfigFile.new()
+	if back.load("user://accounts.cfg") != OK or not back.has_section("ace@example.com"):
+		_fail("the saved account file does not load back")
 	# files: owner-only
 	if OS.get_name() != "Windows":
 		srv._lock_down("user://accounts.cfg")
