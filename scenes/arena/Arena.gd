@@ -135,13 +135,18 @@ func _toggle_overhead() -> void:
 
 # Perpendicular to the SW-NE team axis; mechs fan out along this direction.
 
+# V61: rosters and late-join state reach a client from the server, so the paths in them are
+# only ever loaded from the game's own mech / weapon folders (null = refused).
+static func _load_mech_def(path) -> Resource:
+	return ResourceLoader.load(path) if Game.safe_res(path, "res://resources/mechs/", ".tres") else null
+
 func _slots_with_weapon_paths(slots: Array, weapon_paths: Array) -> Array:
 	if weapon_paths.is_empty():
 		return slots
 	var result: Array = []
 	for i in slots.size():
 		if i < weapon_paths.size() and weapon_paths[i] != "":
-			var scene: PackedScene = ResourceLoader.load(weapon_paths[i])
+			var scene: PackedScene = ResourceLoader.load(weapon_paths[i]) if Game.safe_res(weapon_paths[i], "res://scenes/weapons/", ".tscn") else null
 			if scene != null:
 				var s = slots[i].duplicate()
 				s.weapon_scene = scene
@@ -257,7 +262,7 @@ func _spawn_mechs_mp() -> void:
 			push_error("[Arena] MP: empty squad for peer %d" % entry["peer_id"])
 			continue
 		var mech_path: String = squad[0].get("mech", "")
-		var mech_def = ResourceLoader.load(mech_path) if mech_path != "" else null
+		var mech_def = _load_mech_def(mech_path)
 		if mech_def == null:
 			push_error("[Arena] MP: cannot load mech_def '%s'" % mech_path)
 			continue
@@ -667,7 +672,7 @@ func _build_mp_stats() -> Array:
 func _on_peer_disconnected_in_match(id: int) -> void:
 	if not multiplayer.is_server():
 		return
-	var tok: String = Game.mp_lobby["peers"].get(id, {}).get("token", "")
+	var tok: String = Game.peer_token(id)  # V61: server-private, not in the lobby dict
 	if tok != "" and not _match_over:
 		_held[tok] = {"old": id, "t": Time.get_ticks_msec() * 0.001}  # T206: slot held HOLD_S
 	if _match_over or _disconnected_peers.has(id):
@@ -756,7 +761,7 @@ func _apply_late_state(st: Dictionary) -> void:
 	if old > 0:
 		_remap_peer(old, me)
 	for e in st["mechs"]:
-		var def = ResourceLoader.load(e["def"]) if String(e["def"]) != "" else null
+		var def = _load_mech_def(e["def"])
 		if def == null:
 			_team_mechs[int(e["t"])].append(null)
 			continue
@@ -963,15 +968,22 @@ func _ride_pod(pod: Node3D) -> void:
 
 # Server-side validation and dispatch for squad slot selection (V35, V41).
 func _process_pick_next_mech(sender: int, slot_idx: int, spawn: int) -> void:
-	if not _peer_slot_used.has(sender):
-		push_error("[Arena] _process_pick_next_mech: unknown sender %d" % sender)
+	if _match_over or not _peer_slot_used.has(sender):
+		Game.net_refuse(sender, "pick: not a player in this match")
 		return
+	# V61 (T384): one live mech per player -- the next one only once the current one is gone
+	# (a modified client asked for all five squad mechs at once and got them)
+	for t in 2:
+		for m in _team_mechs[t]:
+			if is_instance_valid(m) and int(m.owner_peer_id) == sender and not m.is_dead:
+				Game.net_refuse(sender, "pick: its mech is still alive")
+				return
 	var slot_used: Array = _peer_slot_used[sender]
 	if slot_idx < 0 or slot_idx >= slot_used.size():
-		push_error("[Arena] _process_pick_next_mech: invalid slot %d for %d" % [slot_idx, sender])
+		Game.net_refuse(sender, "pick: no such slot")
 		return
 	if slot_used[slot_idx]:
-		push_error("[Arena] _process_pick_next_mech: slot %d already used by %d" % [slot_idx, sender])
+		Game.net_refuse(sender, "pick: slot already used")
 		return
 	var roster: Array = Game.mp_active_match["roster"]
 	var squad: Array = []
@@ -984,10 +996,10 @@ func _process_pick_next_mech(sender: int, slot_idx: int, spawn: int) -> void:
 	if squad.is_empty() or slot_idx >= squad.size():
 		return
 	if squad[slot_idx].get("mech", "") == "":
-		push_error("[Arena] _process_pick_next_mech: empty mech at slot %d for %d" % [slot_idx, sender])
+		Game.net_refuse(sender, "pick: empty slot")
 		return
 	if spawn < 0 or spawn >= spawn_points(peer_team).size():
-		push_error("[Arena] _process_pick_next_mech: invalid spawn %d for %d" % [spawn, sender])
+		Game.net_refuse(sender, "pick: no such spawn point")
 		return
 	_peer_slot_used[sender][slot_idx] = true
 	_rpc_spawn_next_mech.rpc(sender, slot_idx, peer_team, spawn)
@@ -1021,7 +1033,7 @@ func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int, spawn: int) ->
 	var mech_path: String = squad[slot_idx].get("mech", "")
 	if mech_path == "":
 		return
-	var mech_def = ResourceLoader.load(mech_path)
+	var mech_def = _load_mech_def(mech_path)
 	if mech_def == null:
 		push_error("[Arena] _rpc_spawn_next_mech: cannot load '%s'" % mech_path)
 		return
@@ -1492,7 +1504,7 @@ func _rpc_spawn_next_bot(ri: int, slot: int, spawn: int) -> void:
 	if ri < 0 or ri >= roster.size() or slot >= roster[ri]["squad"].size():
 		return
 	var entry: Dictionary = roster[ri]
-	var mech_def = ResourceLoader.load(entry["squad"][slot].get("mech", ""))
+	var mech_def = _load_mech_def(entry["squad"][slot].get("mech", ""))
 	if mech_def == null:
 		push_error("[Arena] _rpc_spawn_next_bot: cannot load squad slot %d of roster %d" % [slot, ri])
 		return

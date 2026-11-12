@@ -289,11 +289,12 @@ static func _build_roster() -> Array:
 		var pid: int = peer_ids[i]
 		var team: int = i % 2
 		var entry: Dictionary = Game.mp_lobby["peers"][pid]
+		var sq: Array = entry.get("squad", [])
 		roster.append({
 			"slot_idx": slot_idx,
 			"peer_id":  pid,
 			"team":     team,
-			"squad":    entry.get("squad", _default_bot_squad(0)),
+			"squad":    sq if not sq.is_empty() else _default_bot_squad(0),  # T384: none accepted yet
 			"bot_id":   -1,
 		})
 		slot_idx += 1

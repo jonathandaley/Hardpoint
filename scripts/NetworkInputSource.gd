@@ -15,14 +15,19 @@ var _ability: bool = false
 var _last_presses: Array = [0, 0, 0, 0, 0, 0]  # T158: last cumulative counts seen
 
 func push_input(payload: Dictionary) -> void:
-	_move_dir = payload.get("move", Vector2.ZERO)
+	# V41 / V61: every field is a client's claim -- wrong type = ignored, values bounded
+	var mv = payload.get("move")
+	if mv is Vector2 and mv.is_finite():
+		_move_dir = Vector2(clampf(mv.x, -1.0, 1.0), clampf(mv.y, -1.0, 1.0))
 	# V47: aim arrives absolute (latest wins), so a lost packet is healed by the next
 	# one and the server's own sensitivity never touches it. V41: untrusted input.
 	var aim = payload.get("aim")
 	if aim is Vector2 and aim.is_finite():
 		_abs_aim = aim
-	_fire_primary = payload.get("fire_prim", false)
-	_fire_secondary = payload.get("fire_sec", false)
+	var fp = payload.get("fire_prim")
+	var fs = payload.get("fire_sec")
+	_fire_primary = fp is bool and fp
+	_fire_secondary = fs is bool and fs
 	# T158/V47: one-shots arrive as cumulative press counts [reload, ability, slot0..3];
 	# new presses = diff vs the last packet, so a lost packet is healed by the next.
 	# ponytail: presses closer than one packet (2 ticks) collapse -- one reload, and a
@@ -34,7 +39,7 @@ func push_input(payload: Dictionary) -> void:
 		if typeof(c[i]) != TYPE_INT:
 			return  # V41: malformed, drop the whole update
 	for i in 6:
-		var n: int = c[i] - int(_last_presses[i])
+		var n: int = clampi(c[i], 0, 1 << 30) - int(_last_presses[i])
 		if n <= 0:
 			continue
 		if i == 0:
@@ -43,7 +48,8 @@ func push_input(payload: Dictionary) -> void:
 			_ability = true
 		elif n % 2 == 1:
 			_slot_toggle = i - 2
-	_last_presses = c.duplicate()
+	for i in 6:
+		_last_presses[i] = clampi(c[i], 0, 1 << 30)
 
 func get_move_direction() -> Vector2:
 	return _move_dir

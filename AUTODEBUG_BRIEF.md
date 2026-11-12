@@ -23,8 +23,8 @@ Plan of record: `docs/MP_AUTODEBUG_PLAN.md` §9. Queue: SPEC.md §T.
      expect_fail (strict xfail in sync_compare) so the suite stays green; the fix
      task removes the xfail.
    - Bug found → backprop skill (§B row, §V if it would catch recurrence).
-4. **Verify.** `python3 tools/run_suite.py` all green (~15 min: ~33 scenarios + ~120 gd_probes,
-   probes 6-wide since T292). Sim or RNG code touched → also `python3 tools/selftest.py`. Netcode touched
+4. **Verify.** `python3 tools/run_suite.py` all green (~18 min: ~33 scenarios + ~120 gd_probes,
+   probes 6-wide since T292, then the `security` step: T290's attack run, alone: `--only security`). Sim or RNG code touched → also `python3 tools/selftest.py`. Netcode touched
    (RPCs, snapshots, sync, transitions) → also `python3 tools/run_suite.py --net wifi,bad --no-probes`
    (~15 min, must stay green). Long-run / perf / leak work → `python3 tools/run_suite.py --soak --only
    soak_match` (~15 min).
@@ -82,6 +82,12 @@ red -> bisect the local commits (git stash / checkout), fix or drop the culprit 
 - **3 strikes.** Three distinct failed approaches on one task → revert
   uncommitted work, journal BLOCKED with symptoms + what was tried, leave row `~`,
   PushNotification, move on. Never loop on one bug.
+- **Network security (V61 / V62, docs/SECURITY.md).** Any task touching an `@rpc`, the join
+  handshake, the lobby dict, accounts, or data a server sends a client: read
+  docs/SECURITY.md first. A new `any_peer` RPC or handshake / account field needs its attack
+  in `tools/security/` in the same task. The suite's `security` step must stay at 0 VULN;
+  never loosen it, the net_security oracle's lists, or a limit constant to get green --
+  that is a NEEDS_HUMAN question.
 - **Change budget.** Touch only files the task needs. No refactors, no "while
   I'm here". Respect every §V and the §C GDScript landmines.
 - **Revert rules.** Fix breaks determinism selftest → revert, BLOCK. >20% of
