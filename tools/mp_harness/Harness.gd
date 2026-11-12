@@ -267,6 +267,8 @@ func _account_signup(acct: Dictionary) -> bool:
 		_menu_fail("account signup: %s" % reply.get("error", "?"))
 		return false
 	Game.sign_in("127.0.0.1", _port, String(acct["email"]).to_lower(), reply)
+	if _connect_port > 0:
+		Game.account["game_port"] = _connect_port  # T385: the same server, reached through the chaos proxy
 	print("[Harness] account signed in: %s" % Game.account["email"])
 	Game.account_profile_updated.connect(func() -> void:
 		print("[Harness] account_profile elo=%d" % int(Game.profile.get("elo", 0))))
