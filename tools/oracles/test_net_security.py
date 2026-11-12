@@ -20,6 +20,7 @@ CASES = {
     "bytes_to_var elsewhere": 'func f(b):\n\treturn bytes_to_var(b)\n',
     "exec": 'func f():\n\tOS.execute("sh", [])\n',
     "unsafe tls": 'func f():\n\treturn TLSOptions.client_unsafe()\n',
+    "session in the hello": 'func _on_mp_peer_authenticating(id):\n\tvar hello = "token:" + account["session"]\n',
     "bare conversion": GOOD.replace("_rpc_set_ready(ready: bool)", "_rpc_send_meta(meta: Dictionary)") + '\tvar e := int(meta.get("elo", 0))\n',
 }
 
