@@ -101,9 +101,10 @@ func _ready() -> void:
 	# ponytail: MovementLogger records a CSV + prints a stuck-% analysis on EVERY
 	# arena load, prod included (115-line diagnostic). Gate behind a debug flag or
 	# only instantiate when profiling, so shipped matches don't pay for it.
-	_movement_logger = load("res://autoloads/MovementLogger.gd").new()
-	add_child(_movement_logger)
-	_movement_logger.start_session()
+	if not Game.dedicated:  # T387: one CSV per match, never pruned -- not on a server that runs for weeks
+		_movement_logger = load("res://autoloads/MovementLogger.gd").new()
+		add_child(_movement_logger)
+		_movement_logger.start_session()
 	SoundManager.play_music("arena")
 	print("[Arena] Match started. Score to drain: %d" % match_node.score_limit)
 
