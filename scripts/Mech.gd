@@ -21,7 +21,6 @@ signal damaged
 signal damage_event(amount: float, source: Node)  # T243: who hit whom, for the balance tester
 
 @export var base_walk_speed: float = 3.15
-@export var base_reload_rate: float = 1.0
 @export var max_health: float = 500.0
 @export var team: int = 0
 @export var turn_acceleration: float = 60.0   # m/s² per axis - velocity direction change rate

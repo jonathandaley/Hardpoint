@@ -1,12 +1,10 @@
 extends CanvasLayer
 
-@onready var health_bar_bg: ColorRect = $HealthBarBG
 @onready var health_bar_fg: ColorRect = $HealthBarFG
 @onready var score_label: Label = $ScoreLabel
 @onready var crosshair: Control = $Crosshair
 @onready var damage_flash: ColorRect = $DamageFlash
 @onready var result_label: Label = $ResultLabel
-@onready var restart_label: Label = $RestartLabel
 @onready var shield_bar_bg: ColorRect = $ShieldBarBG
 @onready var shield_bar_fg: ColorRect = $ShieldBarFG
 @onready var bot_health_bar: ColorRect = $BotHealthBar

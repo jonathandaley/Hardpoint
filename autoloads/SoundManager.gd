@@ -121,11 +121,6 @@ func stop_music() -> void:
 	if _music_player != null:
 		_music_player.stop()
 
-func set_bus_volume(bus_name: String, db: float) -> void:
-	var idx := AudioServer.get_bus_index(bus_name)
-	if idx >= 0:
-		AudioServer.set_bus_volume_db(idx, db)
-
 func get_sfx_stream(key: String) -> AudioStream:
 	return _load_sfx(key)
 
