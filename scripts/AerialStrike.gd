@@ -29,6 +29,8 @@ func _fire_burst() -> void:
 			return
 		if not is_instance_valid(lock_target):
 			break
+		if not Game.mp_live and not (multiplayer.multiplayer_peer is OfflineMultiplayerPeer):
+			return  # V52 (T396): the match stopped streaming mid-burst; clients are leaving the Arena
 		_spawn_rocket(lock_target)
 		await get_tree().create_timer(burst_interval).timeout
 
