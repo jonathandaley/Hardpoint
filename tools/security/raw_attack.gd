@@ -10,6 +10,7 @@ const HOST := "127.0.0.1"
 const SYS := 7
 var _port := 0
 var _victim := 0
+var _ver := 0  # --sec-ver=<Game.NET_VERSION> (the driver reads it from Game.gd; no project code runs here)
 var _join_only := ""  # --sec-join-only=<check name>: just "can an honest stranger join right now?"
 var _rng := RandomNumberGenerator.new()
 
@@ -19,6 +20,8 @@ func _initialize() -> void:
 			_port = int(a.get_slice("=", 1))
 		elif a.begins_with("--sec-victim="):
 			_victim = int(a.get_slice("=", 1))
+		elif a.begins_with("--sec-ver="):
+			_ver = int(a.get_slice("=", 1))
 		elif a.begins_with("--sec-join-only="):
 			_join_only = a.get_slice("=", 1)
 	_rng.seed = 290 + Time.get_ticks_usec() % 1000
@@ -35,10 +38,21 @@ func _honest_join() -> bool:
 	var c := _connect(_id(), 3000, "127.0.0.2")
 	if c.is_empty():
 		return false
-	_send(c, _auth("token:honest%d" % _rng.randi_range(0, 99999)))
-	var ok: bool = int(_pump(c, 3000)["bytes"]) > 0
+	_send(c, _hello("honest%d" % _rng.randi_range(0, 99999)))
+	var ok := _welcomed(_pump(c, 3000))
 	_close(c)
 	return ok
+
+# A current client's hello (T388: token | join ticket | version).
+func _hello(token: String) -> PackedByteArray:
+	return _auth("token:%s||%d" % [token, _ver])
+
+# Did the server answer a hello with "ok" (lobby) or a live match (late-join state), not a refusal text?
+func _welcomed(got: Dictionary) -> bool:
+	for p in got["pkts"]:
+		if (p as PackedByteArray).slice(2).get_string_from_utf8() == "ok" or (p as PackedByteArray).size() > 100:
+			return true
+	return false
 
 func _say(check: String, why: String = "") -> void:
 	print("[sec] %s: %s" % [check, "OK" if why == "" else "VULN " + why])
@@ -100,14 +114,34 @@ func _run() -> void:
 		_say("raw_connect", "could not open an ENet connection to %s:%d (is the server up?)" % [HOST, _port])
 		quit(1)
 		return
-	_send(c, _auth("token:rawpeer0"))
+	_send(c, _hello("rawpeer0"))
 	var first: Dictionary = _pump(c, 1500)
 	var one_reply: int = first["bytes"]
 	print("[sec] info: first hello answered with %d bytes in %d packets" % [one_reply, (first["pkts"] as Array).size()])
 
+	_say("honest_hello", "" if _welcomed(first) else "a current-version hello was not welcomed (stale --sec-ver?)")
+
+	# 0b. T388: a hello with no / another / a junk version is told why and never admitted
+	for h in ["token:old", "token:old||0", "token:old||%d" % (_ver + 1), "token:old||-1", "token:old||%dx" % _ver,
+			"token:old||%d|%d" % [_ver + 1, _ver], "token:old|%d" % _ver, "token:old||" + "9".repeat(40)]:
+		var v := _connect(_id())
+		if v.is_empty():
+			continue
+		_send(v, _auth(h))
+		var ans: Dictionary = _pump(v, 1200)
+		var told := false
+		for p in ans["pkts"]:
+			var t: String = (p as PackedByteArray).slice(2).get_string_from_utf8()
+			told = told or t.contains("Update the game") or t.contains("older version")
+		_send(v, PackedByteArray([SYS, 0]))  # "auth complete" anyway
+		var after: Dictionary = _pump(v, 2600)
+		_say("version_gate(%s)" % h.substr(9).left(12), "" if told and not _welcomed(ans) and bool(after["dropped"])
+			else "hello '%s': told=%s welcomed=%s dropped=%s" % [h.left(30), told, _welcomed(ans), after["dropped"]])
+		_close(v)
+
 	# 1. repeated hellos: each one must not cost the server another full answer
 	for i in 300:
-		_send(c, _auth("token:rawpeer0"))
+		_send(c, _hello("rawpeer0"))
 	var spam: Dictionary = _pump(c, 2500)
 	_say("hello_spam", "" if int(spam["bytes"]) <= maxi(one_reply, 64) * 3 or bool(spam["dropped"])
 		else "300 repeated hellos (~4 KB) were answered with %d bytes: every one costs the server a fresh reply before any login" % spam["bytes"])
@@ -156,7 +190,7 @@ func _run() -> void:
 			continue
 		c = _connect(id, 1500)
 		if not c.is_empty():
-			_send(c, _auth("token:idthief"))
+			_send(c, _hello("idthief"))
 			_pump(c, 1000)
 			_close(c)
 	print("[sec] info: id collision attempts sent (victim id %d); the driver checks the victim stayed connected" % _victim)
@@ -165,7 +199,7 @@ func _run() -> void:
 	c = _connect(_id())
 	var admitted := false
 	if not c.is_empty():
-		_send(c, _auth("token:fuzzer"))
+		_send(c, _hello("fuzzer"))
 		var got: Dictionary = _pump(c, 1500)
 		var lobby := false
 		for p in got["pkts"]:

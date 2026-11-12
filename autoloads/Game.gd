@@ -726,6 +726,10 @@ var _peer_accounts: Dictionary = {}  # server: peer id -> account email (its joi
 # one, silence past HELLO_TIMEOUT_S, or too many connections from one address drops it at
 # once, so an unauthenticated peer can cost us one small reply and one slot for a few seconds.
 const HELLO_MAX_BYTES := 256
+## T388: both ends must speak the same protocol. Bump on ANY change to an @rpc signature,
+## the hello / handshake, or the lobby / roster / late-join shapes (tools/oracles/net_security.py
+## hashes the @rpc signatures and fails the suite until this is bumped with them).
+const NET_VERSION := 1
 const HELLO_TIMEOUT_S := 4.0
 const MAX_PENDING_PER_ADDR := 3   # connections still in the handshake, per address
 const MAX_PEERS_PER_ADDR := 8     # calibration knob: players behind one router (LAN party)
@@ -837,10 +841,9 @@ func _on_mp_peer_authenticating(id: int) -> void:
 				_drop_pending(id, "no hello"))
 		return
 	server_heard = false  # B101
-	var hello := "token:" + player_token()
-	if _join_ticket != "":
-		hello += "|" + _join_ticket  # T207 / T385: ties this peer to the account, once
-		_join_ticket = ""
+	# hello = token:<rejoin token>|<join ticket or nothing>|<NET_VERSION>
+	var hello := "token:%s|%s|%d" % [player_token(), _join_ticket, NET_VERSION]  # T207 / T385: the ticket ties this peer to the account, once
+	_join_ticket = ""
 	(multiplayer as SceneMultiplayer).send_auth(id, hello.to_utf8_buffer())
 
 func _on_mp_auth(id: int, data: PackedByteArray) -> void:
@@ -855,9 +858,16 @@ func _on_mp_auth(id: int, data: PackedByteArray) -> void:
 		var msg := data.get_string_from_utf8()
 		if msg.begins_with("token:") and not p["hello"]:
 			p["hello"] = true
-			if multiplayer.get_peers().size() >= MAX_PEERS:
-				smp.send_auth(id, "The server is full".to_utf8_buffer())  # the joiner shows it and leaves (T168)
-				get_tree().create_timer(2.0, true).timeout.connect(_drop_pending.bind(id, "server full"))
+			var ver_s := msg.substr(6).get_slice("|", 2)  # T388; absent (a client from before it) = 0
+			var ver := int(ver_s) if ver_s.length() <= 6 and ver_s.is_valid_int() else 0
+			var sorry := ""
+			if ver != NET_VERSION:
+				sorry = "Update the game to play here" if ver < NET_VERSION else "This server runs an older version of the game"
+			elif multiplayer.get_peers().size() >= MAX_PEERS:
+				sorry = "The server is full"
+			if sorry != "":
+				smp.send_auth(id, sorry.to_utf8_buffer())  # the joiner shows it and leaves (T168)
+				get_tree().create_timer(2.0, true).timeout.connect(_drop_pending.bind(id, sorry))
 				return
 			_late_tokens[id] = _clean_token(msg.substr(6).get_slice("|", 0))
 			var ticket := _clean_token(msg.substr(6).get_slice("|", 1))  # T207 / T385 ("" = guest)

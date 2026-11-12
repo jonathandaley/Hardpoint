@@ -63,13 +63,19 @@ Two ports face the internet on a dedicated server:
 14. **Debug things stay out of reach of the network**: debug mechs, cheats, harness
     switches are never selectable through an RPC or a handshake field.
 
+15. **Changing what travels on the wire means bumping `Game.NET_VERSION`.** A new or changed
+    `@rpc` function, a new step or field in the join hello, a new shape for the lobby, roster
+    or late-join data: old and new games can no longer talk, so the server must tell the
+    player to update instead of desyncing. The suite fails when an `@rpc` signature changes
+    without a bump (`NET_SIG` in `tools/oracles/net_security.py`); the other shapes are on you.
+
 ## How it is enforced
 
 - `python3 tools/security/run_security.py` starts a real dedicated server on loopback
   and attacks it from outside (hostile game client, raw ENet peer, half-open flood,
   account-endpoint attacker). It must print `0 VULN`. It runs as the `security` step of
   `tools/run_suite.py`.
-- `tools/oracles/net_security.py` (static, in the suite): rules 1, 2, 5, 9, 12.
+- `tools/oracles/net_security.py` (static, in the suite): rules 1, 2, 5, 9, 12, 15.
 - Probes `net_clean` and `accounts`: the cleaning helpers and the account endpoint.
 
 A change that needs one of these loosened is a decision for the user, not for a task.
