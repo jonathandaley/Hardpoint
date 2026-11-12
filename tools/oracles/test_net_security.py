@@ -34,6 +34,10 @@ def main():
         if not ns.scan([("scripts/X.gd", text)]):
             print("FAIL not caught: %s" % name)
             fails += 1
+    if ns.rpc_hash([("scripts/X.gd", GOOD)]) == ns.rpc_hash([("scripts/X.gd", GOOD.replace("ready: bool", "ready: int"))]) \
+            or ns.rpc_hash([("scripts/X.gd", GOOD)]) == ns.rpc_hash([("scripts/X.gd", GOOD.replace('"reliable"', '"unreliable"'))]):
+        print("FAIL rpc_hash did not change with an RPC's parameters / mode (T388)")
+        fails += 1
     real = ns.scan()
     if real:
         print("FAIL the repo itself: %s" % real)

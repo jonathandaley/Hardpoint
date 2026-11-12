@@ -14,8 +14,12 @@ real server).
    and never convert a client's value with a bare `String(` / `int(` / `float(` /`str(`
    on `.get(` of the payload -- the type must be checked first (clean_int, clean_name,
    `is String`, typeof).
+5. T388: the hash of every @rpc signature is recorded with Game.NET_VERSION (NET_SIG).
+   Change an RPC and this fails until NET_VERSION is bumped and NET_SIG updated
+   (`python3 -m oracles.net_security` in tools/ prints the new pair).
 """
 import glob
+import hashlib
 import os
 import re
 
@@ -47,6 +51,9 @@ BANNED = {
 VAR_OK = {("autoloads/Game.gd", "_on_mp_auth")}       # client decoding the server's late-join state
 TLS_UNSAFE_OK = {("autoloads/Game.gd", "account_request")}
 
+NET_SIG = (1, "1fb95d0f66a04ff7")  # (Game.NET_VERSION, rpc_hash()) -- change both together, never the hash alone
+
+_SIG = re.compile(r'@rpc\(([^)]*)\)\s*\n\s*func\s+(\w+)\s*\(([^)]*)\)')
 _FUNC = re.compile(r'^(?:static\s+)?func\s+(\w+)\s*\(', re.M)
 _RPC = re.compile(r'@rpc\(([^)]*)\)\s*\n\s*func\s+(\w+)')
 _BARE = re.compile(r'\b(?:String|int|float|str)\(\s*(?:payload|meta|req|entry)\.get\(')
@@ -63,6 +70,19 @@ def functions(text):
     hits = list(_FUNC.finditer(text))
     return {m.group(1): text[m.start():(hits[i + 1].start() if i + 1 < len(hits) else len(text))]
             for i, m in enumerate(hits)}
+
+
+def rpc_hash(files=None):
+    """One hash over every @rpc function's script, mode, name and parameters."""
+    sigs = sorted("%s|%s|%s|%s" % (rel, re.sub(r'\s+', '', a), f, re.sub(r'\s+', '', params))
+                  for rel, text in (files if files is not None else game_files())
+                  for a, f, params in _SIG.findall(text))
+    return hashlib.sha256("\n".join(sigs).encode()).hexdigest()[:16]
+
+
+def net_version():
+    m = re.search(r'^const NET_VERSION := (\d+)', open(os.path.join(REPO, "autoloads", "Game.gd")).read(), re.M)
+    return int(m.group(1)) if m else -1
 
 
 def scan(files=None):
@@ -93,6 +113,9 @@ def scan(files=None):
                 bad.append("%s %s: an account session on the game connection (unencrypted; join tickets only, T385)" % (rel, name))
             if (name in any_peer or name in ("push_input", "handle")) and _BARE.search(body):
                 bad.append("%s %s: converts a client's value without checking its type first" % (rel, name))
+    if files is None and (net_version(), rpc_hash()) != NET_SIG:
+        bad.append("an @rpc signature or Game.NET_VERSION changed: bump NET_VERSION (old clients must be told to update) "
+                   "and set NET_SIG = (%d, \"%s\") with the bumped version (T388)" % (net_version(), rpc_hash()))
     return bad
 
 
@@ -101,3 +124,7 @@ def run(ctx):
     if bad:
         return base.verdict(NAME, base.FAIL, note="%d network-security rule violations (V61/V62): %s" % (len(bad), "; ".join(bad[:6])))
     return base.verdict(NAME, base.PASS, note="any_peer RPCs classified + guarded, no object decoding / eval / exec (V61, V62)")
+
+
+if __name__ == "__main__":
+    print("NET_SIG = (%d, \"%s\")" % (net_version(), rpc_hash()))

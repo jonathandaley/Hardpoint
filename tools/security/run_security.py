@@ -107,9 +107,10 @@ def main():
             raw_dir = os.path.join(out, "raw")  # outside the project: no game code loads
             os.makedirs(raw_dir)
             shutil.copy(os.path.join(HERE, "raw_attack.gd"), raw_dir)
+            ver = "--sec-ver=" + re.search(r"^const NET_VERSION := (\d+)", open(os.path.join(ROOT, "autoloads", "Game.gd")).read(), re.M).group(1)
             try:
                 r = subprocess.run([args.godot, "--headless", "-s", os.path.join(raw_dir, "raw_attack.gd"), "--",
-                                    "--sec-port=%d" % args.port, "--sec-victim=%d" % victim_id],
+                                    "--sec-port=%d" % args.port, "--sec-victim=%d" % victim_id, ver],
                                    capture_output=True, text=True, timeout=240, cwd=raw_dir)
                 collect(r.stdout)
                 if "[sec] done" not in r.stdout:
@@ -121,7 +122,7 @@ def main():
                                      stdout=subprocess.PIPE, text=True)
             time.sleep(4.0)
             r = subprocess.run([args.godot, "--headless", "-s", os.path.join(raw_dir, "raw_attack.gd"), "--",
-                                "--sec-port=%d" % args.port, "--sec-join-only=halfopen_flood"],
+                                "--sec-port=%d" % args.port, "--sec-join-only=halfopen_flood", ver],
                                capture_output=True, text=True, timeout=60, cwd=raw_dir)
             collect(r.stdout)
             collect(flood.communicate(timeout=30)[0])
