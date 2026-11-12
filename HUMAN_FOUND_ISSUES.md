@@ -1,5 +1,7 @@
 # This file is for humans to list bugs or other issues where Claude can see them. Not all of these are fixable without discussion, but some of them should be able to be fixed autonomously. Fixed bugs should be deleted, the record can live in SPEC. Don't ask questions in this file; move the task, with your question, to NEEDS_HUMAN.md.
 
+Texture leak also occurs in exiting after playing on Corvette, although I did play on Factory earlier in the session. Most of the maps, actually, but Corvette last.
+
 Bots in hangar point their weapons 30 degrees down, should be level.
 
 Health bars and name tags should be above the targeting reticle, instead of crunched into it.
