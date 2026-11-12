@@ -9,6 +9,7 @@ real server).
    `get_remote_sender_id()` in its own body (V41): who is asking is never a parameter.
 3. Game code never decodes objects from the network, never evaluates text as code, never
    starts processes: BANNED below. `bytes_to_var(` only at the audited sites in VAR_OK.
+   The hello never carries an account session (T385: single-use join tickets).
 4. Handlers of client input never `push_error` a refusal (Game.net_refuse: rate-limited),
    and never convert a client's value with a bare `String(` / `int(` / `float(` /`str(`
    on `.get(` of the payload -- the type must be checked first (clean_int, clean_name,
@@ -88,6 +89,8 @@ def scan(files=None):
                     bad.append("%s %s: %s -- %s" % (rel, name, needle.rstrip("("), why or "TLS without certificate checking"))
             if re.search(r'\bbytes_to_var\(', body) and (rel, name) not in VAR_OK:
                 bad.append("%s %s: bytes_to_var outside the audited sites (VAR_OK)" % (rel, name))
+            if name == "_on_mp_peer_authenticating" and "session" in body:
+                bad.append("%s %s: an account session on the game connection (unencrypted; join tickets only, T385)" % (rel, name))
             if (name in any_peer or name in ("push_input", "handle")) and _BARE.search(body):
                 bad.append("%s %s: converts a client's value without checking its type first" % (rel, name))
     return bad

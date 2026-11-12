@@ -600,7 +600,18 @@ func host(port: int = 8910) -> void:
 	multiplayer.multiplayer_peer = peer
 	_session_start()
 
+## T385: signed in and joining the server the account lives on -> fetch a single-use join
+## ticket over TLS first (the session itself never goes on the unencrypted game
+## connection, and never to any other server). A coroutine then; callers don't wait.
+var _join_ticket := ""
+
 func join(ip: String, port: int = 8910) -> void:
+	_join_ticket = ""
+	if not account.is_empty() and String(account["host"]).to_lower() == ip.to_lower() and int(account["port"]) == port:
+		var r: Dictionary = await account_request(ip, port, {"op": "ticket", "session": account["session"]})
+		_join_ticket = r.get("ticket", "") if r.get("ok", false) and r.get("ticket") is String else ""
+		if _join_ticket == "":
+			print("[Game] no join ticket (%s): joining as a guest" % r.get("error", "?"))
 	var peer := ENetMultiplayerPeer.new()
 	var err := peer.create_client(ip, port)
 	if err != OK:
@@ -696,8 +707,7 @@ var late_join = null  # client: the late-join state until Arena applies it
 ## per packet). Mech holds its input stream until then.
 var server_heard := false
 var _late_tokens: Dictionary = {}  # server: joining peer id -> token
-var _peer_sessions: Dictionary = {}  # server: peer id -> account session token (T207)
-var _peer_accounts: Dictionary = {}  # server: peer id -> account email. Private: never in mp_lobby (V61)
+var _peer_accounts: Dictionary = {}  # server: peer id -> account email (its join ticket, T385). Private: never in mp_lobby (V61)
 
 # ---- T384 (V61): the join handshake is the only thing a stranger can reach ----
 # Before a peer is admitted it may send exactly: one hello ("token:..."), and -- only if
@@ -733,7 +743,6 @@ func _forget_peer(id: int) -> void:
 	_pending.erase(id)
 	_peer_addr.erase(id)
 	_late_tokens.erase(id)
-	_peer_sessions.erase(id)
 	_peer_accounts.erase(id)
 	_refusals.erase(id)
 	_rate.erase(id)
@@ -818,8 +827,9 @@ func _on_mp_peer_authenticating(id: int) -> void:
 		return
 	server_heard = false  # B101
 	var hello := "token:" + player_token()
-	if not account.is_empty():
-		hello += "|" + String(account["session"])  # T207: tie this peer to the account
+	if _join_ticket != "":
+		hello += "|" + _join_ticket  # T207 / T385: ties this peer to the account, once
+		_join_ticket = ""
 	(multiplayer as SceneMultiplayer).send_auth(id, hello.to_utf8_buffer())
 
 func _on_mp_auth(id: int, data: PackedByteArray) -> void:
@@ -839,7 +849,11 @@ func _on_mp_auth(id: int, data: PackedByteArray) -> void:
 				get_tree().create_timer(2.0, true).timeout.connect(_drop_pending.bind(id, "server full"))
 				return
 			_late_tokens[id] = _clean_token(msg.substr(6).get_slice("|", 0))
-			_peer_sessions[id] = _clean_token(msg.substr(6).get_slice("|", 1))  # T207 ("" = guest)
+			var ticket := _clean_token(msg.substr(6).get_slice("|", 1))  # T207 / T385 ("" = guest)
+			if ticket != "" and account_server != null:
+				var who: String = account_server.redeem(ticket)
+				if who != "":
+					_peer_accounts[id] = who  # V61: server-private, never in the broadcast lobby
 			var arena := get_tree().current_scene
 			if mp_active_match["roster"].is_empty() or arena == null or not arena.has_method("late_state"):
 				smp.send_auth(id, AUTH_OK.to_utf8_buffer())
@@ -930,9 +944,8 @@ func _rpc_send_meta(meta: Dictionary) -> void:
 	if not net_rate_ok(sender, "meta", 2):
 		return
 	var entry: Dictionary = mp_lobby["peers"][sender]
-	var email: String = account_server.email_for(_peer_sessions.get(sender, "")) if account_server != null else ""
+	var email: String = _peer_accounts.get(sender, "") if account_server != null else ""
 	if email != "":  # T207: a signed-in player's name / ELO / level come from its account
-		_peer_accounts[sender] = email  # V61: server-private, never in the broadcast lobby
 		meta = account_server.profile(email)
 	# V61: a guest's profile is its own claim -- shaped and bounded here, never trusted for more
 	entry["pilot_name"] = clean_name(meta.get("pilot_name"))

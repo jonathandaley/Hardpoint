@@ -83,6 +83,20 @@ func _ready() -> void:
 		_fail("callsign stored as '%s'" % nm.c_escape())
 	if srv.handle(JSON.stringify({"op": "login", "email": "ace@example.com", "password": "p".repeat(5000)})).get("ok") != false:
 		_fail("oversized password not refused")
+	# T385: join tickets -- from a session, single use, short-lived, never from a bad session
+	var sess: String = srv.handle(JSON.stringify({"op": "login", "email": "ace@example.com", "password": pw})).get("session", "")
+	var tk: Dictionary = srv.handle(JSON.stringify({"op": "ticket", "session": sess}))
+	if not tk.get("ok") or String(tk.get("ticket", "")).length() != 64 or tk["ticket"] == sess:
+		_fail("no join ticket for a valid session: %s" % tk)
+	elif srv.redeem(tk["ticket"]) != "ace@example.com" or srv.redeem(tk["ticket"]) != "":
+		_fail("a join ticket must name its account once, then nothing")
+	for bad_s in ["", "0".repeat(64), 5, null]:
+		if srv.handle(JSON.stringify({"op": "ticket", "session": bad_s})).get("ok"):
+			_fail("join ticket issued for the session %s" % str(bad_s))
+	var stale: String = srv.handle(JSON.stringify({"op": "ticket", "session": sess})).get("ticket", "")
+	srv._tickets[stale]["exp"] = Time.get_unix_time_from_system() - 1.0
+	if srv.redeem(stale) != "" or srv.redeem(sess) != "" or srv.redeem("") != "":
+		_fail("an expired ticket / a session / nothing was redeemed as a ticket")
 	# per-address budgets
 	var served := 0
 	for i in srv.REQS_PER_MIN + 20:

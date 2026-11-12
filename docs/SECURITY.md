@@ -58,7 +58,8 @@ Two ports face the internet on a dedicated server:
 13. **Secrets**: passwords only ever travel to the account port (TLS) and are stored as
     salted PBKDF2 hashes; nothing password-, hash- or session-shaped is printed, logged,
     or sent to another player. The game connection is not encrypted (T212): put nothing
-    on it that is worth stealing.
+    on it that is worth stealing. A login session goes only to the account port of the
+    server it belongs to; the game hello carries a single-use join ticket (T385).
 14. **Debug things stay out of reach of the network**: debug mechs, cheats, harness
     switches are never selectable through an RPC or a handshake field.
 

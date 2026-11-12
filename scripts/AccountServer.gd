@@ -36,6 +36,11 @@ var _tcp := TCPServer.new()
 var _tls_opts: TLSOptions = null
 var _conns: Array = []          # [{tls, buf, t}]
 var _sessions: Dictionary = {}  # token -> {email, exp}
+# T385: the game connection is not encrypted (T212), so a session never goes on it. A
+# signed-in client asks HERE (TLS) for a join ticket -- random, single use, TICKET_S -- and
+# puts that in its hello; whoever reads the hello off the wire holds a ticket already spent.
+const TICKET_S := 60.0
+var _tickets: Dictionary = {}   # ticket -> {email, exp}
 var _fails: Dictionary = {}     # email -> {n, until}
 var _store := ConfigFile.new()
 var _mx := Mutex.new()          # requests run on a worker thread (PBKDF2 ~60 ms); store, sessions, fails shared
@@ -174,6 +179,17 @@ func handle(line: String, addr: String = "") -> Dictionary:
 			return _err("not enough points or coins")
 		save_profile(who, after)
 		return {"ok": true, "profile": after}
+	if op == "ticket":  # T385: {op, session} -> {ok, ticket}
+		var who := email_for(_s(req, "session"))
+		if who == "":
+			return _err("sign in again")
+		var ticket := Crypto.new().generate_random_bytes(32).hex_encode()
+		_mx.lock()
+		if _tickets.size() > 2000:
+			_tickets.clear()  # ponytail: unused tickets die after TICKET_S anyway; the asker just asks again
+		_tickets[ticket] = {"email": who, "exp": Time.get_unix_time_from_system() + TICKET_S}
+		_mx.unlock()
+		return {"ok": true, "ticket": ticket}
 	var email := _s(req, "email").strip_edges().to_lower()
 	var password := _s(req, "password")
 	if not _valid_email(email):
@@ -272,6 +288,14 @@ func email_for(session: String) -> String:
 		_sessions.erase(session)
 	_mx.unlock()
 	return out
+
+## T385: the account a join ticket stands for, once ("" = unknown, expired or already used).
+func redeem(ticket: String) -> String:
+	_mx.lock()
+	var t = _tickets.get(ticket)
+	_tickets.erase(ticket)
+	_mx.unlock()
+	return t["email"] if t != null and Time.get_unix_time_from_system() <= float(t["exp"]) else ""
 
 func profile(email: String) -> Dictionary:
 	_mx.lock()
