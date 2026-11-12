@@ -499,26 +499,11 @@ func fire_weapon(slot: int, aim: Vector3 = Vector3.ZERO) -> void:
 # SP: runs directly. MP client: routes to server via RPC (peer_id 1).
 # `source` is the weapon node that produced the damage; needed for server clamp (V32).
 func take_damage(amount: float, source: Node3D = null) -> void:
+	# V25 / V30 / V61 (T384): damage exists on the server only. A client never deals any
+	# (no weapon fires there, V38; projectiles are ghosts) and has no way to ask for some:
+	# the old client->server damage RPC let any connected peer kill any mech.
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
-		var src_path: NodePath = source.get_path() if is_instance_valid(source) else NodePath()
-		rpc_id(1, &"_take_damage_rpc", amount, src_path)
 		return
-	request_damage(amount, source)
-
-# Server-side RPC receiver for damage (T40: validate amount server-side before applying).
-@rpc("any_peer", "reliable")
-func _take_damage_rpc(amount: float, src_path: NodePath) -> void:
-	if not is_inside_tree() or not multiplayer.is_server():  # V50 / B130
-		return
-	var sender := multiplayer.get_remote_sender_id()
-	if not Game.mp_lobby["peers"].has(sender):
-		push_error("[Mech] _take_damage_rpc: unknown sender %d" % sender)
-		return
-	var source: Node3D = null
-	if not src_path.is_empty():
-		var n := get_node_or_null(src_path)
-		if n is Node3D:
-			source = n
 	request_damage(amount, source)
 
 ## Mech that owns `n` (a weapon / projectile source), or null if freed or unowned.
@@ -1106,11 +1091,12 @@ func _rpc_input(seq: int, payload: Dictionary) -> void:
 		return
 	var sender := multiplayer.get_remote_sender_id()
 	if sender != owner_peer_id:
-		push_error("[Mech] _rpc_input: sender %d doesn't own this mech (owner=%d)" % [sender, owner_peer_id])
+		Game.net_refuse(sender, "_rpc_input: not its mech")
 		return
 	last_input_ms = Time.get_ticks_msec()
-	var sh := float(payload.get("shoulder", shoulder))
-	shoulder = 0.0 if absf(sh) < 0.5 else signf(sh)  # V41: only ever -1 / 0 (center, T252) / +1
+	var sh = payload.get("shoulder", shoulder)
+	if typeof(sh) == TYPE_FLOAT and is_finite(sh):
+		shoulder = 0.0 if absf(sh) < 0.5 else signf(sh)  # V41: only ever -1 / 0 (center, T252) / +1
 	var now := Time.get_ticks_msec() / 1000.0
 	while not _rpc_rate_times.is_empty() and now - float(_rpc_rate_times[0]) > 1.0:
 		_rpc_rate_times.pop_front()

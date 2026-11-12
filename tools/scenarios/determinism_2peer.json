@@ -17,6 +17,7 @@
     "spawn_join",
     "prediction_recon",
     "rpc_modes",
+    "net_security",
     "aim_desync"
   ],
   "thresholds": {

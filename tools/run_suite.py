@@ -55,6 +55,16 @@ def main():
     if not args.only and not args.no_probes:
         _run_probes(args, results)
 
+    # T384: the security run -- a real dedicated server attacked from outside (tools/security),
+    # plus the static rules' own self-test. Skipped by --only (unless "security") and --no-probes.
+    if (not args.only and not args.no_probes) or (args.only and "security" in args.only):
+        print("=== security ===", flush=True)
+        sec = [os.path.join(HERE, "security", "run_security.py"), "--out",
+               os.path.join(os.path.abspath(args.out_root), "security")]
+        rc = sh(sec + (["--godot", args.godot] if args.godot else []))
+        rc += sh([os.path.join(HERE, "oracles", "test_net_security.py")])
+        results.append(("security", "PASS" if rc == 0 else "FAIL"))
+
     print("\n=== suite summary ===")
     bad = 0
     for name, verdict in results:

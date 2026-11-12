@@ -424,6 +424,7 @@ func _ready() -> void:
 	smp.auth_callback = _on_mp_auth
 	smp.auth_timeout = AUTH_TIMEOUT_S
 	smp.peer_authenticating.connect(_on_mp_peer_authenticating)
+	smp.peer_authentication_failed.connect(_on_mp_auth_failed)
 	set_process(false)
 	_parse_sync_log_args()
 	set_physics_process(sync_logging_enabled)  # M0.2: zero-cost when flag off
@@ -577,14 +578,25 @@ func sign_out() -> void:
 	profile = {"pilot_name": "Pilot", "wins": 0, "losses": 0, "elo": 1000, "xp": 0, "level": 1, "coins": 0, "skills": {}}
 	_load_profile()
 
+## T384 (V61): two limits, on purpose far apart. MAX_PEERS is how many peers we ADMIT
+## (6 v 6 is the biggest match; later ones are told "server full" in the handshake).
+## ENET_SLOTS is how many connections ENet may hold, admitted or not: a connection costs a
+## slot from its first packet, before it has proven anything, so the pool must be much
+## bigger than the players it serves or a trickle of half-open connections fills it.
+const MAX_PEERS := 12
+const ENET_SLOTS := 1024
+
 func host(port: int = 8910) -> void:
 	var peer := ENetMultiplayerPeer.new()
-	var err := peer.create_server(port)
+	var err := peer.create_server(port, ENET_SLOTS)
 	if err != OK:
 		push_error("Game.host: create_server failed (port %d): %d" % [port, err])
 		mp_join_failed.emit()
 		return
 	_clear_mp_session()
+	# V61: clients talk to the server only. With relay on, any client could address packets
+	# (and any_peer RPCs) straight at another client through us.
+	(multiplayer as SceneMultiplayer).server_relay = false
 	multiplayer.multiplayer_peer = peer
 	_session_start()
 
@@ -624,6 +636,7 @@ func _clear_mp_session() -> void:
 const PEER_TIMEOUT_MS := 45000
 
 func _on_mp_peer_connected(id: int) -> void:
+	_pending.erase(id)  # admitted (its address stays in _peer_addr until it leaves)
 	var enet := multiplayer.multiplayer_peer as ENetMultiplayerPeer
 	if enet != null and (multiplayer.is_server() or id == 1):  # other clients are relayed, not ENet peers here
 		enet.get_peer(id).set_timeout(32, 5000, PEER_TIMEOUT_MS)
@@ -684,10 +697,125 @@ var late_join = null  # client: the late-join state until Arena applies it
 var server_heard := false
 var _late_tokens: Dictionary = {}  # server: joining peer id -> token
 var _peer_sessions: Dictionary = {}  # server: peer id -> account session token (T207)
+var _peer_accounts: Dictionary = {}  # server: peer id -> account email. Private: never in mp_lobby (V61)
+
+# ---- T384 (V61): the join handshake is the only thing a stranger can reach ----
+# Before a peer is admitted it may send exactly: one hello ("token:..."), and -- only if
+# we answered with a live match -- one "ready". Anything else, a second hello, an oversized
+# one, silence past HELLO_TIMEOUT_S, or too many connections from one address drops it at
+# once, so an unauthenticated peer can cost us one small reply and one slot for a few seconds.
+const HELLO_MAX_BYTES := 256
+const HELLO_TIMEOUT_S := 4.0
+const MAX_PENDING_PER_ADDR := 3   # connections still in the handshake, per address
+const MAX_PEERS_PER_ADDR := 8     # calibration knob: players behind one router (LAN party)
+var _pending: Dictionary = {}     # server: peer id -> {hello: bool, late: bool, ready: bool}
+var _peer_addr: Dictionary = {}   # server: peer id -> remote address (pending and admitted)
+
+func _peer_address(id: int) -> String:
+	var enet := multiplayer.multiplayer_peer as ENetMultiplayerPeer
+	var p: ENetPacketPeer = enet.get_peer(id) if enet != null else null
+	return p.get_remote_address() if p != null else ""
+
+## Server: drop a peer that is still in the handshake. Silent and immediate: no reason
+## text for it to parse, and its slot is free again at once.
+func _drop_pending(id: int, why: String) -> void:
+	if not _pending.has(id):
+		return
+	net_refuse(id, "handshake: " + why)
+	_forget_peer(id)
+	var mp := multiplayer.multiplayer_peer
+	if mp != null and mp.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED:
+		(multiplayer as SceneMultiplayer).disconnect_peer(id)  # out of the pending set, no signals
+		if (mp as ENetMultiplayerPeer) != null and (mp as ENetMultiplayerPeer).get_peer(id) != null:
+			mp.disconnect_peer(id, true)  # and reset the ENet peer now (frees the slot)
+
+func _forget_peer(id: int) -> void:
+	_pending.erase(id)
+	_peer_addr.erase(id)
+	_late_tokens.erase(id)
+	_peer_sessions.erase(id)
+	_peer_accounts.erase(id)
+	_refusals.erase(id)
+	_rate.erase(id)
+
+func _on_mp_auth_failed(id: int) -> void:  # left or timed out mid-handshake
+	_forget_peer(id)
+
+# ---- T384 (V61): refusing client input ----
+# Every refusal of something a client sent goes through here: one short log line for the
+# first few per peer, then silence (a hostile client must not be able to fill the disk
+# with our own error messages). Never push_error: a refusal is the server working.
+const REFUSAL_LOG_MAX := 5
+var _refusals: Dictionary = {}  # peer id -> count
+var _rate: Dictionary = {}      # peer id -> {key -> [window start ms, count]}
+
+func net_refuse(id: int, what: String) -> void:
+	var n: int = int(_refusals.get(id, 0)) + 1
+	_refusals[id] = n
+	if n <= REFUSAL_LOG_MAX:
+		print("[sec-refused] peer %d: %s%s" % [id, what.left(120).c_escape(),
+			" (further refusals for this peer are not logged)" if n == REFUSAL_LOG_MAX else ""])
+
+## At most `per_s` calls a second per peer and key; false = over (the caller drops the call).
+func net_rate_ok(id: int, key: String, per_s: int) -> bool:
+	var now := Time.get_ticks_msec()
+	var r: Dictionary = _rate.get(id, {})
+	var w: Array = r.get(key, [now, 0])
+	if now - int(w[0]) >= 1000:
+		w = [now, 0]
+	w[1] = int(w[1]) + 1
+	r[key] = w
+	_rate[id] = r
+	if int(w[1]) > per_s:
+		net_refuse(id, "%s: more than %d a second" % [key, per_s])
+		return false
+	return true
+
+## A display name from a client: printable, no markup or control characters, 16 chars.
+static func clean_name(raw, fallback: String = "Pilot") -> String:
+	if not raw is String:
+		return fallback
+	var out := ""
+	for ch in (raw as String).left(64):
+		var c := ch.unicode_at(0)
+		if c >= 32 and c != 127 and not ch in "[]<>{}\\":
+			out += ch
+	out = out.strip_edges().left(16)
+	return out if out != "" else fallback
+
+## An int a client sent (JSON / Variant: int or float, anything else = `fallback`), clamped.
+static func clean_int(raw, lo: int, hi: int, fallback: int) -> int:
+	if typeof(raw) == TYPE_INT:
+		return clampi(raw, lo, hi)
+	if typeof(raw) == TYPE_FLOAT and is_finite(raw):
+		return clampi(int(clampf(raw, -2.0e9, 2.0e9)), lo, hi)
+	return fallback
+
+## Client: a path the SERVER told us to load must be one of the game's own files of the
+## expected kind (a hostile server must not pick what we load).
+static func safe_res(path, prefix: String, ext: String) -> bool:
+	return path is String and (path as String).begins_with(prefix) and (path as String).ends_with(ext) \
+		and not (path as String).contains("..") and ResourceLoader.exists(path)
 
 func _on_mp_peer_authenticating(id: int) -> void:
 	if multiplayer.is_server():
-		return  # wait for the joiner's token (_on_mp_auth)
+		# wait for the joiner's token (_on_mp_auth) -- but not for long, and not for many
+		var addr := _peer_address(id)
+		var pending_here := 0
+		var all_here := 0
+		for pid in _peer_addr:
+			if _peer_addr[pid] == addr:
+				all_here += 1
+				pending_here += 1 if _pending.has(pid) else 0
+		_peer_addr[id] = addr
+		_pending[id] = {"hello": false, "late": false, "ready": false}
+		if pending_here >= MAX_PENDING_PER_ADDR or all_here >= MAX_PEERS_PER_ADDR:
+			_drop_pending.call_deferred(id, "too many connections from %s" % addr)  # not inside the poll
+			return
+		get_tree().create_timer(HELLO_TIMEOUT_S, true).timeout.connect(func() -> void:
+			if _pending.has(id) and not _pending[id]["hello"]:
+				_drop_pending(id, "no hello"))
+		return
 	server_heard = false  # B101
 	var hello := "token:" + player_token()
 	if not account.is_empty():
@@ -697,29 +825,44 @@ func _on_mp_peer_authenticating(id: int) -> void:
 func _on_mp_auth(id: int, data: PackedByteArray) -> void:
 	var smp := multiplayer as SceneMultiplayer
 	if multiplayer.is_server():  # V41: client bytes are only ever read as text
+		var p = _pending.get(id)
+		if p == null:
+			return  # already dropped (its packets were in the same poll)
+		if data.size() > HELLO_MAX_BYTES:
+			_drop_pending.call_deferred(id, "oversized handshake packet (%d bytes)" % data.size())
+			return
 		var msg := data.get_string_from_utf8()
-		if msg.begins_with("token:"):
-			var token := msg.substr(6).get_slice("|", 0).left(64)
-			_late_tokens[id] = token
-			_peer_sessions[id] = msg.substr(6).get_slice("|", 1).left(64)  # T207 ("" = guest)
+		if msg.begins_with("token:") and not p["hello"]:
+			p["hello"] = true
+			if multiplayer.get_peers().size() >= MAX_PEERS:
+				smp.send_auth(id, "The server is full".to_utf8_buffer())  # the joiner shows it and leaves (T168)
+				get_tree().create_timer(2.0, true).timeout.connect(_drop_pending.bind(id, "server full"))
+				return
+			_late_tokens[id] = _clean_token(msg.substr(6).get_slice("|", 0))
+			_peer_sessions[id] = _clean_token(msg.substr(6).get_slice("|", 1))  # T207 ("" = guest)
 			var arena := get_tree().current_scene
 			if mp_active_match["roster"].is_empty() or arena == null or not arena.has_method("late_state"):
 				smp.send_auth(id, AUTH_OK.to_utf8_buffer())
 				smp.complete_auth(id)
 				return
-			var st: Dictionary = arena.late_state(token)
+			p["late"] = true
+			var st: Dictionary = arena.late_state(_late_tokens[id])
 			st["you"] = id
 			smp.send_auth(id, var_to_bytes(st))
-		elif msg == AUTH_READY:
+		elif msg == AUTH_READY and p["late"] and not p["ready"]:
+			p["ready"] = true
 			smp.send_auth(id, AUTH_GO.to_utf8_buffer())
 			smp.complete_auth(id)
+		else:  # a second hello, "ready" out of turn, or anything else
+			_drop_pending.call_deferred(id, "unexpected handshake packet")
 		return
 	var text := data.get_string_from_utf8()
 	if text == AUTH_OK or text == AUTH_GO:
 		smp.complete_auth(id)
 		return
-	var st = bytes_to_var(data)  # from the server: trusted
-	if st is Dictionary and st.has("mechs"):
+	var st = bytes_to_var(data)  # from the server (no object decoding); paths in it are checked
+	if st is Dictionary and st.has("mechs") and safe_res(st.get("map_path"), "res://resources/maps/", ".tres") \
+			and st.get("roster") is Array:
 		late_join = st
 		mp_active_match = {"map_path": st["map_path"], "roster": st["roster"], "match_seed": st["match_seed"],
 			"mode": st.get("mode", "beacons")}
@@ -735,6 +878,19 @@ func _on_mp_auth(id: int, data: PackedByteArray) -> void:
 func late_join_ready() -> void:
 	late_join = null
 	(multiplayer as SceneMultiplayer).send_auth(1, AUTH_READY.to_utf8_buffer())  # completes on "go"
+
+## A token / session as a client sent it: up to 64 letters and digits, else "" (none).
+static func _clean_token(raw: String) -> String:
+	if raw.length() > 64:
+		return ""
+	for ch in raw:
+		if not (ch >= "0" and ch <= "9" or ch >= "a" and ch <= "z" or ch >= "A" and ch <= "Z" or ch == "_" or ch == "-"):
+			return ""
+	return raw
+
+## Server: the rejoin token a peer presented in its hello ("" = none). Private (V61).
+func peer_token(id: int) -> String:
+	return _late_tokens.get(id, "")
 
 ## T206: per-install id, so a reconnect is recognised (the ENet id changes). Lives in its
 ## own [net] section: a saved pilot_name is what makes a profile (T192), not this.
@@ -764,20 +920,24 @@ func _rpc_request_meta() -> void:
 # Client -> server: delivers profile metadata (V36, V41).
 @rpc("any_peer", "call_remote", "reliable")
 func _rpc_send_meta(meta: Dictionary) -> void:
+	if not multiplayer.is_server():
+		return
 	var sender := multiplayer.get_remote_sender_id()
 	# V41: sender must be a known lobby peer
 	if not mp_lobby["peers"].has(sender):
-		push_error("_rpc_send_meta: unknown sender %d" % sender)
+		net_refuse(sender, "_rpc_send_meta: not in the lobby")
+		return
+	if not net_rate_ok(sender, "meta", 2):
 		return
 	var entry: Dictionary = mp_lobby["peers"][sender]
-	entry["token"] = _late_tokens.get(sender, "")  # T206: the auth token, not a claim in meta
 	var email: String = account_server.email_for(_peer_sessions.get(sender, "")) if account_server != null else ""
 	if email != "":  # T207: a signed-in player's name / ELO / level come from its account
-		entry["account"] = email
+		_peer_accounts[sender] = email  # V61: server-private, never in the broadcast lobby
 		meta = account_server.profile(email)
-	entry["pilot_name"] = str(meta.get("pilot_name", "Pilot"))
-	entry["elo"]        = int(meta.get("elo", 1000))
-	entry["level"]      = int(meta.get("level", 1))
+	# V61: a guest's profile is its own claim -- shaped and bounded here, never trusted for more
+	entry["pilot_name"] = clean_name(meta.get("pilot_name"))
+	entry["elo"]        = clean_int(meta.get("elo"), 100, 4000, 1000)
+	entry["level"]      = clean_int(meta.get("level"), 1, _LEVEL_THRESHOLDS.size() + 1, 1)
 	entry["skills"]     = sanitize_skills(meta.get("skills", {}), entry["level"])  # T332
 	broadcast_lobby()
 
@@ -789,6 +949,7 @@ func _on_mp_peer_disconnected(id: int) -> void:
 	if mp_active_match["roster"].is_empty() and mp_lobby["peers"].has(id):
 		mp_lobby["peers"].erase(id)
 		broadcast_lobby()
+	_forget_peer.call_deferred(id)  # after every handler of this signal (Arena reads peer_token)
 
 func _on_mp_connection_failed() -> void:
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
@@ -1168,7 +1329,8 @@ func _rpc_sync_lobby(data: Dictionary) -> void:
 # a scene the server already left.
 @rpc("authority", "call_remote", "reliable")
 func _rpc_change_scene(path: String) -> void:
-	get_tree().change_scene_to_file(path)
+	if safe_res(path, "res://scenes/", ".tscn"):  # V61: only the game's own scenes
+		get_tree().change_scene_to_file(path)
 	_rpc_transition_ack.rpc_id(1)
 
 # ---- Scene-transition handshake (T159, V52) ----
@@ -1241,45 +1403,50 @@ func broadcast_lobby() -> void:
 func _weapon_size_from_path(path: String) -> int:
 	return 1 if "Heavy" in path else 0
 
-# V17: validate one squad entry dict {mech, weapons}.
-func _validate_squad_entry(entry: Dictionary) -> bool:
-	var mech_path: String = str(entry.get("mech", ""))
-	if mech_path.is_empty() or not ResourceLoader.exists(mech_path):
-		push_error("_validate_squad_entry: invalid mech path '%s'" % mech_path)
-		return false
-	var md = ResourceLoader.load(mech_path)
-	if md == null:
-		push_error("_validate_squad_entry: failed to load mech '%s'" % mech_path)
-		return false
-	var weapons: Array = entry.get("weapons", [])
+# V17 / V61: one squad entry as a client sent it -> {mech, weapons} rebuilt from the hangar's
+# own lists (Lobby.ROSTER, Lobby.WEAPON_CATALOG), or {} = refused. Nothing the client sent is
+# kept as-is: the path must BE a roster mech / a catalog weapon of the slot's size, so no
+# debug mech, no arbitrary resource for the server (and every client) to load, no extra keys.
+func clean_squad_entry(entry) -> Dictionary:
+	var lobby: Script = load("res://scripts/Lobby.gd")
+	if not entry is Dictionary or not entry.get("mech") is String or not (lobby.ROSTER as Array).has(entry["mech"]):
+		return {}
+	var md = ResourceLoader.load(entry["mech"])
+	var weapons = entry.get("weapons", [])
+	if md == null or not weapons is Array:
+		return {}
 	var slots: Array = md.weapon_slots if "weapon_slots" in md else []
-	for i in mini(slots.size(), weapons.size()):
-		var wpn_path: String = str(weapons[i])
-		if wpn_path.is_empty():
-			continue
-		if not ResourceLoader.exists(wpn_path):
-			push_error("_validate_squad_entry: invalid weapon '%s'" % wpn_path)
-			return false
-		var slot = slots[i]
-		var required: int = slot.slot_size if "slot_size" in slot else 0
-		if _weapon_size_from_path(wpn_path) != required:
-			push_error("V17: weapon '%s' wrong size for slot %d (need %d)" % [wpn_path, i, required])
-			return false
-	return true
+	var out: Array = []
+	for i in mini(slots.size(), (weapons as Array).size()):
+		var w = weapons[i]
+		if not w is String:
+			return {}
+		if w != "":
+			var slot = slots[i]
+			var required: int = slot.slot_size if "slot_size" in slot else 0
+			var size := -1
+			for c in lobby.WEAPON_CATALOG:
+				if c["path"] == w:
+					size = int(c["slot_size"])
+			if size != required:
+				return {}
+		out.append(w)
+	return {"mech": entry["mech"], "weapons": out}
 
 # Validate + store squad for a peer, then broadcast. Called directly on server,
 # or via _rpc_set_squad on clients.
 func _apply_squad(peer_id: int, squad: Array) -> void:
-	if not mp_lobby["peers"].has(peer_id):
-		push_error("_apply_squad: unknown peer %d" % peer_id)
+	if not mp_lobby["peers"].has(peer_id) or squad.size() != 5:
+		net_refuse(peer_id, "squad: not in the lobby / not 5 entries")
 		return
-	if squad.size() != 5:
-		push_error("_apply_squad: expected 5 entries, got %d" % squad.size())
-		return
+	var clean: Array = []
 	for entry in squad:
-		if not _validate_squad_entry(entry):
+		var e := clean_squad_entry(entry)
+		if e.is_empty():
+			net_refuse(peer_id, "squad: an entry is not a hangar mech with catalog weapons")
 			return
-	mp_lobby["peers"][peer_id]["squad"] = squad
+		clean.append(e)
+	mp_lobby["peers"][peer_id]["squad"] = clean
 	broadcast_lobby()
 
 # Client -> server: send squad selection (V39, V41).
@@ -1288,7 +1455,8 @@ func _rpc_set_squad(squad: Array) -> void:
 	if not multiplayer.is_server():
 		return
 	var sender := multiplayer.get_remote_sender_id()
-	_apply_squad(sender, squad)
+	if net_rate_ok(sender, "squad", 4):
+		_apply_squad(sender, squad)
 
 # ---- Match lifecycle (T115) ----
 
@@ -1337,7 +1505,7 @@ func _rpc_match_start(map_path: String, roster: Array, match_seed: int, mode: St
 		"mode":       mode,  # T285
 	}
 	# Keep SP loadout map_def in sync so Arena SP path still works.
-	if map_path != "":
+	if safe_res(map_path, "res://resources/maps/", ".tres"):  # V61
 		var md = ResourceLoader.load(map_path)
 		if md != null:
 			loadout["map_def"] = md
@@ -1347,7 +1515,7 @@ func _rpc_match_start(map_path: String, roster: Array, match_seed: int, mode: St
 
 func _apply_ready(peer_id: int, ready: bool) -> void:
 	if not mp_lobby["peers"].has(peer_id):
-		push_error("_apply_ready: unknown peer %d" % peer_id)
+		net_refuse(peer_id, "ready: not in the lobby")
 		return
 	mp_lobby["peers"][peer_id]["ready"] = ready
 	broadcast_lobby()
@@ -1358,7 +1526,8 @@ func _rpc_set_ready(ready: bool) -> void:
 	if not multiplayer.is_server():
 		return
 	var sender := multiplayer.get_remote_sender_id()
-	_apply_ready(sender, ready)
+	if net_rate_ok(sender, "ready", 4):
+		_apply_ready(sender, ready)
 
 # ---- Bot coordination (V5: absorbed from former AIDirector autoload) ----
 
@@ -1390,7 +1559,7 @@ func _rpc_match_end(winner_team: int, stats: Array) -> void:
 func _update_account_profiles(winner_team: int, stats: Array) -> void:
 	for entry in mp_active_match["roster"]:
 		var pid: int = int(entry.get("peer_id", 0))
-		var email: String = mp_lobby["peers"].get(pid, {}).get("account", "")
+		var email: String = _peer_accounts.get(pid, "")
 		if pid < 2 or email == "":
 			continue
 		var before: Dictionary = account_server.profile(email)
@@ -1504,7 +1673,7 @@ func _rpc_ready_for_next() -> void:
 		return
 	var sender := multiplayer.get_remote_sender_id()
 	if not mp_lobby["peers"].has(sender):
-		push_error("_rpc_ready_for_next: unknown sender %d" % sender)
+		net_refuse(sender, "_rpc_ready_for_next: not in the lobby")
 		return
 	_mp_return_confirmations[sender] = true
 	_check_all_ready_for_next()
