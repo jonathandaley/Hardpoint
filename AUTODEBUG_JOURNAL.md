@@ -370,3 +370,4 @@ date|task|outcome|commit|finding|suite
 2026-11-13|T408 verify|DONE|-|suite 171/171; net sweep wifi,bad 62/62|171/171, net 62/62
 2026-11-13|T406|DONE|(this commit)|10 mech descriptions rewritten: class, HP, shield (physical front / energy pool + refill), ability with its key (Cesh STEALTH is SPACE, 24 s on / 24 s recharge -- the old text called it passive), + a line of lore from colours and role; shown on hover over the hangar mech name (descriptions were shown nowhere); Hangar.WEAPON_DESC: a description under each weapon tooltip's numbers; probe mech_descriptions red at HEAD|-
 2026-11-13|T409|DONE|(this commit)|hangar detail preview stands still at the lineup's 3/4 view (no auto spin), < / > under it turn it 45 deg (0.2 s tween, presses add up), drag across it spins it; probe hangar_preview red at HEAD on all four, green; render docs/review/T409/ (tools/art/hangar_detail)|-
+2026-11-13|T406 T409 verify|DONE|-|batch suite 173/173|173/173
