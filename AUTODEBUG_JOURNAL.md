@@ -373,3 +373,4 @@ date|task|outcome|commit|finding|suite
 2026-11-13|T406 T409 verify|DONE|-|batch suite 173/173|173/173
 2026-11-13|T417|DONE|(this commit)|AIInputSource._fire_range: Easy / Normal's 50 m fire floor is capped at 95% of each weapon's own reach (missile LT 30 m, shotgun 40 m were fired from 50 m); legacy movement closes to min(35 m, 90% of that) so a short gun gets in range; rifle bots keep 50 m; probe bot_fire_range red at HEAD (Easy + Normal missile / shotgun at 50 m), green; bot_combat + bot_lock_weapons green|-
 2026-11-13|T417 verify|DONE|-|suite 173/174: bot_lock lock_target = a pre-existing float bug (B139), not T417 (4/4 alone); selftest GREEN|173/174 -> B139
+2026-11-13|B139|DONE|(this commit)|death at <= 0.001 HP: 2.7 HP took 4 hits of 0.9 (float sliver), the bot_lock 'locks dead' failure; probe zero_hp_death red/green|-
