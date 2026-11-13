@@ -583,7 +583,8 @@ func _apply_damage(amount: float, source: Node3D = null) -> void:
 		src_name = src_mech.name
 		src_team = src_mech.get("team")
 	Game.sync_log_event("hit", name, {"amount": snappedf(actual, 0.01), "hp": snappedf(health, 0.01), "src": src_name, "src_team": src_team})
-	if health <= 0.0:
+	# B139: hits summing to the health can leave a float sliver (2.7 - 3 x 0.9 = 4e-16): that's dead
+	if health <= 0.001:
 		health = 0.0
 		Game.sync_log_event("died", name, {})
 		_die()
