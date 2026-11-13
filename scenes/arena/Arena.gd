@@ -1368,7 +1368,19 @@ func spawn_map_powerup(kind := "") -> bool:
 		_drop_rng.seed = hash(["drops", Game.mp_lobby.get("match_seed", 0)])
 	if _nav_region == null or _nav_region.navigation_mesh == null or _nav_region.navigation_mesh.get_polygon_count() == 0:
 		return false
-	var at: Vector3 = NavigationServer3D.map_get_random_point(get_world_3d().navigation_map, 1, true)
+	# T415 (HUMAN_FOUND: "On Badlands, a damage powerup spawned in the sky and floated there."): the
+	# navmesh also covers ruin roofs and wall tops; only a point a mech can walk to from a spawn counts
+	var navmap := get_world_3d().navigation_map
+	var from: Vector3 = spawn_points(0)[0]
+	var at := Vector3.INF
+	for _try in 8:
+		var p: Vector3 = NavigationServer3D.map_get_random_point(navmap, 1, true)
+		var path := NavigationServer3D.map_get_path(navmap, from, p, true)
+		if not path.is_empty() and path[path.size() - 1].distance_to(p) <= 1.5:
+			at = p
+			break
+	if at == Vector3.INF:
+		return false
 	if kind == "":
 		kind = POWERUPS[_drop_rng.randi() % POWERUPS.size()]
 	_rpc_spawn_pickup.rpc(_next_pickup_id, kind, at, 0)
