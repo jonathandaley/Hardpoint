@@ -639,6 +639,19 @@ func sign_out() -> void:
 	profile = {"pilot_name": "Pilot", "wins": 0, "losses": 0, "elo": 1000, "xp": 0, "level": 1, "coins": 0, "skills": {}}
 	_load_profile()
 
+## T403: the account server forgot this session (it restarted: sessions live in its memory,
+## or SESSION_S ran out). Sign out so nothing goes on as a silent guest, and leave the player
+## a notice (MPEntry / Account show it). True when that happened.
+const SESSION_LOST := "Your login expired (the server restarted). Log in again, or join again as a guest."
+var account_notice := ""
+
+func _session_lost(reply: Dictionary) -> bool:
+	if account.is_empty() or reply.get("error", "") != "sign in again":  # AccountServer.ERR_SESSION (a wire value: older servers send it too)
+		return false
+	sign_out()
+	account_notice = SESSION_LOST
+	return true
+
 ## T384 (V61): two limits, on purpose far apart. MAX_PEERS is how many peers we ADMIT
 ## (6 v 6 is the biggest match; later ones are told "server full" in the handshake).
 ## ENET_SLOTS is how many connections ENet may hold, admitted or not: a connection costs a
@@ -673,6 +686,9 @@ func join(ip: String, port: int = 8910) -> void:
 	if not account.is_empty() and String(account["host"]).to_lower() == ip.to_lower() and int(account.get("game_port", account["port"])) == port:
 		var r: Dictionary = await account_request(account["host"], int(account["port"]), {"op": "ticket", "session": account["session"]})
 		_join_ticket = r.get("ticket", "") if r.get("ok", false) and r.get("ticket") is String else ""
+		if _join_ticket == "" and _session_lost(r):
+			mp_join_failed.emit()
+			return
 		if _join_ticket == "":
 			print("[Game] no join ticket (%s): joining as a guest" % r.get("error", "?"))
 	var peer := ENetMultiplayerPeer.new()
@@ -1228,7 +1244,7 @@ func skill_op_on(prof: Dictionary, op: String, key: String) -> Dictionary:
 func account_skill(op: String, key: String) -> bool:
 	var reply: Dictionary = await account_request(account["host"], account["port"],
 		{"op": op, "session": account["session"], "key": key})
-	if not reply.get("ok", false) or account.is_empty():
+	if _session_lost(reply) or not reply.get("ok", false) or account.is_empty():
 		return false
 	account["profile"] = reply["profile"]
 	profile = (reply["profile"] as Dictionary).duplicate(true)
