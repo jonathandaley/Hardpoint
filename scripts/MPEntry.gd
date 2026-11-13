@@ -7,7 +7,7 @@ extends Control
 @onready var _error_label: Label = $ErrorLabel
 
 func _ready() -> void:
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	Game.set_mouse_captured(false)
 	Game.mp_peer_connected.connect(_on_mp_connected)
 	Game.mp_join_failed.connect(_on_mp_join_failed)
 	($TabContainer as TabContainer).current_tab = Game.mp_entry_tab  # T176

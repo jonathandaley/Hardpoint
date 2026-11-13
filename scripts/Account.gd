@@ -7,7 +7,7 @@ var _status: Label
 var _go: Button
 
 func _ready() -> void:
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	Game.set_mouse_captured(false)
 	var signup: bool = Game.get("account_mode") == "signup"
 	var bg := ColorRect.new()
 	bg.color = Color(0.05, 0.05, 0.07)

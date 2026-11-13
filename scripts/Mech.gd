@@ -743,7 +743,7 @@ func make_camera_current() -> void:
 func set_input_source(source: Node) -> void:
 	_input_source = source
 	if source != null and source.has_method("is_human_input") and source.is_human_input():
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		Game.set_mouse_captured(true)
 
 func apply_modifier(stat: String, value: float) -> void:
 	_modifiers[stat] = value

@@ -3,7 +3,7 @@ extends Control
 @onready var name_edit: LineEdit = $NameEdit
 
 func _ready() -> void:
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	Game.set_mouse_captured(false)
 	var existing: String = Game.profile.get("pilot_name", "")
 	if existing != "Pilot":
 		name_edit.text = existing

@@ -42,7 +42,8 @@ func _ready() -> void:
 	pause_menu.resume_requested.connect(_on_pause_resume)
 	pause_menu.quit_requested.connect(_on_pause_quit)
 	pause_menu.self_destruct_requested.connect(_on_pause_self_destruct)  # T278
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	Game.mouse_lock_lost.connect(_on_mouse_lock_lost)  # T420
+	Game.set_mouse_captured(true)
 	# T328 (before release: any screen shape): the match fills the window -- 16:10, 21:9, a tall
 	# browser -- instead of letterboxing to 16:9; the HUD lays out from the real visible size.
 	# Menus keep the designed 640x360 layout (letterboxed) -- restored in _exit_tree.
@@ -577,13 +578,18 @@ func _toggle_pause() -> void:
 	# would freeze the server for everyone), so it only opens the menu.
 	if multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
 		get_tree().paused = true
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	Game.set_mouse_captured(false)
 	pause_menu.show()
+
+# T420: the browser's own Esc took the mouse back (no key event reaches us): same as our Esc.
+func _on_mouse_lock_lost() -> void:
+	if not pause_menu.visible:
+		_toggle_pause()
 
 func _on_pause_resume() -> void:
 	pause_menu.hide()
 	get_tree().paused = false
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	Game.set_mouse_captured(true)
 
 # T278 (HUMAN_FOUND 2026-11-05: "Self destruct option in esc menu, just kill the current mech"):
 # a normal death (canister, camera ride, mech picker). The server does the killing -- a client
@@ -613,7 +619,7 @@ func _on_pause_quit() -> void:
 	if _movement_logger != null:
 		_movement_logger.stop_and_analyze()
 	get_tree().paused = false
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	Game.set_mouse_captured(false)
 	if multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
 		Game._clear_mp_session()  # T184: SP match state (roster/lobby) ends with the match
 	else:
@@ -950,7 +956,7 @@ func _on_local_mech_died_mp() -> void:
 		if entry.get("peer_id", 0) == my_id:
 			squad = entry["squad"]
 			break
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	Game.set_mouse_captured(false)
 	hud.show_squad_picker_mp(squad, _peer_slot_used[my_id])
 
 # T267 (user 2026-11-05: "When a player dies, camera should launch upward with it for .5-1
@@ -1151,7 +1157,7 @@ func _close_start_pick() -> void:
 		_player.call("possess", player_mech)  # T216: input back (a swap re-possesses the new one)
 	if multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
 		get_tree().paused = false
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	Game.set_mouse_captured(true)
 
 # T203: mech first, then where: the squad picker hands over to the spawn picker (the
 # minimap, full size), and the pair goes to the server together.
