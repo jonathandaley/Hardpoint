@@ -148,11 +148,28 @@ func _on_peer_disconnected(id: int) -> void:
 	Game.broadcast_lobby()
 
 func _on_lobby_updated() -> void:
-	_status_label.text = "MATCH STARTING..." if Game.mp_lobby.get("starting", false) else ""  # T204
+	_idle_until = Time.get_ticks_msec() + 1000 * int(Game.mp_lobby.get("idle_wait", 0))
+	_update_status()
 	_rebuild_peer_list()
 	_sync_host_controls_to_lobby()
 	_update_start_button()
 	_update_ready_btn()
+
+# T204 / T400: the dedicated server's start line. While it waits on unready pilots it shows
+# how long they have left before the match starts without them.
+var _idle_until := 0
+func _update_status() -> void:
+	var left := int(ceil((_idle_until - Time.get_ticks_msec()) / 1000.0))
+	var me: Dictionary = Game.mp_lobby.get("peers", {}).get(multiplayer.get_unique_id(), {})
+	if Game.mp_lobby.get("starting", false):
+		_status_label.text = "MATCH STARTING..."
+	elif int(Game.mp_lobby.get("idle_wait", 0)) > 0 and left > 0:
+		_status_label.text = "WAITING FOR ALL PILOTS - STARTING WITHOUT THE REST IN %d:%02d" % [left / 60, left % 60]
+		get_tree().create_timer(1.0).timeout.connect(_update_status)
+	elif me.get("sitting_out", false):
+		_status_label.text = "YOU ARE SITTING OUT - PRESS READY TO PLAY"
+	else:
+		_status_label.text = ""
 
 func _rebuild_peer_list() -> void:
 	for child in _peer_list.get_children():
@@ -283,7 +300,8 @@ static func _build_roster() -> Array:
 	var team_size: int = clampi(Game.mp_lobby.get("team_size", 1), 1, 6)
 
 	# Deterministic peer ordering by peer_id.
-	var peer_ids: Array = Game.mp_lobby.get("peers", {}).keys()
+	var peer_ids: Array = Game.mp_lobby.get("peers", {}).keys().filter(func(p) -> bool:
+		return not Game.mp_lobby["peers"][p].get("sitting_out", false))  # T400: never readied up -> watches this one
 	peer_ids.sort()
 
 	var team_counts := [0, 0]

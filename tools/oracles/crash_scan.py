@@ -34,14 +34,15 @@ def _allowed(line):
     return any(p.search(line) for p in ALLOWED_ERRORS)
 
 
-def scan_log(path):
-    """First (lineno, line) that is an error, or None."""
+def scan_log(path, expected=None):
+    """First (lineno, line) that is an error, or None. `expected` = a regex of engine ERROR
+    lines this one log is SUPPOSED to hold (a probe proving a refusal), never a global pass."""
     with open(path, errors="replace") as f:
         for i, line in enumerate(f, 1):
             line = line.rstrip()
             if any(m in line for m in ERROR_MARKERS):
                 return i, line
-            if line.startswith("ERROR:") and not _allowed(line):
+            if line.startswith("ERROR:") and not _allowed(line) and not (expected and re.search(expected, line)):
                 return i, line
     return None
 

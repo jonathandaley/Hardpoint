@@ -333,6 +333,8 @@ func _setup_players_mp() -> void:
 				weapon.hit_confirmed.connect(hud.register_hit)
 		player_mech.damaged.connect(hud.show_damage)
 		_open_start_pick.call_deferred()
+	elif not multiplayer.is_server() and Game.late_join == null:
+		_late_spectate.call_deferred(0)  # T400: in the lobby but not in this match (sat out): watch it
 
 # The local human: Player node + keyboard/mouse input + pilot; flies `mech` when given
 # (null = a late rejoiner whose mech is gone: the picker or spectating follows).

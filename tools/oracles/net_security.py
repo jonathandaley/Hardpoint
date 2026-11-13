@@ -46,12 +46,12 @@ BANNED = {
     "OS.execute(": "starts a process",
     "OS.create_process(": "starts a process",
     "OS.shell_open(": "opens a URL / file with the system handler",
-    "client_unsafe(": None,  # allowed only at TLS_UNSAFE_OK (tracked: pinned certificate, T385)
+    "client_unsafe(": None,  # allowed only at TLS_UNSAFE_OK
 }
 VAR_OK = {("autoloads/Game.gd", "_on_mp_auth")}       # client decoding the server's late-join state
-TLS_UNSAFE_OK = {("autoloads/Game.gd", "account_request")}
+TLS_UNSAFE_OK = {("autoloads/Game.gd", "_account_tls")}  # unofficial servers only; the official host is pinned (T401)
 
-NET_SIG = (1, "1fb95d0f66a04ff7")  # (Game.NET_VERSION, rpc_hash()) -- change both together, never the hash alone
+NET_SIG = (2, "1fb95d0f66a04ff7")  # (Game.NET_VERSION, rpc_hash()) -- change both together, never the hash alone
 
 _SIG = re.compile(r'@rpc\(([^)]*)\)\s*\n\s*func\s+(\w+)\s*\(([^)]*)\)')
 _FUNC = re.compile(r'^(?:static\s+)?func\s+(\w+)\s*\(', re.M)

@@ -1,0 +1,13 @@
+[Unit]
+Description=Hardpoint flood limits (nftables table inet hardpoint)
+Before=hardpoint.service
+After=network-pre.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /etc/hardpoint/hardpoint.nft
+ExecStop=/usr/sbin/nft delete table inet hardpoint
+
+[Install]
+WantedBy=multi-user.target

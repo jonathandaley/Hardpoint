@@ -1,0 +1,7 @@
+[Unit]
+Description=Hardpoint: nightly copy of the account file (keeps 30)
+
+[Service]
+Type=oneshot
+User=hardpoint
+ExecStart=/bin/sh -c 'd=/var/lib/hardpoint; f=$d/godot/app_userdata/Hardpoint/accounts.cfg; [ -f "$f" ] || exit 0; mkdir -p -m 700 $d/backups && cp -p "$f" $d/backups/accounts-$(date +%%F).cfg && ls -1t $d/backups/accounts-*.cfg | tail -n +31 | xargs -r rm --'
