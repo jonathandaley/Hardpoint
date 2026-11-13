@@ -47,11 +47,11 @@ theme_override_font_sizes/font_size = 18
 [node name="Join" type="VBoxContainer" parent="TabContainer"]
 
 [node name="IPLabel" type="Label" parent="TabContainer/Join"]
-text = "Server IP"
+text = "Server address"
 theme_override_font_sizes/font_size = 16
 
 [node name="IPEdit" type="LineEdit" parent="TabContainer/Join"]
-placeholder_text = "192.168.1.x"
+placeholder_text = "address or name"
 theme_override_font_sizes/font_size = 16
 
 [node name="JoinPortLabel" type="Label" parent="TabContainer/Join"]

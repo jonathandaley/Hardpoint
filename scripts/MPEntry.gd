@@ -14,6 +14,9 @@ func _ready() -> void:
 	if not Game.account.is_empty():  # T207: join the server you signed in to
 		_ip_edit.text = Game.account["host"]
 		_join_port_edit.text = str(Game.account["port"])
+	else:  # T266: the official server unless the player types another
+		_ip_edit.text = Game.OFFICIAL_HOST
+		_join_port_edit.text = str(Game.OFFICIAL_PORT)
 	if Game.mp_refused_reason != "":  # T168
 		_show_error(Game.mp_refused_reason)
 		Game.mp_refused_reason = ""
@@ -26,7 +29,7 @@ func _on_host_pressed() -> void:
 func _on_join_pressed() -> void:
 	var ip := _ip_edit.text.strip_edges()
 	if ip.is_empty():
-		_show_error("Enter a server IP")
+		_show_error("Enter a server address")
 		return
 	var port := int(_join_port_edit.text) if _join_port_edit.text.is_valid_int() else 8910
 	_join_button.disabled = true
