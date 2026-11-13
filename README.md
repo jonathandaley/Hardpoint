@@ -38,7 +38,15 @@ godot --headless --path <project dir> -- --server=9000 --team-size=3 --min-playe
 
 The release binary takes the same flags: `./hardpoint_X.X.X.x86_64 --headless -- --server`.
 
-**Building a release** (Linux and Windows presets in `export_presets.cfg`):
+**Building a release** (Linux and Windows presets in `export_presets.cfg`). The steps, in order:
+
+1. If the release changes gameplay (anything beyond menus, HUD, art and sound), raise
+   `Game.NET_VERSION` and update `NET_SIG` (`docs/SECURITY.md` rule 15 says what counts
+   and how).
+2. Full suite green: `python3 tools/run_suite.py`.
+3. Export both builds (below) and publish them as a GitHub release.
+4. The same day, update the online server: [`deploy/README.md`](deploy/README.md),
+   "Updating to a new version".
 
 ```bash
 ~/bin/godot --headless --path . --export-release "Linux" build/hardpoint_X.X.X.x86_64
