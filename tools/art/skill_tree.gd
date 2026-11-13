@@ -1,10 +1,15 @@
 extends Node
 # T347 art review: the hangar's pilot tab with the skill tree, a few skills owned.
-#   xvfb-run -a -s "-screen 0 1280x720x24" ~/bin/godot --resolution 1280x720 res://tools/art/skill_tree.tscn -- <out.png>
+#   xvfb-run -a -s "-screen 0 1280x720x24" ~/bin/godot --resolution 1280x720 res://tools/art/skill_tree.tscn -- <out.png> [poor] [bottom]
+#   T375: "poor" = 20 coins, 0 SP (prices in red); "bottom" scrolls to the lower rows
 func _ready() -> void:
 	Game.profile["level"] = 9
 	Game.profile["coins"] = 2000
 	Game.profile["skills"] = {"health": 4, "damage": 2, "repair_rate": 1, "move_speed": 3, "ability_recharge": 1}
+	var args := OS.get_cmdline_user_args()
+	if "poor" in args:
+		Game.profile["coins"] = 20
+		Game.profile["level"] = 5  # 5 skills owned: no SP left
 	var h: Node = load("res://scenes/ui/Hangar.tscn").instantiate()
 	add_child(h)
 	for i in 3:
@@ -13,6 +18,12 @@ func _ready() -> void:
 	h.call("_build_progression_nodes")
 	for i in 6:
 		await get_tree().process_frame
+	if "bottom" in args:
+		for sc in h.find_children("*", "ScrollContainer", true, false):
+			if sc.is_visible_in_tree():
+				sc.scroll_vertical = 100000
+		for i in 3:
+			await get_tree().process_frame
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(OS.get_cmdline_user_args()[0])
 	get_tree().quit(0)

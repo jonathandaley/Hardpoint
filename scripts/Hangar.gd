@@ -1057,13 +1057,62 @@ func _skill_depth(key: String) -> int:
 	return max_parent_depth + 1
 
 # T347 (HUMAN_FOUND 2026-11-08: "skill tree visual: a real branching tree -- a root system with the
-# lowest tiers at the top, like the Age of Empires II tech tree"): one node per skill, tier by tier
-# (a skill sits one row below its deepest parent), each row ordered under its parents so the
-# lines don't cross; a line from every parent to its child, lit once the parent is owned. A node
-# shows the name, level and (T361) the numbers; clicking it buys / upgrades; the tooltip says all.
-const TREE_NODE := Vector2(86.0, 30.0)
-const TREE_ROW := 38.0
+# lowest tiers at the top, like the Age of Empires II tech tree"): one node per skill, roots on top,
+# a line from parent to child, lit once the parent is owned; clicking a node buys / upgrades; the
+# tooltip says all.
+# T375 (HUMAN_FOUND 2026-11-09: "cramped and messy ... only right angles in the connecting lines, no
+# angled lines. Lines should only go to direct children/parents"): skills sit on a fixed 5-column grid
+# (TREE_GRID) with room between rows; lines run at right angles through the gaps between rows and
+# columns, never across a node, and only to a direct parent (a parent another parent already descends
+# from -- Damage under Reload, via Ability Recharge -- still gates the skill but draws no line).
+# States: a skill you can buy or upgrade is never greyed out; its price shows, in red when the SP or
+# coins are short. Only locked (a parent missing) and maxed skills are disabled.
+const TREE_NODE := Vector2(104.0, 40.0)
+const TREE_COL := 128.0  # 5 columns over the 640 px panel
+const TREE_ROW := 62.0   # node + a 22 px gap for the lines
 const TREE_W := 640.0
+const TREE_GRID := {  # skill -> [column, row]; a new skill needs a cell here (probe skill_tree)
+	"damage": [1, 0], "health": [3, 0],
+	"projectile_speed": [0, 1], "move_speed": [1, 1], "ability_recharge": [2, 1], "repair_rate": [3, 1], "shield_capacity": [4, 1],
+	"spread_reduction": [0, 2], "beacon_capture": [1, 2], "reload_speed": [2, 2], "lock_speed": [3, 2], "powerup_duration": [4, 2],
+	"contested_hold": [1, 3], "coin_pickup": [2, 3], "xp_bonus": [3, 3],
+}
+const COST_SHORT := Color(1.0, 0.3, 0.25)
+
+func _tree_cell(key: String) -> Array:
+	return TREE_GRID.get(key, [0, _skill_depth(key)])
+
+func _tree_pos(key: String) -> Vector2:
+	var c: Array = _tree_cell(key)
+	return Vector2(TREE_COL * (float(c[0]) + 0.5) - TREE_NODE.x * 0.5, 4.0 + TREE_ROW * float(c[1]))
+
+## A skill's parents that get a line: not one another parent already descends from.
+func _drawn_parents(key: String) -> Array:
+	var ps: Array = Game.SKILL_TREE[key].get("parents", [])
+	return ps.filter(func(p): return not ps.any(func(q): return q != p and _descends(q, p)))
+
+func _descends(key: String, ancestor: String) -> bool:
+	for p in Game.SKILL_TREE[key].get("parents", []):
+		if p == ancestor or _descends(p, ancestor):
+			return true
+	return false
+
+## Right-angle route from parent to child: down into the gap under the parent's row, across, and
+## (a child more than one row down) down a lane between columns to the gap above the child's row.
+func _edge_points(p: String, key: String) -> PackedVector2Array:
+	var a := _tree_pos(p) + Vector2(TREE_NODE.x * 0.5, TREE_NODE.y)
+	var b := _tree_pos(key) + Vector2(TREE_NODE.x * 0.5, 0.0)
+	var gap := TREE_ROW - TREE_NODE.y
+	var y1 := a.y + gap * (0.35 if int(_tree_cell(p)[0]) <= 2 else 0.65)  # two roots' lines don't share a y
+	var pts := PackedVector2Array([a, Vector2(a.x, y1)])
+	if int(_tree_cell(key)[1]) - int(_tree_cell(p)[1]) > 1:
+		var lane := b.x - TREE_COL * 0.5 if b.x >= a.x else b.x + TREE_COL * 0.5
+		var y2 := b.y - gap * 0.5
+		pts.append_array([Vector2(lane, y1), Vector2(lane, y2), Vector2(b.x, y2)])
+	else:
+		pts.append(Vector2(b.x, y1))
+	pts.append(b)
+	return pts
 
 func _build_progression_nodes() -> void:
 	if _prog_nodes_container == null:
@@ -1071,42 +1120,24 @@ func _build_progression_nodes() -> void:
 	for child in _prog_nodes_container.get_children():
 		_prog_nodes_container.remove_child(child)  # detached now: the new tree keeps its name
 		child.queue_free()
-	var rows: Array = []  # depth -> [keys]
+	var rows := 0
 	for key: String in Game.SKILL_TREE.keys():
-		var d := _skill_depth(key)
-		while rows.size() <= d:
-			rows.append([])
-		rows[d].append(key)
-	var pos := {}  # key -> node top-left
-	for d in rows.size():
-		var row: Array = rows[d]
-		if d > 0:  # under its parents: order by the parents' mean x
-			row.sort_custom(func(p: String, q: String) -> bool: return _parents_x(p, pos) < _parents_x(q, pos))
-		var step := TREE_W / float(row.size())
-		for i in row.size():
-			pos[row[i]] = Vector2(step * (float(i) + 0.5) - TREE_NODE.x * 0.5, 4.0 + TREE_ROW * float(d))
+		rows = maxi(rows, int(_tree_cell(key)[1]) + 1)
 	var tree := Control.new()
 	tree.name = "SkillTree"
-	tree.custom_minimum_size = Vector2(TREE_W, 8.0 + TREE_ROW * float(rows.size()))
+	tree.custom_minimum_size = Vector2(TREE_W, 8.0 + TREE_ROW * float(rows))
 	_prog_nodes_container.add_child(tree)
 	for key: String in Game.SKILL_TREE.keys():  # the lines first: under the nodes
-		for p: String in Game.SKILL_TREE[key].get("parents", []):
+		for p: String in _drawn_parents(key):
 			var line := Line2D.new()
 			line.name = "Edge_%s_%s" % [p, key]
 			line.width = 1.5
+			line.joint_mode = Line2D.LINE_JOINT_SHARP
 			line.default_color = Color(0.45, 0.85, 0.5) if Game.skill_level(p) > 0 else Color(0.35, 0.36, 0.4)
-			line.add_point(pos[p] + Vector2(TREE_NODE.x * 0.5, TREE_NODE.y))
-			line.add_point(pos[key] + Vector2(TREE_NODE.x * 0.5, 0.0))
+			line.points = _edge_points(p, key)
 			tree.add_child(line)
 	for key: String in Game.SKILL_TREE.keys():
-		tree.add_child(_skill_node(key, pos[key]))
-
-func _parents_x(key: String, pos: Dictionary) -> float:
-	var ps: Array = Game.SKILL_TREE[key].get("parents", [])
-	var x := 0.0
-	for p in ps:
-		x += (pos[p] as Vector2).x
-	return x / maxf(1.0, float(ps.size()))
+		tree.add_child(_skill_node(key, _tree_pos(key)))
 
 func _skill_node(key: String, at: Vector2) -> Button:
 	var def: Dictionary = Game.SKILL_TREE[key]
@@ -1116,34 +1147,62 @@ func _skill_node(key: String, at: Vector2) -> Button:
 	btn.name = "Skill_%s" % key
 	btn.position = at
 	btn.size = TREE_NODE
-	btn.clip_text = true
-	btn.add_theme_font_size_override("font_size", 8 if label_str.length() <= 14 else 7)  # long names fit
+	btn.clip_contents = true
+	var box := VBoxContainer.new()
+	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", -1)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	btn.add_child(box)
+	var lines: Array = []
+	for n in ["Name", "Effect", "Cost"]:
+		var l := Label.new()
+		l.name = n
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.clip_text = true
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		l.add_theme_font_size_override("font_size", 8 if n == "Name" and label_str.length() <= 14 else 7)
+		box.add_child(l)
+		lines.append(l)
+	var name_l: Label = lines[0]
+	var eff_l: Label = lines[1]
+	var cost_l: Label = lines[2]
+	name_l.text = label_str.to_upper()
 	var tip := label_str
+	var short := false
 	if lv == 0:
-		btn.text = "%s\n%s / lv" % [label_str.to_upper(), Game.skill_effect_text(key, 1)]
-		var parents: Array = def.get("parents", [])
-		var needs: Array = parents.filter(func(p): return Game.skill_level(p) == 0)
+		var needs: Array = def.get("parents", []).filter(func(p): return Game.skill_level(p) == 0)
+		eff_l.text = "%s / lv" % Game.skill_effect_text(key, 1)
 		tip += "  --  LOCKED: %s per level" % Game.skill_effect_text(key, 1)
-		if Game.can_unlock(key):
-			tip += "\nClick: BUY (1 SP)"
-			btn.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
-		elif not needs.is_empty():
+		if needs.is_empty():  # available: buy with 1 SP
+			short = Game.skill_points_available() < 1
+			cost_l.text = "BUY  1 SP"
+			name_l.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
+			tip += "\nClick: BUY (1 SP)" + ("  -- no SP left" if short else "")
+			btn.pressed.connect(_on_skill_unlock.bind(key))
+		else:
+			cost_l.text = "LOCKED"
 			tip += "\nNeeds: %s" % ", ".join(needs.map(func(p): return Game.SKILL_TREE[p].get("label", p)))
-			btn.add_theme_color_override("font_color", Color(0.55, 0.55, 0.55))
-		btn.pressed.connect(_on_skill_unlock.bind(key))
-		btn.disabled = not Game.can_unlock(key)
+			for l in lines:
+				l.add_theme_color_override("font_color", Color(0.5, 0.5, 0.52))
+			btn.disabled = true
 	elif lv >= 12:
-		btn.text = "%s\n12/12  %s" % [label_str.to_upper(), Game.skill_effect_text(key, lv)]
+		eff_l.text = "12/12  %s" % Game.skill_effect_text(key, lv)
+		cost_l.text = "MAX"
 		tip += "  --  LV 12/12  %s  MAX" % Game.skill_effect_text(key, lv)
-		btn.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5))
+		name_l.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5))
 		btn.disabled = true
 	else:
-		btn.text = "%s\n%d/12  %s>%s" % [label_str.to_upper(), lv, Game.skill_effect_text(key, lv), Game.skill_effect_text(key, lv + 1)]
+		var cost: int = Game._SKILL_FIB_COSTS[lv - 1]
+		short = int(Game.profile.get("coins", 0)) < cost
+		eff_l.text = "%d/12  %s>%s" % [lv, Game.skill_effect_text(key, lv), Game.skill_effect_text(key, lv + 1)]
+		cost_l.text = "UPGRADE  %d c" % cost
 		tip += "  --  LV %d/12  %s -> %s  (%d coins to upgrade)" % [lv, Game.skill_effect_text(key, lv),
-			Game.skill_effect_text(key, lv + 1), Game._SKILL_FIB_COSTS[lv - 1]]
-		btn.add_theme_color_override("font_color", Color(0.4, 0.9, 1.0) if Game.can_upgrade(key) else Color(0.85, 0.85, 0.85))
+			Game.skill_effect_text(key, lv + 1), cost]
+		name_l.add_theme_color_override("font_color", Color(0.4, 0.9, 1.0))
 		btn.pressed.connect(_on_skill_upgrade.bind(key))
-		btn.disabled = not Game.can_upgrade(key)
+	if short:
+		cost_l.add_theme_color_override("font_color", COST_SHORT)
 	btn.tooltip_text = tip
 	return btn
 
