@@ -15,6 +15,7 @@ func _fail(msg: String) -> void:
 	push_error("[probe] bot_combat: " + msg)
 
 func _ready() -> void:
+	Game.fixed_bots = ""  # T376: this probe checks the bots' variety
 	Game.mp_active_match["roster"] = []  # Arena sets up SP from the loadout (T184)
 	Game.loadout["team_size"] = 3
 	var arena: Node = load("res://scenes/arena/Arena.tscn").instantiate()
