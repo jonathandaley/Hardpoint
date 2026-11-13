@@ -111,10 +111,21 @@ func show_spawn_picker(points: Array) -> void:
 	minimap.offset_top = -SPAWN_MAP_PX * 0.5 + 20.0
 	minimap.offset_bottom = SPAWN_MAP_PX * 0.5 + 20.0
 	minimap.bg_alpha = 0.85
+	# T410 (HUMAN_FOUND: "\"Select spawn point\" should be more visible, a different color, bigger
+	# across the top when picking mechs in a match"): a banner across the top of the screen
 	var head := Label.new()
+	head.name = "SpawnBanner"
 	head.text = "SELECT SPAWN POINT"
-	head.position = Vector2(6, 2)
-	minimap.add_child(head)
+	head.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	head.offset_top = 34.0     # under the team bars / counts, above the map
+	head.offset_bottom = 60.0
+	head.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	head.add_theme_font_size_override("font_size", 20)
+	head.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2))
+	head.add_theme_constant_override("outline_size", 4)
+	head.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(head)
 	_spawn_ui.append(head)
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = minimap.ALLY
