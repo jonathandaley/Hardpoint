@@ -262,7 +262,9 @@ const TILT_MAX := 0.45
 const TILT_RAY_M := 200.0
 
 func _tilt_guns() -> void:
-	if camera == null or not is_inside_tree():
+	# T369 (HUMAN_FOUND 2026-11-09: hangar mechs' guns "30 degrees down, should be level"): a display
+	# prop (out of "mechs", T176) has no aim; its own camera looks down at it, so guns stay level
+	if camera == null or not is_inside_tree() or not is_in_group("mechs"):
 		return
 	var from := camera.global_position
 	var fwd := -camera.global_transform.basis.z
