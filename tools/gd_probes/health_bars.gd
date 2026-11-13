@@ -2,6 +2,8 @@ extends Node
 # T236 probe (HUMAN_FOUND_ISSUES 2026-11-04: "health bars obstruct vision too much, make them
 # shorter"): an enemy in view gets an over-head bar no bigger than MAX_W x MAX_H px (on the
 # 640 x 360 canvas; it was 32 x 6), and it is still drawn above the mech.
+# T370 (HUMAN_FOUND 2026-11-09): far away too, the bar and its name tag stay clear above the
+# targeting reticle (ELIGIBLE_HALF around centre mass) instead of crunched into it.
 
 const MAX_W := 20.0
 const MAX_H := 3.0
@@ -49,5 +51,23 @@ func _ready() -> void:
 			_fail("bar bottom %.0f is below the mech's head at %.0f" % [r.offset_bottom, head.y])
 	if shown == 0:
 		_fail("no enemy health bar shown with an enemy 18 m in front")
+	var hud: Node = arena.get("hud")
+	for dist in [40.0, 90.0]:
+		enemy.global_position = cam.global_position + (-cam.global_transform.basis.z * Vector3(1, 0, 1)).normalized() * dist
+		enemy.global_position.y = me.global_position.y
+		for i in 5:
+			await get_tree().process_frame
+		var cm := cam.unproject_position(enemy.call("center_mass"))
+		var reticle_top: float = cm.y - float(hud.get_script().get_script_constant_map()["ELIGIBLE_HALF"])
+		var bars: Array = hud.get("_bot_bg_bars")
+		var tags: Array = hud.get("_name_tags")
+		for i in bars.size():
+			var r: ColorRect = bars[i]
+			if not r.visible:
+				continue
+			if r.offset_bottom > reticle_top:
+				_fail("at %.0f m the bar bottom %.1f is inside the reticle (top %.1f)" % [dist, r.offset_bottom, reticle_top])
+			if i < tags.size() and (tags[i] as Label).visible and (tags[i] as Label).offset_bottom > r.offset_top + 0.5:
+				_fail("at %.0f m the name tag overlaps its bar" % dist)
 	print("[probe] health_bars done (%d shown)" % shown)
 	get_tree().quit(0)

@@ -921,6 +921,18 @@ func _redraw_feed() -> void:
 	_feed.text = "\n".join(_feed_lines.map(func(e): return e[0]))
 	_feed.visible = not _feed_lines.is_empty()
 
+# T370 (HUMAN_FOUND 2026-11-09: health bars and name tags "crunched into" the targeting reticle):
+# the bar rides BOT_BAR_HEAD_OFFSET over the feet, which at range projects inside the reticle box
+# (ELIGIBLE_HALF around centre mass). Keep it RETICLE_GAP px above that box; the tag sits above it.
+const RETICLE_GAP := 2.0
+
+func _bar_top(m: Node, camera: Camera3D, head: Vector2) -> float:
+	var top := head.y - BOT_BAR_HEIGHT * 0.5
+	if m.has_method("center_mass"):
+		var cm := camera.unproject_position(m.call("center_mass"))
+		top = minf(top, cm.y - ELIGIBLE_HALF - RETICLE_GAP - BOT_BAR_HEIGHT)
+	return top
+
 func _update_bot_bar_impl() -> void:
 	var camera := get_viewport().get_camera_3d()
 	for i in _bot_mechs.size():
@@ -947,7 +959,7 @@ func _update_bot_bar_impl() -> void:
 		var screen_pos: Vector2 = camera.unproject_position(world_pos)
 		var pct: float = m.health / m.max_health
 		var left: float = screen_pos.x - BOT_BAR_FULL_WIDTH * 0.5
-		var top: float  = screen_pos.y - BOT_BAR_HEIGHT * 0.5
+		var top: float  = _bar_top(m, camera, screen_pos)
 		# Background always spans the full width.
 		bg.offset_left   = left
 		bg.offset_top    = top
@@ -980,7 +992,7 @@ func _update_bot_bar_impl() -> void:
 		var screen_pos: Vector2 = camera.unproject_position(world_pos)
 		var pct: float = m.health / m.max_health
 		var left: float = screen_pos.x - BOT_BAR_FULL_WIDTH * 0.5
-		var top: float  = screen_pos.y - BOT_BAR_HEIGHT * 0.5
+		var top: float  = _bar_top(m, camera, screen_pos)
 		bg.offset_left   = left
 		bg.offset_top    = top
 		bg.offset_right  = left + BOT_BAR_FULL_WIDTH
