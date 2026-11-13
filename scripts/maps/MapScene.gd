@@ -133,7 +133,68 @@ static func plain_material(m: StandardMaterial3D) -> bool:
 ## BOUNDARY_DEPTH m below y 0 -- a rolling floor dips under 0 at the edge, which left a gap.
 const BOUNDARY_DEPTH := 30.0
 
+## T405 (HUMAN_FOUND: "Make the edges of the maps disappear into fog, so the hard world border isn't
+## as jarring. The physical edges are good where they are now, just visual needs an upgrade."): the
+## Compatibility renderer has no volumetric fog, so a square map's edge (make_boundary, or a map that
+## sets edge_half) gets FOG_LAYERS see-through curtains in the map's fog colour, thickening toward the
+## wall (the last one opaque: the void beyond is gone) and fading out with height. Arena calls it after
+## build(), once the map has set its environment's fog.
+var edge_half := 0.0
+const FOG_LAYERS := [[0.0, 1.0], [5.0, 0.35], [11.0, 0.22], [18.0, 0.12]]  # [metres inside the wall, opacity]
+const FOG_FADE := Vector2(6.0, 45.0)  # full up to 6 m, gone by 45 m
+const _FOG_SHADER := """
+shader_type spatial;
+render_mode unshaded, blend_mix, cull_disabled, depth_draw_never, shadows_disabled, fog_disabled;
+uniform vec4 tint : source_color;
+uniform vec2 fade = vec2(6.0, 45.0);
+uniform float soft = 14.0;  // metres over which a curtain fades in behind the ground it cuts (no bands)
+uniform sampler2D depth_tex : hint_depth_texture, filter_nearest;
+varying float wy;
+void vertex() { wy = (MODEL_MATRIX * vec4(VERTEX, 1.0)).y; }
+void fragment() {
+	ALBEDO = tint.rgb;
+	float d = texture(depth_tex, SCREEN_UV).r;
+	vec4 v = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
+	float behind = (-v.z / v.w) - (-VERTEX.z);  // scene depth past this curtain
+	ALPHA = tint.a * (1.0 - smoothstep(fade.x, fade.y, wy)) * clamp(behind / soft, 0.0, 1.0);
+}
+"""
+
+func add_fog_edges() -> void:
+	if edge_half <= 0.0:
+		return
+	var we := get_parent().get_node_or_null("WorldEnvironment") as WorldEnvironment
+	var env: Environment = we.environment if we != null else null
+	var col := Color(0.45, 0.52, 0.70)  # the arena sky's horizon
+	if env != null and env.fog_enabled:
+		col = env.fog_light_color
+	elif env != null and env.sky != null and env.sky.sky_material is ProceduralSkyMaterial:
+		col = (env.sky.sky_material as ProceduralSkyMaterial).sky_horizon_color
+	var sh := Shader.new()
+	sh.code = _FOG_SHADER
+	for layer in FOG_LAYERS:
+		var d: float = layer[0]
+		var mat := ShaderMaterial.new()
+		mat.shader = sh
+		mat.set_shader_parameter("tint", Color(col.r, col.g, col.b, layer[1]))
+		mat.set_shader_parameter("fade", FOG_FADE)
+		var span := (edge_half - d) * 2.0
+		for side in 4:
+			var mi := MeshInstance3D.new()
+			mi.name = "FogEdge_%d_%d" % [int(d), side]
+			var q := QuadMesh.new()
+			q.size = Vector2(span, FOG_FADE.y + 20.0)
+			mi.mesh = q
+			mi.material_override = mat
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			var a := side * PI * 0.5
+			var out := Vector3(sin(a), 0.0, cos(a))
+			mi.position = Vector3(center.x, (FOG_FADE.y + 20.0) * 0.5 - 20.0, center.y) + out * (edge_half - d)
+			mi.rotation.y = a
+			add_child(mi)
+
 func make_boundary(half: float, height := 40.0) -> void:
+	edge_half = half  # T405: fog curtains go along these walls
 	var tall := height + BOUNDARY_DEPTH
 	for side in [[Vector3(0, 0, -half), Vector3(half * 2.0, tall, 2)], [Vector3(0, 0, half), Vector3(half * 2.0, tall, 2)],
 			[Vector3(-half, 0, 0), Vector3(2, tall, half * 2.0)], [Vector3(half, 0, 0), Vector3(2, tall, half * 2.0)]]:
