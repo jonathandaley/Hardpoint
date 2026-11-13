@@ -15,7 +15,10 @@ A bot (kestrel) fell off the back of Redwood Forest. Debug, and also add somethi
 The skill tree is cramped and messy. Make it only have right angles in the connecting lines, no angled lines. Lines should only go to direct children/parents, not anywhere else.
 Skills that are available but have insufficient coins to purchase should not be greyed out, but have the cost to upgrade in red. Skills that are available to buy should have the SP cost listed, and be red if no SP.
 
-Taurus should have a much snappier response on the lunge start, and go a little faster.
+Taurus lunge physics tweaks:
+Short crouch anticipation, explosive front-loaded acceleration (ease-out), committed momentum with no steering, hard braking plant with a slight overshoot and settle, and bypass normal ground accel/decel during the lunge.
+The "overshoot" should be cancelled if it hits a wall or mech, so that it just settles out of the impact.
+Crouch should last .1 seconds. Recharge time should decrease with each consecutive hit? 
 
 Elites should have different hangars based on game mode.
 
@@ -28,6 +31,35 @@ Slip legs are weird, should probably have a more loping stride. If that's not ha
 Aerial strike is a little too big on Seeker. (visually)
 
 Match end results screen is spaced funny; the numbers should not be dependent on the name length, but be in columns.
+
+Make the edges of the maps disappear into fog, so the hard world border isn't as jarring. The physical edges are good where they are now, just visual needs an upgrade.
+
+Improve mech descriptions: they currently barely mention shields, and don't mention abilities at all. Also add some lore; you make it up based on the mechs abilties and colors and I'll tweak if necessary.
+
+How hard would it be for bots to sometimes see through stealth? If not, something like "Bot difficulty * how "noisy" you're being = likelihood to be noticed".
+
+Targeting reticle should be grey if no equipped weapon is within range. There should be no max distance at which it appears.
+
+Change mech preview in hangar to a drag-and-spin if that's easy. Arrow buttons to rotate it 45 degrees would also be fine and probably easier. Stationary 3/4 default view.
+
+"Select spawn point"  should be more visible, a different color, bigger across the top when picking mechs in a match.
+
+Deathmatch should count kills instead of mechs remaining, in case team sizes are different.
+
+Arc weapon should increase damage as range decreases. Current damage is good for reasonably long range.
+
+Coins should not vanish.
+
+Powerups should appear 50% more often.
+
+On Badlands, a damage powerup spawned in the sky and floated there. No obvious reason.
+
+Spent shells float in the air sometimes.
+
+Swamp needs better pathfinding: there are some impassible choke points that all the bots, including elites, were stuck on. Probably the --I don't remember what it's called, navigation map thing-- needs to be updated for Swamp.
+
+Normal-level bot shoots missile launcher when out of range.
+
 ## Deferred:
 
 The general texturing applied to most of the maps' floors and obstacles is pretty good in general, but it looks blurry. Probably make the pixels/texels bigger? Like the bot texture, sharp bigger pixels instead of blurry finer detail. Not for every map, though: Redwood's floor is great.

@@ -157,6 +157,9 @@ def _run_probes(args, results):
     from oracles import crash_scan
     godot = args.godot or os.environ.get("GODOT", os.path.expanduser("~/bin/godot"))
 
+    # engine ERROR lines a probe is meant to provoke (the refusal IS the pass)
+    PROBE_EXPECTED = {"account_pin": r"^ERROR: TLS handshake error"}  # T401: an impostor certificate refused
+
     def one(probe):
         name = "probe:" + os.path.basename(probe)[:-5]
         out = os.path.join(os.path.abspath(args.out_root), name.replace(":", "_"))
@@ -172,7 +175,7 @@ def _run_probes(args, results):
             except subprocess.TimeoutExpired:
                 rc = -1
         done = "[probe]" in open(log, errors="replace").read()
-        hit = crash_scan.scan_log(log)
+        hit = crash_scan.scan_log(log, PROBE_EXPECTED.get(name[6:]))
         ok = rc == 0 and done and hit is None
         return name, ok, "" if ok else " (exit %s, done=%s, %s)" % (rc, done, hit)
 

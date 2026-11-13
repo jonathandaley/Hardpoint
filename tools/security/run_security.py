@@ -137,6 +137,35 @@ def main():
         time.sleep(3.0)
         say("server_alive", "" if server.poll() is None else "the server process died (exit %s)" % server.returncode)
         sys.path.insert(0, HERE)
+        # T400: a player who never readies up must not hold the lobby hostage. A second server
+        # (30 s wait, the shortest allowed), one honest ready player, one idler: the match starts
+        # without the idler, who watches it.
+        if "client" not in skip:
+            hp = args.port + 10
+            spawn("server2", [args.godot, "--headless", "--path", ROOT, "--", "--server=%d" % hp,
+                              "--team-size=2", "--min-players=1", "--lobby-idle=30"])
+            if wait_port(hp + 1, 30):
+                for mode in ("idler", "victim"):
+                    spawn(mode + "2", [args.godot, "--headless", "--path", ROOT, "res://tools/security/attacker.tscn", "--",
+                                       "--sec-port=%d" % hp, "--sec-mode=%s" % mode, "--sec-secs=75"])
+                    time.sleep(3.0)
+                wait_line(os.path.join(out, "idler2.log"), "[idler] done", 110)
+                wait_line(os.path.join(out, "victim2.log"), "[victim] done", 30)
+            idl = open(os.path.join(out, "idler2.log"), errors="replace").read() if os.path.exists(os.path.join(out, "idler2.log")) else ""
+            vic = open(os.path.join(out, "victim2.log"), errors="replace").read() if os.path.exists(os.path.join(out, "victim2.log")) else ""
+            s2 = open(os.path.join(out, "server2.log"), errors="replace").read()
+            early = [ln for ln in vic.splitlines() if ln.startswith("[victim] t=") and int(re.search(r"t=(\d+)", ln).group(1)) <= 20]
+            why = ""
+            if not any("scene=Arena" in ln for ln in vic.splitlines()):
+                why = "one player who never readied up kept the match from starting (75 s)"
+            elif any("scene=Arena" in ln for ln in early):
+                why = "the match started without an unready player after under 20 s (the wait is 30 s here)"
+            elif "scene=Arena own_mechs=0 watching=true" not in idl:
+                why = "the idle player is not watching the match it sat out: %s" % (idl.strip().splitlines() or ["(no log)"])[-2]
+            elif "SCRIPT ERROR" in idl + vic + s2:
+                why = "script errors when a match starts without an idle player"
+            say("lobby_hostage", why)
+
         import account_attack
         ok, dt = account_attack.alive(args.port + 1)
         say("accounts_alive", "" if ok else "the account endpoint no longer answers (%.1f s)" % dt)

@@ -34,3 +34,6 @@ sessions_in/
 archive/*
 !archive/.gdignore
 !archive/T304_debug_mark.md
+
+# the online server's private identity (T401): generated on the server machine, never pushed
+*.local/

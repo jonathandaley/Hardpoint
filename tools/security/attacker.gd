@@ -31,6 +31,8 @@ func _ready() -> void:
 		return
 	if _mode == "victim":
 		_victim()
+	elif _mode == "idler":
+		_idler()
 	else:
 		_attacker()
 
@@ -118,6 +120,27 @@ func _victim() -> void:
 			get_tree().current_scene.name if get_tree().current_scene != null else "-", mine, bad,
 			Game.mp_lobby["peers"].size()])
 	print("[victim] done")
+	get_tree().quit(0)
+
+# ---- T400: the player who joins and never readies up (holding the lobby hostage) ----
+
+func _idler() -> void:
+	if not await _join_lobby():
+		get_tree().quit(1)
+		return
+	var t0 := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t0 < int(_secs * 1000.0):
+		await _wait(1.0)
+		var a := _arena()
+		var own := 0
+		for m in _mechs():
+			own += 1 if int(m.owner_peer_id) == _me() else 0
+		print("[idler] t=%d connected=%s scene=%s own_mechs=%d watching=%s sitting_out=%s" % [
+			(Time.get_ticks_msec() - t0) / 1000, multiplayer.get_peers().has(1),
+			get_tree().current_scene.name if get_tree().current_scene != null else "-", own,
+			a != null and is_instance_valid(a._spectated_mech),
+			Game.mp_lobby["peers"].get(_me(), {}).get("sitting_out", false)])
+	print("[idler] done")
 	get_tree().quit(0)
 
 # ---- the attacker ----
@@ -216,6 +239,9 @@ func _lobby_attacks() -> void:
 	_say("meta_claims", "" if int(mine.get("elo", 0)) <= 4000 and int(mine.get("level", 0)) <= 100
 		else "a guest's claimed ELO %d / level %d / %d skills are taken as sent" % [int(mine.get("elo", 0)),
 			int(mine.get("level", 0)), (mine.get("skills", {}) as Dictionary).size()])
+	# T399: on a dedicated server a guest flies with no skills at all (its profile is its own claim)
+	_say("guest_skills", "" if (mine.get("skills", {}) as Dictionary).is_empty()
+		else "a guest's claimed skills were accepted on a dedicated server: %s" % str(mine.get("skills")).left(80))
 	Game._rpc_send_meta.rpc_id(1, {"pilot_name": "Mallory", "elo": 1000, "level": 1, "skills": {}})
 
 	# 5. wrong types / shapes: must not break the server (checked from its log + liveness)

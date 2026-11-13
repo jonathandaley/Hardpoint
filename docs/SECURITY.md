@@ -69,6 +69,13 @@ Two ports face the internet on a dedicated server:
     player to update instead of desyncing. The suite fails when an `@rpc` signature changes
     without a bump (`NET_SIG` in `tools/oracles/net_security.py`); the other shapes are on you.
 
+16. **The official server is checked, not just encrypted.** `Game._account_tls` accepts
+    lemon.limedaley.com only with the certificate in `resources/account_server.crt`. Its
+    private key lives on the server machine (`deploy/identity.local/`, git-ignored) and is
+    never committed. `TLSOptions.client_unsafe()` is for other people's servers only.
+17. **Nobody can stall a dedicated server by doing nothing.** Anything that waits for
+    "everyone" (ready, confirm, pick) needs a time limit after which the rest go on.
+
 ## How it is enforced
 
 - `python3 tools/security/run_security.py` starts a real dedicated server on loopback
@@ -82,7 +89,7 @@ A change that needs one of these loosened is a decision for the user, not for a 
 
 ## Before going online (T266 deploy)
 
-The code is hardened; these belong to the machine and the deploy kit:
+The code is hardened; these belong to the machine. `deploy/` (see `deploy/README.md`) sets all of them up:
 
 - Run the server as its own unprivileged user, with only its data folder writable.
 - Firewall: open only the game UDP port and the account TCP port; rate-limit new

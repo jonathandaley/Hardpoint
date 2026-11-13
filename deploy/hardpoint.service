@@ -1,0 +1,43 @@
+# Hardpoint dedicated server (T266 / T402). Installed by deploy/install.sh.
+[Unit]
+Description=Hardpoint game server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=hardpoint
+Group=hardpoint
+WorkingDirectory=/opt/hardpoint
+# user:// (accounts.cfg, the TLS identity, banned.txt, match recordings) lives under here
+Environment=XDG_DATA_HOME=/var/lib/hardpoint
+Environment=XDG_CONFIG_HOME=/var/lib/hardpoint/config
+Environment=XDG_CACHE_HOME=/var/lib/hardpoint/cache
+EnvironmentFile=-/etc/hardpoint/server.env
+# Godot's own log file has no size cap: /opt/hardpoint/override.cfg turns it off, the journal
+# (rate-limited below) is the log. (`--log-file /dev/null` crashes Godot 4.6.2.)
+ExecStart=/opt/hardpoint/godot --headless --main-pack /opt/hardpoint/hardpoint.pck -- --server=${GAME_PORT} $SERVER_OPTS
+Restart=on-failure
+RestartSec=5
+
+# the journal drops lines past this rate: a flood of junk packets cannot fill the disk
+LogRateLimitIntervalSec=30
+LogRateLimitBurst=300
+
+# the server can write its data folder and nothing else
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/hardpoint
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+MemoryMax=2G
+
+[Install]
+WantedBy=multi-user.target

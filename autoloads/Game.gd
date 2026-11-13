@@ -462,6 +462,12 @@ func _maybe_start_harness() -> void:
 # and the match starts LOBBY_COUNTDOWN_S after everyone is ready (a new joiner or an
 # unready cancels it); bots fill the teams. Match -> lobby loops with no human host.
 const LOBBY_COUNTDOWN_S := 5.0
+## T400: once enough players are ready, one who is not gets this long before the match
+## starts without it (it watches that match and plays again as soon as it readies up).
+## Long on purpose (user: "long enough to never trigger on a legitimate
+## game where somebody is just a bit slow").
+var lobby_idle_s := 180.0  # server option --lobby-idle=<seconds> (30 or more)
+var _waiting_since: Dictionary = {}  # server: peer id -> ticks ms since the ready players began waiting on it
 var dedicated := false
 var _min_players := 1
 var _countdown_id := 0  # bumps on every lobby change; a stale countdown does nothing
@@ -480,6 +486,8 @@ func _maybe_start_dedicated() -> void:
 			opts["map_path"] = a.get_slice("=", 1)
 		elif a.begins_with("--min-players="):
 			opts["min_players"] = int(a.get_slice("=", 1))
+		elif a.begins_with("--lobby-idle="):  # T400
+			lobby_idle_s = maxf(30.0, float(a.get_slice("=", 1)))
 		elif a == "--no-bots":
 			opts["bot_fill"] = false
 		elif a.begins_with("--mode="):  # T285: beacons | deathmatch
@@ -517,17 +525,42 @@ func _dedicated_lobby_changed() -> void:
 	if not dedicated or not mp_active_match["roster"].is_empty():
 		return
 	_countdown_id += 1
+	var my_id := _countdown_id
 	var peers: Dictionary = mp_lobby["peers"]
-	var go := peers.size() >= _min_players
+	var now := Time.get_ticks_msec()
+	var ready_n := 0
 	for pid in peers:
-		go = go and bool(peers[pid].get("ready", false))
-	if bool(mp_lobby.get("starting", false)) != go:
+		ready_n += 1 if bool(peers[pid].get("ready", false)) else 0
+	var enough := ready_n >= _min_players
+	var idle_left := 0.0  # T400: longest wait still owed to an unready player
+	var sat := false
+	for pid in peers:
+		var e: Dictionary = peers[pid]
+		if bool(e.get("ready", false)) or bool(e.get("sitting_out", false)) or not enough:
+			_waiting_since.erase(pid)
+			continue
+		if not _waiting_since.has(pid):
+			_waiting_since[pid] = now
+		var left: float = lobby_idle_s - (now - int(_waiting_since[pid])) / 1000.0
+		if left > 0.0:
+			idle_left = maxf(idle_left, left)
+		else:
+			e["sitting_out"] = true  # until it readies up (_apply_ready)
+			sat = true
+			print("[Server] peer %d not ready after %.0f s: sits this match out" % [pid, lobby_idle_s])
+	var go := enough and idle_left <= 0.0
+	var wait_s := int(ceil(idle_left)) if enough else 0
+	if bool(mp_lobby.get("starting", false)) != go or int(mp_lobby.get("idle_wait", 0)) != wait_s or sat:
 		mp_lobby["starting"] = go
+		mp_lobby["idle_wait"] = wait_s  # clients count down from here (Lobby status line)
 		_rpc_sync_lobby.rpc(mp_lobby)
 	if not go:
+		if enough:  # look again when the longest wait runs out
+			get_tree().create_timer(idle_left + 0.1).timeout.connect(func() -> void:
+				if my_id == _countdown_id:
+					_dedicated_lobby_changed())
 		return
-	var my_id := _countdown_id
-	print("[Server] all %d ready; match in %.0f s" % [peers.size(), LOBBY_COUNTDOWN_S])
+	print("[Server] %d of %d ready; match in %.0f s" % [ready_n, peers.size(), LOBBY_COUNTDOWN_S])
 	get_tree().create_timer(LOBBY_COUNTDOWN_S).timeout.connect(func() -> void:
 		if my_id != _countdown_id or not mp_active_match["roster"].is_empty():
 			return
@@ -547,6 +580,21 @@ var account: Dictionary = {}
 var account_server: Node = null  # server: AccountServer when dedicated
 var account_mode := "login"      # Account screen: "login" | "signup"
 
+## T401 (V62): the official server's certificate ships with the game; a connection to
+## that host is accepted ONLY with that certificate, so nobody in between can pose as it
+## and read a password. Any other server (a friend's, a LAN one) is encrypted but not
+## checked -- there is nothing to check it against.
+const OFFICIAL_HOST := "lemon.limedaley.com"
+var account_pin_host := OFFICIAL_HOST                      # vars: probe account_pin swaps them
+var account_pin_cert := "res://resources/account_server.crt"
+
+func _account_tls(host_addr: String) -> TLSOptions:
+	if host_addr.to_lower() != account_pin_host:
+		return TLSOptions.client_unsafe()  # ponytail: no certificate to check an unofficial server against
+	var cert := load(account_pin_cert) as X509Certificate if ResourceLoader.exists(account_pin_cert) else null
+	# no pinned certificate in this build = an empty trust list: the handshake fails (closed, never unchecked)
+	return TLSOptions.client(cert if cert != null else X509Certificate.new())
+
 ## One request to a server's account endpoint -> its reply ({"ok": false, "error"} on failure).
 func account_request(host_addr: String, port: int, req: Dictionary) -> Dictionary:
 	var tcp := StreamPeerTCP.new()
@@ -559,8 +607,7 @@ func account_request(host_addr: String, port: int, req: Dictionary) -> Dictionar
 		await get_tree().process_frame
 	if tcp.get_status() != StreamPeerTCP.STATUS_CONNECTED:
 		return {"ok": false, "error": "cannot reach the server"}
-	# ponytail: no certificate check (self-signed, AccountServer notes); encrypted only
-	if tls.connect_to_stream(tcp, "hardpoint", TLSOptions.client_unsafe()) != OK:
+	if tls.connect_to_stream(tcp, "hardpoint", _account_tls(host_addr)) != OK:
 		return {"ok": false, "error": "secure connection failed"}
 	var sent := false
 	var buf := PackedByteArray()
@@ -663,6 +710,8 @@ const PEER_TIMEOUT_MS := 45000
 
 func _on_mp_peer_connected(id: int) -> void:
 	_pending.erase(id)  # admitted (its address stays in _peer_addr until it leaves)
+	if dedicated:  # T402: the owner's check that the port forward keeps real addresses (deploy/README.md)
+		print("[Server] peer %d joined from %s%s" % [id, _peer_addr.get(id, "?"), " (account)" if _peer_accounts.has(id) else ""])
 	var enet := multiplayer.multiplayer_peer as ENetMultiplayerPeer
 	if enet != null and (multiplayer.is_server() or id == 1):  # other clients are relayed, not ENet peers here
 		enet.get_peer(id).set_timeout(32, 5000, PEER_TIMEOUT_MS)
@@ -733,7 +782,7 @@ const HELLO_MAX_BYTES := 256
 ## T388: both ends must speak the same protocol. Bump on ANY change to an @rpc signature,
 ## the hello / handshake, or the lobby / roster / late-join shapes (tools/oracles/net_security.py
 ## hashes the @rpc signatures and fails the suite until this is bumped with them).
-const NET_VERSION := 1
+const NET_VERSION := 2  # 2: lobby carries idle_wait / sitting_out (T400)
 const HELLO_TIMEOUT_S := 4.0
 const MAX_PENDING_PER_ADDR := 3   # connections still in the handshake, per address
 const MAX_PEERS_PER_ADDR := 8     # calibration knob: players behind one router (LAN party)
@@ -758,8 +807,21 @@ func _drop_pending(id: int, why: String) -> void:
 		if (mp as ENetMultiplayerPeer) != null and (mp as ENetMultiplayerPeer).get_peer(id) != null:
 			mp.disconnect_peer(id, true)  # and reset the ENet peer now (frees the slot)
 
+## T400: the server owner's ban list -- user://banned.txt, one address or account email a
+## line (# = comment). Read at every join, so an edit needs no restart.
+## ponytail: checked at join only; to remove someone who is connected, add the line and restart.
+const BAN_FILE := "user://banned.txt"
+func _banned(who: String) -> bool:
+	if who == "" or not FileAccess.file_exists(BAN_FILE):
+		return false
+	for ln in FileAccess.get_file_as_string(BAN_FILE).split("\n"):
+		if not ln.begins_with("#") and ln.strip_edges().to_lower() == who.to_lower():
+			return true
+	return false
+
 func _forget_peer(id: int) -> void:
 	_pending.erase(id)
+	_waiting_since.erase(id)
 	_peer_addr.erase(id)
 	_late_tokens.erase(id)
 	_peer_accounts.erase(id)
@@ -869,6 +931,8 @@ func _on_mp_auth(id: int, data: PackedByteArray) -> void:
 				sorry = "Update the game to play here" if ver < NET_VERSION else "This server runs an older version of the game"
 			elif multiplayer.get_peers().size() >= MAX_PEERS:
 				sorry = "The server is full"
+			elif _banned(_peer_addr.get(id, "")):
+				sorry = "You are banned from this server"
 			if sorry != "":
 				smp.send_auth(id, sorry.to_utf8_buffer())  # the joiner shows it and leaves (T168)
 				get_tree().create_timer(2.0, true).timeout.connect(_drop_pending.bind(id, sorry))
@@ -877,6 +941,10 @@ func _on_mp_auth(id: int, data: PackedByteArray) -> void:
 			var ticket := _clean_token(msg.substr(6).get_slice("|", 1))  # T207 / T385 ("" = guest)
 			if ticket != "" and account_server != null:
 				var who: String = account_server.redeem(ticket)
+				if who != "" and _banned(who):
+					smp.send_auth(id, "You are banned from this server".to_utf8_buffer())
+					get_tree().create_timer(2.0, true).timeout.connect(_drop_pending.bind(id, "banned account"))
+					return
 				if who != "":
 					_peer_accounts[id] = who  # V61: server-private, never in the broadcast lobby
 			var arena := get_tree().current_scene
@@ -977,6 +1045,8 @@ func _rpc_send_meta(meta: Dictionary) -> void:
 	entry["elo"]        = clean_int(meta.get("elo"), 100, 4000, 1000)
 	entry["level"]      = clean_int(meta.get("level"), 1, _LEVEL_THRESHOLDS.size() + 1, 1)
 	entry["skills"]     = sanitize_skills(meta.get("skills", {}), entry["level"])  # T332
+	if dedicated and email == "":
+		entry["skills"] = {}  # T399 (user 2026-11-12): a guest's skills are its own claim -- none on a dedicated server
 	broadcast_lobby()
 
 func _on_mp_peer_disconnected(id: int) -> void:
@@ -1552,6 +1622,8 @@ func _apply_ready(peer_id: int, ready: bool) -> void:
 		net_refuse(peer_id, "ready: not in the lobby")
 		return
 	mp_lobby["peers"][peer_id]["ready"] = ready
+	if ready:
+		mp_lobby["peers"][peer_id].erase("sitting_out")  # T400: back in
 	broadcast_lobby()
 
 # Client -> server: toggle ready state (V39, V41).
