@@ -47,7 +47,9 @@ func _ready() -> void:
 		flags = str(JavaScriptBridge.eval("location.search")).trim_prefix("?").split("&")
 		get_tree().process_frame.connect(_check_mouse_lock)
 	if "perf" in flags:
-		add_child(load("res://scripts/PerfOverlay.gd").new())
+		var overlay: Node = load("res://scripts/PerfOverlay.gd").new()
+		overlay.set("autopick", "sp" in flags)  # an unattended run must not sit (paused) in the picker
+		add_child(overlay)
 	if "sp" in flags:  # optional map=City (a resources/maps name), bots=4,5 (allies, enemies)
 		for f in flags:
 			var kv: PackedStringArray = f.split("=")

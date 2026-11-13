@@ -25,7 +25,13 @@ func _ready() -> void:
 func _physics_process(_delta: float) -> void:
 	Game.prof_end_frame()
 
+var autopick := false  # ?perf&sp: take mech 0 at spawn 0 (SP pauses while the picker is open)
+
 func _process(delta: float) -> void:
+	var arena := get_tree().current_scene
+	if autopick and arena != null and arena.get("_start_pick_open"):
+		arena.get("hud").squad_slot_selected.emit(0)
+		arena.get("hud").spawn_selected.emit(0)
 	_t += delta
 	_frames += 1
 	_worst = maxf(_worst, delta)
