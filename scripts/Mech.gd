@@ -495,10 +495,13 @@ func get_aim_basis() -> Basis:
 	return torso.global_transform.basis
 
 # T95: weapon fire chokepoint; MP @rpc will wrap here in T100.
+var last_fired_frame := -100000  # T407: bots hear a stealthed mech that's shooting
+
 func fire_weapon(slot: int, aim: Vector3 = Vector3.ZERO) -> void:
 	if slot < 0 or slot >= _weapons.size() or not is_instance_valid(_weapons[slot]):
 		return
 	_weapons[slot].fire()
+	last_fired_frame = Engine.get_physics_frames()
 	# M1.3: autodebug event stream (no-op unless --sync-log). Fire-attempt, not
 	# guaranteed shot (weapon may be on cooldown/reloading); kept uniform across
 	# all weapon types by emitting at the single fire chokepoint.
