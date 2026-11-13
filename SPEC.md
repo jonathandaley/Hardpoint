@@ -203,7 +203,7 @@ T413|x|coins don't vanish (HUMAN_FOUND: "Coins should not vanish.")|T383
 T414|x|powerups 50% more often (HUMAN_FOUND: "Powerups should appear 50% more often.")|T264
 T415|.|Badlands: a damage powerup spawned in the sky and floated there (HUMAN_FOUND: "On Badlands, a damage powerup spawned in the sky and floated there. No obvious reason.") + spent shells float sometimes (HUMAN_FOUND: "Spent shells float in the air sometimes.") -- both: placement / settling over terrain|T263,T264
 T416|.|Swamp navmesh: choke points every bot sticks on, Elites included (HUMAN_FOUND: "Swamp needs better pathfinding: there are some impassible choke points that all the bots, including elites, were stuck on. Probably the ... navigation map thing-- needs to be updated")|T221
-T417|.|Normal bots fire the missile launcher out of range (HUMAN_FOUND: "Normal-level bot shoots missile launcher when out of range.")|T169
+T417|x|Normal bots fire the missile launcher out of range (HUMAN_FOUND: "Normal-level bot shoots missile launcher when out of range.")|T169
 T418|.|difficulty_steps is noisy again: 1 of 6 alone + 1 suite run 2026-11-13 failed the 40-damage step (Normal 167 vs Medium 194; Easy 33 / Normal 178 / Medium 214) -- T397 had it 12/12 under load; find what widened the spread (measure mode, per-round numbers) before touching the threshold|T397,T357
 
 ## §B BUGS
