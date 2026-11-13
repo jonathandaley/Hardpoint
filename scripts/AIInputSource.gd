@@ -390,11 +390,15 @@ func _primary(bot_mech: Node) -> Node:
 ## T172 tactics: the weapon's real reach (projectiles expire at range).
 func _fire_range(bot_mech: Node) -> float:
 	var tactics: bool = _preset()["tactics"]
-	var r := 0.0 if tactics else ENGAGE_DIST + 15.0
+	var floor_m := 0.0 if tactics else ENGAGE_DIST + 15.0
+	var r := 0.0
 	for w in bot_mech.get_weapons():
 		if is_instance_valid(w) and "range" in w:
 			# T339: a lock (built only inside the weapon's range, T334) is reason enough to fire
-			r = maxf(r, float(w.range) * (0.95 if tactics or w.get("requires_lock") == true else 0.5))
+			var reach := float(w.range) * (0.95 if tactics or w.get("requires_lock") == true else 0.5)
+			# T417 (HUMAN_FOUND: "Normal-level bot shoots missile launcher when out of range."): the
+			# 50 m floor never reaches past the weapon itself (missile LT 30 m, shotgun 40 m)
+			r = maxf(r, minf(maxf(reach, floor_m), float(w.range) * 0.95))
 	return r
 
 ## T172: distance a bot with this weapon fights from (shotgun close, sniper far).
@@ -674,7 +678,7 @@ func _legacy_move(bot_mech: Node3D, has_target: bool, dist: float, own_hp_pct: f
 		if _strafe_timer <= 0.0:
 			_strafe_timer = _rng.randf_range(1.5, 3.0)
 			_strafe_sign  = 1.0 if _rng.randf() > 0.5 else -1.0
-		if dist > ENGAGE_DIST:
+		if dist > minf(ENGAGE_DIST, _fire_range(bot_mech) * 0.9):  # T417: a short gun closes in to its reach
 			return Vector2(0.0, -1.0)
 		return Vector2(_strafe_sign, -0.3).normalized()
 	var near := _nearest_enemy(bot_mech)  # T285: no beacons (death match) -> hunt
