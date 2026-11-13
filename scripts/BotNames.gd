@@ -60,30 +60,45 @@ const ELITE := {
 # squad -- [mech, weapon family (Lobby.WEAPON_CATALOG prefix)] x 5, every family fitting that mech's
 # slots -- and how it fights: role (attacker / flanker / defender), range_k (x its weapon's usual
 # fighting distance: < 1 closes in, > 1 holds off), retreat_hp (health share it gives ground at).
+# T377 (HUMAN_FOUND 2026-11-09: "Elites should have different hangars based on game mode"): "squad"
+# is the beacons hangar, "squad_dm" the death match one (no beacons to rush or hold: brawlers,
+# missiles over aerial strikes, Taurus where a pilot rams). Same personality in both.
 const ELITE_KIT := {
 	"Inexorable": {"squad": [["Hippogriff", "MG"], ["Everest", "MG"], ["Hornet", "SHOTGUN"], ["Vesuvius", "MG"], ["Hippogriff", "SHOTGUN"]],
+		"squad_dm": [["Taurus", "SHOTGUN"], ["Everest", "MG"], ["Taurus", "MG"], ["Vesuvius", "SHOTGUN"], ["Hippogriff", "SHOTGUN"]],
 		"personality": {"role": "attacker", "range_k": 0.7, "retreat_hp": 0.12}},   # health + speed + capture: rushes beacons
 	"Vantablack": {"squad": [["Slip", "SNIPER"], ["Seeker", "SNIPER"], ["Hornet", "SNIPER"], ["Slip", "SNIPER"], ["Seeker", "SNIPER"]],
+		"squad_dm": [["Slip", "SNIPER"], ["Seeker", "SNIPER"], ["Hornet", "SNIPER"], ["Kestrel", "SNIPER"], ["Seeker", "SNIPER"]],
 		"personality": {"role": "attacker", "range_k": 1.8, "retreat_hp": 0.4}},    # damage + accuracy: holds range
 	"Sable":      {"squad": [["Cesh", "ROCKET"], ["Pegasus", "ARC"], ["Cesh", "ARC"], ["Pegasus", "ROCKET"], ["Kestrel", "ROCKET"]],
+		"squad_dm": [["Cesh", "ROCKET"], ["Pegasus", "ARC"], ["Cesh", "MISSILE"], ["Hornet", "ROCKET"], ["Pegasus", "MISSILE"]],
 		"personality": {"role": "flanker", "range_k": 1.2, "retreat_hp": 0.3}},     # abilities + lock speed: locks from the side
 	"Deadlock":   {"squad": [["Vesuvius", "AERIAL"], ["Hippogriff", "MISSILE"], ["Everest", "AERIAL"], ["Kestrel", "ARC"], ["Seeker", "AERIAL"]],
+		"squad_dm": [["Hippogriff", "MISSILE"], ["Vesuvius", "MISSILE"], ["Kestrel", "MISSILE"], ["Everest", "AERIAL"], ["Hornet", "MISSILE"]],
 		"personality": {"role": "attacker", "range_k": 1.3, "retreat_hp": 0.3}},    # lock weapons
 	"Bastion":    {"squad": [["Kestrel", "LASER"], ["Everest", "LASER"], ["Kestrel", "RIFLE"], ["Everest", "MG"], ["Kestrel", "LASER"]],
+		"squad_dm": [["Kestrel", "LASER"], ["Everest", "LASER"], ["Kestrel", "MG"], ["Vesuvius", "LASER"], ["Kestrel", "RIFLE"]],
 		"personality": {"role": "defender", "range_k": 1.0, "retreat_hp": 0.15}},   # shields + repair: holds what it has
 	"Wraith":     {"squad": [["Cesh", "SHOTGUN"], ["Slip", "SHOTGUN"], ["Cesh", "SHOTGUN"], ["Hornet", "SHOTGUN"], ["Cesh", "MG"]],
+		"squad_dm": [["Cesh", "SHOTGUN"], ["Slip", "SHOTGUN"], ["Cesh", "SHOTGUN"], ["Taurus", "SHOTGUN"], ["Cesh", "MG"]],
 		"personality": {"role": "flanker", "range_k": 0.6, "retreat_hp": 0.25}},    # speed + stealth: ambushes up close
 	"Halcyon":    {"squad": [["Pegasus", "RIFLE"], ["Pegasus", "LASER"], ["Hornet", "RIFLE"], ["Pegasus", "RIFLE"], ["Hippogriff", "RIFLE"]],
+		"squad_dm": [["Pegasus", "RIFLE"], ["Pegasus", "LASER"], ["Pegasus", "MG"], ["Hornet", "RIFLE"], ["Hippogriff", "LASER"]],
 		"personality": {"role": "attacker", "range_k": 1.0, "retreat_hp": 0.45}},   # repair + jump heal: steps out to heal
 	"Nocturne":   {"squad": [["Seeker", "SNIPER"], ["Slip", "RIFLE"], ["Seeker", "SNIPER"], ["Hornet", "SNIPER"], ["Slip", "SNIPER"]],
+		"squad_dm": [["Seeker", "SNIPER"], ["Slip", "SNIPER"], ["Cesh", "SNIPER"], ["Seeker", "SNIPER"], ["Hornet", "SNIPER"]],
 		"personality": {"role": "flanker", "range_k": 1.6, "retreat_hp": 0.35}},    # a sniper on the flank
 	"Paragon":    {"squad": [["Pegasus", "RIFLE"], ["Hippogriff", "MISSILE"], ["Hornet", "MG"], ["Kestrel", "LASER"], ["Vesuvius", "RIFLE"]],
+		"squad_dm": [["Pegasus", "RIFLE"], ["Hippogriff", "MISSILE"], ["Taurus", "SHOTGUN"], ["Kestrel", "LASER"], ["Vesuvius", "RIFLE"]],
 		"personality": {"role": "attacker", "range_k": 1.0, "retreat_hp": 0.3}},    # all-rounder
 	"Tempest":    {"squad": [["Slip", "MG"], ["Seeker", "RIFLE"], ["Slip", "RIFLE"], ["Hornet", "MG"], ["Slip", "MG"]],
+		"squad_dm": [["Slip", "MG"], ["Seeker", "MG"], ["Slip", "RIFLE"], ["Hornet", "MG"], ["Cesh", "MG"]],
 		"personality": {"role": "flanker", "range_k": 0.9, "retreat_hp": 0.3}},     # fast, fast shots
 	"Obsidian":   {"squad": [["Everest", "PATIENCE"], ["Vesuvius", "MG"], ["Everest", "MG"], ["Vesuvius", "PATIENCE"], ["Kestrel", "MG"]],
+		"squad_dm": [["Everest", "PATIENCE"], ["Vesuvius", "MG"], ["Taurus", "MG"], ["Vesuvius", "PATIENCE"], ["Everest", "MG"]],
 		"personality": {"role": "defender", "range_k": 1.1, "retreat_hp": 0.12}},   # a wall that hits hard
 	"Corsair":    {"squad": [["Hippogriff", "MISSILE"], ["Pegasus", "SHOTGUN"], ["Hippogriff", "MG"], ["Hornet", "MISSILE"], ["Pegasus", "MG"]],
+		"squad_dm": [["Hippogriff", "MISSILE"], ["Pegasus", "SHOTGUN"], ["Taurus", "SHOTGUN"], ["Hornet", "MISSILE"], ["Pegasus", "MG"]],
 		"personality": {"role": "attacker", "range_k": 0.9, "retreat_hp": 0.3}},    # reloads fast, presses
 }
 

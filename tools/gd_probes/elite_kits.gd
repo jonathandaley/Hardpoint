@@ -3,7 +3,8 @@ extends Node
 # with personality ... a hangar that makes sense with their abilities and playstyles"): every Elite
 # kit names real mechs and only weapons that fit their slots; an Elite match's named bots fly their
 # own kit and carry their personality into the AI (role, fighting distance); below Elite nothing
-# changes.
+# changes. T377: each Elite has a beacons hangar ("squad") and a death match one ("squad_dm"); a
+# match flies the one for its mode.
 
 const Lobby := preload("res://scripts/Lobby.gd")
 const BotNames := preload("res://scripts/BotNames.gd")
@@ -19,14 +20,20 @@ func _ready() -> void:
 			bad.append("%s has no kit" % name)
 			continue
 		var kit: Dictionary = BotNames.ELITE_KIT[name]
-		var squad: Array = Lobby.kit_squad(kit["squad"])
-		if squad.size() != 5:
-			bad.append("%s: %d mechs" % [name, squad.size()])
-		for i in squad.size():
-			var fam: String = kit["squad"][i][1]
-			for p in squad[i]["weapons"]:
-				if not String(p).get_file().to_upper().begins_with(fam.replace("MG", "MACHINEGUN").replace("MISSILE", "MISSILELAUNCHER").replace("ROCKET", "ROCKETLAUNCHER").replace("LASER", "LASERCANNON").replace("ARC", "ARCWEAPON").replace("AERIAL", "AERIALSTRIKE")):
-					bad.append("%s: %s slot got %s for %s" % [name, kit["squad"][i][0], String(p).get_file(), fam])
+		for key in ["squad", "squad_dm"]:
+			if not kit.has(key):
+				bad.append("%s has no %s" % [name, key])
+				continue
+			var squad: Array = Lobby.kit_squad(kit[key])
+			if squad.size() != 5:
+				bad.append("%s %s: %d mechs" % [name, key, squad.size()])
+			for i in squad.size():
+				var fam: String = kit[key][i][1]
+				for p in squad[i]["weapons"]:
+					if not String(p).get_file().to_upper().begins_with(fam.replace("MG", "MACHINEGUN").replace("MISSILE", "MISSILELAUNCHER").replace("ROCKET", "ROCKETLAUNCHER").replace("LASER", "LASERCANNON").replace("ARC", "ARCWEAPON").replace("AERIAL", "AERIALSTRIKE")):
+						bad.append("%s %s: %s slot got %s for %s" % [name, key, kit[key][i][0], String(p).get_file(), fam])
+		if kit.get("squad_dm") == kit["squad"]:
+			bad.append("%s: the death match hangar is the beacons one" % name)
 	if not bad.is_empty():
 		_fail("; ".join(bad))
 		return
@@ -45,7 +52,7 @@ func _ready() -> void:
 			bad.append("Elite bot %s has no kit" % e["name"])
 			continue
 		named += 1
-		if (e["squad"] as Array).map(func(s): return s["mech"]) != (kit["squad"] as Array).map(func(k): return "res://resources/mechs/%s.tres" % k[0]):
+		if (e["squad"] as Array).map(func(s): return s["mech"]) != (kit.get("squad_dm", []) as Array).map(func(k): return "res://resources/mechs/%s.tres" % k[0]):
 			bad.append("%s flies %s, not its kit" % [e["name"], (e["squad"] as Array).map(func(s): return String(s["mech"]).get_file())])
 		if e.get("personality", {}) != kit["personality"]:
 			bad.append("%s carries no personality" % e["name"])
@@ -70,6 +77,14 @@ func _ready() -> void:
 				bad.append("%s's AI has personality %s, want %s" % [roster[ri]["name"], src.get("personality") if src else null, want])
 			elif src.get("role") != want.get("role"):
 				bad.append("%s's AI plays %s, want %s" % [roster[ri]["name"], src.get("role"), want.get("role")])
+	# T377: a beacons match flies the beacons hangar
+	Game.loadout["mode"] = "beacons"
+	Game.mp_active_match["roster"] = []
+	Game.setup_sp_match()
+	for e in Game.mp_active_match["roster"]:
+		var kit: Dictionary = BotNames.ELITE_KIT.get(e["name"], {})
+		if int(e["peer_id"]) == 0 and not kit.is_empty() and (e["squad"] as Array).map(func(s): return s["mech"]) != (kit["squad"] as Array).map(func(k): return "res://resources/mechs/%s.tres" % k[0]):
+			bad.append("%s flies %s in a beacons match, not its beacons kit" % [e["name"], (e["squad"] as Array).map(func(s): return String(s["mech"]).get_file())])
 	# below Elite: no kits
 	Game.settings["bot_difficulty"] = 3
 	Game.mp_active_match["roster"] = []
