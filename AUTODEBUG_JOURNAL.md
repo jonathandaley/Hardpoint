@@ -337,3 +337,4 @@ date|task|outcome|commit|finding|suite
 2026-11-12|T382|DONE|(this commit)|results table: fixed column widths (HUD.RESULT_COLS) for the header and every row, long names cut with '...'; results_screen probe checks every cell sits under its header: red at HEAD (bot rows 50-118 px off), green after|-
 2026-11-12|T380|DONE|(this commit)|Slip leg_hip_sweep 0.14 -> 0.267: cadence = walk_speed / sweep now equals Cesh's (was 1.90x), same 3.75 m/s, longer step; probe slip_stride red at HEAD, green after; strips docs/review/T380/ (new tool tools/art/walk_strip)|-
 2026-11-13|T381|DONE|(this commit)|WeaponVisuals.MULT_CAP: the aerial strike pod's model caps at x1.2 of a mech's weapon_scale (Seeker 2.0 drew it 1.5x its torso, hiding the mount); other weapons keep T191's x2; probe strike_size_cap red at HEAD; renders docs/review/T381/; tools/art/armed takes Mech:Weapon|-
+2026-11-13|T369 T382 T380 T381 verify|DONE|-|batch suite 162/162|162/162
