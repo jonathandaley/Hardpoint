@@ -3,6 +3,8 @@ extends Node
 # on screen and a real click on it leaves (SP: to the hangar). The user saw the game
 # "freeze" on the results: the button sat below the screen edge under a long table
 # (SP stuck for good, MP until the 30 s auto-return).
+# T382 (HUMAN_FOUND 2026-11-09): every row's numbers sit under their column headers,
+# whatever the name length.
 
 func _fail(msg: String) -> void:
 	push_error("[probe] results_screen: " + msg)
@@ -28,6 +30,24 @@ func _ready() -> void:
 		_fail("no results button")
 		get_tree().quit(0)
 		return
+	var hdr: HBoxContainer = null
+	for l in arena.get("hud").find_children("*", "Label", true, false):
+		if l.text == "KILLS":
+			hdr = l.get_parent() as HBoxContainer
+	var rows: Array = []
+	for n in arena.get("hud").find_children("*", "ScrollContainer", true, false):
+		for r in n.get_child(0).get_children():
+			if r is HBoxContainer:
+				rows.append(r)
+	if hdr == null or rows.size() < 2:
+		_fail("results table not found (header %s, %d rows)" % [hdr, rows.size()])
+	else:
+		for row in rows:
+			for i in hdr.get_child_count():
+				var dx: float = (row.get_child(i) as Control).global_position.x - (hdr.get_child(i) as Control).global_position.x
+				if absf(dx) > 1.0:
+					_fail("row '%s' column %d is %.0f px off its header" % [row.get_child(0).text, i, dx])
+					break
 	var view := Rect2(Vector2.ZERO, get_viewport().get_visible_rect().size)
 	var r := b.get_global_rect()
 	if not view.encloses(r):
