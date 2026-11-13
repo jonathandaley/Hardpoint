@@ -547,7 +547,10 @@ func _input(event: InputEvent) -> void:
 	if DEBUG_OVERHEAD and event is InputEventKey and event.pressed and event.keycode == KEY_F5:
 		_toggle_overhead()
 		return
-	if _spec_pivot != null and event is InputEventKey and event.pressed and event.keycode == KEY_TAB:
+	# T379 (HUMAN_FOUND 2026-11-09: "TAB sometimes starts spectating from a mech"): the spectator rig
+	# outlives a respawn, so TAB cycles only while we have no live mech of our own
+	if _spec_pivot != null and (not is_instance_valid(player_mech) or player_mech.get("is_dead")) \
+			and event is InputEventKey and event.pressed and event.keycode == KEY_TAB:
 		_cycle_spectator()
 		return
 	if event.is_action_pressed("ui_cancel") and not _match_over and not _start_pick_open:  # T187
