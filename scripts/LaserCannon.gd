@@ -80,12 +80,7 @@ func _do_fire() -> void:
 		result = mr
 		hit_pos = mr.position
 	if result:
-		if result.collider.has_method("take_damage"):
-			var target_team: int = result.collider.get("team") if "team" in result.collider else -1
-			var own_team: int = owner_mech.get("team") if "team" in owner_mech else -2
-			if target_team != own_team:
-				result.collider.take_damage(damage, self)
-				_emit_hit_if_visible(result.collider, result.position)
+		_hit(result, damage)
 
 	_beam_fx(hit_pos)
 	if Game.sync_logging_enabled:

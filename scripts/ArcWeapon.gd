@@ -134,12 +134,7 @@ func _do_fire() -> void:
 	query.exclude = ex
 	var result := space.intersect_ray(query)
 	if result:
-		if result.collider.has_method("take_damage"):
-			var target_team: int = result.collider.get("team") if "team" in result.collider else -1
-			var own_team: int = owner_mech.get("team") if "team" in owner_mech else -2
-			if target_team != own_team:
-				result.collider.take_damage(damage, self)
-				_emit_hit_if_visible(result.collider, result.position)
+		_hit(result, damage)
 
 	if result:  # T299: the bolt ends on the target's hull (or the wall / shield in the way), not inside it
 		target_pos = result.position
