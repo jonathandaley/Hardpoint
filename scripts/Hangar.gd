@@ -688,10 +688,6 @@ func _on_weapon_cycle(slot_idx: int, direction: int) -> void:
 	_refresh_diorama_mech()  # T188: the shown mech carries the new pick
 	_refresh_lineup_mechs()
 
-func _process(delta: float) -> void:
-	if is_instance_valid(_diorama_spin):
-		_diorama_spin.rotation.y += delta * 0.6
-
 func _setup_diorama() -> void:
 	_diorama_container = SubViewportContainer.new()
 	_diorama_container.offset_left   = 420.0
@@ -734,7 +730,20 @@ func _setup_diorama() -> void:
 	_diorama_viewport.add_child(platform_body)
 
 	_diorama_spin = Node3D.new()
+	_diorama_spin.rotation.y = deg_to_rad(LINEUP_YAW)  # T409: holds still at the lineup's 3/4 view
 	_diorama_viewport.add_child(_diorama_spin)
+	# T409 (HUMAN_FOUND: "Change mech preview in hangar to a drag-and-spin if that's easy. Arrow buttons
+	# to rotate it 45 degrees would also be fine ... Stationary 3/4 default view."): both
+	_diorama_container.gui_input.connect(_on_preview_input)
+	for d in [[-1, "PreviewLeft", "<", 420.0], [1, "PreviewRight", ">", 604.0]]:
+		var b := Button.new()
+		b.name = d[1]
+		b.text = d[2]
+		b.position = Vector2(d[3], 248.0)
+		b.size = Vector2(30.0, 22.0)
+		b.add_theme_font_size_override("font_size", 14)
+		b.pressed.connect(_turn_preview.bind(int(d[0])))
+		mech_panel.add_child(b)
 
 	var cam := Camera3D.new()
 	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -749,6 +758,25 @@ func _setup_diorama() -> void:
 	_diorama_viewport.add_child(light)
 
 	_refresh_diorama_mech()
+
+var _preview_tween: Tween = null
+
+func _turn_preview(dir: int) -> void:
+	SoundManager.play_sfx_2d("ui_click")
+	var from := _diorama_spin.rotation.y
+	if _preview_tween != null and _preview_tween.is_valid():
+		from = float(_preview_tween.get_meta("to", from))  # a quick double press adds up
+		_preview_tween.kill()
+	var to := from + dir * PI / 4.0
+	_preview_tween = create_tween()
+	_preview_tween.set_meta("to", to)
+	_preview_tween.tween_property(_diorama_spin, "rotation:y", to, 0.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+func _on_preview_input(ev: InputEvent) -> void:
+	if ev is InputEventMouseMotion and (ev as InputEventMouseMotion).button_mask & MOUSE_BUTTON_MASK_LEFT:
+		if _preview_tween != null and _preview_tween.is_valid():
+			_preview_tween.kill()
+		_diorama_spin.rotation.y += (ev as InputEventMouseMotion).relative.x * 0.01
 
 func _refresh_diorama_mech() -> void:
 	if not is_instance_valid(_diorama_spin):
