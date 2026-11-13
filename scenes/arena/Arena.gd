@@ -1420,7 +1420,8 @@ func _physics_process(_delta: float) -> void:
 	var expired: Array = []
 	for id in _pickups:
 		var pk = _pickups[id]
-		if not is_instance_valid(pk) or (pk as Pickup).age > PICKUP_LIFE_S:
+		# T413 (HUMAN_FOUND: "Coins should not vanish."): only powerups time out
+		if not is_instance_valid(pk) or ((pk as Pickup).age > PICKUP_LIFE_S and (pk as Pickup).kind != "coin"):
 			expired.append(id)
 			continue
 		var p: Vector3 = (pk as Node3D).global_position
