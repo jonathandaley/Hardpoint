@@ -142,6 +142,10 @@ var _sync_start_ms: int = 0
 var _sync_start_frame: int = 0
 var _sync_rpc_seq: int = 0
 var _sync_cli: bool = false  # --sync-log given (harness / manual run): it owns the log dir
+## T376: --fixed-bots=<Mech> (the suite passes it to every probe): regular bots fly that mech with
+## rifles instead of T365's random squads, so a probe's result never hangs on the draw (a shield
+## soaking its hits, a slow walker: B134 / B135). Probes that test the draw clear it.
+var fixed_bots := ""
 var _sync_base: String = ""   # T157: file base of this peer's logs (server / client_<id>)
 
 func _parse_sync_log_args() -> void:
@@ -154,6 +158,8 @@ func _parse_sync_log_args() -> void:
 			_sync_role_override = a.get_slice("=", 1)
 		elif a.begins_with("--sync-dir="):
 			_sync_dir = a.get_slice("=", 1)
+		elif a.begins_with("--fixed-bots="):
+			fixed_bots = a.get_slice("=", 1)
 	_sync_cli = sync_logging_enabled
 
 func _sync_role() -> String:

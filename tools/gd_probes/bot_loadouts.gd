@@ -17,6 +17,7 @@ func _family(path: String) -> String:
 	return "?"
 
 func _ready() -> void:
+	Game.fixed_bots = ""  # T376: this probe tests the random draw itself
 	var bad: Array = []
 	Game.settings["bot_difficulty"] = 3
 	var mixed := 0

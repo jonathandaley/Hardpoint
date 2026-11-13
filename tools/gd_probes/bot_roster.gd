@@ -15,6 +15,7 @@ func _cesh_count(diff: int) -> int:
 	return n
 
 func _ready() -> void:
+	Game.fixed_bots = ""  # T376: this probe tests the random draw itself
 	var keep = Game.settings.get("bot_difficulty", 1)
 	var bad: Array = []
 	for d in [0, 1]:  # T368: Cesh from Medium (was Hard)

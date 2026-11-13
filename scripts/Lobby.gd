@@ -407,6 +407,11 @@ static func kit_squad(kit: Array) -> Array:
 ## T350): a regular bot's 5 squad slots are each a random mech from the difficulty's pool, each with
 ## a weapon family drawn by BOT_WEAPON_WEIGHTS. `bot_id` is unused now (was: one mech per bot slot).
 static func _default_bot_squad(_bot_id: int) -> Array:
+	if Game.fixed_bots != "":  # T376: probes
+		var kit: Array = []
+		for _i in 5:
+			kit.append([Game.fixed_bots, "RIFLE"])
+		return kit_squad(kit)
 	var pool := bot_roster()
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()  # roster is broadcast, so peers never re-derive it (no determinism needed)
