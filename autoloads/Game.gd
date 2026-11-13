@@ -83,6 +83,7 @@ var settings: Dictionary = {
 	"view": "center",   # T252: "center" (raised, crosshair over the mech) or "shoulder"
 	"fancy_hangar": true,  # T254: the animated repair bay (GRAPHICS > FANCY HANGAR)
 	"casings_long": true,  # T263: spent casings pool 1000 (ON) or 150 (GRAPHICS > LONG-LASTING CASINGS)
+	"record_matches": false,  # T389: the T157 session recorder on a player's machine (Settings, for bug reports)
 }
 
 # M0.1: central seeded RNG for all gameplay randomness (weapon spread, etc.).
@@ -193,13 +194,16 @@ func _open_sync_files() -> void:
 # then sync_compare.py tools/sessions/real_session.json; docs/SESSION_RECORDING.md).
 # ponytail: full 60 Hz like the harness (~15 MB/min per peer, ~1 ms/frame on a 7-mech
 # host); keep the newest SESSIONS_KEEP; add a tick stride if size or cost ever shows.
+# T389 (user 2026-11-12): a dedicated server always records; a player's game only with
+# Settings > RECORD MATCHES on (off by default), and every recording keeps only the newest
+# SESSIONS_KEEP matches of a session (T386's rule, which was servers only).
 const SESSIONS_DIR := "user://sessions"
 const SESSIONS_KEEP := 3
 const SESSION_SHOT_TICKS := 600
 var _recording: bool = false
 
 func _session_start() -> void:
-	if _sync_cli:
+	if _sync_cli or not (dedicated or settings.get("record_matches", false)):
 		return
 	_session_stop()
 	DirAccess.make_dir_recursive_absolute(SESSIONS_DIR)
@@ -275,11 +279,12 @@ func _sync_next_match() -> void:
 	# T386: a dedicated server is ONE session for as long as it runs (weeks), so the
 	# per-session SESSIONS_KEEP never pruned it: ~5 MB a minute of play until the disk was
 	# full. Keep the newest SESSIONS_KEEP matches (match 1's files sit in the root).
+	# T389: a player's evening on one server is one long session too -> every recording.
 	var old := _sync_match - SESSIONS_KEEP
-	if _recording and dedicated and old == 1:
+	if _recording and old == 1:
 		for f in DirAccess.get_files_at(_sync_root):
 			DirAccess.remove_absolute(_sync_root.path_join(f))
-	elif _recording and dedicated and old > 1:
+	elif _recording and old > 1:
 		_rm_tree(_sync_root.path_join("match%d" % old))
 
 func _physics_process(_delta: float) -> void:
@@ -1295,6 +1300,7 @@ func _load_settings() -> void:
 	settings["view"]              = cfg.get_value("settings", "view",              settings["view"])
 	settings["fancy_hangar"]      = cfg.get_value("settings", "fancy_hangar",      settings["fancy_hangar"])
 	settings["casings_long"]      = cfg.get_value("settings", "casings_long",      settings["casings_long"])
+	settings["record_matches"]    = cfg.get_value("settings", "record_matches",    settings["record_matches"])
 	shoulder = 0.0 if settings["view"] == "center" else 1.0  # T252
 	apply_volume(settings["master_volume"])
 
@@ -1425,6 +1431,7 @@ func save_settings() -> void:
 	cfg.set_value("settings", "view",              settings.get("view",              "center"))
 	cfg.set_value("settings", "fancy_hangar",      settings.get("fancy_hangar",      true))
 	cfg.set_value("settings", "casings_long",      settings.get("casings_long",      true))
+	cfg.set_value("settings", "record_matches",    settings.get("record_matches",    false))
 	cfg.save(_SETTINGS_PATH)
 
 func apply_volume(linear: float) -> void:
