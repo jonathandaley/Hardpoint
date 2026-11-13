@@ -11,14 +11,19 @@ Built in Godot 4.6 (Compatibility renderer / OpenGL ES 3.0), targeting low-end h
 
 ## Running
 
-```
-Download latest release "hardpoint_X.X.X.x86_64"
-
-chmod +x hardpoint_X.X.X.x86_64
+Download the latest release from GitHub: `hardpoint_X.X.X.x86_64` (Linux) or
+`hardpoint_X.X.X.exe` (Windows). No install, no Godot editor needed.
 
 ```
+chmod +x hardpoint_X.X.X.x86_64     # Linux, once
+./hardpoint_X.X.X.x86_64
+```
 
-Linux x86_64 binary. No install. Godot editor not required to play.
+On Windows, run the `.exe`. It isn't code-signed, so Windows may say "Windows protected
+your PC": click **More info**, then **Run anyway**.
+
+Online: FIND MATCH -> JOIN has the official server (lemon.limedaley.com, port 25574)
+filled in.
 
 ### Dedicated server
 
@@ -37,7 +42,12 @@ The release binary takes the same flags: `./hardpoint_X.X.X.x86_64 --headless --
 
 ```bash
 ~/bin/godot --headless --path . --export-release "Linux" build/hardpoint_X.X.X.x86_64
+~/bin/godot --headless --path . --export-release "Windows" build/hardpoint_X.X.X.exe
 ```
+
+The Windows preset reads its template from `build/templates/windows_release_x86_64.exe`
+(git-ignored): take it from the official `Godot_v4.6.2-stable_export_templates.tpz`
+(`unzip -j <tpz> templates/windows_release_x86_64.exe -d build/templates/`).
 
 Use `--export-release`, not `--export-debug`: debug templates (and runs from the editor) add
 "(DEBUG)" to the window title.
