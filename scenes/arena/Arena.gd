@@ -83,6 +83,8 @@ func _ready() -> void:
 	_map.build()
 	_map.add_surface_detail()  # T241
 	_map.add_fog_edges()  # T405
+	if DisplayServer.get_name() != "headless":  # T424: fewer draw calls (servers / test runs draw nothing; ~0.1 s)
+		_map.merge_static_meshes()
 	_wire_beacons()
 	if late != null:
 		_apply_late_beacons(late)

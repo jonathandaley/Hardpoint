@@ -112,6 +112,60 @@ func _dress(m: StandardMaterial3D, grain: Texture2D) -> void:
 	m.uv1_triplanar = true
 	m.uv1_scale = Vector3.ONE * 0.5
 
+## T424 (browser / potato target): every separate mesh is a draw call (~0.02 ms each in a
+## browser; Badlands had 611 rocks). After build(), each plain static mesh is folded into one
+## mesh per material. Collision stays per obstacle -- only the drawing merges. Left alone: anything
+## scripted or under a scripted / moving node (beacons, water, fog), transparent or shader
+## materials, flat planes, meshes with children, squashed meshes, textures in object space.
+## Not run headless (Arena): probe map_merge calls it directly.
+const _MERGE_TYPES := ["BoxMesh", "CylinderMesh", "PrismMesh", "SphereMesh", "CapsuleMesh"]  # not ArrayMesh: terrain + MathTemple's baked walls are one draw already
+var merged_count := 0
+
+func merge_static_meshes() -> void:
+	var groups := {}  # [material, cast_shadow, layers] -> SurfaceTool
+	var inv := global_transform.affine_inverse()
+	for node in find_children("*", "MeshInstance3D", true, false):
+		var n := node as MeshInstance3D
+		if not _mergeable(n):
+			continue
+		var mats := surface_materials(n)
+		var xf := inv * n.global_transform
+		for s in n.mesh.get_surface_count():
+			var key := [mats[s], n.cast_shadow, n.layers]
+			if not groups.has(key):
+				groups[key] = SurfaceTool.new()
+			(groups[key] as SurfaceTool).append_from(n.mesh, s, xf)
+		merged_count += 1
+		n.free()
+	for key in groups:
+		var out := MeshInstance3D.new()
+		out.name = "Merged"
+		out.mesh = (groups[key] as SurfaceTool).commit()
+		out.material_override = key[0]
+		out.cast_shadow = key[1]
+		out.layers = key[2]
+		add_child(out)
+
+func _mergeable(n: MeshInstance3D) -> bool:
+	if n.mesh == null or not n.mesh.get_class() in _MERGE_TYPES or n.get_script() != null or not n.visible \
+			or n.get_child_count() > 0 or n.material_overlay != null or n.visibility_range_end > 0.0 \
+			or n.skeleton != NodePath("..") and n.skeleton != NodePath(""):
+		return false
+	var sc := n.global_transform.basis.get_scale()
+	if absf(sc.x - sc.y) > 0.001 or absf(sc.x - sc.z) > 0.001:
+		return false  # merged normals would be wrong under a squash
+	for m in surface_materials(n):
+		var sm := m as StandardMaterial3D
+		if sm == null or sm.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED \
+				or sm.albedo_texture != null and sm.uv1_triplanar and not sm.uv1_world_triplanar:
+			return false  # a texture laid out in the mesh's own space would slide (City's windows)
+	var p := n.get_parent()
+	while p != self:  # only plain holders and static bodies up to the map
+		if p == null or p.get_script() != null or not (p.get_class() in ["Node3D", "StaticBody3D"]) or not (p as Node3D).visible:
+			return false
+		p = p.get_parent()
+	return true
+
 ## What each surface of a mesh draws with: override, else surface override, else the mesh's.
 static func surface_materials(n: MeshInstance3D) -> Array:
 	if n.material_override != null:
