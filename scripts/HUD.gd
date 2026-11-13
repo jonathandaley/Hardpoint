@@ -381,6 +381,18 @@ func show_result_mp(winner_team: int, stats: Array) -> void:
 	_build_stats_panel_mp(winner_team, stats)
 
 const RESULT_ROWS_H := 170.0  # ~7 rows visible; the rest scroll (T215)
+# T382 (HUMAN_FOUND 2026-11-09: the numbers shifted with name length): fixed column widths
+# (px), the same for the header and every row; a long name is cut with "...".
+const RESULT_COLS := [190, 90, 50, 60, 60, 40]
+
+func _result_cell(text: String, col: int, font: int) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_font_size_override("font_size", font)
+	lbl.custom_minimum_size.x = RESULT_COLS[col]
+	lbl.clip_text = true
+	lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	return lbl
 
 func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 	var backdrop := ColorRect.new()
@@ -410,12 +422,10 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 	vbox.add_child(HSeparator.new())
 
 	var col_hdr := HBoxContainer.new()
-	for col_text: String in ["PLAYER", "ELO", "KILLS", "DEALT", "TAKEN", "CAPS"]:  # T364: KILLS
-		var lbl := Label.new()
-		lbl.text = col_text
-		lbl.add_theme_font_size_override("font_size", 13)
-		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		col_hdr.add_child(lbl)
+	col_hdr.name = "ResultCols"
+	var cols := ["PLAYER", "ELO", "KILLS", "DEALT", "TAKEN", "CAPS"]  # T364: KILLS
+	for i in cols.size():
+		col_hdr.add_child(_result_cell(cols[i], i, 13))
 	vbox.add_child(col_hdr)
 	vbox.add_child(HSeparator.new())
 	# T215: the player rows scroll; title, columns and button stay put. A 5v5 table pushed
@@ -447,19 +457,16 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 		if entry.get("disconnected", false):
 			pilot_name = "[DC] " + pilot_name
 		var row := HBoxContainer.new()
-		for cell_text: String in [
+		var cells := [
 			pilot_name,
 			elo_str,
 			"%d" % int(entry.get("kills", 0)),
 			"%.0f" % entry.get("dealt", 0.0),
 			"%.0f" % entry.get("taken", 0.0),
 			"%d" % entry.get("captures", 0),
-		]:
-			var lbl := Label.new()
-			lbl.text = cell_text
-			lbl.add_theme_font_size_override("font_size", 14)
-			lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			row.add_child(lbl)
+		]
+		for i in cells.size():
+			row.add_child(_result_cell(cells[i], i, 14))
 		rows.add_child(row)
 
 	vbox.add_child(HSeparator.new())
