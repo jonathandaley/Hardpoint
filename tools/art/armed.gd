@@ -4,6 +4,7 @@ extends Node3D
 #   xvfb-run -a -s "-screen 0 1280x720x24" ~/bin/godot --resolution 1280x720 \
 #     res://tools/art/armed.tscn -- <out_dir> [flash] [Mech ...]   (default: the 9 roster mechs;
 #     "flash" fires every weapon's muzzle flash just before the capture -- T317)
+#     Mech:Weapon (e.g. Seeker:AerialStrikeHeavy) arms every slot with that weapon scene (T381)
 const ROSTER := ["Everest", "Kestrel", "Pegasus", "Seeker", "Hornet", "Vesuvius", "Slip", "Hippogriff", "Cesh"]
 
 func _ready() -> void:
@@ -27,8 +28,16 @@ func _ready() -> void:
 	cam.fov = 40
 	add_child(cam)
 	cam.current = true
-	for n in names:
+	for token in names:
+		var n: String = String(token).get_slice(":", 0)
 		var md: Resource = load("res://resources/mechs/%s.tres" % n)
+		var slots: Array = md.weapon_slots
+		if String(token).contains(":"):
+			slots = []
+			for sl in md.weapon_slots:
+				var d: Resource = sl.duplicate()
+				d.weapon_scene = load("res://scenes/weapons/%s.tscn" % String(token).get_slice(":", 1))
+				slots.append(d)
 		var holder := Node3D.new()
 		add_child(holder)
 		for k in 2:  # left: 3/4 front, right: side
@@ -40,7 +49,7 @@ func _ready() -> void:
 			holder.add_child(m)
 			m.set_physics_process(false)
 			m.weapon_scale = md.weapon_scale
-			m.configure_weapons(md.weapon_slots)
+			m.configure_weapons(slots)
 		var h: float = 2.0 * md.body_scale
 		cam.position = Vector3(0, h * 0.9, 7.5 * md.body_scale)
 		cam.look_at(Vector3(0, h * 0.62, 0))
@@ -53,6 +62,6 @@ func _ready() -> void:
 					w.call("_muzzle_flash", false)
 			await get_tree().process_frame
 		await RenderingServer.frame_post_draw
-		get_viewport().get_texture().get_image().save_png("%s/%s.png" % [out, n])
+		get_viewport().get_texture().get_image().save_png("%s/%s.png" % [out, String(token).replace(":", "_")])
 		holder.free()
 	get_tree().quit(0)
