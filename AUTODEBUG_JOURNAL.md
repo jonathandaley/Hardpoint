@@ -365,3 +365,4 @@ date|task|outcome|commit|finding|suite
 2026-11-13|T413|DONE|(this commit)|coins never time out on the ground (powerups still go after PICKUP_LIFE_S); probe coins_stay red at HEAD, green|-
 2026-11-13|T414|DONE|(this commit)|map powerups every 10 s (was 15), on-ground cap 6 (was 4) so the cap doesn't eat the extra; bot_drops checks the numbers, red at HEAD|-
 2026-11-13|T410|DONE|(this commit)|SELECT SPAWN POINT = a 20 px yellow banner across the top (under the team bars, above the map) while the spawn picker is open; probe spawn_banner red at HEAD (16 px white corner label), green; render docs/review/T410/|-
+2026-11-13|T413 T414 T410 verify|DONE|-|batch suite 169/170: difficulty_steps (Normal->Medium step 27 < 40) -- the probe pins its own squads and turns powerups off, batch can't reach it; 5/6 alone -> queued T418|169/170 (noise, T418)
