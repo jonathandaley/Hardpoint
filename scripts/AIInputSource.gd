@@ -369,13 +369,21 @@ func _check_los(bot_mech: Node3D) -> void:
 			_target_refresh = 0.0
 			_los_blocked_time = 0.0
 
+const NAV_REPLAN_M := 2.0  # T425: see _nav_next
+
 # Returns the immediate nav-path waypoint toward goal_pos, or Vector3.ZERO if
 # the navmesh is not ready yet (caller falls back to direct steering).
 func _nav_next(bot_mech: Node3D, goal_pos: Vector3) -> Vector3:
 	var nav_agent := bot_mech.get_node_or_null("NavAgent") as NavigationAgent3D
 	if nav_agent == null:
 		return Vector3.ZERO
-	nav_agent.target_position = goal_pos
+	# T425: a new target_position = a new path query. Chasing a moving enemy set it every tick, so
+	# each bot re-planned 60x a second (4 of the AI's 5.3 ms a tick on Badlands, T3500). Re-plan
+	# when the goal has moved NAV_REPLAN_M or the old path is done; steering still aims at the
+	# live goal once near it (_steer_to).
+	if nav_agent.target_position.distance_squared_to(goal_pos) > NAV_REPLAN_M * NAV_REPLAN_M \
+			or nav_agent.is_navigation_finished():
+		nav_agent.target_position = goal_pos
 	var next := nav_agent.get_next_path_position()
 	# When no path exists yet (navmesh not baked or no route found),
 	# get_next_path_position() returns the agent's current position.
