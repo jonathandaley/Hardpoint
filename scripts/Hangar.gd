@@ -495,6 +495,8 @@ func _update_mech_panel() -> void:
 	if md == null:
 		return
 	mech_name_label.text = "MECH: %s" % md.display_name.to_upper()
+	mech_name_label.tooltip_text = md.description  # T406: role, shield, ability and a line of lore
+	mech_name_label.mouse_filter = Control.MOUSE_FILTER_PASS
 	var shield_str: String
 	if md.has_shields:
 		shield_str = "PHYSICAL (FRONT)"
@@ -589,6 +591,21 @@ func _build_weapon_picker(md) -> void:
 # weapon in the picker for its numbers. Read once per weapon scene.
 static var _tips := {}
 
+# T406 (HUMAN_FOUND: "Improve mech descriptions ... add some lore ... Do a similar thing for the
+# weapons."): what each weapon family does and a line of where it comes from, on its hangar tooltip.
+const WEAPON_DESC := {
+	"RIFLE": "Steady, accurate all-rounder. The gun every cadet learns on, and the one veterans never quite give up.",
+	"SNIPER": "Slow, hard-hitting single shots at long range. Best from cover; the Seeker crews swear by it.",
+	"MG": "Spins up while you hold the trigger -- the barrel glows red-hot at full speed. Factory-district gangs hose whole streets with it.",
+	"SHOTGUN": "A spray of pellets: brutal up close, wasted at range. Arena brawlers' first choice.",
+	"MISSILE": "A short-range salvo of small missiles with splash damage. Cheap, loud and everywhere.",
+	"ROCKET": "Needs a lock (hold the box on a target), then fires a homing rocket that hits hard. Lock early, fire once.",
+	"LASER": "A continuous beam: keep it on the target, nothing to lead or dodge. Kestrel pilots hold it like a searchlight.",
+	"ARC": "Needs a lock, then throws lightning at the target -- no travel time, no miss once locked. Bred from a mining cutter.",
+	"AERIAL": "Needs a lock, then calls a strike down from above. Made for targets that stay put.",
+	"PATIENCE": "Charges while you hold it -- up to 12 s for the full hit, 300 m reach. Named for what it takes.",
+}
+
 static func weapon_tip(cat_idx: int) -> String:
 	if cat_idx < 0:
 		return ""
@@ -608,6 +625,10 @@ static func weapon_tip(cat_idx: int) -> String:
 			lines.append("FIRE RATE  %.1f /s" % rate)
 		var mag: int = int(w.get("max_ammo"))
 		lines.append("MAGAZINE  %s" % ("-" if mag < 0 else str(mag)))
+		var desc: String = WEAPON_DESC.get(String(WEAPON_CATALOG[cat_idx]["name"]).get_slice(" ", 0), "")
+		if desc != "":
+			lines.append("")
+			lines.append(desc)
 		_tips[path] = "\n".join(lines)
 		w.free()
 	return _tips[path]

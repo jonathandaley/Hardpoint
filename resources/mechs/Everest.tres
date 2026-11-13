@@ -20,7 +20,7 @@ weapon_scene = ExtResource("4")
 [resource]
 script = ExtResource("1")
 display_name = "Everest"
-description = "Heavy mech with physical front shield. Flanking defeats the shield. Very slow."
+description = "Heavy, 1000 HP, the slowest chassis. A physical shield covers its front: hit it from the side or behind. Grey as the mountain it's named for, with cold white lamps -- its crews call it a fortress that walks; everyone else calls it a reason to flank."
 class_tag = "Heavy"
 max_health = 1000.0
 walk_speed = 0.75
