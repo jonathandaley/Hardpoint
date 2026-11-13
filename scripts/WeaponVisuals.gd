@@ -32,10 +32,15 @@ static func kit_name(scene_path: String) -> String:
 		return "MissileH" if base.ends_with("Heavy") else "MissileL"
 	return fam
 
+## T381 (HUMAN_FOUND 2026-11-09: aerial strike "too big on Seeker"): the strike pod is already a
+## bulky box, so a mech's weapon_scale (Seeker 2.0, made for slim guns: T191) caps here.
+const MULT_CAP := {"AerialStrike": 1.2}
+
 static func apply(weapon: Node3D, mult := 1.0) -> void:
 	var key := kit_name(weapon.scene_file_path)
 	if not WeaponKit.DATA.has(key):
 		return
+	mult = minf(mult, MULT_CAP.get(key, mult))
 	for c in weapon.get_children():
 		if c is MeshInstance3D:  # placeholder geometry only (no script reads these nodes)
 			weapon.remove_child(c)
