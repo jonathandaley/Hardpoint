@@ -1,7 +1,7 @@
 extends Node
 # T386 probe: a dedicated server keeps only the newest Game.SESSIONS_KEEP matches of its
-# (single, endless) recorded session; anything else keeps every match (the harness, a
-# listen server: their sessions end).
+# (single, endless) recorded session. T389: a player's recording too (an evening on one
+# server is one session).
 
 func _fail(msg: String) -> void:
 	push_error("[probe] session_prune: " + msg)
@@ -38,8 +38,8 @@ func _ready() -> void:
 	if got != range(7 - keep + 1, 8):
 		_fail("dedicated server kept matches %s of 7 (wanted the newest %d)" % [got, keep])
 	got = _play("user://sessions/probe_listen", false, 7)
-	if got.size() != 7:
-		_fail("a normal session lost matches: %s" % [got])
+	if got != range(7 - keep + 1, 8):
+		_fail("a player's recording kept matches %s of 7 (wanted the newest %d)" % [got, keep])
 	Game._rm_tree("user://sessions/probe_dedicated")
 	Game._rm_tree("user://sessions/probe_listen")
 	print("[probe] session_prune done")

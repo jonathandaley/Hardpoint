@@ -98,10 +98,9 @@ func _ready() -> void:
 		_create_nav_region()
 	match_node.match_ended.connect(_on_match_ended)
 	match_node.start()
-	# ponytail: MovementLogger records a CSV + prints a stuck-% analysis on EVERY
-	# arena load, prod included (115-line diagnostic). Gate behind a debug flag or
-	# only instantiate when profiling, so shipped matches don't pay for it.
-	if not Game.dedicated:  # T387: one CSV per match, never pruned -- not on a server that runs for weeks
+	# MovementLogger: a CSV + a stuck-% analysis per match, never pruned. T389: debug runs
+	# only (the editor binary / project folder), never a shipped release.
+	if not Game.dedicated and OS.is_debug_build():  # T387: not on a server that runs for weeks
 		_movement_logger = load("res://autoloads/MovementLogger.gd").new()
 		add_child(_movement_logger)
 		_movement_logger.start_session()

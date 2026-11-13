@@ -41,6 +41,7 @@ func _ready() -> void:
 	_highlight_diff(cur_diff)
 	_build_view_section()
 	_build_controls_section()
+	_build_toggle_section($Scroll/Content, "RECORD MATCHES (FOR BUG REPORTS)", "record_matches", "Record")  # T389
 	_build_graphics_page()  # T253: SHADOWS (and the later graphics toggles) live there
 
 # T252: VIEW -- CENTER (raised camera, crosshair over the mech; default) or SHOULDER

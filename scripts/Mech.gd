@@ -559,7 +559,8 @@ func _apply_damage(amount: float, source: Node3D = null) -> void:
 	if not quiet and Engine.get_physics_frames() - _last_hurt_sfx >= 3:  # T330: one per blast, not per pellet
 		_last_hurt_sfx = Engine.get_physics_frames()
 		SoundManager.play_sfx("damage_hit", global_position)
-	print("[Mech] %s  %.0f / %.0f HP" % [name, health, max_health])
+	if OS.is_stdout_verbose():  # T389: one line per hit filled a long-running server's log
+		print("[Mech] %s  %.0f / %.0f HP" % [name, health, max_health])
 	# M1.3: autodebug event stream. Runs at the server-authoritative damage
 	# chokepoint (clients route take_damage -> server via RPC), so hit/died are
 	# logged once, on the authoritative peer.
@@ -691,7 +692,8 @@ func _die_impl() -> void:
 			m.call("_set_locked_target", null)
 			m.set("lock_progress", 0.0)
 	Game.ai_director_clear_intent(self)
-	print("[Mech] %s destroyed" % name)
+	if OS.is_stdout_verbose():  # T389
+		print("[Mech] %s destroyed" % name)
 	SoundManager.play_sfx("mech_death", global_position)
 	VFX.death_explosion(global_position + Vector3(0, 0.8, 0))
 	set_physics_process(false)
