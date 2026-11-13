@@ -1317,8 +1317,8 @@ const POWERUPS := ["repair", "ammo", "damage", "speed"]
 # T362 (HUMAN_FOUND 2026-11-08 late: "Powerups should randomly spawn on the battlefield, not be
 # dropped by bots"): the server puts one at a random spot on the navmesh (somewhere a mech can
 # walk) every POWERUP_EVERY_S, never more than POWERUP_CAP on the ground. Bots still drop coins.
-const POWERUP_EVERY_S := 15.0   # calibration knob
-const POWERUP_CAP := 4          # calibration knob
+const POWERUP_EVERY_S := 10.0   # calibration knob; T414 (HUMAN_FOUND: "50% more often"): was 15
+const POWERUP_CAP := 6          # calibration knob; T414: was 4, grows with the rate
 const KILL_BOUNTY_SHARE := 0.5  # T364: share of a kill's worth the killer adds to its own bounty (calibration knob)
 var kills_by_ri := {}       # T364 server: roster idx -> kills this match
 var kill_coins_by_ri := {}  # T364 server: roster idx -> coins its kills are worth (paid at match end)

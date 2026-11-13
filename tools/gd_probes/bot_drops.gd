@@ -163,6 +163,12 @@ func _ready() -> void:
 	if float(arena.get_script().get_script_constant_map()["PICKUP_LIFE_S"]) != 120.0:
 		_fail("pickups last %s s on the ground, the user asked for 60 (T351)" % arena.get_script().get_script_constant_map()["PICKUP_LIFE_S"])
 		bad = true
+	# T414 (HUMAN_FOUND: "Powerups should appear 50% more often."): every 10 s, not 15; the cap
+	# grows with it (4 -> 6) so a full map doesn't eat the extra spawns
+	var consts: Dictionary = arena.get_script().get_script_constant_map()
+	if float(consts["POWERUP_EVERY_S"]) != 10.0 or int(consts["POWERUP_CAP"]) != 6:
+		_fail("map powerups every %s s, cap %s (want 10 s, 6: 50%% more often)" % [consts["POWERUP_EVERY_S"], consts["POWERUP_CAP"]])
+		bad = true
 	# the timer, capped
 	arena.set("powerup_every_s", 0.05)
 	for i in 90:
