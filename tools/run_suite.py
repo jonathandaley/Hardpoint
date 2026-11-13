@@ -167,7 +167,7 @@ def _run_probes(args, results):
             try:
                 # 180 s: room for the ~110 s map_stuck_big when probes share the CPU
                 rc = subprocess.run([godot, "--headless", "--path", os.path.dirname(HERE),
-                                     "res://tools/gd_probes/" + os.path.basename(probe), "--quit-after", "6000"],
+                                     "res://tools/gd_probes/" + os.path.basename(probe), "--quit-after", "20000"],  # frames, ~135 a second headless: past the 180 s timeout below (T397: difficulty_steps runs 95 s)
                                     stdout=f, stderr=subprocess.STDOUT, env=env, timeout=180).returncode
             except subprocess.TimeoutExpired:
                 rc = -1

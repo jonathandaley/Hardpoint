@@ -446,6 +446,10 @@ func _maybe_start_harness() -> void:
 	args.append_array(OS.get_cmdline_user_args())
 	for a in args:
 		if a.begins_with("--mp-scenario="):
+			if not ResourceLoader.exists("res://tools/mp_harness/Harness.gd"):  # T390: release builds ship no tools/
+				print("--mp-scenario needs the test harness, which is not part of this build (run from the project folder)")
+				get_tree().quit.call_deferred(1)
+				return
 			var h: Node = load("res://tools/mp_harness/Harness.gd").new()
 			h.name = "MPHarness"
 			add_child.call_deferred(h)
