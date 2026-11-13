@@ -149,8 +149,8 @@ def main():
                 why = "the honest player lost its connection: %s" % last
             elif "nonfinite_mechs=0" not in last:
                 why = "the honest player sees mechs at non-finite positions: %s" % last
-            elif "scene=Arena" in last and " my_hp=0 " in last:
-                why = "the honest player's mech is dead: %s" % last
+            # (not "its mech is alive": bots shoot it down in ordinary play once the run is long
+            # enough -- a forged kill is attacker.gd's forged_damage check)
             say("victim_ok", why)
         # The ENGINE refusing junk logs an ERROR line each time (its parser, RPC mode and
         # argument checks): expected, counted for information. GAME code must never fault on

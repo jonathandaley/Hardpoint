@@ -25,3 +25,12 @@ sessions_in/
 
 # local-only notes (e.g. open security findings, T290): never pushed
 *.local.md
+
+# per-machine Claude Code permissions (T398)
+.claude/settings.local.json
+
+# archive/: old Math Temple generators + SVGs stay on the dev machine only (T398); the
+# two files the game / probes read stay tracked
+archive/*
+!archive/.gdignore
+!archive/T304_debug_mark.md

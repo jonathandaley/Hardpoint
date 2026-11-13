@@ -4,7 +4,7 @@ extends Node3D
 #     res://tools/art/lineup.tscn -- <out.png> <yaw deg, 180 = facing camera> <a|b|Name,Name,...>
 # T340: a comma list renders exactly those mechs (tools/new_mech.py: a new one among the roster).
 func _ready() -> void:
-	var all := ["Slip", "Cesh", "Seeker", "Hornet", "Hippogriff", "Kestrel", "Pegasus", "Everest", "Vesuvius", "Lynx", "Warhog"]
+	var all := ["Slip", "Cesh", "Seeker", "Hornet", "Hippogriff", "Kestrel", "Pegasus", "Everest", "Vesuvius"]
 	var pick: String = OS.get_cmdline_user_args()[2]
 	var names: Array = all.slice(0, 5) if pick == "a" else all.slice(5) if pick == "b" else Array(pick.split(","))
 	var env := WorldEnvironment.new()

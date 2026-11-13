@@ -1,6 +1,6 @@
 extends SceneTree
 # T182: copies the design kit's pixel tiles (design/ is .gdignore'd) into assets/hardpoint/textures
-# and derives the Lynx and Warhog tiles the kit export lacks: Cesh's tile noise (each pixel's
+# and derives tiles for the mechs the kit export lacks (T340): Cesh's tile noise (each pixel's
 # ratio to the tile average) re-based onto their palette colours (tools/kit_mechs/*.js).
 # Run: ~/bin/godot --headless -s res://tools/kit_tiles.gd
 
