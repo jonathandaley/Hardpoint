@@ -63,11 +63,22 @@ Two ports face the internet on a dedicated server:
 14. **Debug things stay out of reach of the network**: debug mechs, cheats, harness
     switches are never selectable through an RPC or a handshake field.
 
-15. **Changing what travels on the wire means bumping `Game.NET_VERSION`.** A new or changed
-    `@rpc` function, a new step or field in the join hello, a new shape for the lobby, roster
-    or late-join data: old and new games can no longer talk, so the server must tell the
-    player to update instead of desyncing. The suite fails when an `@rpc` signature changes
-    without a bump (`NET_SIG` in `tools/oracles/net_security.py`); the other shapes are on you.
+15. **Every release that changes gameplay bumps `Game.NET_VERSION`, and the server is
+    rebuilt the same day** (user, 2026-11-12). Old and new games then never meet: the server
+    tells an out-of-date player "Update the game to play here" instead of failing quietly.
+    "Changes gameplay" means any of:
+    - a new or changed `@rpc` function, a new step or field in the join hello, a new shape
+      for the lobby, roster or late-join data;
+    - content: a mech, weapon, map, mode or skill added, removed or renamed (a mismatch
+      means refused squads or a map the player's game can't load);
+    - numbers the server decides: damage, health, speeds, cooldowns, timers (a mismatch
+      means a player's mech snaps back to where the server puts it);
+    - a Godot upgrade.
+
+    Only purely cosmetic releases (menus, HUD, art, sound) skip it. How to bump: raise
+    `NET_VERSION` in `autoloads/Game.gd`, then run `python3 -m oracles.net_security` in
+    `tools/` and paste the `NET_SIG` line it prints into `tools/oracles/net_security.py`.
+    The suite fails when an `@rpc` signature changes without a bump; the rest is on you.
 
 16. **The official server is checked, not just encrypted.** `Game._account_tls` accepts
     lemon.limedaley.com only with the certificate in `resources/account_server.crt`. Its

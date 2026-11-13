@@ -780,9 +780,11 @@ var _peer_accounts: Dictionary = {}  # server: peer id -> account email (its joi
 # one, silence past HELLO_TIMEOUT_S, or too many connections from one address drops it at
 # once, so an unauthenticated peer can cost us one small reply and one slot for a few seconds.
 const HELLO_MAX_BYTES := 256
-## T388: both ends must speak the same protocol. Bump on ANY change to an @rpc signature,
-## the hello / handshake, or the lobby / roster / late-join shapes (tools/oracles/net_security.py
-## hashes the @rpc signatures and fails the suite until this is bumped with them).
+## T388: both ends must speak the same protocol. Bump in EVERY release that changes gameplay
+## (docs/SECURITY.md rule 15): @rpc signatures, hello / handshake, lobby / roster / late-join
+## shapes, content (mechs, weapons, maps, modes, skills), server-decided numbers, a Godot
+## upgrade. tools/oracles/net_security.py hashes the @rpc signatures and fails the suite
+## until this is bumped with them.
 const NET_VERSION := 2  # 2: lobby carries idle_wait / sitting_out (T400)
 const HELLO_TIMEOUT_S := 4.0
 const MAX_PENDING_PER_ADDR := 3   # connections still in the handshake, per address

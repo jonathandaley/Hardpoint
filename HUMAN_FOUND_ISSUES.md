@@ -35,6 +35,7 @@ Match end results screen is spaced funny; the numbers should not be dependent on
 Make the edges of the maps disappear into fog, so the hard world border isn't as jarring. The physical edges are good where they are now, just visual needs an upgrade.
 
 Improve mech descriptions: they currently barely mention shields, and don't mention abilities at all. Also add some lore; you make it up based on the mechs abilties and colors and I'll tweak if necessary.
+Do a similar thing for the weapons.
 
 How hard would it be for bots to sometimes see through stealth? If not, something like "Bot difficulty * how "noisy" you're being = likelihood to be noticed".
 

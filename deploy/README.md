@@ -38,8 +38,17 @@ From the project folder, after pulling new commits:
     sudo deploy/install.sh     # installs the new pack and restarts the server
 
 `build.sh` refuses to build if the attack suite finds a problem. Accounts, settings, the
-ban list and the key are kept. Players must update their game too whenever the network
-version changed; until they do, they are told "Update the game to play here".
+ban list and the key are kept.
+
+**Update the server the same day you publish a release that changes gameplay**, and do it
+when nobody is playing:
+
+- Such a release raises the network version (see the release steps in the main README).
+  Players on the old game are told "Update the game to play here"; players on the new
+  game are told the server is out of date until you update it.
+- An update ends any match in progress and logs everyone out: logins live in the
+  server's memory, so players log in again afterwards.
+- A purely cosmetic release (menus, HUD, art, sound) needs no server update.
 
 ## Firewall: what is automatic
 
