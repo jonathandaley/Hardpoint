@@ -2,7 +2,8 @@ extends CanvasLayer
 
 # T420: the browser speed check (page address ...index.html?perf). Turns on the T165 per-system
 # timers and every 5 s shows (and prints to the browser console) one line: frames per second,
-# average / worst frame ms, process + physics ms, then avg/max ms per system.
+# average / worst frame ms, process + physics ms (process includes the render work in a window),
+# draw calls, whether the mouse is locked, then avg/max ms per system.
 # Render time on the graphics card is not counted separately: it shows up in the frame ms.
 
 const WINDOW_S := 5.0
@@ -33,7 +34,8 @@ func _process(delta: float) -> void:
 	var parts: Array = ["fps=%.0f frame=%.1f/%.1fms process=%.2fms physics=%.2fms draws=%d" % [_frames / _t,
 		_t * 1000.0 / _frames, _worst * 1000.0, Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
 		Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
-		Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)]]
+		Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)]
+		+ (" mouse=locked" if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED else " mouse=free")]
 	var prof: Dictionary = Game.prof_take()
 	for k in prof:  # avg/max ms per physics frame
 		var e: Array = prof[k]
