@@ -339,3 +339,4 @@ date|task|outcome|commit|finding|suite
 2026-11-13|T381|DONE|(this commit)|WeaponVisuals.MULT_CAP: the aerial strike pod's model caps at x1.2 of a mech's weapon_scale (Seeker 2.0 drew it 1.5x its torso, hiding the mount); other weapons keep T191's x2; probe strike_size_cap red at HEAD; renders docs/review/T381/; tools/art/armed takes Mech:Weapon|-
 2026-11-13|T369 T382 T380 T381 verify|DONE|-|batch suite 162/162|162/162
 2026-11-13|T370|DONE|(this commit)|HUD._bar_top: a health bar (and the name tag over it) stays RETICLE_GAP px above the targeting reticle box around centre mass; the fixed 3.5 m head offset projected into it at range; health_bars probe red at 90 m on HEAD, green after|-
+2026-11-13|T371|DONE|(this commit)|HUD BoostStatus: a line per running damage / speed boost ('DAMAGE x1.5  11s', pickup colours) under the minimap, under BOGGED when wading; probe boost_status red at HEAD, green; render docs/review/T371/ (tools/art/hud_status_shot)|-

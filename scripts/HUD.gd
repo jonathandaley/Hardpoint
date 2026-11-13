@@ -668,6 +668,7 @@ func _process(delta: float) -> void:
 
 	_update_ability_label()
 	_update_bog_status()
+	_update_boost_status()
 	_update_bot_bar()
 	_update_beacon_bars()
 	_update_team_counts()
@@ -746,6 +747,46 @@ func _update_bog_status() -> void:
 	var r := minimap.get_global_rect()
 	bog_status.position = Vector2(r.position.x, r.end.y + 3.0)
 	bog_status.visible = true
+
+# T371 (HUMAN_FOUND 2026-11-09: "powerups with an ongoing effect get a HUD indicator like bogged
+# down"): each running boost (T264 pickups) gets a line under the minimap -- under BOGGED when
+# that shows -- in the pickup's colour, with its effect and the seconds left.
+const _PickupScript := preload("res://scripts/Pickup.gd")
+var boost_status: VBoxContainer = null
+
+func _update_boost_status() -> void:
+	if boost_status == null:
+		boost_status = VBoxContainer.new()
+		boost_status.name = "BoostStatus"
+		boost_status.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		boost_status.add_theme_constant_override("separation", 0)
+		for kind in ["damage", "speed"]:
+			var lbl := Label.new()
+			lbl.name = "Boost_" + kind
+			lbl.add_theme_font_size_override("font_size", 9)
+			lbl.add_theme_color_override("font_color", _PickupScript.COLORS[kind])
+			lbl.add_theme_constant_override("outline_size", 2)
+			lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+			boost_status.add_child(lbl)
+		add_child(boost_status)
+	var alive: bool = is_instance_valid(_player_mech) and not _player_mech.get("is_dead")
+	var any := false
+	for kind in ["damage", "speed"]:
+		var secs: float = float(_player_mech.get(kind + "_boost_s")) if alive else 0.0
+		var lbl := boost_status.get_node("Boost_" + kind) as Label
+		lbl.visible = secs > 0.0
+		lbl.text = "%s  %ds" % [_PickupScript.LABELS[kind], ceili(secs)]
+		any = any or lbl.visible
+	if not any or minimap == null or not minimap.visible:
+		boost_status.visible = false
+		return
+	var r := minimap.get_global_rect()
+	var y := r.end.y + 3.0
+	if bog_status != null and bog_status.visible:
+		y = bog_status.get_global_rect().end.y + 1.0
+	boost_status.position = Vector2(r.position.x, y)
+	boost_status.reset_size()
+	boost_status.visible = true
 
 const ELIGIBLE_HALF := 9.5
 
