@@ -31,11 +31,11 @@ table inet hardpoint {
 		# game port: a new connection attempt is the expensive packet (ENet gives it a slot).
 		# One address: 10 new a second (a LAN party behind one router joins in a burst);
 		# everyone together: 200 a second, so spoofed sources cannot fill the 1024 slots fast.
-		udp dport 25575 ct state new add @game_new { ip saddr limit rate over 10/second burst 20 packets } drop
-		udp dport 25575 ct state new limit rate over 200/second burst 400 packets drop
+		udp dport 25574 ct state new add @game_new { ip saddr limit rate over 10/second burst 20 packets } drop
+		udp dport 25574 ct state new limit rate over 200/second burst 400 packets drop
 
 		# account port: the game allows 60 requests a minute per address; one request = one connection
-		tcp dport 25576 ct state new add @acct_new { ip saddr limit rate over 90/minute burst 30 packets } drop
-		tcp dport 25576 ct state new limit rate over 100/second burst 200 packets drop
+		tcp dport 25575 ct state new add @acct_new { ip saddr limit rate over 90/minute burst 30 packets } drop
+		tcp dport 25575 ct state new limit rate over 100/second burst 200 packets drop
 	}
 }

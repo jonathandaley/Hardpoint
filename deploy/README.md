@@ -5,7 +5,7 @@ lemon.limedaley.com that is **pomegranate** (lemon only forwards the ports to it
 
 ## What you do
 
-1. **Forward two ports** from lemon to pomegranate: UDP 25575 (the game) and TCP 25576
+1. **Forward two ports** from lemon to pomegranate: UDP 25574 (the game) and TCP 25575
    (accounts: sign-up / log-in). Nothing else.
 2. **Check the port forward keeps players' addresses** (see below). Do this before
    inviting anyone.
