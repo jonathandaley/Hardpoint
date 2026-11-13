@@ -40,12 +40,22 @@ func _ready() -> void:
 	set_physics_process(sync_logging_enabled)  # M0.2: zero-cost when flag off
 	_maybe_start_harness()  # M0.4: only when --mp-scenario= is present
 	_maybe_start_dedicated()  # T204: only when --server is present
-	if OS.has_feature("web"):  # T420: page-address switches -- ?perf (timing overlay), ?sp (straight into a match)
-		var flags := str(JavaScriptBridge.eval("location.search")).trim_prefix("?").split("&")
-		if "perf" in flags:
-			add_child(load("res://scripts/PerfOverlay.gd").new())
-		if "sp" in flags:
-			start_sp_match.call_deferred()
+	# T420: test switches -- page address ?perf&sp&map=City&bots=4,5 in a browser, or after "--" on a
+	# desktop command line (godot --path . -- perf sp map=City): perf = timing overlay, sp = straight into a match
+	var flags: PackedStringArray = OS.get_cmdline_user_args()
+	if OS.has_feature("web"):
+		flags = str(JavaScriptBridge.eval("location.search")).trim_prefix("?").split("&")
+		get_tree().process_frame.connect(_check_mouse_lock)
+	if "perf" in flags:
+		add_child(load("res://scripts/PerfOverlay.gd").new())
+	if "sp" in flags:  # optional map=City (a resources/maps name), bots=4,5 (allies, enemies)
+		for f in flags:
+			var kv: PackedStringArray = f.split("=")
+			if kv.size() == 2 and kv[0] == "map" and safe_res("res://resources/maps/%s.tres" % kv[1], "res://resources/maps/", ".tres"):
+				loadout["map_def"] = load("res://resources/maps/%s.tres" % kv[1])
+			elif kv.size() == 2 and kv[0] == "bots" and kv[1].split(",").size() == 2:
+				loadout["sp_bots"] = [clampi(kv[1].split(",")[0].to_int(), 0, 5), clampi(kv[1].split(",")[1].to_int(), 0, 5)]
+		start_sp_match.call_deferred()
 
 # M0.4: spin up the autodebug harness driver, isolated from the normal UI path.
 func _maybe_start_harness() -> void:
@@ -1115,12 +1125,6 @@ func _process(_delta: float) -> void:
 	if _mp_return_deadline > 0.0 and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		if Time.get_ticks_msec() * 0.001 >= _mp_return_deadline:
 			_do_return_to_lobby()
-	if OS.has_feature("web") and _want_captured:
-		var locked := Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
-		if _had_lock and not locked:
-			_had_lock = false
-			mouse_lock_lost.emit()
-		_had_lock = _had_lock or locked
 
 # ---- T420: mouse capture. A browser grants the pointer lock only right after a click or key,
 # and its own Esc drops the lock without a key event: a click takes the lock back (and doesn't
@@ -1128,6 +1132,15 @@ func _process(_delta: float) -> void:
 signal mouse_lock_lost
 var _want_captured := false
 var _had_lock := false
+
+func _check_mouse_lock() -> void:  # web only, every frame (Game's own _process is off most of the time)
+	if not _want_captured:
+		return
+	var locked := Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+	if _had_lock and not locked:
+		_had_lock = false
+		mouse_lock_lost.emit()
+	_had_lock = _had_lock or locked
 
 func set_mouse_captured(on: bool) -> void:
 	_want_captured = on
