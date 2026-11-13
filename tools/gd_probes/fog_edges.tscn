@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tools/gd_probes/fog_edges.gd" id="1"]
+
+[node name="FogEdgesProbe" type="Node"]
+script = ExtResource("1")

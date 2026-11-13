@@ -69,7 +69,7 @@ func _ready() -> void:
 	# T250: the water is murky -- nearly opaque and dark (was 82% opaque, luminance ~0.24)
 	var water: MeshInstance3D = null
 	for c in map.get_children():
-		if c is MeshInstance3D and (c as MeshInstance3D).mesh is PlaneMesh:
+		if c is MeshInstance3D and (c as MeshInstance3D).mesh is PlaneMesh and not String(c.name).begins_with("FogEdge"):  # T405 curtains are QuadMeshes (a PlaneMesh)
 			water = c
 	var wcol: Color = (water.material_override as StandardMaterial3D).albedo_color if water != null else Color.WHITE
 	if wcol.a < 0.92 or wcol.get_luminance() > 0.2:

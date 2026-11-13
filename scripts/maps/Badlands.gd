@@ -148,6 +148,7 @@ func _terrain() -> void:
 	add_child(body)
 
 func _boundary() -> void:  # invisible walls on top of the berm
+	edge_half = HALF  # T405: fog curtains along them
 	for side in [[Vector3(0, 20, -HALF), Vector3(HALF * 2.0, 40, 2)], [Vector3(0, 20, HALF), Vector3(HALF * 2.0, 40, 2)],
 			[Vector3(-HALF, 20, 0), Vector3(2, 40, HALF * 2.0)], [Vector3(HALF, 20, 0), Vector3(2, 40, HALF * 2.0)]]:
 		var body := StaticBody3D.new()

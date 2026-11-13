@@ -81,6 +81,7 @@ func _ready() -> void:
 			get_tree().create_timer(START_PICK_S + 4.0, false).timeout.connect(_reveal_stale_staged)
 	_map.build()
 	_map.add_surface_detail()  # T241
+	_map.add_fog_edges()  # T405
 	_wire_beacons()
 	if late != null:
 		_apply_late_beacons(late)
