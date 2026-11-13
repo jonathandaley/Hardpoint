@@ -877,9 +877,52 @@ func _update_name_tags() -> void:
 		tag.offset_top = bg.offset_top - 11.0
 		tag.offset_bottom = bg.offset_top - 1.0
 
+# T373 (HUMAN_FOUND 2026-11-09: "energy shield health visible to every peer: a blue bar under the
+# health bar"): a mech with an energy shield gets a thin blue bar right under its over-head health
+# bar, as long as the shield's pool (empty = just the dark track). Clients have the pool from
+# Mech._sync_shield; the regen runs on every peer.
+const SHIELD_BAR_H := 2.0
+const SHIELD_COLOR := Color(0.3, 0.7, 1.0)
+var _shield_bars: Array = []  # [track, fill] per mech, parallel to _bot_mechs + _ally_mechs
+
+func _update_shield_bars() -> void:
+	var mechs: Array = _bot_mechs + _ally_mechs
+	var bgs: Array = _bot_bg_bars + _ally_bg_bars
+	while _shield_bars.size() < mechs.size():
+		var pair: Array = []
+		for c in [Color(0.0, 0.0, 0.0, 0.85), SHIELD_COLOR]:
+			var r := ColorRect.new()
+			r.name = "ShieldBar" if c == SHIELD_COLOR else "ShieldTrack"
+			r.color = c
+			r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			r.visible = false
+			add_child(r)
+			pair.append(r)
+		_shield_bars.append(pair)
+	for i in _shield_bars.size():
+		var track: ColorRect = _shield_bars[i][0]
+		var fill: ColorRect = _shield_bars[i][1]
+		var m: Node = mechs[i] if i < mechs.size() else null
+		var es: Node = m.get_node_or_null("EnergyShield") if m != null and is_instance_valid(m) else null
+		var bg: ColorRect = bgs[i] if i < bgs.size() else null
+		var on: bool = es != null and bool(es.get("_active")) and bg != null and bg.visible
+		track.visible = on
+		fill.visible = on and float(es.shield_hp) > 0.0
+		if not on:
+			continue
+		track.offset_left = bg.offset_left
+		track.offset_right = bg.offset_right
+		track.offset_top = bg.offset_bottom
+		track.offset_bottom = bg.offset_bottom + SHIELD_BAR_H
+		fill.offset_left = bg.offset_left
+		fill.offset_right = bg.offset_left + (bg.offset_right - bg.offset_left) * clampf(float(es.shield_hp) / float(es.max_shield_hp), 0.0, 1.0)
+		fill.offset_top = track.offset_top
+		fill.offset_bottom = track.offset_bottom
+
 func _update_bot_bar() -> void:
 	_update_bot_bar_impl()
 	_update_name_tags()
+	_update_shield_bars()
 	_update_feed(get_process_delta_time())
 
 # T324 (HUMAN_FOUND 2026-11-05 late: "Top left of HUD, under the ability marker, should have a
