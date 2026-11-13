@@ -800,6 +800,7 @@ func _update_boost_status() -> void:
 	boost_status.visible = true
 
 const ELIGIBLE_HALF := 9.5
+const _Elig := preload("res://scripts/EligibleIndicator.gd")  # T408: its colours
 
 func _update_eligible_indicator() -> void:
 	var target: Node3D = _player_mech.get("lock_eligible_target") if "lock_eligible_target" in _player_mech else null
@@ -814,6 +815,10 @@ func _update_eligible_indicator() -> void:
 	var screen_pos := camera.unproject_position(aim)  # T319: centre mass, not a fixed height
 	eligible_indicator.position = screen_pos - Vector2(ELIGIBLE_HALF, ELIGIBLE_HALF)
 	eligible_indicator.size = Vector2(ELIGIBLE_HALF * 2.0, ELIGIBLE_HALF * 2.0)
+	# T408: grey when the target is beyond every equipped weapon's reach
+	var reach: float = float(_player_mech.call("weapon_range")) if _player_mech.has_method("weapon_range") else INF
+	var in_range: bool = _player_mech.global_position.distance_to(target.global_position) <= reach
+	eligible_indicator.set("color", _Elig.SQ_COLOR if in_range else _Elig.OUT_OF_RANGE)
 	eligible_indicator.visible = true
 	eligible_indicator.queue_redraw()
 
