@@ -4,6 +4,9 @@ Third-person mech arena FPS. Beacon capture win condition: hold more beacons tha
 
 Built in Godot 4.6 (Compatibility renderer / OpenGL ES 3.0), targeting low-end hardware (T3500-class). Chunky-pixel 3D: 640×360 internal, nearest-neighbor scaled to 1280×720.
 
+> **Running the online server** (lemon.limedaley.com:25574): start, stop, update, firewall,
+> settings, bans and backups are all in **[`deploy/README.md`](deploy/README.md)**.
+
 ---
 
 ## Running
@@ -18,6 +21,10 @@ chmod +x hardpoint_X.X.X.x86_64
 Linux x86_64 binary. No install. Godot editor not required to play.
 
 ### Dedicated server
+
+For the online server, use the kit in **[`deploy/README.md`](deploy/README.md)**: it runs
+the server as a service and has every command you need. The flags below are for running
+one by hand (testing, a LAN game).
 
 ```
 godot --headless --path <project dir> -- --server            # port 8910
@@ -41,7 +48,7 @@ is ready (a new player joining, or someone un-readying, cancels the countdown). 
 fill both teams up to `--team-size` (default 5; `--no-bots` turns that off). After a
 match, everyone returns to the lobby. Other flags: `--map=res://resources/maps/<Map>.tres`,
 `--mode=deathmatch` (no beacons: last team with mechs wins, or more mechs left at the time
-limit) and `--min-players=N` (default 1). Once that many are ready, a player who is not gets `--lobby-idle=N` seconds (default 180) before the match starts without them; they watch it and are back in as soon as they ready up. `deploy/README.md` has the kit for running it as a service. Open the UDP port in the firewall.
+limit) and `--min-players=N` (default 1). Once that many are ready, a player who is not gets `--lobby-idle=N` seconds (default 180) before the match starts without them; they watch it and are back in as soon as they ready up. Open the UDP port in the firewall.
 
 Accounts: the server also runs a TLS account endpoint on the next port up (TCP, e.g. 8911).
 Title → SIGN UP / LOG IN with the server's address; signed-in players' ELO, XP and coins
