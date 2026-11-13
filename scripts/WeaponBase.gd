@@ -154,6 +154,18 @@ func start_reload_cosmetic() -> void:
 const CUE_GAP := 3
 var _last_cue_tick := -CUE_GAP
 
+## T392: what an instant weapon's ray hit (an `intersect_ray` result, {} = nothing): anything
+## damageable on another team takes `amount` and the shooter gets its hit marker. The one
+## place the team check lives for RaycastGun, LaserCannon, ArcWeapon and Patience (B27).
+func _hit(result: Dictionary, amount: float) -> void:
+	if result.is_empty() or not result.collider.has_method("take_damage"):
+		return
+	var target_team: int = result.collider.get("team") if "team" in result.collider else -1
+	var own_team: int = owner_mech.get("team") if "team" in owner_mech else -2
+	if target_team != own_team:
+		result.collider.take_damage(amount, self)
+		_emit_hit_if_visible(result.collider, result.position)
+
 func _emit_hit_if_visible(target: Node, hit_pos: Vector3 = Vector3.ZERO, by_projectile := false) -> void:
 	if target != null and target.get("is_stealthy"):
 		return
