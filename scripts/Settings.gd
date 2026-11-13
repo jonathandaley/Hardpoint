@@ -10,7 +10,7 @@ const DIFF_LABELS := ["EASY", "NORMAL", "MEDIUM", "HARD", "ELITE"]
 var _diff_buttons: Array = []
 
 func _ready() -> void:
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	Game.set_mouse_captured(false)
 
 	sens_slider.set_block_signals(true)
 	sens_slider.min_value = 0.001

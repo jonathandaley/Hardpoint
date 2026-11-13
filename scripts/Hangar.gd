@@ -72,8 +72,11 @@ var _pilot_stats_label: Label = null
 var _prog_nodes_container: Control = null
 
 func _ready() -> void:
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	Game.set_mouse_captured(false)
 	weapon_slot_label.visible = false
+	if OS.has_feature("web"):  # T420: single player in a browser until T422 (no ENet there)
+		for n in ["FindMatchPanel/Choices/HostBtn", "FindMatchPanel/Choices/JoinBtn"]:
+			get_node(n).visible = false
 	_opaque_tooltips()
 	var pilot_name: String = Game.profile.get("pilot_name", "Pilot")
 	pilot_label.text = pilot_name

@@ -11,7 +11,7 @@ extends "res://autoloads/game/Progression.gd"  # T393: profile / skills / loadou
 
 ## T389: a dedicated server always records; a player's game only with Settings > RECORD MATCHES.
 func _records_sessions() -> bool:
-	return dedicated or bool(settings.get("record_matches", false))
+	return dedicated or (not OS.has_feature("web") and bool(settings.get("record_matches", false)))  # T420: no files in a browser
 
 # ---- Multiplayer transport (V5: no new autoload; stays in Game.gd) ----
 
@@ -40,6 +40,12 @@ func _ready() -> void:
 	set_physics_process(sync_logging_enabled)  # M0.2: zero-cost when flag off
 	_maybe_start_harness()  # M0.4: only when --mp-scenario= is present
 	_maybe_start_dedicated()  # T204: only when --server is present
+	if OS.has_feature("web"):  # T420: page-address switches -- ?perf (timing overlay), ?sp (straight into a match)
+		var flags := str(JavaScriptBridge.eval("location.search")).trim_prefix("?").split("&")
+		if "perf" in flags:
+			add_child(load("res://scripts/PerfOverlay.gd").new())
+		if "sp" in flags:
+			start_sp_match.call_deferred()
 
 # M0.4: spin up the autodebug harness driver, isolated from the normal UI path.
 func _maybe_start_harness() -> void:
@@ -957,7 +963,7 @@ var _mp_return_deadline: float = 0.0
 @rpc("authority", "call_local", "reliable")
 func _rpc_match_end(winner_team: int, stats: Array) -> void:
 	SoundManager.stop_music()
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	set_mouse_captured(false)
 	match_ended_mp.emit(winner_team, stats)
 	_update_mp_profile(winner_team, stats)
 	if multiplayer.is_server() and account_server != null:
@@ -1109,6 +1115,30 @@ func _process(_delta: float) -> void:
 	if _mp_return_deadline > 0.0 and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		if Time.get_ticks_msec() * 0.001 >= _mp_return_deadline:
 			_do_return_to_lobby()
+	if OS.has_feature("web") and _want_captured:
+		var locked := Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
+		if _had_lock and not locked:
+			_had_lock = false
+			mouse_lock_lost.emit()
+		_had_lock = _had_lock or locked
+
+# ---- T420: mouse capture. A browser grants the pointer lock only right after a click or key,
+# and its own Esc drops the lock without a key event: a click takes the lock back (and doesn't
+# fire), a lock lost behind the game's back tells the arena (pause menu). Desktop: plain set. ----
+signal mouse_lock_lost
+var _want_captured := false
+var _had_lock := false
+
+func set_mouse_captured(on: bool) -> void:
+	_want_captured = on
+	_had_lock = false
+	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if on else Input.MOUSE_MODE_VISIBLE
+
+func _input(event: InputEvent) -> void:
+	if OS.has_feature("web") and _want_captured and event is InputEventMouseButton and event.pressed \
+			and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		get_viewport().set_input_as_handled()
 
 func ai_director_intent_count(beacon: Node, team: int) -> int:
 	var count := 0

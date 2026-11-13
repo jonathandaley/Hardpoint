@@ -57,7 +57,7 @@ const WEAPON_CATALOG: Array = [
 @onready var _ready_btn: Button = $ReadyBtn
 
 func _ready() -> void:
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	Game.set_mouse_captured(false)
 	Game.lobby_updated.connect(_on_lobby_updated)
 	Game.mp_peer_connected.connect(_on_peer_connected)
 	Game.mp_peer_disconnected.connect(_on_peer_disconnected)

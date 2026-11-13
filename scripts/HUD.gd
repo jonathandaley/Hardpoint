@@ -513,7 +513,7 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 func show_squad_picker_mp(squad: Array, slot_used: Array, heading := "SELECT NEXT MECH") -> void:
 	hide_squad_picker_mp()
 	_squad_args = [squad, slot_used, heading]  # T322: BACK from the spawn picker reopens this
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	Game.set_mouse_captured(false)
 	var backdrop := ColorRect.new()
 	backdrop.color = Color(0.0, 0.0, 0.0, 0.85)
 	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

@@ -6,7 +6,7 @@ extends Control
 # T207: LOG IN / SIGN UP are live (accounts on a dedicated server); signed in, the note
 # names the account and LOG IN becomes LOG OUT.
 func _ready() -> void:
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	Game.set_mouse_captured(false)
 	var signed_in: bool = not Game.account.is_empty()
 	for n in ["LoginButton", "SignupButton"]:
 		(get_node(n) as Button).disabled = false
@@ -14,6 +14,9 @@ func _ready() -> void:
 	$LoginButton.text = "LOG OUT" if signed_in else "LOG IN"
 	$AccountsNote.text = ("SIGNED IN AS %s" % String(Game.account["email"]).to_upper()) if signed_in \
 		else "ACCOUNTS LIVE ON DEDICATED SERVERS"
+	if OS.has_feature("web"):  # T420: the browser build is single player until T422 (no ENet there)
+		for n in ["LoginButton", "SignupButton", "AccountsNote"]:
+			get_node(n).visible = false
 	$PlayButton.text = "PLAY" if Game.has_profile or signed_in else "PLAY AS GUEST"
 
 func _on_play_pressed() -> void:
