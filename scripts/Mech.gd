@@ -777,8 +777,14 @@ func refill_ammo() -> void:
 		w.set("_reloading", false)
 		w.set("_reload_timer", 0.0)
 
+## T374: below this a mech has left the world (every map's floor is far above): the server
+## destroys it, so a match never hangs on a mech falling forever.
+const FALL_KILL_Y := -60.0
+
 func _physics_process_impl(delta: float) -> void:
 	_tick_boosts(delta)
+	if global_position.y < FALL_KILL_Y and not is_dead and (not multiplayer.has_multiplayer_peer() or multiplayer.is_server()):
+		_apply_damage(1e9)
 	# V38: non-server peers skip all local simulation; transforms driven by snapshot interp.
 	# T205: except the client's own mech, which predicts its movement (V37).
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
