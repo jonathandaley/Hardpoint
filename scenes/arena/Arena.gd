@@ -66,9 +66,11 @@ func _ready() -> void:
 			b.free()
 		match_node.deathmatch = true  # before the HUD is set up (no score bars)
 		match_node.time_limit = DM_TIME_S
+		# T411 (HUMAN_FOUND: "Deathmatch should count kills instead of mechs remaining, in case team
+		# sizes are different."): at the time limit the team with more kills wins (equal: a draw)
 		match_node.time_out_winner = func() -> int:
-			var a := mechs_left(0)
-			var b := mechs_left(1)
+			var a := team_kills(0)
+			var b := team_kills(1)
 			return 0 if a > b else 1 if b > a else -1
 	var late = Game.late_join  # T206: joined mid-match, the state came with the handshake
 	if late != null:
@@ -379,6 +381,15 @@ func _apply_skills(m: Node) -> void:
 	m.call("apply_pilot_skills")
 
 # T285: alive + unspent squad mechs of `team` (Player.lives counts the live one). Server.
+## T411: kills scored by `team`'s pilots this match (server: kills_by_ri, T364).
+func team_kills(team: int) -> int:
+	var roster: Array = Game.mp_active_match["roster"]
+	var n := 0
+	for ri in kills_by_ri:
+		if int(ri) >= 0 and int(ri) < roster.size() and int(roster[int(ri)].get("team", -1)) == team:
+			n += int(kills_by_ri[ri])
+	return n
+
 func mechs_left(team: int) -> int:
 	var n := 0
 	for p in _players:
