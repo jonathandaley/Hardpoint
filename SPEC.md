@@ -205,6 +205,7 @@ T415|.|Badlands: a damage powerup spawned in the sky and floated there (HUMAN_FO
 T416|.|Swamp navmesh: choke points every bot sticks on, Elites included (HUMAN_FOUND: "Swamp needs better pathfinding: there are some impassible choke points that all the bots, including elites, were stuck on. Probably the ... navigation map thing-- needs to be updated")|T221
 T417|x|Normal bots fire the missile launcher out of range (HUMAN_FOUND: "Normal-level bot shoots missile launcher when out of range.")|T169
 T418|.|difficulty_steps is noisy again: 1 of 6 alone + 1 suite run 2026-11-13 failed the 40-damage step (Normal 167 vs Medium 194; Easy 33 / Normal 178 / Medium 214) -- T397 had it 12/12 under load; find what widened the spread (measure mode, per-round numbers) before touching the threshold|T397,T357
+T419|.|dedicated_server@bad flakes ~2 in 5 (2026-11-13: current code 2/5, pre-B139 code 2/5): transform_desync from tick ~298-299 (a client 2.8-4 m off the server for 30+ ticks) or interp_smoothness (a mech 'stood still' on 23% of the ticks it moved) -- both near match start on the lossy link; T373 / T408 sweeps were green, so it's intermittent -- find the start-of-match transition behind it|T205,T159
 
 ## §B BUGS
 
