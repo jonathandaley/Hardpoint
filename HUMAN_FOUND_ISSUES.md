@@ -29,6 +29,19 @@ Aerial strike is a little too big on Seeker. (visually)
 
 Match end results screen is spaced funny; the numbers should not be dependent on the name length, but be in columns.
 
+This error was on Sydney, if it matters:
+SCRIPT ERROR: Invalid call. Nonexistent function '_hit' in base 'Node3D (ArcWeapon)'.
+          at: ArcWeapon._do_fire (res://scripts/ArcWeapon.gd:137)
+          GDScript backtrace (most recent call first):
+              [0] _do_fire (res://scripts/ArcWeapon.gd:137)
+              [1] fire (res://scripts/WeaponBase.gd:101)
+              [2] fire (res://scripts/ArcWeapon.gd:94)
+              [3] fire_weapon (res://scripts/Mech.gd:491)
+              [4] _handle_fire (res://scripts/Mech.gd:1325)
+              [5] _physics_process_impl (res://scripts/Mech.gd:812)
+              [6] _physics_process (res://scripts/Mech.gd:740)
+The arc weapon appears to not work at all.
+
 ## Deferred:
 
 The general texturing applied to most of the maps' floors and obstacles is pretty good in general, but it looks blurry. Probably make the pixels/texels bigger? Like the bot texture, sharp bigger pixels instead of blurry finer detail. Not for every map, though: Redwood's floor is great.

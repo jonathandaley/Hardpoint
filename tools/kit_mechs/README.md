@@ -61,5 +61,4 @@ at x ~0.65. Lights stand ~2 m, heavies ~2.6 m tall after scaling.
 
 ## Examples
 
-`lynx.js` (light, digitigrade cat), `warhog.js` (heavy, boar tank) -- stubs not in the roster;
-the kit's nine (`design/preview/brand-mech-render-*.html`) use the same API.
+`taurus.js` is the worked example (T340); the kit's nine (`design/preview/brand-mech-render-*.html`) use the same API.
