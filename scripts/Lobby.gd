@@ -24,24 +24,26 @@ const ROSTER: Array = [
 	"res://resources/mechs/Taurus.tres",
 ]
 
+# T391: the one weapon list (the hangar reads this too): `name` = short label (HUD, lobby, bot kits),
+# `long` = the hangar's label. Order within a slot size = the hangar's cycle order.
 const WEAPON_CATALOG: Array = [
-	{"name": "RIFLE LT",      "path": "res://scenes/weapons/RifleLight.tscn",           "slot_size": 0},
-	{"name": "SNIPER LT",     "path": "res://scenes/weapons/SniperLight.tscn",          "slot_size": 0},
-	{"name": "MG LT",         "path": "res://scenes/weapons/MachineGunLight.tscn",      "slot_size": 0},
-	{"name": "SHOTGUN LT",    "path": "res://scenes/weapons/ShotgunLight.tscn",         "slot_size": 0},
-	{"name": "MISSILE LT",    "path": "res://scenes/weapons/MissileLauncherLight.tscn", "slot_size": 0},
-	{"name": "ROCKET LT",     "path": "res://scenes/weapons/RocketLauncherLight.tscn",  "slot_size": 0},
-	{"name": "LASER LT",      "path": "res://scenes/weapons/LaserCannonLight.tscn",     "slot_size": 0},
-	{"name": "ARC LT",        "path": "res://scenes/weapons/ArcWeaponLight.tscn",       "slot_size": 0},
-	{"name": "RIFLE HV",      "path": "res://scenes/weapons/RifleHeavy.tscn",           "slot_size": 1},
-	{"name": "SNIPER HV",     "path": "res://scenes/weapons/SniperHeavy.tscn",          "slot_size": 1},
-	{"name": "MG HV",         "path": "res://scenes/weapons/MachineGunHeavy.tscn",     "slot_size": 1},
-	{"name": "SHOTGUN HV",    "path": "res://scenes/weapons/ShotgunHeavy.tscn",        "slot_size": 1},
-	{"name": "MISSILE HV",    "path": "res://scenes/weapons/MissileLauncherHeavy.tscn","slot_size": 1},
-	{"name": "LASER HV",      "path": "res://scenes/weapons/LaserCannonHeavy.tscn",    "slot_size": 1},
-	{"name": "ARC HV",        "path": "res://scenes/weapons/ArcWeaponHeavy.tscn",      "slot_size": 1},
-	{"name": "AERIAL HV",     "path": "res://scenes/weapons/AerialStrikeHeavy.tscn",   "slot_size": 1},
-	{"name": "PATIENCE HV",   "path": "res://scenes/weapons/PatienceHeavy.tscn",        "slot_size": 1},
+	{"name": "RIFLE LT",      "path": "res://scenes/weapons/RifleLight.tscn",           "long": "RIFLE LIGHT", "slot_size": 0},
+	{"name": "SNIPER LT",     "path": "res://scenes/weapons/SniperLight.tscn",          "long": "SNIPER LIGHT", "slot_size": 0},
+	{"name": "MG LT",         "path": "res://scenes/weapons/MachineGunLight.tscn",      "long": "MACHINE GUN LIGHT", "slot_size": 0},
+	{"name": "SHOTGUN LT",    "path": "res://scenes/weapons/ShotgunLight.tscn",         "long": "SHOTGUN LIGHT", "slot_size": 0},
+	{"name": "MISSILE LT",    "path": "res://scenes/weapons/MissileLauncherLight.tscn", "long": "MISSILE LAUNCHER LT", "slot_size": 0},
+	{"name": "ROCKET LT",     "path": "res://scenes/weapons/RocketLauncherLight.tscn",  "long": "ROCKET LAUNCHER LT", "slot_size": 0},
+	{"name": "LASER LT",      "path": "res://scenes/weapons/LaserCannonLight.tscn",     "long": "LASER CANNON LT", "slot_size": 0},
+	{"name": "ARC LT",        "path": "res://scenes/weapons/ArcWeaponLight.tscn",       "long": "ARC WEAPON LT", "slot_size": 0},
+	{"name": "RIFLE HV",      "path": "res://scenes/weapons/RifleHeavy.tscn",           "long": "RIFLE HEAVY", "slot_size": 1},
+	{"name": "SNIPER HV",     "path": "res://scenes/weapons/SniperHeavy.tscn",          "long": "SNIPER HEAVY", "slot_size": 1},
+	{"name": "MG HV",         "path": "res://scenes/weapons/MachineGunHeavy.tscn",     "long": "MACHINE GUN HEAVY", "slot_size": 1},
+	{"name": "SHOTGUN HV",    "path": "res://scenes/weapons/ShotgunHeavy.tscn",        "long": "SHOTGUN HEAVY", "slot_size": 1},
+	{"name": "MISSILE HV",    "path": "res://scenes/weapons/MissileLauncherHeavy.tscn","long": "MISSILE LAUNCHER HV", "slot_size": 1},
+	{"name": "LASER HV",      "path": "res://scenes/weapons/LaserCannonHeavy.tscn",    "long": "LASER CANNON HV", "slot_size": 1},
+	{"name": "ARC HV",        "path": "res://scenes/weapons/ArcWeaponHeavy.tscn",      "long": "ARC WEAPON HV", "slot_size": 1},
+	{"name": "AERIAL HV",     "path": "res://scenes/weapons/AerialStrikeHeavy.tscn",   "long": "AERIAL STRIKE HV", "slot_size": 1},
+	{"name": "PATIENCE HV",   "path": "res://scenes/weapons/PatienceHeavy.tscn",        "long": "PATIENCE HV", "slot_size": 1},
 ]
 
 @onready var _peer_list: VBoxContainer = $PeerList

@@ -324,7 +324,7 @@ func _menu_pick_squad(squad: Array) -> bool:
 	var catalog: Array = preload("res://scripts/Lobby.gd").WEAPON_CATALOG
 	var hangar_name := {}
 	for c in hangar.get("WEAPON_CATALOG"):
-		hangar_name[c["path"]] = c["name"]
+		hangar_name[c["path"]] = c["long"]
 	var roster := "Content/MechPanel/RosterPanel/RosterScroll/RosterList/Roster_"
 	for i in squad.size():
 		_click("Content/MechPanel/SlotBtn%d" % i)

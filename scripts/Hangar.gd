@@ -4,38 +4,10 @@ const MechVisuals = preload("res://scripts/MechVisuals.gd")
 
 const DEBUG_BOT_PICKER := false
 
-const ROSTER: Array = [
-	"res://resources/mechs/Slip.tres",
-	"res://resources/mechs/Cesh.tres",
-	"res://resources/mechs/Seeker.tres",
-	"res://resources/mechs/Hornet.tres",
-	"res://resources/mechs/Hippogriff.tres",
-	"res://resources/mechs/Pegasus.tres",
-	"res://resources/mechs/Kestrel.tres",
-	"res://resources/mechs/Everest.tres",
-	"res://resources/mechs/Vesuvius.tres",
-	"res://resources/mechs/Taurus.tres",
-]
-
-const WEAPON_CATALOG: Array = [
-	{"name": "RIFLE LIGHT",    "path": "res://scenes/weapons/RifleLight.tscn",    "slot_size": 0},
-	{"name": "SNIPER LIGHT",   "path": "res://scenes/weapons/SniperLight.tscn",   "slot_size": 0},
-	{"name": "MACHINE GUN LIGHT", "path": "res://scenes/weapons/MachineGunLight.tscn", "slot_size": 0},
-	{"name": "SHOTGUN LIGHT",        "path": "res://scenes/weapons/ShotgunLight.tscn",        "slot_size": 0},
-	{"name": "MISSILE LAUNCHER LT", "path": "res://scenes/weapons/MissileLauncherLight.tscn", "slot_size": 0},
-	{"name": "ROCKET LAUNCHER LT",  "path": "res://scenes/weapons/RocketLauncherLight.tscn",  "slot_size": 0},
-	{"name": "LASER CANNON LT",     "path": "res://scenes/weapons/LaserCannonLight.tscn",     "slot_size": 0},
-	{"name": "RIFLE HEAVY",      "path": "res://scenes/weapons/RifleHeavy.tscn",      "slot_size": 1},
-	{"name": "SNIPER HEAVY",     "path": "res://scenes/weapons/SniperHeavy.tscn",     "slot_size": 1},
-	{"name": "MACHINE GUN HEAVY", "path": "res://scenes/weapons/MachineGunHeavy.tscn", "slot_size": 1},
-	{"name": "SHOTGUN HEAVY",        "path": "res://scenes/weapons/ShotgunHeavy.tscn",        "slot_size": 1},
-	{"name": "MISSILE LAUNCHER HV", "path": "res://scenes/weapons/MissileLauncherHeavy.tscn", "slot_size": 1},
-	{"name": "LASER CANNON HV",     "path": "res://scenes/weapons/LaserCannonHeavy.tscn",     "slot_size": 1},
-	{"name": "ARC WEAPON LT",       "path": "res://scenes/weapons/ArcWeaponLight.tscn",        "slot_size": 0},
-	{"name": "ARC WEAPON HV",       "path": "res://scenes/weapons/ArcWeaponHeavy.tscn",        "slot_size": 1},
-	{"name": "AERIAL STRIKE HV",    "path": "res://scenes/weapons/AerialStrikeHeavy.tscn",     "slot_size": 1},
-	{"name": "PATIENCE HV",         "path": "res://scenes/weapons/PatienceHeavy.tscn",         "slot_size": 1},
-]
+# T391: one catalog, Lobby's -- the server's squad whitelist (Game.clean_squad_entry) reads the same lists
+const _Lobby = preload("res://scripts/Lobby.gd")
+const ROSTER: Array = _Lobby.ROSTER
+const WEAPON_CATALOG: Array = _Lobby.WEAPON_CATALOG
 
 @onready var mech_panel: Control = $Content/MechPanel
 @onready var pilot_panel: Control = $Content/PilotPanel
@@ -584,7 +556,7 @@ func _build_weapon_picker(md) -> void:
 		row.add_child(prev_btn)
 
 		var cat_idx: int = _weapon_indices[i] if i < _weapon_indices.size() else 0
-		var wep_name: String = WEAPON_CATALOG[cat_idx]["name"] if cat_idx >= 0 else "NONE"
+		var wep_name: String = WEAPON_CATALOG[cat_idx]["long"] if cat_idx >= 0 else "NONE"
 
 		var wep_lbl := Label.new()
 		wep_lbl.name = "Weapon"
@@ -690,7 +662,7 @@ func _on_weapon_cycle(slot_idx: int, direction: int) -> void:
 		Game.save_loadout()
 
 	if slot_idx < _weapon_name_labels.size() and is_instance_valid(_weapon_name_labels[slot_idx]):
-		_weapon_name_labels[slot_idx].text = WEAPON_CATALOG[_weapon_indices[slot_idx]]["name"]
+		_weapon_name_labels[slot_idx].text = WEAPON_CATALOG[_weapon_indices[slot_idx]]["long"]
 		_weapon_name_labels[slot_idx].tooltip_text = weapon_tip(_weapon_indices[slot_idx])
 	_refresh_diorama_mech()  # T188: the shown mech carries the new pick
 	_refresh_lineup_mechs()
