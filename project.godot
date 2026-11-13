@@ -13,6 +13,7 @@ config_version=5
 config/name="Hardpoint"
 config/description="Mech arena FPS — War Robots-inspired."
 run/main_scene="res://scenes/ui/TitleScreen.tscn"
+run/flush_stdout_on_print=true
 config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://icon.svg"
 
