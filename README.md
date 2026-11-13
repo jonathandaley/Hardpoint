@@ -38,7 +38,7 @@ godot --headless --path <project dir> -- --server=9000 --team-size=3 --min-playe
 
 The release binary takes the same flags: `./hardpoint_X.X.X.x86_64 --headless -- --server`.
 
-**Building a release** (Linux preset in `export_presets.cfg`):
+**Building a release** (Linux and Windows presets in `export_presets.cfg`):
 
 ```bash
 ~/bin/godot --headless --path . --export-release "Linux" build/hardpoint_X.X.X.x86_64
