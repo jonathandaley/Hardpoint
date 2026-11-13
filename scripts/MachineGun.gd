@@ -65,6 +65,13 @@ func _physics_process(delta: float) -> void:
 		_current_rate = minf(_current_rate + rate_accel * delta, max_fire_rate)
 	else:
 		_current_rate = maxf(_current_rate - rate_decay * delta, base_fire_rate)
+		# T378 (HUMAN_FOUND 2026-11-09: bots' barrels "never cool down"): "off" went out only on a
+		# trigger release (on_fire_release), which a bot that just stops shooting never sends, so
+		# clients ramped (and looped the sound) forever. Any tick without fire is the end of a burst.
+		if _loop_on_remote:
+			_bc_loop(false)
+			if _loop_player != null and _loop_player.playing:
+				_loop_player.stop()
 	_trigger_held = false
 
 func _process(_delta: float) -> void:
@@ -160,14 +167,16 @@ func _rpc_mg_loop(on: bool) -> void:
 		_loop_player.stop()
 
 func fire() -> void:
-	_trigger_held = true
-	if _cooldown > 0.0:
-		return
+	# T378 (HUMAN_FOUND 2026-11-09: "Glow happens when mouse is pressed, not when gun is actually
+	# firing"): the ramp (and its glow) counts only while the gun can shoot -- not reloading, not empty
 	if _reloading:
 		return
 	if max_ammo >= 0 and ammo <= 0:
 		if magazine_type == MagazineType.FIXED:
 			_start_reload()
+		return
+	_trigger_held = true
+	if _cooldown > 0.0:
 		return
 	_cooldown = 1.0 / _current_rate
 	_start_mg_loop()

@@ -3,6 +3,8 @@ extends Node
 # ramp-up increases, red-hot at max speed"): holding the MG trigger, its BarrelGlow shows
 # and brightens with the fire rate, red-hot at max; it fades out after release. Clients
 # ramp from the replicated loop on/off (_remote_firing).
+# T378 (HUMAN_FOUND 2026-11-09): holding the trigger while reloading doesn't heat the barrel, and a
+# shooter that just stops (a bot: no trigger release) still tells clients the burst ended.
 
 const SlotDef := preload("res://scripts/WeaponSlotDef.gd")
 
@@ -77,6 +79,32 @@ func _ready() -> void:
 		await get_tree().process_frame
 	if glow.visible:
 		_fail("barrel still glowing 2 s after release (heat %.2f)" % float(w.call("get_heat")))
+		return
+	# a bot-like stop: firing again, then the input just ends with no release call
+	src.firing = true
+	for i in 30:
+		await get_tree().physics_frame
+	if not w.get("_loop_on_remote"):
+		_fail("the loop never went 'on' for clients while firing")
+		return
+	me.set("_was_firing_primary", false)  # Mech won't call on_fire_release
+	src.firing = false
+	for i in 5:
+		await get_tree().physics_frame
+	if w.get("_loop_on_remote"):
+		_fail("a shooter that stopped without a release still tells clients it's firing")
+		return
+	# holding the trigger on an empty magazine (reloading) doesn't heat the barrel
+	for i in 60:
+		await get_tree().physics_frame
+	w.set("ammo", 0)
+	src.firing = true
+	for i in 60:
+		await get_tree().physics_frame
+	var reload_heat := float(w.call("get_heat"))
+	src.firing = false
+	if reload_heat > 0.05:
+		_fail("barrel heats to %.2f while reloading (trigger held, no shots)" % reload_heat)
 		return
 	if not (load("res://scripts/MachineGun.gd") as Script).source_code.contains("_remote_firing = on"):
 		_fail("clients do not ramp from the loop on/off RPC")
