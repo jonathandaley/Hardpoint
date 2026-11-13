@@ -41,6 +41,10 @@ def run(ctx):
     th = {**DEFAULTS, **ctx.get("thresholds", {})}
     persist = int(th["persist_ticks"])
     server = primary["server"]
+    # T419 (dedicated_server@bad 2 in 5): once the server's match is over it stops moving mechs, but a
+    # client hears of it a lossy link's worth later and keeps predicting its own mech forward -- that
+    # isn't a desync. Ticks from the server's match_end on are not judged.
+    end = next((int(e["tick"]) for e in (server.events or []) if e.get("type") == "match_end"), None)
 
     worst = None  # (first_tick, verdict-dict) -- earliest persistent divergence wins
     total_checked = 0
@@ -62,6 +66,8 @@ def run(ctx):
                     def mag(ss, cs, f=field):
                         return base.quat_angle(cs[f], ss[f])
                 series = base.cross_series(server, client, mid, mag, skew)
+                if end is not None:
+                    series = [(t, m) for t, m in series if t < end]
                 if not series:
                     continue
                 total_checked += 1
