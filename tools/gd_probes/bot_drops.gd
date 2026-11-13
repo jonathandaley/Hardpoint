@@ -101,13 +101,19 @@ func _ready() -> void:
 		await get_tree().physics_frame
 	var nav_map: RID = arena.get_world_3d().navigation_map
 	for kind in arena.get_script().get_script_constant_map()["POWERUPS"]:
-		var pre := _pickups(arena)
-		if not arena.call("spawn_map_powerup", kind):
+		var pw: Array = []
+		for attempt in 3:  # a random navmesh point can land under a mech, which takes it the same frame
+			var pre := _pickups(arena)
+			if not arena.call("spawn_map_powerup", kind):
+				break
+			await get_tree().physics_frame
+			pw = _new_since(arena, pre)
+			if pw.size() == 1:
+				break
+		if pw.is_empty() and not bad and arena.get("_nav_region").navigation_mesh.get_polygon_count() == 0:
 			_fail("no map powerup (navmesh missing?)")
 			bad = true
 			break
-		await get_tree().physics_frame
-		var pw: Array = _new_since(arena, pre)
 		if pw.size() != 1:
 			_fail("spawning a %s put %d pickups down" % [kind, pw.size()])
 			bad = true

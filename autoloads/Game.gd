@@ -585,6 +585,7 @@ var account_mode := "login"      # Account screen: "login" | "signup"
 ## and read a password. Any other server (a friend's, a LAN one) is encrypted but not
 ## checked -- there is nothing to check it against.
 const OFFICIAL_HOST := "lemon.limedaley.com"
+const OFFICIAL_PORT := 25574  # T266: game UDP; accounts TCP = +1 (deploy/README.md)
 var account_pin_host := OFFICIAL_HOST                      # vars: probe account_pin swaps them
 var account_pin_cert := "res://resources/account_server.crt"
 

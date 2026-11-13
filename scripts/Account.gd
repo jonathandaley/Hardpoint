@@ -45,7 +45,7 @@ func _ready() -> void:
 	var rows := [["email", "EMAIL", ""], ["password", "PASSWORD (8+ characters)" if signup else "PASSWORD", ""]]
 	if signup:
 		rows.append(["callsign", "CALLSIGN", ""])
-	rows.append(["server", "SERVER (address:port)", "127.0.0.1:8910"])
+	rows.append(["server", "SERVER (address:port)", "%s:%d" % [Game.OFFICIAL_HOST, Game.OFFICIAL_PORT]])  # T266
 	var server_nodes: Array = []
 	for r in rows:
 		if r[0] == "server":
@@ -84,7 +84,8 @@ func _ready() -> void:
 func _on_confirm() -> void:
 	var addr: String = _fields["server"].text.strip_edges()
 	var host_addr := addr.get_slice(":", 0)
-	var port := int(addr.get_slice(":", 1)) if addr.contains(":") and addr.get_slice(":", 1).is_valid_int() else 8910
+	var port := int(addr.get_slice(":", 1)) if addr.contains(":") and addr.get_slice(":", 1).is_valid_int() \
+		else Game.OFFICIAL_PORT if host_addr.to_lower() == Game.OFFICIAL_HOST else 8910
 	var req := {"op": Game.get("account_mode"), "email": _fields["email"].text.strip_edges(),
 		"password": _fields["password"].text}
 	if _fields.has("callsign"):
