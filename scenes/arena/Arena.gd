@@ -1288,14 +1288,17 @@ func _on_bot_mech_died(bp: Node, ri: int) -> void:
 	await get_tree().create_timer(BOT_RESPAWN_S, false, true).timeout
 	if _match_over or not is_instance_valid(bp):
 		return
-	var squad: Array = Game.mp_active_match["roster"][ri]["squad"]
+	var roster: Array = Game.mp_active_match["roster"]
+	if ri < 0 or ri >= roster.size():  # B138: the roster changed during the wait (match over, back to the lobby)
+		return
+	var squad: Array = roster[ri]["squad"]
 	var slot: int = _bot_slot_next.get(ri, 1)
 	while slot < squad.size() and squad[slot].get("mech", "") == "":
 		slot += 1
 	if slot >= squad.size():
 		return
 	_bot_slot_next[ri] = slot + 1
-	_rpc_spawn_next_bot.rpc(ri, slot, bot_spawn(Game.mp_active_match["roster"][ri]["team"]))
+	_rpc_spawn_next_bot.rpc(ri, slot, bot_spawn(roster[ri]["team"]))
 
 # ---- T264: drops from destroyed bots (HUMAN_FOUND 2026-11-05; user: coins by bot difficulty
 # + powerups repair / ammo / damage boost / speed boost) ----
