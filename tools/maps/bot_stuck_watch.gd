@@ -3,6 +3,21 @@ extends Node
 # elites, were stuck on"): a bots-only match on a map; every second each bot's position; prints the
 # spots where a live bot moved < 1.5 m over 8 s (stuck), with how often. Not a suite probe (minutes).
 #   ~/bin/godot --headless --path . res://tools/maps/bot_stuck_watch.tscn -- <Map> [seconds] [difficulty]
+var _traced := false
+
+## One stalled bot, tick by tick for a second: where it is, its velocity, its move input, its aim yaw.
+func _trace(m: Node3D) -> void:
+	var ai: Node = m.get("_input_source")
+	for k in 60:
+		await get_tree().physics_frame
+		if not is_instance_valid(m):
+			return
+		if k % 3 == 0:
+			print("[trace] %d pos %s vel %s move %s yaw %.2f strafe %s dist %.1f" % [k, m.global_position.snapped(Vector3.ONE * 0.01),
+				(m as CharacterBody3D).velocity.snapped(Vector3.ONE * 0.01), ai.get("_move_dir") if ai else "?",
+				(m.get("torso") as Node3D).global_rotation.y, ai.get("_strafe_sign") if ai else "?",
+				m.global_position.distance_to(ai.get("_target").global_position) if ai and is_instance_valid(ai.get("_target")) else -1.0])
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	var args := OS.get_cmdline_user_args()
@@ -40,6 +55,9 @@ func _ready() -> void:
 				if walked < 1.5:
 					var key := "%d,%d" % [roundi(h[-1].x / 4.0) * 4, roundi(h[-1].z / 4.0) * 4]
 					spots[key] = int(spots.get(key, 0)) + 1
+					if int(spots[key]) == 1 and not _traced:
+						_traced = true
+						_trace(m)
 					if int(spots[key]) == 1:
 						var ai: Node = m.get("_input_source")
 						var cb := m as CharacterBody3D
