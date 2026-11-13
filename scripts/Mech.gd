@@ -644,6 +644,9 @@ func _sync_ammo(slot: int, a: int) -> void:
 func _sync_shield(pool: float) -> void:
 	if _energy_shield != null:
 		_energy_shield.set("shield_hp", pool)
+		# T373: a sync means a hit landed on the server -- hold the regen as absorb() does there, or the
+		# client's copy (now on every peer's HUD) refilled at once and jumped back on the next hit
+		_energy_shield.set("_regen_timer", float(_energy_shield.get("regen_delay")))
 
 # T119: called by Arena._rpc_snapshot on clients to push a server transform sample.
 func receive_snapshot(entry: Dictionary, local_t: float = -1.0) -> void:
