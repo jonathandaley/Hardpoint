@@ -366,7 +366,8 @@ static func _build_roster() -> Array:
 			e["name"] = BotNames.next_name(taken, elite)
 			e["skills"] = (BotNames.ELITE.get(e["name"], {}) as Dictionary).duplicate()
 			if elite and BotNames.ELITE_KIT.has(e["name"]):  # T350: the pilot's own hangar and style
-				e["squad"] = kit_squad(BotNames.ELITE_KIT[e["name"]]["squad"])
+				var dm: bool = Game.mp_lobby.get("mode", "beacons") == "deathmatch"  # T377: a hangar per mode
+				e["squad"] = kit_squad(BotNames.ELITE_KIT[e["name"]]["squad_dm" if dm else "squad"])
 				e["personality"] = (BotNames.ELITE_KIT[e["name"]]["personality"] as Dictionary).duplicate()
 			taken.append(e["name"])
 	return roster
