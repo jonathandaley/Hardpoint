@@ -341,3 +341,4 @@ date|task|outcome|commit|finding|suite
 2026-11-13|T370|DONE|(this commit)|HUD._bar_top: a health bar (and the name tag over it) stays RETICLE_GAP px above the targeting reticle box around centre mass; the fixed 3.5 m head offset projected into it at range; health_bars probe red at 90 m on HEAD, green after|-
 2026-11-13|T371|DONE|(this commit)|HUD BoostStatus: a line per running damage / speed boost ('DAMAGE x1.5  11s', pickup colours) under the minimap, under BOGGED when wading; probe boost_status red at HEAD, green; render docs/review/T371/ (tools/art/hud_status_shot)|-
 2026-11-13|T377|DONE|(this commit)|BotNames.ELITE_KIT squad_dm per pilot (brawlers + Taurus where a pilot rams, missiles over aerial strikes); Lobby flies squad_dm in death match, squad in beacons; elite_kits checks both hangars + both modes, red at HEAD|-
+2026-11-13|T370 T371 T377 verify|DONE|-|batch suite 163/163|163/163
