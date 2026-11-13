@@ -199,7 +199,7 @@ T409|.|hangar mech preview: arrow buttons rotate it 45 deg (or drag-and-spin), s
 T410|.|"SELECT SPAWN POINT" bigger, another colour, across the top while picking mechs in a match (HUMAN_FOUND: "\"Select spawn point\" should be more visible, a different color, bigger across the top when picking mechs in a match.")|-
 T411|.|death match scores kills, not mechs remaining (HUMAN_FOUND: "Deathmatch should count kills instead of mechs remaining, in case team sizes are different.") -- gameplay: NET_VERSION + server rebuild (rule 15) if the result rides the wire|T285,T364
 T412|.|arc weapon damage rises as range falls; today's damage stays at long range (HUMAN_FOUND: "Arc weapon should increase damage as range decreases. Current damage is good for reasonably long range.") -- gameplay (rule 15)|T367
-T413|.|coins don't vanish (HUMAN_FOUND: "Coins should not vanish.")|T383
+T413|x|coins don't vanish (HUMAN_FOUND: "Coins should not vanish.")|T383
 T414|.|powerups 50% more often (HUMAN_FOUND: "Powerups should appear 50% more often.")|T264
 T415|.|Badlands: a damage powerup spawned in the sky and floated there (HUMAN_FOUND: "On Badlands, a damage powerup spawned in the sky and floated there. No obvious reason.") + spent shells float sometimes (HUMAN_FOUND: "Spent shells float in the air sometimes.") -- both: placement / settling over terrain|T263,T264
 T416|.|Swamp navmesh: choke points every bot sticks on, Elites included (HUMAN_FOUND: "Swamp needs better pathfinding: there are some impassible choke points that all the bots, including elites, were stuck on. Probably the ... navigation map thing-- needs to be updated")|T221
