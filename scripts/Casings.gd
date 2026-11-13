@@ -127,14 +127,21 @@ func eject(weapon: Node3D, shell := false) -> void:
 		_air.append(i)
 	_write(i)
 
-func _landing_y(p: Vector3, v: Vector3, weapon: Node3D) -> float:
+func _landing_y(p: Vector3, v: Vector3, _weapon: Node3D) -> float:
 	var land := p + Vector3(v.x, 0.0, v.z) * LAND_GUESS_S
-	var q := PhysicsRayQueryParameters3D.create(Vector3(land.x, p.y + 0.5, land.z), Vector3(land.x, p.y - 40.0, land.z))
-	var owner_mech = weapon.get("owner_mech")
-	if owner_mech != null and is_instance_valid(owner_mech) and owner_mech.has_method("get_exclude_rids"):
-		q.exclude = owner_mech.get_exclude_rids()
+	return _floor_below(Vector3(land.x, p.y + 0.5, land.z), p.y - 40.0)
+
+## T415 (HUMAN_FOUND: "Spent shells float in the air sometimes."): the floor under `from`, never a
+## mech -- a casing that "landed" on a mech's head hung in the air once the mech walked away.
+func _floor_below(from: Vector3, lowest: float) -> float:
+	var q := PhysicsRayQueryParameters3D.create(from, Vector3(from.x, lowest, from.z))
+	var ex: Array = []
+	for m in get_tree().get_nodes_in_group("mechs"):
+		if m.has_method("get_exclude_rids"):
+			ex.append_array(m.get_exclude_rids())
+	q.exclude = ex
 	var hit := get_world_3d().direct_space_state.intersect_ray(q)
-	return float(hit.position.y) if hit else p.y - 40.0  # nothing below: it falls out of sight
+	return float(hit.position.y) if hit else lowest  # nothing below: it falls out of sight
 
 func _process(delta: float) -> void:
 	if _air.is_empty():
@@ -173,6 +180,14 @@ func _process(delta: float) -> void:
 				_rot[i] = _rot[i].slerp(lie, minf(1.0, 12.0 * delta))
 			if _roll[i] > 0.0:
 				still.append(i)
+			else:  # T415: coming to rest -- if the floor here is lower (rolled off a ledge), fall to it
+				var half2 := SIZE.x * 0.5 * _scale[i]
+				var fy := _floor_below(_pos[i] + Vector3(0, 0.3, 0), _pos[i].y - 40.0)
+				if fy < _pos[i].y - half2 - 0.05:
+					_ground[i] = fy
+					_vel[i] = Vector3.ZERO
+					_bounce[i] = BOUNCES  # the next landing lies it down
+					still.append(i)
 		_write(i)
 	_air = still
 
