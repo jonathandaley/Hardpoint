@@ -129,16 +129,21 @@ static func plain_material(m: StandardMaterial3D) -> bool:
 		and m.transparency == BaseMaterial3D.TRANSPARENCY_DISABLED and not m.vertex_color_use_as_albedo
 
 ## T223: invisible boundary walls around a square of side 2*half (+ center).
+## T374 (HUMAN_FOUND 2026-11-09: a bot walked off the back of Redwood Forest): the walls reach
+## BOUNDARY_DEPTH m below y 0 -- a rolling floor dips under 0 at the edge, which left a gap.
+const BOUNDARY_DEPTH := 30.0
+
 func make_boundary(half: float, height := 40.0) -> void:
-	for side in [[Vector3(0, 0, -half), Vector3(half * 2.0, height, 2)], [Vector3(0, 0, half), Vector3(half * 2.0, height, 2)],
-			[Vector3(-half, 0, 0), Vector3(2, height, half * 2.0)], [Vector3(half, 0, 0), Vector3(2, height, half * 2.0)]]:
+	var tall := height + BOUNDARY_DEPTH
+	for side in [[Vector3(0, 0, -half), Vector3(half * 2.0, tall, 2)], [Vector3(0, 0, half), Vector3(half * 2.0, tall, 2)],
+			[Vector3(-half, 0, 0), Vector3(2, tall, half * 2.0)], [Vector3(half, 0, 0), Vector3(2, tall, half * 2.0)]]:
 		var body := StaticBody3D.new()
 		var col := CollisionShape3D.new()
 		var box := BoxShape3D.new()
 		box.size = side[1]
 		col.shape = box
 		body.add_child(col)
-		body.position = side[0] + Vector3(center.x, height * 0.5, center.y)
+		body.position = side[0] + Vector3(center.x, (height - BOUNDARY_DEPTH) * 0.5, center.y)
 		add_child(body)
 
 ## T223: the arena's environment, made this map's own (a copy) so changes (fog, sky) don't
