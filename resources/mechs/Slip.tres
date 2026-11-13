@@ -14,7 +14,7 @@ weapon_scene = ExtResource("4")
 [resource]
 script = ExtResource("1")
 display_name = "Slip"
-description = "Sleek light mech. Single light hardpoint. Fastest chassis in the roster."
+description = "Light, 175 HP, no shield, one light hardpoint: the fastest chassis in the roster. Steel blue with cyan lights, built for pilots who would rather not be hit than survive it."
 class_tag = "Light"
 max_health = 175.0
 walk_speed = 3.75

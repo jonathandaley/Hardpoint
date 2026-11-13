@@ -14,7 +14,7 @@ weapon_scene = ExtResource("4")
 [resource]
 script = ExtResource("1")
 display_name = "Seeker"
-description = "Compact light mech. Single heavy hardpoint punches above its weight class."
+description = "Light, 175 HP, no shield: one heavy hardpoint on a small, fast frame, so big-gun damage at a scout's size. Dusky violet with orange glow; Seekers hunt alone, and one good shot is the whole plan."
 class_tag = "Light"
 max_health = 175.0
 walk_speed = 2.75

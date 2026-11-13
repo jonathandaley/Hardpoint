@@ -26,7 +26,7 @@ weapon_scene = ExtResource("4")
 [resource]
 script = ExtResource("1")
 display_name = "Vesuvius"
-description = "Heavy mech with three heavy hardpoints. Devastating firepower at the cost of speed."
+description = "Heavy, 850 HP, slow, no shield: three heavy hardpoints, the most firepower in the roster. Charred black with molten orange vents -- when a Vesuvius walks in, the ground gets warm."
 class_tag = "Heavy"
 max_health = 850.0
 walk_speed = 1.1
