@@ -367,6 +367,14 @@ func has_lock_weapon() -> bool:
 	return false
 
 # T334: the farthest reach of our lock weapons (0 = none).
+## T408: the farthest any equipped weapon reaches (0 = unarmed).
+func weapon_range() -> float:
+	var r := 0.0
+	for w in _weapons:
+		if is_instance_valid(w):
+			r = maxf(r, float(w.get("range")))
+	return r
+
 func lock_weapon_range() -> float:
 	var r := 0.0
 	for w in _weapons:
@@ -1190,7 +1198,9 @@ func _handle_reload() -> void:
 # Metres per unit of target body scale (capsule is 1 m wide x 2 m tall at scale 1).
 const _LOCK_ACQ_M  := 2.5   # acquire: crosshair ray passes within this of the target centre
 const _LOCK_HOLD_M := 5.0   # hold once locked (hysteresis)
-const _LOCK_RANGE  := 200.0
+# T408 (HUMAN_FOUND: the reticle box: "There should be no max distance at which it appears"): the
+# eligible box searches as far as a camera sees; a lock still builds only within lock_weapon_range (T334)
+const _LOCK_RANGE  := 5000.0
 
 ## Crosshair-ray miss distance to target's centre in target-scale units; INF if behind camera.
 func _lock_miss(target: Node3D, cam_pos: Vector3, cam_fwd: Vector3) -> float:

@@ -16,5 +16,9 @@ static func corner_lines(s: Vector2) -> PackedVector2Array:
 		out.append(c); out.append(c + Vector2(0, dy))
 	return out
 
+# T408 (HUMAN_FOUND: "Targeting reticle should be grey if no equipped weapon is within range"): HUD sets it
+const OUT_OF_RANGE := Color(0.6, 0.6, 0.6, 0.7)
+var color := SQ_COLOR
+
 func _draw() -> void:
-	draw_multiline(corner_lines(size), SQ_COLOR, SQ_WIDTH)
+	draw_multiline(corner_lines(size), color, SQ_WIDTH)
