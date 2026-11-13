@@ -46,7 +46,8 @@ func _on_mp_connected(id: int) -> void:
 
 func _on_mp_join_failed() -> void:
 	_join_button.disabled = false
-	_show_error("Connection failed")
+	_show_error(Game.account_notice if Game.account_notice != "" else "Connection failed")  # T403
+	Game.account_notice = ""
 
 func _show_error(msg: String) -> void:
 	_error_label.text = msg

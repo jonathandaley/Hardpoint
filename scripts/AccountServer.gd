@@ -21,6 +21,7 @@ const STORE := "user://accounts.cfg"
 const KEY_PATH := "user://account_tls.key"
 const CERT_PATH := "user://account_tls.crt"
 const MAX_LINE := 4096
+const ERR_SESSION := "sign in again"  # T403: clients sign out on it (Game._session_lost); never reword
 # T384 (V62): what one address may do. Requests are cheap to send and each login / sign-up
 # costs us a password hash, so they are counted per address BEFORE any work is done.
 const MAX_CONNS := 256           # open connections in total; beyond that new ones are closed
@@ -185,7 +186,7 @@ func handle(line: String, addr: String = "") -> Dictionary:
 	if op in SKILL_OPS:  # T213: {op, session, key}; main thread only
 		var who := email_for(_s(req, "session"))
 		if who == "":
-			return _err("sign in again")
+			return _err(ERR_SESSION)
 		var after: Dictionary = Game.skill_op_on(profile(who), op, _s(req, "key"))
 		if after.is_empty():
 			return _err("not enough points or coins")
@@ -194,7 +195,7 @@ func handle(line: String, addr: String = "") -> Dictionary:
 	if op == "ticket":  # T385: {op, session} -> {ok, ticket}
 		var who := email_for(_s(req, "session"))
 		if who == "":
-			return _err("sign in again")
+			return _err(ERR_SESSION)
 		var ticket := Crypto.new().generate_random_bytes(32).hex_encode()
 		_mx.lock()
 		if _tickets.size() > 2000:

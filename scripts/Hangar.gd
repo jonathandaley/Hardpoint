@@ -1154,6 +1154,10 @@ func _on_skill_unlock(key: String) -> void:
 		ok = Game.unlock_skill(key)
 	else:
 		ok = await Game.account_skill("unlock_skill", key)  # T213: the account's server decides
+	if Game.account_notice != "" and is_inside_tree():  # T403: login expired -> log in again
+		Game.account_mode = "login"
+		get_tree().change_scene_to_file("res://scenes/ui/Account.tscn")
+		return
 	if ok and is_inside_tree():
 		_refresh_pilot_stats()
 		_build_progression_nodes()
@@ -1165,6 +1169,10 @@ func _on_skill_upgrade(key: String) -> void:
 		ok = Game.upgrade_skill(key)
 	else:
 		ok = await Game.account_skill("upgrade_skill", key)  # T213: the account's server decides
+	if Game.account_notice != "" and is_inside_tree():  # T403: login expired -> log in again
+		Game.account_mode = "login"
+		get_tree().change_scene_to_file("res://scenes/ui/Account.tscn")
+		return
 	if ok and is_inside_tree():
 		_refresh_pilot_stats()
 		_build_progression_nodes()

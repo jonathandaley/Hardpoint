@@ -80,6 +80,8 @@ func _ready() -> void:
 	_status.name = "Status"
 	_status.autowrap_mode = TextServer.AUTOWRAP_WORD
 	box.add_child(_status)
+	_status.text = Game.account_notice.to_upper()  # T403: sent here because the login expired
+	Game.account_notice = ""
 
 func _on_confirm() -> void:
 	var addr: String = _fields["server"].text.strip_edges()
