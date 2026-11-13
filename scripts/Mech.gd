@@ -1550,7 +1550,11 @@ func _lunge_contacts() -> void:
 		var m := _owning_mech(c)
 		if m != null and m != self:
 			var server := not multiplayer.has_multiplayer_peer() or multiplayer.is_server()
-			if server and m.get("team") != team and c.has_method("take_damage"):
+			if not server:
+				# T404: the owner's prediction meets other mechs where they were INTERP_DELAY ago; a ram
+				# is the server's call -- its lunge clock jumping to the settle tells us (_lunge_sync)
+				continue
+			if m.get("team") != team and c.has_method("take_damage"):
 				var mv: Vector3 = m.get("velocity") if m.get("velocity") != null else Vector3.ZERO
 				var closing := lunge_speed(lunge_t) - mv.dot(_lunge_dir)
 				c.call("take_damage", maxf(RAM_FLOOR, RAM_K * closing), self)
@@ -1617,8 +1621,17 @@ func _lunge_sync(entry: Dictionary, ahead: int) -> void:
 			return
 		if not lunging:
 			_lunge_begin(entry.get("ld", _lunge_facing()), want)
-		elif absf(lunge_t - want) > 1.5 * dt:
-			lunge_t = want
+		else:
+			# T404: an impact settles in place instead of ending the lunge, so follow the server's:
+			# ours was local only (the target sits INTERP_DELAY back here) while it still dashes -> go
+			# on; its clock jumped to the settle (it hit something) while we dash -> settle too
+			var settle0 := LUNGE_WINDUP_S + LUNGE_DASH_S + LUNGE_STOP_S
+			if _lunge_hit and want < settle0:
+				_lunge_hit = false
+			elif not _lunge_hit and want >= settle0 and lunge_t < settle0 - 2.0 * dt:
+				_lunge_hit = true
+			if absf(lunge_t - want) > 1.5 * dt:
+				lunge_t = want
 	elif lunging and lunge_t > float(ahead + 1) * dt:  # ours began before that record; the server's is over
 		_lunge_stop()
 
