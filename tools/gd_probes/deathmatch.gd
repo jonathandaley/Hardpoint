@@ -70,13 +70,21 @@ func _ready() -> void:
 	if mv == Vector2.ZERO:
 		_fail("a legacy bot stands still with no beacon to go to")
 		return
-	# time-out: more mechs left wins
+	# time-out: T411 (HUMAN_FOUND: "Deathmatch should count kills instead of mechs remaining, in case
+	# team sizes are different"): more kills wins, whoever has more mechs left
 	var players: Array = arena.get("_players")
 	for p in players:
 		p.set("lives", 3 if p.get("team") == 0 else 2)
-	if int(mn.get("time_out_winner").call()) != 0:
-		_fail("team 0 has more mechs left but doesn't win the time-out")
+	var roster: Array = Game.mp_active_match["roster"]
+	var ri1 := -1
+	for i in roster.size():
+		if int(roster[i].get("team", -1)) == 1:
+			ri1 = i
+	arena.set("kills_by_ri", {ri1: 2})
+	if int(mn.get("time_out_winner").call()) != 1:
+		_fail("team 1 has more kills (team 0 more mechs left) but doesn't win the time-out")
 		return
+	arena.set("kills_by_ri", {})
 	for p in players:
 		p.set("lives", 2)
 	var won := [99]
@@ -85,7 +93,7 @@ func _ready() -> void:
 	for i in 30:
 		await get_tree().physics_frame
 	if won[0] != -1:
-		_fail("equal mechs left at the time limit ended %s, not a draw" % str(won[0]))
+		_fail("equal kills at the time limit ended %s, not a draw" % str(won[0]))
 		return
 	for i in 10:
 		await get_tree().process_frame
