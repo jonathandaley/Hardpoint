@@ -810,6 +810,12 @@ func _physics_process_impl(delta: float) -> void:
 	# have loaded the match (Game.mp_live, V52) -- no head start for the host.
 	if not Game.mp_live and not (multiplayer.multiplayer_peer is OfflineMultiplayerPeer):
 		return
+	# T374: a first mech staged for its pilot's start pick (T279) has its collision off; a dedicated
+	# server doesn't pause for the pick, so gravity sank it through the floor -- into FALL_KILL_Y on
+	# a slow pick. It waits where it stands.
+	if get_meta("staged", false):
+		velocity = Vector3.ZERO
+		return
 
 	if not is_on_floor() and _step_up_remaining <= 0.0:
 		velocity += get_gravity() * delta

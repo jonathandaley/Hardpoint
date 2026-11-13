@@ -82,5 +82,28 @@ func _ready() -> void:
 		await get_tree().physics_frame
 	if not enemy.get("is_dead"):
 		_fail("a mech at y %.0f is still alive" % enemy.global_position.y)
+	# ...but a first mech waiting for its pilot's start pick (T279: staged, no collision) must not
+	# sink through the floor meanwhile -- a dedicated server doesn't pause for the pick (SP does),
+	# so a slow pick lost the mech to the fall kill (the security run's forged_damage alarm)
+	if is_instance_valid(arena):  # (the death can end the match and free it)
+		arena.queue_free()
+	for i in 3:
+		await get_tree().process_frame
+	arena = await _arena(load("res://resources/maps/Forest.tres"))
+	var other: Node3D = null
+	for m in get_tree().get_nodes_in_group("mechs"):
+		if is_instance_valid(m) and not m.get("is_dead") and m.global_position.y > -10.0:
+			other = m
+	if other == null:
+		_fail("no live mech to stage")
+		get_tree().quit(0)
+		return
+	other.invincible = false
+	var y0 := other.global_position.y
+	arena.call("_stage", other, true)
+	for i in 300:  # 5 s staged
+		await get_tree().physics_frame
+	if other.get("is_dead") or other.global_position.y < y0 - 1.0:
+		_fail("a staged mech fell from y %.1f to %.1f (dead %s)" % [y0, other.global_position.y, other.get("is_dead")])
 	print("[probe] map_edges done (%s)" % "; ".join(summary))
 	get_tree().quit(0)
