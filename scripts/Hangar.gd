@@ -614,7 +614,9 @@ static func weapon_tip(cat_idx: int) -> String:
 		var w: Node = (load(path) as PackedScene).instantiate()
 		var lines: Array = ["RANGE  %d m" % roundi(float(w.get("range")))]
 		var dmg: float = float(w.get("max_damage")) if "max_damage" in w else float(w.get("damage"))
-		if "pellet_count" in w:
+		if w.has_method("damage_at"):  # T412: the arc hits harder up close
+			lines.append("DAMAGE  %.1f - %.1f  (closer = more)" % [float(w.get("damage")), float(w.get("max_damage"))])
+		elif "pellet_count" in w:
 			lines.append("DAMAGE  %.0f x %d" % [dmg, int(w.get("pellet_count"))])
 		else:
 			lines.append("DAMAGE  %.0f" % dmg)

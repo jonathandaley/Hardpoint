@@ -3,6 +3,19 @@ extends "res://scripts/WeaponBase.gd"
 # Continuous homing beam aimed at locked_target. Damage ticks at fire_rate.
 # Beam pivot child rotates each tick to track target in global space.
 
+# T412 (HUMAN_FOUND: "Arc weapon should increase damage as range decreases. Current damage is good
+# for reasonably long range."): `damage` from FAR_FRAC of the range out; up to CLOSE_MULT x at CLOSE_M
+# and closer, linear between. max_damage lets the server's per-hit check (Mech.request_damage) pass it.
+const CLOSE_MULT := 2.5   # calibration knob
+const CLOSE_M := 10.0
+const FAR_FRAC := 0.6
+var max_damage: float:
+	get: return damage * CLOSE_MULT
+
+func damage_at(dist: float) -> float:
+	var far := range * FAR_FRAC
+	return damage * lerpf(CLOSE_MULT, 1.0, clampf((dist - CLOSE_M) / maxf(far - CLOSE_M, 0.01), 0.0, 1.0))
+
 var _beam_pivot: Node3D = null
 var _beam_mesh: MeshInstance3D = null
 var _loop_player: AudioStreamPlayer3D = null
@@ -134,7 +147,7 @@ func _do_fire() -> void:
 	query.exclude = ex
 	var result := space.intersect_ray(query)
 	if result:
-		_hit(result, damage)
+		_hit(result, damage_at(global_position.distance_to(result.position)))  # T412
 
 	if result:  # T299: the bolt ends on the target's hull (or the wall / shield in the way), not inside it
 		target_pos = result.position

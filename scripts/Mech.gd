@@ -524,7 +524,8 @@ static func _owning_mech(n: Node) -> Node:
 # T96: damage chokepoint; T103 will add server-side validation here.
 func request_damage(amount: float, source: Node3D = null) -> void:
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server() and source != null:
-		var max_dmg: float = source.get("damage") if "damage" in source else amount
+		# T412: a weapon whose hits vary (arc by range, Patience by charge) states its max_damage
+		var max_dmg: float = source.get("max_damage") if "max_damage" in source else (source.get("damage") if "damage" in source else amount)
 		var src_range: float = source.get("range") if "range" in source else INF
 		if amount > max_dmg * 1.5:
 			return
