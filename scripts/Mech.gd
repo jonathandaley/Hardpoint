@@ -1459,16 +1459,25 @@ func _deactivate_ability(key: String) -> void:
 # T366 (user 2026-11-09: "Crouch-jump forward-hit with horns ... Very flat trajectory, should not
 # really look like a jump"): the dash is one low leap out of the crouch -- full speed almost at
 # once (a spring, not a run), ~16 m as before; the hop itself is visual only (lunge_pose).
-const LUNGE_WINDUP_S := 0.12  # T366 (user: "much snappier response on the lunge start"; was 0.2)
+# T404 (HUMAN_FOUND 2026-11-13: "Short crouch anticipation, explosive front-loaded acceleration
+# (ease-out), committed momentum with no steering, hard braking plant with a slight overshoot and
+# settle ... The \"overshoot\" should be cancelled if it hits a wall or mech, so that it just settles
+# out of the impact. Crouch should last .1 seconds."): 0.1 s crouch; ease-out to LUNGE_PEAK in
+# LUNGE_RAMP_S (most of it in the first ticks), held; a hard ease-out brake; then the body rocks back
+# LUNGE_OVERSHOOT_V on a half sine over LUNGE_SETTLE_S and settles. A ram / wall jumps to the settle
+# with no rock-back (_lunge_impact). Steering and ground accel were already out (velocity set directly).
+const LUNGE_WINDUP_S := 0.1   # T404 (user: "Crouch should last .1 seconds"; T366 0.12, was 0.2)
 const LUNGE_DASH_S := 1.3
-const LUNGE_STOP_S := 0.25
-const LUNGE_RAMP_S := 0.15   # s from the crouch to LUNGE_PEAK, then held
+const LUNGE_STOP_S := 0.18    # T404: a hard plant (was a 0.25 s linear stop)
+const LUNGE_RAMP_S := 0.08    # T404: ease-out to LUNGE_PEAK (T366 was an ease-in 0.15 s)
+const LUNGE_SETTLE_S := 0.2   # T404: the rock back onto its feet after the plant
+const LUNGE_OVERSHOOT_V := 1.6  # m/s back at the rock's peak (~0.2 m) -- calibration knob
 const LUNGE_LIFT := 0.18     # m the body rises at mid-leap (visual) -- calibration knob
 const LUNGE_PEAK := 12.0     # m/s -- calibration knob (Taurus walks 0.9; T366 "a little faster": was 10)
 const RAM_FLOOR := 60.0      # ~1/3 of a light mech -- calibration knob
 const RAM_K := 9.0           # damage per m/s of closing speed -- calibration knob
 const LUNGE_GLOW_K := 2.5    # extra glow at full speed (x the palette's energy)
-const LUNGE_TOTAL_S := LUNGE_WINDUP_S + LUNGE_DASH_S + LUNGE_STOP_S
+const LUNGE_TOTAL_S := LUNGE_WINDUP_S + LUNGE_DASH_S + LUNGE_STOP_S + LUNGE_SETTLE_S
 var lunging := false
 var bounty := 0  # T364 (server): coins this mech is worth on top of its base -- half of what it killed this life
 var lunge_t := 0.0
@@ -1480,19 +1489,27 @@ static func lunge_speed(t: float) -> float:
 		return 0.0
 	var d := t - LUNGE_WINDUP_S
 	if d < LUNGE_DASH_S:
-		var u := minf(d / LUNGE_RAMP_S, 1.0)
-		return LUNGE_PEAK * u * u
-	return LUNGE_PEAK * maxf(0.0, 1.0 - (d - LUNGE_DASH_S) / LUNGE_STOP_S)
+		var u := 1.0 - minf(d / LUNGE_RAMP_S, 1.0)
+		return LUNGE_PEAK * (1.0 - u * u)  # ease-out: explosive off the crouch
+	d -= LUNGE_DASH_S
+	if d < LUNGE_STOP_S:
+		var s := 1.0 - d / LUNGE_STOP_S
+		return LUNGE_PEAK * s * s  # hard plant: most of the speed goes at once
+	d -= LUNGE_STOP_S
+	return -LUNGE_OVERSHOOT_V * sin(PI * minf(d / LUNGE_SETTLE_S, 1.0))  # rocks back, settles
 
 func _lunge_facing() -> Vector3:
 	var f := -torso.global_transform.basis.z
 	f.y = 0.0
 	return f.normalized() if f.length_squared() > 0.0001 else Vector3.FORWARD
 
+var _lunge_hit := false  # T404: a ram / wall: settle in place, no rock-back
+
 func _lunge_begin(dir: Vector3, t0 := 0.0) -> void:
 	lunging = true
 	lunge_t = t0
 	_lunge_dir = dir
+	_lunge_hit = false
 
 func _lunge_end() -> void:
 	lunging = false
@@ -1506,10 +1523,10 @@ func _lunge_step(delta: float) -> bool:
 	if lunge_t >= LUNGE_TOTAL_S:
 		_lunge_end()
 		return false
-	var sp := lunge_speed(lunge_t)
+	var sp := 0.0 if _lunge_hit else lunge_speed(lunge_t)
 	velocity.x = _lunge_dir.x * sp
 	velocity.z = _lunge_dir.z * sp
-	_set_lunge_glow(sp / LUNGE_PEAK)
+	_set_lunge_glow(maxf(sp, 0.0) / LUNGE_PEAK)
 	return true
 
 ## Other peers: the clock for the pose and glow only.
@@ -1520,7 +1537,7 @@ func _lunge_visual_tick(delta: float) -> void:
 	if lunge_t >= LUNGE_TOTAL_S:
 		_lunge_end()
 	else:
-		_set_lunge_glow(lunge_speed(lunge_t) / LUNGE_PEAK)
+		_set_lunge_glow(maxf(lunge_speed(lunge_t), 0.0) / LUNGE_PEAK)
 
 ## After each move: a mech (or its shield) or a wall in the dash's way ends the lunge; the
 ## server deals the ram. The owner's prediction stops the same way, without the damage.
@@ -1537,11 +1554,19 @@ func _lunge_contacts() -> void:
 				var mv: Vector3 = m.get("velocity") if m.get("velocity") != null else Vector3.ZERO
 				var closing := lunge_speed(lunge_t) - mv.dot(_lunge_dir)
 				c.call("take_damage", maxf(RAM_FLOOR, RAM_K * closing), self)
-			_lunge_stop()
+			_lunge_impact()
 			return
 		if col.get_normal().dot(-_lunge_dir) > 0.6 and _step_up_remaining <= 0.0:  # a step lifts it instead
-			_lunge_stop()
+			_lunge_impact()
 			return
+
+## T404: hit something -- skip the rest of the dash and the brake's rock-back; the body just
+## settles out of the impact (the settle pose, no motion).
+func _lunge_impact() -> void:
+	velocity.x = 0.0
+	velocity.z = 0.0
+	_lunge_hit = true
+	lunge_t = LUNGE_WINDUP_S + LUNGE_DASH_S + LUNGE_STOP_S
 
 func _lunge_stop() -> void:
 	_lunge_end()
@@ -1609,8 +1634,12 @@ func lunge_pose() -> Vector3:
 	if d < LUNGE_DASH_S:
 		var leap := minf(d / 0.1, 1.0)
 		return Vector3(1.0 - 0.15 * leap, leap, LUNGE_LIFT * sin(PI * d / LUNGE_DASH_S))  # torso tops out ~level with standing
-	var s := minf((d - LUNGE_DASH_S) / LUNGE_STOP_S, 1.0)
-	return Vector3(0.85 * (1.0 - s), 1.0 - s, 0.0)
+	d -= LUNGE_DASH_S
+	if d < LUNGE_STOP_S:
+		var s := d / LUNGE_STOP_S
+		return Vector3(0.85 * (1.0 - s) + 0.35 * s, 1.0 - s, 0.0)  # T404: plants into a dip
+	var k := minf((d - LUNGE_STOP_S) / LUNGE_SETTLE_S, 1.0)
+	return Vector3(0.35 * (1.0 - k), 0.0, 0.0)  # and settles up out of it
 
 ## Glow parts brighten with speed: this mech's own copies of its (shared, T310) glow materials.
 func _set_lunge_glow(k: float) -> void:
