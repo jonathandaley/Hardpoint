@@ -169,7 +169,44 @@ func hear_threat(atk) -> void:
 
 func _is_live_enemy(m) -> bool:
 	return m != null and is_instance_valid(m) and m.visible and not m.get("is_dead") \
-		and not m.get("is_stealthy") and m.get("team") != _own_team
+		and _sees(m) and m.get("team") != _own_team
+
+# T407 (HUMAN_FOUND: "How hard would it be for bots to sometimes see through stealth? ... something like
+# \"Bot difficulty * how \"noisy\" you're being = likelihood to be noticed\""): each second a stealthed
+# enemy within NOTICE_RANGE has a NOTICE_RATE[difficulty] x noise x closeness chance of being spotted;
+# spotted, this bot can target it for NOTICE_HOLD_S. Noise: 1, +3 if it fired in the last second, +1 if
+# it's moving at over half its walk speed. Calibration knobs (NEEDS_HUMAN).
+const NOTICE_RATE := [0.0, 0.02, 0.05, 0.1, 0.15]  # per second, point blank, quiet -- Easy never
+const NOTICE_RANGE := 40.0
+const NOTICE_HOLD_S := 4.0
+var _spotted := {}  # stealthed mech -> seconds this bot still sees it
+
+func _sees(m) -> bool:
+	return not m.get("is_stealthy") or float(_spotted.get(m, 0.0)) > 0.0
+
+func _tick_noticing(bot_mech: Node3D, delta: float) -> void:
+	for k in _spotted.keys():
+		_spotted[k] = float(_spotted[k]) - delta
+		if float(_spotted[k]) <= 0.0 or not is_instance_valid(k):
+			_spotted.erase(k)
+	var lvl: int = difficulty if difficulty >= 0 else int(Game.settings.get("bot_difficulty", 1))
+	var rate: float = NOTICE_RATE[clampi(lvl, 0, NOTICE_RATE.size() - 1)]
+	if rate <= 0.0:
+		return
+	for m in bot_mech.get_tree().get_nodes_in_group("mechs"):
+		if m == bot_mech or not m.get("is_stealthy") or m.get("is_dead") or m.get("team") == _own_team or _spotted.has(m):
+			continue
+		var d := bot_mech.global_position.distance_to((m as Node3D).global_position)
+		if d > NOTICE_RANGE:
+			continue
+		var noise := 1.0
+		if Engine.get_physics_frames() - int(m.get("last_fired_frame")) < Engine.physics_ticks_per_second:
+			noise += 3.0
+		var v: Vector3 = m.get("velocity")
+		if Vector2(v.x, v.z).length() > 0.5 * float(m.get("walk_speed")):
+			noise += 1.0
+		if _rng.randf() < rate * noise * (1.0 - d / NOTICE_RANGE) * delta:
+			_spotted[m] = NOTICE_HOLD_S
 
 func _hp_pct(m: Node) -> float:
 	return clampf(m.health / maxf(float(m.get("max_health") if m.get("max_health") != null else 1.0), 1.0), 0.0, 1.0)
@@ -436,6 +473,7 @@ func _physics_process_impl(delta: float) -> void:
 
 	var preset: Dictionary = _preset()
 	var tactics: bool = preset["tactics"]
+	_tick_noticing(bot_mech, delta)  # T407
 	_threat_timer -= delta
 	_retaliate_cd -= delta
 	_react_timer -= delta
@@ -467,7 +505,7 @@ func _physics_process_impl(delta: float) -> void:
 		_los_timer = LOS_INTERVAL
 		_check_los(bot_mech)
 
-	var has_target: bool = _target != null and is_instance_valid(_target) and _target.visible and not _target.get("is_stealthy")
+	var has_target: bool = _target != null and is_instance_valid(_target) and _target.visible and _sees(_target)
 	if not has_target:
 		_target = null
 	# T172: a new target costs a reaction delay before the first shot.
