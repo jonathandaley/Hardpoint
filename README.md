@@ -94,6 +94,7 @@ DebugMech: 4x tall, invincible, 2x Slip speed. Dev use only.
 |---|---|
 | `docs/DESIGN.md` | Architecture decisions: Player/Pawn split, rendering constraints, team model, multiplayer plan. The canonical "why" doc. Read before any architectural change. |
 | `SPEC.md` | Machine-readable spec: §G goal, §C constraints, §I interfaces, §V invariants, §T task list, §B bug log. Source of truth for Claude Code sessions. |
+| `SPEC_DONE.md` | Finished task rows moved out of `SPEC.md` (`python3 tools/spec_sweep.py`) so a session does not load them. |
 
 **Short version:** DESIGN = why, SPEC = rules + tasks + bugs.
 
