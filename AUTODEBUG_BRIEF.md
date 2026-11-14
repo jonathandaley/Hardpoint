@@ -13,7 +13,7 @@ Plan of record: `docs/MP_AUTODEBUG_PLAN.md` §9. Queue: SPEC.md §T.
 1. **Pick.** First §T row in table order (rows may be inserted out of number
    order to reprioritize) with status `.` or `~`, T138 or later, that
    `AUTODEBUG_JOURNAL.md` does not list as BLOCKED. None left → journal "queue
-   empty", PushNotification, `ScheduleWakeup stop:true`. Done.
+   empty", `ScheduleWakeup stop:true`. Done.
 2. **Context.** Read the row, its cites (§V, earlier §T, §B), the last ~5 journal
    entries, and the code it names. Don't reread whole files you only need a slice of.
 3. **Build** with the build skill (auto mode: no waiting for plan OK).
@@ -75,13 +75,13 @@ red -> bisect the local commits (git stash / checkout), fix or drop the culprit 
   an item needing their input moves to NEEDS_HUMAN with the question; a design kept for later
   moves to MAYBE_ADD.md. They re-add anything that recurs.
 - **The user writes mid-loop:** answer, queue it as a §T row with their words, do it next.
-- **Queue empty:** journal it, update the memory status note, push, PushNotification, stop.
+- **Queue empty:** journal it, update the memory status note, push, stop.
 
 ## Guardrails
 
 - **3 strikes.** Three distinct failed approaches on one task → revert
   uncommitted work, journal BLOCKED with symptoms + what was tried, leave row `~`,
-  PushNotification, move on. Never loop on one bug.
+  move on. Never loop on one bug.
 - **Network security (V61 / V62, docs/SECURITY.md).** Any task touching an `@rpc`, the join
   handshake, the lobby dict, accounts, or data a server sends a client: read
   docs/SECURITY.md first. A new `any_peer` RPC or handshake / account field needs its attack
@@ -92,7 +92,7 @@ red -> bisect the local commits (git stash / checkout), fix or drop the culprit 
   I'm here". Respect every §V and the §C GDScript landmines.
 - **Revert rules.** Fix breaks determinism selftest → revert, BLOCK. >20% of
   suite red after a change → revert. Build won't load → revert to last green;
-  still broken → journal, PushNotification, stop the loop.
+  still broken → journal, stop the loop.
 - **Out of scope** (feel, smoothing, audio taste, anything needing human eyes the
   oracles can't give) → append to `NEEDS_HUMAN.md` (date, task, what to look
   at, file path, why), never block on it.
@@ -105,10 +105,11 @@ red -> bisect the local commits (git stash / checkout), fix or drop the culprit 
   close, else commit WIP with "WIP T<n>: stopped at <step>" and push; don't start a
   big task. If the limit itself stops the session, the next run resumes from git.
 
-## Notify the user (PushNotification) when
+## No phone notifications
 
-A task is BLOCKED; a milestone closes (T139, T148, T157); a stop condition fires;
-the queue empties. Otherwise stay quiet -- the journal is the status page.
+Never use PushNotification (user 2026-11-13: "I'll tell you if I want my phone dinging").
+Blocked tasks, stop conditions and an empty queue go in the turn's closing status + the
+journal; questions go in NEEDS_HUMAN.md.
 
 ## Environment
 
