@@ -949,9 +949,15 @@ func _reconcile(entry: Dictionary) -> void:
 		# server kept moving meanwhile, so the first matched record trails it by about
 		# speed x latency. Take that whole difference once: it's alignment, not error.
 		_pred_synced = true
-		global_position += err
+		# T429 (B143): the height part moves through collision. Mid-fall at spawn the matched
+		# record was still in the air while the server had landed: the whole err sank a
+		# landed client 0.8 m into the platform (Godot Physics: stuck ~17 ticks; Jolt: fell through).
+		var before := global_position
+		global_position += Vector3(err.x, 0.0, err.z)
+		move_and_collide(Vector3(0.0, err.y, 0.0))
+		var shift := global_position - before
 		for k in range(i, _pred_hist.size()):
-			_pred_hist[k][2] = (_pred_hist[k][2] as Vector3) + err
+			_pred_hist[k][2] = (_pred_hist[k][2] as Vector3) + shift
 		_pred_hist = _pred_hist.slice(i)
 		return
 	var snap := err.length() > PRED_SNAP_M
