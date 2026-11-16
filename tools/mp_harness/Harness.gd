@@ -200,8 +200,8 @@ func _quit_with_server() -> void:
 	# never connects, so multiplayer.server_disconnected never fires for it)
 	Game.mp_server_lost.connect(func() -> void:
 		print("[Harness] server gone, quitting (%s)" % _role)
-		for _i in 90:
-			await get_tree().process_frame
+		for _i in 90:  # B144: physics ticks (1.5 s), not uncapped headless process frames -- those
+			await get_tree().physics_frame  # ran out before a deadline ~35 ticks away (2 / 12 red)
 		if _quitting:  # B124: our own deadline came first and is settling -- it routed us, not the loss
 			return
 		var scene := get_tree().current_scene
