@@ -5,7 +5,8 @@ extends CanvasLayer
 # average / worst frame ms, proc_max / phys_max (Godot's monitors: the SLOWEST frame / physics tick
 # of the last second, not averages -- a death spike shows there), draw calls, whether the mouse is
 # locked, then avg/max ms per system per physics tick. tick = all scripts' physics work in one tick
-# (first to last _physics_process); the engine's own physics step is not in it.
+# (first to last _physics_process); the engine's own physics step is not in it. proc = the same
+# for _process, per drawn frame; view / shadow / ui = where the main view's draw calls come from.
 # Render time on the graphics card is not counted separately: it shows up in the frame ms.
 
 const WINDOW_S := 5.0
@@ -24,18 +25,27 @@ func _ready() -> void:
 	_label.add_theme_constant_override("outline_size", 3)
 	add_child(_label)
 	process_physics_priority = -1000000
+	process_priority = -1000000
 	var end := _TickEnd.new()
 	end.process_mode = Node.PROCESS_MODE_ALWAYS
 	end.process_physics_priority = 1000000
+	end.process_priority = 1000000
+	end.ov = self
 	end.started = func() -> int: return _tick_t0
 	add_child(end)
 
 var _tick_t0 := 0
 
-class _TickEnd extends Node:  # runs after every other _physics_process (priority)
+var _proc_t0 := 0
+var _proc_us := 0
+
+class _TickEnd extends Node:  # runs after every other _physics_process / _process (priority)
 	var started: Callable
+	var ov: Node
 	func _physics_process(_d: float) -> void:
 		Game.prof_add("tick", Time.get_ticks_usec() - int(started.call()))
+	func _process(_d: float) -> void:
+		ov._proc_us += Time.get_ticks_usec() - int(ov._proc_t0)
 
 func _physics_process(_delta: float) -> void:
 	Game.prof_end_frame()  # closes the previous tick
@@ -44,6 +54,7 @@ func _physics_process(_delta: float) -> void:
 var autopick := false  # ?perf&sp: take mech 0 at spawn 0 (SP pauses while the picker is open)
 
 func _process(delta: float) -> void:
+	_proc_t0 = Time.get_ticks_usec()
 	var arena := get_tree().current_scene
 	if autopick and arena != null and arena.get("_start_pick_open"):
 		arena.get("hud").squad_slot_selected.emit(0)
@@ -58,6 +69,14 @@ func _process(delta: float) -> void:
 		Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
 		Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)]
 		+ (" mouse=locked" if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED else " mouse=free")]
+	# where the draw calls come from: the main view, its shadow passes, the 2D UI (the rest of
+	# draws= is other viewports)
+	var vp := get_tree().root.get_viewport_rid()
+	var dc := RenderingServer.VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME
+	parts.append("proc=%.2f view=%d shadow=%d ui=%d" % [_proc_us / 1000.0 / _frames,
+		RenderingServer.viewport_get_render_info(vp, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_VISIBLE, dc),
+		RenderingServer.viewport_get_render_info(vp, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_SHADOW, dc),
+		RenderingServer.viewport_get_render_info(vp, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_CANVAS, dc)])
 	var prof: Dictionary = Game.prof_take()
 	for k in prof:  # avg/max ms per physics frame
 		var e: Array = prof[k]
@@ -65,5 +84,6 @@ func _process(delta: float) -> void:
 	_label.text = "\n".join(parts)
 	print("[Perf] ", " ".join(parts))
 	_t = 0.0
+	_proc_us = 0
 	_frames = 0
 	_worst = 0.0

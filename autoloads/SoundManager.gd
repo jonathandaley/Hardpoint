@@ -46,6 +46,8 @@ func _setup_buses() -> void:
 		AudioServer.set_bus_name(idx, "SFX")
 		AudioServer.set_bus_send(idx, "Master")
 
+const SFX_MAX_M := 80.0
+
 # 3D positional SFX - attenuates with distance from pos
 func play_sfx(key: String, pos: Vector3 = Vector3.ZERO, broadcast: bool = false) -> void:
 	if broadcast and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
@@ -53,16 +55,25 @@ func play_sfx(key: String, pos: Vector3 = Vector3.ZERO, broadcast: bool = false)
 	var stream := _load_sfx(key)
 	if stream == null:
 		return
+	# T425: nobody can hear it -> no node at all (a dedicated server, or the listener is past
+	# max_distance). Every live player costs a volume update per physics tick, and a browser
+	# pays ~1 ms to start one.
+	var cam := get_viewport().get_camera_3d()
+	if Game.dedicated or (cam != null and cam.global_position.distance_to(pos) > SFX_MAX_M):
+		return
 	var player := AudioStreamPlayer3D.new()
 	player.stream = stream
 	player.bus = "SFX"
 	player.position = pos
 	player.attenuation_model = AudioStreamPlayer3D.ATTENUATION_INVERSE_DISTANCE
 	player.unit_size = 10.0
-	player.max_distance = 80.0
+	player.max_distance = SFX_MAX_M
 	get_tree().root.add_child(player)
 	player.play()
 	player.finished.connect(player.queue_free)
+	# T425: a browser whose audio is still suspended (no click yet, sound blocked) never says
+	# "finished": the players piled up by the hundred and the tick time grew without end
+	get_tree().create_timer(maxf(stream.get_length(), 1.0) + 1.0, false).timeout.connect(player.queue_free)
 
 @rpc("authority", "unreliable")
 func _rpc_play_sfx(key: String, pos: Vector3) -> void:

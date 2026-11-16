@@ -67,6 +67,14 @@ red -> bisect the local commits (git stash / checkout), fix or drop the culprit 
   T365 randomize them) -- set squads via `Game.setup_sp_match()` + roster edits when it matters;
   quit cleanly (stop audio, wait out awaits such as the death pod ride: B124); isolate duels on a
   deck at y 400, 300 m apart; stay inside the suite's 6000-frame cap (~30-40 s of game time).
+- **Check the draw calls of anything new that draws** (user 2026-11-15: "check whether the draw
+  calls make sense when adding new stuff, as this is not the first time"): map pieces, mech
+  parts, HUD / minimap elements, effects. Before and after, read `draws= view= shadow= ui=` from
+  the perf overlay (`godot --path . -- perf sp map=<busiest map it touches> bots=4,5`, under
+  `xvfb-run` when the display sleeps) and say the numbers in the journal line. The rise must be
+  what the thing is worth: one call per material or per merged group, never one per object
+  (many of a thing = one MultiMesh, one merged mesh, or one canvas triangle array). Past misses:
+  611 separate rocks on Badlands (T424), 617 minimap polygons a frame (T425).
 - **Look at visual work.** Render with `xvfb-run` (tools/art/*.gd), Read the PNG, fix what's off,
   and commit the review image to `docs/review/T<n>/` so the user can see it on GitHub.
 - **Defaults, not blocks.** A number or taste call the user didn't give: pick a sensible default,

@@ -121,11 +121,18 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	var k: float = minf(size.x, size.y) / 100.0   # marker scale: 1 at corner size
 	draw_rect(Rect2(Vector2.ZERO, size), Color(0, 0, 0, bg_alpha))
-	for f in features:  # T239: faint terrain under everything else
-		var poly := PackedVector2Array()
+	# T239: faint terrain under everything else. T425: all footprints in ONE draw call (a
+	# draw_colored_polygon each was 600+ calls a frame on Badlands; the hulls are convex -> fans)
+	var pts2 := PackedVector2Array()
+	var idx := PackedInt32Array()
+	for f in features:
+		var base := pts2.size()
 		for w in f:
-			poly.append(to_map(Vector3(w.x, 0.0, w.y)))
-		draw_colored_polygon(poly, FEATURE_COLOR)
+			pts2.append(to_map(Vector3(w.x, 0.0, w.y)))
+		for i in range(1, f.size() - 1):
+			idx.append_array([base, base + i, base + i + 1])
+	if not idx.is_empty():
+		RenderingServer.canvas_item_add_triangle_array(get_canvas_item(), idx, pts2, PackedColorArray([FEATURE_COLOR]))
 	if outline.size() > 1:
 		var pts := PackedVector2Array()
 		for w in outline:
