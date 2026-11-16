@@ -7,9 +7,12 @@ Plan of record: `docs/MP_AUTODEBUG_PLAN.md` §9. Queue: SPEC.md §T.
 
 0. **Sync.** `git pull --rebase --autostash` (picks up the user's phone edits to
    HUMAN_FOUND_ISSUES.md, tracked since 2026-11-05); new items there get queued as §T rows
-   (quote the user). If the user has UNCOMMITTED local edits to their files, never autostash
-   (it rewrote the file under their editor once): fetch, `git rev-list --count HEAD..FETCH_HEAD`,
-   plain push if 0, else hold; leave their file alone until they commit it or ask you to.
+   (quote the user) and leave the file in the same commit (see HUMAN_FOUND hygiene). The user
+   never commits: their local edits (HUMAN_FOUND, NEEDS_HUMAN answers) ride in your commits
+   (user 2026-11-16: "Commit my edits when you are doing your stuff"). Never overwrite them:
+   no autostash while they're uncommitted (it rewrote the file under their editor once) --
+   fetch, `git rev-list --count HEAD..FETCH_HEAD`, plain push if 0, else commit first, then
+   pull --rebase; and re-read the file right before every edit of it, changing only your lines.
 1. **Pick.** First §T row in table order (rows may be inserted out of number
    order to reprioritize) with status `.` or `~`, T138 or later, that
    `AUTODEBUG_JOURNAL.md` does not list as BLOCKED. None left → journal "queue
@@ -79,9 +82,10 @@ red -> bisect the local commits (git stash / checkout), fix or drop the culprit 
   and commit the review image to `docs/review/T<n>/` so the user can see it on GitHub.
 - **Defaults, not blocks.** A number or taste call the user didn't give: pick a sensible default,
   build it, and add a NEEDS_HUMAN line ("tune if wanted"). Questions never go in HUMAN_FOUND.
-- **HUMAN_FOUND hygiene** (user 2026-11-09): remove an item in the same commit that fixes it;
-  an item needing their input moves to NEEDS_HUMAN with the question; a design kept for later
-  moves to MAYBE_ADD.md. They re-add anything that recurs.
+- **HUMAN_FOUND hygiene** (user 2026-11-16: "make sure tasks get removed from human-found once
+  you see them"): the moment you read an item, move it out in that same commit -- queued as a §T
+  row (their words quoted), into NEEDS_HUMAN with the question, or into MAYBE_ADD.md as a design
+  kept for later. The file holds only items you haven't seen yet. They re-add anything that recurs.
 - **The user writes mid-loop:** answer, queue it as a §T row with their words, do it next.
 - **Queue empty:** journal it, update the memory status note, push, stop.
 
