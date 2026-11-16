@@ -14,8 +14,9 @@ Plan of record: `docs/MP_AUTODEBUG_PLAN.md` §9. Queue: SPEC.md §T.
    fetch, `git rev-list --count HEAD..FETCH_HEAD`, plain push if 0, else commit first, then
    pull --rebase; and re-read the file right before every edit of it, changing only your lines.
 1. **Pick.** First §T row in table order (rows may be inserted out of number
-   order to reprioritize) with status `.` or `~`, T138 or later, that
-   `AUTODEBUG_JOURNAL.md` does not list as BLOCKED. None left → journal "queue
+   order to reprioritize) with status `.` or `~`, T138 or later, not parked by the user and
+   not BLOCKED on something only the user can give (rows blocked under the old 3-strikes rule
+   are fair game again: step back first, see Guardrails). None left → journal "queue
    empty", `ScheduleWakeup stop:true`. Done.
 2. **Context.** Read the row, its cites (§V, earlier §T, §B), the last ~5 journal
    entries, and the code it names. Don't reread whole files you only need a slice of.
@@ -91,9 +92,15 @@ red -> bisect the local commits (git stash / checkout), fix or drop the culprit 
 
 ## Guardrails
 
-- **3 strikes.** Three distinct failed approaches on one task → revert
-  uncommitted work, journal BLOCKED with symptoms + what was tried, leave row `~`,
-  move on. Never loop on one bug.
+- **3 strikes = step back, not block** (user 2026-11-16: "if it fails three times, take a step
+  back and think carefully" instead of just blocking). After three failed approaches on one
+  task, stop trying fixes: re-read the evidence from the start, question the assumptions (is
+  the oracle measuring the right thing? is the failure where you think it is? T404 was blocked
+  on a wrong guess and fell in an hour with one log line), instrument for the one fact you're
+  missing, and write the new plan in the journal before the next attempt. Block only when
+  you need something only the user can give (a decision, hardware, access) -- then journal
+  BLOCKED with symptoms + what was tried + what's needed, leave row `~`, move on. Never retry
+  the same idea twice.
 - **Network security (V61 / V62, docs/SECURITY.md).** Any task touching an `@rpc`, the join
   handshake, the lobby dict, accounts, or data a server sends a client: read
   docs/SECURITY.md first. A new `any_peer` RPC or handshake / account field needs its attack
