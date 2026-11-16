@@ -7,6 +7,12 @@ jumps. Measured pre-T150: 63-66% stalled ticks for remote AND own mechs.
 Per client mech: over ticks where the server mech moved >= `interp_min_move`,
 the stall ratio (client displacement < 1e-4 m) must stay <= `interp_max_stall`.
 Starvation under loss (buffer ran dry -> hold) also shows up as stalls.
+
+T404 (B147): the owner's OWN mech is predicted (T205), about a round trip AHEAD of the server's
+copy, so tick t on the client pairs with tick t + lead on the server; the lead is measured per
+series (best fit, as prediction_recon matches by input instead of by tick). Unshifted, a predicted
+mech that stops dead (lunge v2 meeting a wall) "stood still" for a round trip while the server's
+copy was still on its way there. Remote mechs are judged unshifted, as before.
 """
 import math
 
@@ -16,6 +22,23 @@ NAME = "interp_smoothness"
 
 DEFAULTS = {"interp_min_move": 0.02, "interp_max_stall": 0.15, "interp_min_samples": 30, "interp_warmup_ticks": 30,
             "interp_onset_ticks": 12}
+
+
+MAX_LEAD = 60  # ticks (1 s): far beyond any test link's round trip
+
+
+def owner_lead(server, client, mid):
+    """Ticks the client's own predicted series runs ahead of the server's (0 for a remote mech)."""
+    ticks = [t for t in client.ticks if client.at(t, mid) is not None and server.at(t, mid) is not None]
+    first = client.at(ticks[0], mid) if ticks else None
+    if len(ticks) < 60 or first is None or first.get("owner") != first.get("peer"):
+        return 0
+    sample = ticks[::3]
+
+    def cost(lead):
+        return sum(math.dist(client.at(t, mid)["pos"], server.at(t + lead, mid)["pos"])
+                   if server.at(t + lead, mid) is not None else 1e3 for t in sample)
+    return min(range(MAX_LEAD + 1), key=cost)
 
 
 def stall_ratios(server, client, min_move, warmup=30, live=None, onset=12, end=None):
@@ -31,13 +54,14 @@ def stall_ratios(server, client, min_move, warmup=30, live=None, onset=12, end=N
     out = {}
     for mid in client.mech_ids:
         moving = stalled = 0
+        lead = owner_lead(server, client, mid)
         first = next((t for t in client.ticks if client.at(t, mid) is not None), None)
         for t in client.ticks:
             if first is None or t < max(first, live or first) + warmup or (end is not None and t >= end):
                 continue
             a, b = client.at(t, mid), client.at(t + 1, mid)
-            sa, sb = server.at(t, mid), server.at(t + 1, mid)
-            sa0, sb0 = server.at(t - onset, mid), server.at(t - onset + 1, mid)
+            sa, sb = server.at(t + lead, mid), server.at(t + lead + 1, mid)
+            sa0, sb0 = server.at(t + lead - onset, mid), server.at(t + lead - onset + 1, mid)
             if None in (a, b, sa, sb, sa0, sb0) or math.dist(sa["pos"], sb["pos"]) < min_move \
                     or math.dist(sa0["pos"], sb0["pos"]) < min_move:
                 continue

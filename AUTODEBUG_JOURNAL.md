@@ -409,3 +409,4 @@ date|task|outcome|commit|finding|suite
 2026-11-16|T426|DONE|(this commit)|MIT LICENSE + THIRD_PARTY.md (font OFL text added: the OFL needs it next to the font; Sonniss sounds flagged as not MIT); text only|no suite (no code)
 2026-11-16|T431|DONE|(this commit)|B146: harness started match 2 before a lossy link resent the client's squad (the real START waits for squads); now waits up to 600 ticks; fired 3/10 @bad, all green|match_end_parity@bad 10/10, lobby scenarios 7/7 (harness only, no game change)
 2026-11-16|queue|EMPTY|-|all open rows parked by the user (T421-T423 browser: their pomegranate test; T305, T326, T291, T261, T212) or BLOCKED with notes (T346, T404, T416, T418, T425); loop stopped|-
+2026-11-16|T404|DONE|(this commit)|lunge v2 unblocked: B147 owner dropped its own wall impact each snapshot (stop-start) + interp_smoothness now lead-shifts the owner's predicted series; probe lunge_sync_impact red/green, oracle red on synthetic stepping|see verify line

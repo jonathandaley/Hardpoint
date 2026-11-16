@@ -1542,6 +1542,7 @@ func _lunge_facing() -> Vector3:
 	return f.normalized() if f.length_squared() > 0.0001 else Vector3.FORWARD
 
 var _lunge_hit := false  # T404: a ram / wall: settle in place, no rock-back
+var _lunge_hit_t := 0.0   # T404: the dash clock at that impact (the owner's sync compares with it)
 
 func _lunge_begin(dir: Vector3, t0 := 0.0) -> void:
 	lunging = true
@@ -1608,6 +1609,7 @@ func _lunge_impact() -> void:
 	velocity.x = 0.0
 	velocity.z = 0.0
 	_lunge_hit = true
+	_lunge_hit_t = lunge_t
 	lunge_t = LUNGE_WINDUP_S + LUNGE_DASH_S + LUNGE_STOP_S
 
 func _lunge_stop() -> void:
@@ -1660,13 +1662,20 @@ func _lunge_sync(entry: Dictionary, ahead: int) -> void:
 		if not lunging:
 			_lunge_begin(entry.get("ld", _lunge_facing()), want)
 		else:
-			# T404: an impact settles in place instead of ending the lunge, so follow the server's:
-			# ours was local only (the target sits INTERP_DELAY back here) while it still dashes -> go
-			# on; its clock jumped to the settle (it hit something) while we dash -> settle too
+			# T404: an impact settles in place instead of ending the lunge. We run ~a round trip ahead,
+			# so we meet a wall before the server's copy does (B147: dropping our impact whenever its
+			# snapshot still dashed sent us back into the wall every snapshot -- 0.1 m stop-start).
+			# Ours stands until the server's own clock passes our impact still dashing (it met
+			# nothing there: ours was local); its clock jumping to the settle while we dash -> settle too.
 			var settle0 := LUNGE_WINDUP_S + LUNGE_DASH_S + LUNGE_STOP_S
-			if _lunge_hit and want < settle0:
-				_lunge_hit = false
-			elif not _lunge_hit and want >= settle0 and lunge_t < settle0 - 2.0 * dt:
+			if _lunge_hit:
+				if slt < settle0 and slt > _lunge_hit_t + 2.0 * dt:
+					_lunge_hit = false
+					lunge_t = want
+				elif want > lunge_t + 1.5 * dt:
+					lunge_t = want  # forward only: a settled lunge never goes back into the dash
+				return
+			if want >= settle0 and lunge_t < settle0 - 2.0 * dt:
 				_lunge_hit = true
 			if absf(lunge_t - want) > 1.5 * dt:
 				lunge_t = want
