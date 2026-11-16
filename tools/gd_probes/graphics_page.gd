@@ -28,5 +28,27 @@ func _ready() -> void:
 		_fail("GRAPHICS didn't open its page")
 	if page.find_child("Fancy_on", true, false) == null:
 		_fail("FANCY HANGAR toggle missing from the GRAPHICS page")
+	# T428: RESOLUTION 50% -> the match's 3D view at half scale, back to full in the menus
+	var half := page.find_child("Res_50", true, false) as Button
+	if half == null or page.find_child("Res_100", true, false) == null:
+		_fail("RESOLUTION 100 / 75 / 50 % buttons missing from the GRAPHICS page")
+	else:
+		var was = Game.settings.get("render_scale", 1.0)
+		half.pressed.emit()
+		if not is_equal_approx(float(Game.settings.get("render_scale", 1.0)), 0.5):
+			_fail("RESOLUTION 50%% didn't set render_scale (%s)" % Game.settings.get("render_scale"))
+		st.queue_free()
+		Game.setup_sp_match()
+		var arena: Node = load("res://scenes/arena/Arena.tscn").instantiate()
+		get_tree().root.add_child(arena)
+		await get_tree().process_frame
+		if not is_equal_approx(get_viewport().scaling_3d_scale, 0.5):
+			_fail("the match draws its 3D view at %.2f, not 0.5" % get_viewport().scaling_3d_scale)
+		arena.queue_free()
+		await get_tree().process_frame
+		if not is_equal_approx(get_viewport().scaling_3d_scale, 1.0):
+			_fail("the 3D view stays at %.2f after the match (menus / hangar should be full)" % get_viewport().scaling_3d_scale)
+		Game.settings["render_scale"] = was
+		Game.save_settings()
 	print("[probe] graphics_page done")
 	get_tree().quit(0)

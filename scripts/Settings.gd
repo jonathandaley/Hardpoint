@@ -209,6 +209,9 @@ func _build_graphics_page() -> void:
 	graphics_box.add_child(title)
 	_build_toggle_section(graphics_box, "FANCY HANGAR", "fancy_hangar", "Fancy")  # T254
 	_build_toggle_section(graphics_box, "LONG-LASTING CASINGS", "casings_long", "Casings")  # T263: 1000 / 150
+	# T428: lower = faster on a weak graphics card, blurrier 3D; the HUD stays sharp
+	_build_choice_section(graphics_box, "RESOLUTION (IN MATCH)", "render_scale", "Res",
+		[[1.0, "100%"], [0.75, "75%"], [0.5, "50%"]], 1.0)
 	var back := Button.new()
 	back.offset_left = 200.0
 	back.offset_top = 316.0
@@ -234,6 +237,12 @@ func _build_graphics_page() -> void:
 
 # An ON / OFF row for a boolean Game.settings key (graphics toggles: T254 ...).
 func _build_toggle_section(box: VBoxContainer, title: String, key: String, prefix: String) -> void:
+	_build_choice_section(box, title, key, prefix, [[true, "ON"], [false, "OFF"]], true)
+
+## One row of choice buttons for Game.settings[key]; the chosen one is yellow.
+## Button names: <prefix>_on / _off for ON / OFF, else <prefix>_<label without %>.
+func _build_choice_section(box: VBoxContainer, title: String, key: String, prefix: String,
+		options: Array, default: Variant) -> void:
 	var lbl := Label.new()
 	lbl.text = title
 	lbl.add_theme_font_size_override("font_size", 14)
@@ -242,9 +251,9 @@ func _build_toggle_section(box: VBoxContainer, title: String, key: String, prefi
 	row.add_theme_constant_override("separation", 8)
 	box.add_child(row)
 	var buttons: Array = []
-	for v in [[true, "ON"], [false, "OFF"]]:
+	for v in options:
 		var btn := Button.new()
-		btn.name = "%s_%s" % [prefix, "on" if v[0] else "off"]
+		btn.name = "%s_%s" % [prefix, String(v[1]).to_lower().trim_suffix("%")]
 		btn.text = v[1]
 		btn.custom_minimum_size = Vector2(80, 24)
 		btn.add_theme_font_size_override("font_size", 14)
@@ -252,7 +261,7 @@ func _build_toggle_section(box: VBoxContainer, title: String, key: String, prefi
 		buttons.append([btn, v[0]])
 	var paint := func() -> void:
 		for b in buttons:
-			if bool(Game.settings.get(key, true)) == b[1]:
+			if Game.settings.get(key, default) == b[1]:
 				(b[0] as Button).add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
 			else:
 				(b[0] as Button).remove_theme_color_override("font_color")

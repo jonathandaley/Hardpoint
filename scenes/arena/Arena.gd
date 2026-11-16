@@ -48,6 +48,8 @@ func _ready() -> void:
 	# browser -- instead of letterboxing to 16:9; the HUD lays out from the real visible size.
 	# Menus keep the designed 640x360 layout (letterboxed) -- restored in _exit_tree.
 	get_tree().root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_EXPAND
+	# T428: weak graphics cards draw the 3D view at 75 / 50 % of the window (HUD stays sharp)
+	get_viewport().scaling_3d_scale = float(Game.settings.get("render_scale", 1.0))
 	_apply_map_theme()
 	# T315 (user 2026-11-05: remove the FULL shadows option, "I don't want to have to deal with
 	# troubleshooting it"): no sun shadows, a blob disc under every mech (T193), always.
@@ -119,6 +121,7 @@ var _overhead_cam: Camera3D
 
 func _exit_tree() -> void:
 	get_tree().root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP  # T328: menus letterbox
+	get_viewport().scaling_3d_scale = 1.0  # T428: the hangar stays full resolution
 
 func _apply_map_theme() -> void:
 	var map_def = Game.loadout.get("map_def")
