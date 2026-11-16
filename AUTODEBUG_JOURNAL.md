@@ -412,3 +412,5 @@ date|task|outcome|commit|finding|suite
 2026-11-16|T404|DONE|(this commit)|lunge v2 unblocked: B147 owner dropped its own wall impact each snapshot (stop-start) + interp_smoothness now lead-shifts the owner's predicted series; probe lunge_sync_impact red/green, oracle red on synthetic stepping|see verify line
 2026-11-16|T404 verify|DONE|-|t404-v2 fast-forwarded into main|suite 185/185, net 64/64, selftest green
 2026-11-16|T434|DONE|(this commit)|mode menu (Lobby.MODES) + BEACON RUSH (spawn at held, uncontested beacons; home if lost while picking) + Elite squad_rush hangars; probe beacon_rush (8 maps, 0 blocked lanes; red before), deathmatch / elite_kits updated|suite 186/186; net 63/64 (bot_lock@bad: known Mech_r* flake, rerun green)
+2026-11-16|T341|DONE|-|status stale: Taurus is in the roster since T342 (lunge) landed; row closed|-
+2026-11-16|T432|DONE|(this commit)|preview < > buttons hid with mech_panel only; now follow the diorama container; probe preview_buttons red/green|batched with T433, suite below

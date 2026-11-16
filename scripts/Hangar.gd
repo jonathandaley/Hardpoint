@@ -749,6 +749,10 @@ func _setup_diorama() -> void:
 		b.add_theme_font_size_override("font_size", 14)
 		b.pressed.connect(_turn_preview.bind(int(d[0])))
 		mech_panel.add_child(b)
+		# T432 (user 2026-11-16: "The new buttons to rotate a mech in the mech picker show in hangar
+		# view"): they live on mech_panel, which the squad view keeps -- follow the preview instead
+		b.visible = _diorama_container.visible
+		_diorama_container.visibility_changed.connect(func() -> void: b.visible = _diorama_container.visible)
 
 	var cam := Camera3D.new()
 	cam.projection = Camera3D.PROJECTION_ORTHOGONAL

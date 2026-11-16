@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tools/gd_probes/preview_buttons.gd" id="1"]
+
+[node name="PreviewButtonsProbe" type="Node"]
+script = ExtResource("1")
