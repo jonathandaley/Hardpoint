@@ -4,6 +4,8 @@ Third-person mech arena FPS. Beacon capture win condition: hold more beacons tha
 
 Built in Godot 4.6 (Compatibility renderer / OpenGL ES 3.0), targeting low-end hardware (T3500-class). Chunky-pixel 3D: 640×360 internal, nearest-neighbor scaled to 1280×720.
 
+MIT licence ([`LICENSE`](LICENSE)); the engine, font and sound effects keep their own terms ([`THIRD_PARTY.md`](THIRD_PARTY.md)).
+
 > **Running the online server** (lemon.limedaley.com:25574): start, stop, update, firewall,
 > settings, bans and backups are all in **[`deploy/README.md`](deploy/README.md)**.
 
