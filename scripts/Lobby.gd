@@ -22,6 +22,7 @@ const ROSTER: Array = [
 	"res://resources/mechs/Everest.tres",
 	"res://resources/mechs/Vesuvius.tres",
 	"res://resources/mechs/Taurus.tres",
+	"res://resources/mechs/Denali.tres",
 ]
 
 # T391: the one weapon list (the hangar reads this too): `name` = short label (HUD, lobby, bot kits),
@@ -437,6 +438,7 @@ const BOT_WEAPON_WEIGHTS := {
 	"Everest":    {"MG": 4, "LASER": 3, "AERIAL": 2, "PATIENCE": 2, "RIFLE": 2},
 	"Vesuvius":   {"MG": 3, "MISSILE": 3, "AERIAL": 3, "PATIENCE": 2, "RIFLE": 2, "LASER": 2},
 	"Taurus":     {"SHOTGUN": 4, "MG": 3, "RIFLE": 2, "SNIPER": 0},  # T363: rams in, fights up close
+	"Denali":     {"RIFLE": 4, "LASER": 3, "MG": 2, "PATIENCE": 2},  # T430: plants (ANCHOR) and trades shots at range
 }
 
 ## T171: random bot loadout -- ONE weapon family (RIFLE, MG, ...) in every slot of

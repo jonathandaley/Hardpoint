@@ -819,6 +819,8 @@ func _use_abilities(bot_mech: Node3D, fighting: bool, own_hp_pct: float, has_tar
 				_ability_press = stealth_wanted(bot_mech, has_target, dist, fire_range, own_hp_pct)
 			"lunge":
 				_ability_press = lunge_wanted(bot_mech, has_target, dist)
+			"anchor":  # T430: plant when trading shots in range with a clear line
+				_ability_press = has_target and _has_clear_shot and dist <= fire_range
 
 ## T342: ram a target that's straight ahead inside the dash's reach (~15 m) with a clear line
 ## (the LoS check doubles as "no wall in the way"); not point-blank, where the windup wastes it.

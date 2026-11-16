@@ -133,6 +133,8 @@ def add_to_roster(name):
         if entry in src:
             continue
         m = re.search(r"const ROSTER: Array = \[\n(.*?)\n\]", src, re.S)
+        if m is None:
+            continue  # T430: the hangar reads Lobby.ROSTER now (no list of its own)
         last = m.group(1).rstrip().split("\n")[-1]
         indent = re.match(r"\s*", last).group(0)
         src = src[:m.end(1)] + "\n" + indent + entry + src[m.end(1):]

@@ -1,0 +1,37 @@
+[gd_resource type="Resource" script_class="MechDef" load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/MechDef.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/mech/Mech.tscn" id="2"]
+[ext_resource type="Script" path="res://scripts/WeaponSlotDef.gd" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/RifleLight.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/RifleHeavy.tscn" id="5"]
+[ext_resource type="Resource" path="res://resources/abilities/Anchor.tres" id="6"]
+
+[sub_resource type="Resource" id="1"]
+script = ExtResource("3")
+slot_size = 1
+position = Vector3(-1.14, 1.92, -0.7)
+weapon_scene = ExtResource("5")
+
+[sub_resource type="Resource" id="2"]
+script = ExtResource("3")
+slot_size = 1
+position = Vector3(1.14, 1.92, -0.7)
+weapon_scene = ExtResource("5")
+
+[resource]
+script = ExtResource("1")
+display_name = "Denali"
+description = "Heavy, 900 HP, no shield, two heavy hardpoints. ANCHOR (SPACE): it plants its feet for 6 s -- no walking, but it still turns and aims, takes half damage and hits 30% harder -- then 18 s to recharge. Sand armour with green survey lamps: mountain-pass crews built Denali to hold a road, and where one stops, the line stops."
+class_tag = "Heavy"
+max_health = 900.0
+walk_speed = 0.85
+turn_acceleration = 4.0
+leg_rotation_speed = 7.0
+leg_hip_sweep = 0.36
+leg_bob_magnitude = 0.14
+leg_cycle_rate = 0.8
+body_scale = 1.25
+abilities = [ExtResource("6")]
+weapon_slots = [SubResource("1"), SubResource("2")]
+scene = ExtResource("2")

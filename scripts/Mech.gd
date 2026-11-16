@@ -544,6 +544,8 @@ func request_damage(amount: float, source: Node3D = null) -> void:
 	var shooter := _owning_mech(source) if source != null else null
 	if shooter != null and float(shooter.get("damage_boost_s")) > 0.0:
 		amount *= DAMAGE_BOOST
+	if shooter != null and shooter.get("anchored"):  # T430
+		amount *= ANCHOR_DAMAGE_OUT
 	_apply_damage(amount, source)
 
 var _last_hurt_sfx := -3
@@ -551,6 +553,8 @@ var _last_hurt_sfx := -3
 func _apply_damage(amount: float, source: Node3D = null) -> void:
 	if health <= 0.0 or invincible:
 		return
+	if anchored:  # T430: planted, it shrugs off half
+		amount *= ANCHOR_DAMAGE_IN
 	var actual := amount
 	if _energy_shield != null:
 		var overflow: float = _energy_shield.call("absorb", amount)
@@ -1043,8 +1047,12 @@ func _update_legs(delta: float) -> void:
 		airborne = get_world_3d().direct_space_state.intersect_ray(q).is_empty()
 	else:
 		airborne = not is_on_floor() and _step_up_remaining <= 0.0
+	_anchor_pose = move_toward(_anchor_pose, ANCHOR_CROUCH if anchored else 0.0, 4.0 * delta)
+	var pose := lunge_pose()
+	if pose == Vector3.ZERO and _anchor_pose > 0.0:
+		pose = Vector3(_anchor_pose, 0.0, 0.0)
 	legs.call("update_gait", velocity, global_transform.basis, leg_rotation_speed, walk_speed, delta, airborne,
-		lunge_pose())
+		pose)
 
 # T150 (B48) / V37: render remote AND own mechs INTERP_DELAY behind the newest
 # server state, interpolating between the two buffered snapshots around that
@@ -1175,6 +1183,11 @@ func _handle_look() -> void:
 
 func _handle_movement(delta: float) -> void:
 	if _lunge_step(delta):  # T342: the lunge drives the legs, no steering
+		return
+	if anchored:  # T430: feet planted -- stops dead, still turns and aims
+		_desired_move_dir = Vector3.ZERO
+		velocity.x = 0.0
+		velocity.z = 0.0
 		return
 	var dir2d: Vector2 = _input_source.get_move_direction()
 	if not is_on_floor() and _step_up_remaining <= 0.0:
@@ -1430,6 +1443,8 @@ func _activate_ability(ability: Resource) -> void:
 		"stealth":
 			is_stealthy = true
 			_apply_stealth_visual(true)
+		"anchor":
+			anchored = true
 		"lunge":
 			_lunge_begin(_lunge_facing())
 			if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
@@ -1450,6 +1465,8 @@ func _deactivate_ability(key: String) -> void:
 		"stealth":
 			is_stealthy = false
 			_apply_stealth_visual(false)
+		"anchor":
+			anchored = false
 	for ability in _abilities:
 		if ability.effect_key == key:
 			var cd: float = ability.cooldown * maxf(0.0, 1.0 - skill("ability_recharge"))  # T332
@@ -1457,6 +1474,17 @@ func _deactivate_ability(key: String) -> void:
 			if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 				_rpc_ability_deactivated.rpc(_abilities.find(ability))
 			break
+
+# ---- T430: Denali ANCHOR (ability effect_key "anchor", a duration ability) ----
+# Plants its feet for the ability's duration: no walking (it still turns and aims), half damage
+# taken, its hits x ANCHOR_DAMAGE_OUT. Server decides; clients learn it from the ability RPCs
+# (the owner's prediction stops walking on arrival, reconciled like the jump). Calibration knobs.
+# ponytail: a late joiner during the 6 s doesn't see the crouch; add it to the snapshot if that matters.
+const ANCHOR_DAMAGE_IN := 0.5
+const ANCHOR_DAMAGE_OUT := 1.3
+const ANCHOR_CROUCH := 0.6   # leg pose crouch (0..1)
+var anchored := false
+var _anchor_pose := 0.0
 
 # ---- T342: Taurus LUNGE (ability effect_key "lunge") ----
 # User 2026-11-08 (picked over a held-SPACE charge): press -> a short crouch in place, then a
@@ -1658,6 +1686,8 @@ func _rpc_ability_activated(slot: int) -> void:
 		"stealth":
 			is_stealthy = true
 			_apply_stealth_visual(true)
+		"anchor":
+			anchored = true  # the owner's prediction stops too (one RTT/2 late, reconciled)
 
 @rpc("authority", "reliable")
 func _rpc_ability_deactivated(slot: int) -> void:
@@ -1668,3 +1698,5 @@ func _rpc_ability_deactivated(slot: int) -> void:
 		"stealth":
 			is_stealthy = false
 			_apply_stealth_visual(false)
+		"anchor":
+			anchored = false

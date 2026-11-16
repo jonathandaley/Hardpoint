@@ -1,0 +1,140 @@
+{
+  "name": "anchor_net",
+  "seed": 4300,
+  "port": 8990,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Denali.tres",
+  "net": {
+    "latency_ms": 160,
+    "jitter_ms": 10,
+    "loss": 0.01
+  },
+  "duration_ticks": 1600,
+  "oracles": [
+    "prediction_recon",
+    "transform_desync",
+    "health_desync",
+    "input_delivery",
+    "spawn_join",
+    "team_assignment",
+    "crash_scan",
+    "log_flood",
+    "rpc_integrity"
+  ],
+  "thresholds": {
+    "pred_snap_frac": 0.01
+  },
+  "_comment": "T430: both peers fly Denali, walk and turn, and press ANCHOR (6 s planted, 18 s cooldown) at ticks 150/180 and again at 1300/1340 after the cooldown. The server decides; the owner's prediction stops walking when the activation RPC lands (half a round trip late on this 160 ms link) and walks again on the deactivation RPC: prediction_recon must stay in its usual bounds (the late stop / late start is ~0.1 m at 0.85 m/s) and every peer's copy must agree (transform_desync).",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 100,
+            "look": [
+              2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 110,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 500,
+            "look": [
+              -2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 510,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "pulses": [
+          {
+            "tick": 150,
+            "action": "ability"
+          },
+          {
+            "tick": 1300,
+            "action": "ability"
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 100,
+            "look": [
+              -2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 110,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 500,
+            "look": [
+              2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 510,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "pulses": [
+          {
+            "tick": 180,
+            "action": "ability"
+          },
+          {
+            "tick": 1340,
+            "action": "ability"
+          }
+        ]
+      }
+    }
+  }
+}
