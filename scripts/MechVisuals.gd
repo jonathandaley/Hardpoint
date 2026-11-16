@@ -128,8 +128,7 @@ const _KIT_MOUNT  := Color(0.169, 0.169, 0.204)  # kit NEUTRAL_MOUNT 0x2b2b34
 const _KIT_SOCKET := Color(0.078, 0.078, 0.102)  # kit NEUTRAL_SOCKET 0x14141a
 const _REST_HIP   := 0.524  # BipedLegs.REST_HIP: the shin end sits at this pitch; the foot undoes it
 
-# ponytail: one MeshInstance per kit box (~40 per mech, ~400 draw calls in a 5v5);
-# merge per material with SurfaceTool if rendering ever shows up in profiling.
+# T427: the boxes are merged per material per moving part at the end (_merge_parts).
 # Torso boxes as authored. Legs keep the game's animated rig (BipedLegs gait needs its
 # 0.55 m segments): kit span thickness/depth, hip blocks at the kit's hip spacing, the
 # pelvis, a level toe pad at each shin end, and leg lights on the nearest joint.
@@ -193,3 +192,74 @@ static func _kit(mech: Node3D, k: Dictionary, tex: String) -> void:
 			var at: Node3D = {"knee1": k1, "knee2": k2, "foot": foot}[e[0]]
 			var off := Vector3(e[4], e[5], e[6]) + (pad if e[0] == "foot" else Vector3.ZERO)
 			_paint(_add_box(at, off, Vector3(e[1], e[2], e[3])), pick.call(e[7]))
+	_merge_parts(mech)
+
+# T427 (draw calls: ~40 boxes a mech = ~40 draw calls, ~550 a 5v5 frame): the unnamed kit boxes
+# (_add_box) that share a parent and a material become ONE mesh, so a moving part draws once per
+# material. Named boxes (Hips, the leg segments) stay: code finds them by name. The kit's tiles
+# are triplanar in each box's own space; merged boxes would share one space and the tiles would
+# slide, so the projection is baked into UVs first: per face, exactly the coordinates Godot's
+# triplanar picks (box faces are axis-aligned, so one plane wins outright), and the merged mesh
+# draws with a copy of the material that reads those UVs. Same texels, same mip level.
+static func _merge_parts(mech: Node3D) -> void:
+	var groups := {}  # [parent, material] -> [MeshInstance3D]
+	var torso := mech.get_node_or_null("Torso") as Node3D
+	var shield := torso.get_node_or_null("PhysicalShield") as Node3D if torso != null else null
+	for n in mech.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		if not (mi.mesh is BoxMesh) or not String(mi.name).begins_with("@") or mi.get_child_count() > 0:
+			continue
+		if mi.get_parent() == torso and Mech.in_shield_volume(shield, mi.position):
+			continue  # Everest's kit shield: Mech._adopt_shield_meshes moves these under the shield (T242)
+		var key := [mi.get_parent(), mi.get_surface_override_material(0)]
+		if not groups.has(key):
+			groups[key] = []
+		groups[key].append(mi)
+	var baked := {}  # triplanar material -> its UV copy
+	for key in groups:
+		var parts: Array = groups[key]
+		if parts.size() < 2:
+			continue
+		var mat := key[1] as StandardMaterial3D
+		var tri := mat != null and mat.uv1_triplanar
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		for mi in parts:
+			var arr: Array = (mi as MeshInstance3D).mesh.surface_get_arrays(0)
+			var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+			var norms: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
+			var uvs: PackedVector2Array = arr[Mesh.ARRAY_TEX_UV]
+			var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX]
+			var xf: Transform3D = (mi as MeshInstance3D).transform
+			for i in idx:
+				var v := verts[i]
+				var nm := norms[i]
+				st.set_normal((xf.basis * nm).normalized())
+				st.set_uv(_triplanar_uv(v, nm, mat.uv1_scale, mat.uv1_offset) if tri else uvs[i])
+				st.add_vertex(xf * v)
+		var out := MeshInstance3D.new()
+		out.mesh = st.commit()
+		if tri:
+			if not baked.has(mat):
+				var m2 := mat.duplicate() as StandardMaterial3D
+				m2.uv1_triplanar = false
+				m2.uv1_scale = Vector3.ONE
+				m2.uv1_offset = Vector3.ZERO
+				baked[mat] = m2
+			out.set_surface_override_material(0, baked[mat])
+		else:
+			out.set_surface_override_material(0, mat)
+		(key[0] as Node).add_child(out)
+		for mi in parts:
+			(mi as Node).free()
+
+## Godot's triplanar lookup (BaseMaterial3D, object space): pos = (VERTEX * scale + offset) with
+## y flipped; z faces read pos.xy, y faces pos.xz, x faces pos.zy * (-1, 1).
+static func _triplanar_uv(v: Vector3, n: Vector3, scale: Vector3, offset: Vector3) -> Vector2:
+	var p := (v * scale + offset) * Vector3(1.0, -1.0, 1.0)
+	var a := n.abs()
+	if a.z >= a.x and a.z >= a.y:
+		return Vector2(p.x, p.y)
+	if a.y >= a.x:
+		return Vector2(p.x, p.z)
+	return Vector2(-p.z, p.y)

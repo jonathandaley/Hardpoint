@@ -34,17 +34,22 @@ func _ready() -> void:
 	if kit_parts.size() < 3:
 		_fail("only %d kit shield parts ride the physical shield (want the slab, face and cross)" % kit_parts.size())
 	var torso: Node3D = m.get("torso")
-	var body_before := torso.find_children("*", "MeshInstance3D", false, false).filter(
-		func(n): return (n as MeshInstance3D).mesh != null and (n as Node3D).is_visible_in_tree()).size()
+	# T427: the body's boxes are merged per material, so count drawn triangles (a box = 12), not nodes
+	var body_tris := func() -> int:
+		var t := 0
+		for n in torso.find_children("*", "MeshInstance3D", false, false):
+			if (n as MeshInstance3D).mesh != null and (n as Node3D).is_visible_in_tree():
+				t += (n as MeshInstance3D).mesh.get_faces().size() / 3
+		return t
+	var body_before: int = body_tris.call()
 	shield.call("take_damage", 1.0e6)
 	await get_tree().process_frame
 	for n in kit_parts:
 		if (n as Node3D).is_visible_in_tree():
 			_fail("kit shield part %s still draws after the shield broke" % n.name)
 			break
-	var body_after := torso.find_children("*", "MeshInstance3D", false, false).filter(
-		func(n): return (n as MeshInstance3D).mesh != null and (n as Node3D).is_visible_in_tree()).size()
-	if body_after < body_before or body_after < 10:
-		_fail("Everest's body lost meshes when the shield broke (%d -> %d)" % [body_before, body_after])
+	var body_after: int = body_tris.call()
+	if body_after < body_before or body_after < 10 * 12:  # still at least ten boxes' worth
+		_fail("Everest's body lost meshes when the shield broke (%d -> %d triangles)" % [body_before, body_after])
 	print("[probe] everest_shield done (%d kit shield parts)" % kit_parts.size())
 	get_tree().quit(0)

@@ -306,18 +306,22 @@ func configure_shield(has_shield: bool, max_hp: float = 300.0) -> void:
 # volume) moves under the PhysicalShield node, which hides when it breaks.
 const _SHIELD_GRAB := Vector3(0.1, 0.1, 0.3)  # slack around the shield box when adopting kit parts
 
-func _adopt_shield_meshes() -> void:
-	var cs := _shield.get_node_or_null("CollisionShape3D") as CollisionShape3D
+## T427: also asked by MechVisuals._merge_parts (before _ready), which leaves these boxes
+## unmerged so they can still move under the shield. shield = Torso/PhysicalShield, p in torso space.
+static func in_shield_volume(shield: Node3D, p: Vector3) -> bool:
+	var cs := shield.get_node_or_null("CollisionShape3D") as CollisionShape3D if shield != null else null
 	if cs == null or not (cs.shape is BoxShape3D):
-		return
+		return false
 	var half: Vector3 = (cs.shape as BoxShape3D).size * 0.5 + _SHIELD_GRAB
-	var to_shield: Transform3D = (_shield.transform * cs.transform).affine_inverse()
+	var q: Vector3 = (shield.transform * cs.transform).affine_inverse() * p
+	return absf(q.x) <= half.x and absf(q.y) <= half.y and absf(q.z) <= half.z
+
+func _adopt_shield_meshes() -> void:
 	for c in torso.get_children():
 		var mi := c as MeshInstance3D
 		if mi == null or mi.mesh == null:
 			continue
-		var p: Vector3 = to_shield * mi.position
-		if absf(p.x) <= half.x and absf(p.y) <= half.y and absf(p.z) <= half.z:
+		if in_shield_volume(_shield, mi.position):
 			var local: Transform3D = _shield.transform.affine_inverse() * mi.transform
 			torso.remove_child(mi)
 			_shield.add_child(mi)
