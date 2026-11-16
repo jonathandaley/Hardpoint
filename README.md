@@ -1,176 +1,85 @@
 # Hardpoint
 
-Third-person mech arena FPS. Beacon capture win condition: hold more beacons than the enemy to drain their score to zero. Single-player vs bots; multiplayer deferred until the solo loop is fun.
+Squad-based mech battles in chunky pixel 3D. Pick five mechs, bolt guns onto their hardpoints,
+and fight 5 v 5 over beacons -- against bots or other people.
 
-Built in Godot 4.6 (Compatibility renderer / OpenGL ES 3.0), targeting low-end hardware (T3500-class). Chunky-pixel 3D: 640×360 internal, nearest-neighbor scaled to 1280×720.
+![A match on Giza](docs/screenshot.jpg)
 
-MIT licence ([`LICENSE`](LICENSE)); the engine, font and sound effects keep their own terms ([`THIRD_PARTY.md`](THIRD_PARTY.md)).
+- **11 mechs** from a 175 HP scout to a 1000 HP shielded wall, several with an ability on SPACE:
+  stealth, a healing jump, a ramming lunge, a planted ANCHOR.
+- **10 weapon families**: rifle, sniper, machine gun, shotgun, rockets, lock-on missiles, laser,
+  arc, aerial strike and Patience.
+- **8 maps**, **3 modes**, bots from Easy to Elite (named pilots with their own hangars and styles).
+- Runs on old hardware: built and tested on a 2009 workstation, aiming for 5 v 5 on a potato.
 
-> **Running the online server** (lemon.limedaley.com:25574): start, stop, update, firewall,
-> settings, bans and backups are all in **[`deploy/README.md`](deploy/README.md)**.
+## Play
 
----
-
-## Running
-
-Download the latest release from GitHub: `hardpoint_X.X.X.x86_64` (Linux) or
-`hardpoint_X.X.X.exe` (Windows). No install, no Godot editor needed.
-
-```
-chmod +x hardpoint_X.X.X.x86_64     # Linux, once
-./hardpoint_X.X.X.x86_64
-```
-
-On Windows, run the `.exe`. It isn't code-signed, so Windows may say "Windows protected
-your PC": click **More info**, then **Run anyway**.
-
-Online: FIND MATCH -> JOIN has the official server (lemon.limedaley.com, port 25574)
-filled in.
-
-### Dedicated server
-
-For the online server, use the kit in **[`deploy/README.md`](deploy/README.md)**: it runs
-the server as a service and has every command you need. The flags below are for running
-one by hand (testing, a LAN game).
-
-```
-godot --headless --path <project dir> -- --server            # port 8910
-godot --headless --path <project dir> -- --server=9000 --team-size=3 --min-players=2
-```
-
-The release binary takes the same flags: `./hardpoint_X.X.X.x86_64 --headless -- --server`.
-
-**Building a release** (Linux and Windows presets in `export_presets.cfg`). The steps, in order:
-
-1. If the release changes gameplay (anything beyond menus, HUD, art and sound), raise
-   `Game.NET_VERSION` and update `NET_SIG` (`docs/SECURITY.md` rule 15 says what counts
-   and how).
-2. Full suite green: `python3 tools/run_suite.py`.
-3. Export both builds (below) and publish them as a GitHub release.
-4. The same day, update the online server: [`deploy/README.md`](deploy/README.md),
-   "Updating to a new version".
+Download the newest build from [Releases](https://github.com/jonathandaley/Hardpoint/releases):
+`hardpoint_X.Y.Z.x86_64` (Linux) or `hardpoint_X.Y.Z.exe` (Windows). No install.
 
 ```bash
-~/bin/godot --headless --path . --export-release "Linux" build/hardpoint_X.X.X.x86_64
-~/bin/godot --headless --path . --export-release "Windows" build/hardpoint_X.X.X.exe
+chmod +x hardpoint_X.Y.Z.x86_64 && ./hardpoint_X.Y.Z.x86_64   # Linux
 ```
 
-The Windows preset reads its template from `build/templates/windows_release_x86_64.exe`
-(git-ignored): take it from the official `Godot_v4.6.2-stable_export_templates.tpz`
-(`unzip -j <tpz> templates/windows_release_x86_64.exe -d build/templates/`).
+On Windows the `.exe` isn't code-signed: at "Windows protected your PC" click **More info**,
+then **Run anyway**.
 
-Use `--export-release`, not `--export-debug`: debug templates (and runs from the editor) add
-"(DEBUG)" to the window title.
+- **Single player:** FIND MATCH > SINGLE PLAYER -- pick a map, a mode and how many bots.
+- **Online:** FIND MATCH > JOIN; the official server is filled in. SIGN UP on the title screen to
+  keep your rating, XP and coins on the server (guests keep a local profile).
+- **Your own server:** see [`deploy/README.md`](deploy/README.md), or the flags in
+  [`docs/DEVELOPING.md`](docs/DEVELOPING.md).
 
-No player on the server and no menus. Players use FIND MATCH → JOIN with the server's
-address and port. They ready up in the lobby, and the match starts 5 s after everyone
-is ready (a new player joining, or someone un-readying, cancels the countdown). Bots
-fill both teams up to `--team-size` (default 5; `--no-bots` turns that off). After a
-match, everyone returns to the lobby. Other flags: `--map=res://resources/maps/<Map>.tres`,
-`--mode=deathmatch` (no beacons: last team with mechs wins, or more mechs left at the time
-limit) and `--min-players=N` (default 1). Once that many are ready, a player who is not gets `--lobby-idle=N` seconds (default 180) before the match starts without them; they watch it and are back in as soon as they ready up. Open the UDP port in the firewall.
+## Modes
 
-Accounts: the server also runs a TLS account endpoint on the next port up (TCP, e.g. 8911).
-Title → SIGN UP / LOG IN with the server's address; signed-in players' ELO, XP and coins
-are kept on that server (`user://accounts.cfg`, salted PBKDF2 password hashes) and
-updated there after each match. Guests keep their local profile. Open that TCP port too.
+| Mode | Win |
+|---|---|
+| **Beacons** | Both teams start at 1000 points; every beacon you hold drains the enemy's. First to 0 loses -- or run out of mechs. |
+| **Beacon rush** | Beacons, and your team can also spawn at any beacon it holds (unless it's contested). |
+| **Death match** | No beacons. Most kills when the 15 minute clock runs out; wiping out a team ends it early. |
 
----
+Each player brings a squad of up to five mechs. When one dies you pick the next and where it drops in.
+
+## Mechs
+
+| Mech | Class | HP | Hardpoints | Special |
+|---|---|---|---|---|
+| Slip | Light | 175 | 1 light | the fastest chassis |
+| Cesh | Light | 175 | 1 light | STEALTH: invisible to enemy sensors for 24 s |
+| Seeker | Light | 175 | 1 heavy | a big gun on a small frame |
+| Hornet | Medium | 450 | 2 light | quick skirmisher |
+| Hippogriff | Medium | 500 | 3 light | steady all-rounder |
+| Pegasus | Medium | 300 | 2 light | JUMP + HEAL: a high leap that repairs it |
+| Kestrel | Medium | 300 | 2 light | energy shield (150) that refills |
+| Taurus | Medium | 390 | 2 light | LUNGE: springs forward and rams |
+| Everest | Heavy | 1000 | 2 heavy | physical front shield, slowest |
+| Vesuvius | Heavy | 850 | 3 heavy | the most firepower |
+| Denali | Heavy | 900 | 2 heavy | ANCHOR: plants for 6 s, half damage taken, 30% more dealt |
+
+Heavy weapons hit about twice as hard and fire slower. Hover a mech's name in the hangar for its lore.
 
 ## Controls
 
-| Input | Action |
+| Key | Action |
 |---|---|
-| WASD | Move |
-| Mouse | Look |
-| Left click | Fire all equipped weapons |
-| Right click | Fire active-subset only |
-| 1 / 2 / 3 / 4 | Toggle weapon slot in/out of active subset |
-| R | Manual reload (fixed-magazine weapons) |
-| Space | Ability (Pegasus jump + heal, Cesh stealth) |
-| V | Swap shoulder (shoulder view) |
-| Tab | Cycle spectate target |
-| Escape | Release mouse capture |
+| W A S D / mouse | move / look |
+| Left click | fire all weapons |
+| Right click | fire the selected weapons |
+| 1 2 3 4 | add / remove a weapon from the selection |
+| R | reload |
+| Space | ability |
+| V | swap shoulder (shoulder view) |
+| Tab | spectate the next mech |
+| Esc | pause |
 
-Weapon slots shown bottom-right. Dimmed icon = excluded from right-click subset. Ammo bar greys during reload.
+Mouse sensitivity, view, graphics and audio are under SETTINGS.
 
----
+## Build from source
 
-## Mech Roster
+Godot 4.6.2: `godot --headless --editor --quit` once, then `godot .` in this folder. Tests,
+releases and the code's layout are in [`docs/DEVELOPING.md`](docs/DEVELOPING.md).
 
-| Mech | Class | Slots | HP | Speed | Feature |
-|---|---|---|---|---|---|
-| Slip | Light | 1 L | Low | Very fast | — |
-| Cesh | Light | 1 L | Low | Medium | Stealth (hides HP/nametag from enemies) |
-| Seeker | Light | 1 H | Low | Medium-fast | — |
-| Hornet | Medium | 2 L | Medium | Fast | — |
-| Hippogriff | Medium | 3 L | Medium | Medium | — |
-| Pegasus | Medium | 2 L | Low | Medium | Jump + heal (Space) |
-| Everest | Heavy | 2 H | High | Very slow | Physical front shield |
-| Vesuvius | Heavy | 3 H | High | Slow | — |
+## License
 
-Light (L) and Heavy (H) slots. Heavy weapons deal ~2x damage, fire slower.
-
-DebugMech: 4x tall, invincible, 2x Slip speed. Dev use only.
-
----
-
-## Document Map
-
-| File | Purpose |
-|---|---|
-| `docs/DESIGN.md` | Architecture decisions: Player/Pawn split, rendering constraints, team model, multiplayer plan. The canonical "why" doc. Read before any architectural change. |
-| `SPEC.md` | Machine-readable spec: §G goal, §C constraints, §I interfaces, §V invariants, §T task list, §B bug log. Source of truth for Claude Code sessions. |
-| `SPEC_DONE.md` | Finished task rows moved out of `SPEC.md` (`python3 tools/spec_sweep.py`) so a session does not load them. |
-
-**Short version:** DESIGN = why, SPEC = rules + tasks + bugs.
-
----
-
-## Project Structure
-
-```
-autoloads/
-  Game.gd           -- singleton: profile (wins/losses) + settings (sensitivity/difficulty)
-  SoundManager.gd
-  VFX.gd
-
-scripts/
-  Mech.gd           -- movement, step climb, fire dispatch, death, camera shake
-  BipedLegs.gd      -- walk cycle (hip sweep, body bob)
-  AIInputSource.gd  -- bot brain; Easy/Normal/Hard difficulty presets
-  PlayerInputSource.gd
-  WeaponBase.gd     -- ammo, fire rate, hit signal; FIXED and REFILLING magazine types
-  MechDef.gd        -- Resource: mech stats, weapon slots, body scale
-  MechVisuals.gd    -- per-mech body geometry (scale, proportions, color)
-  BeaconMatch.gd    -- beacon scoring; drain model
-  Match.gd / Player.gd / Pilot.gd / Ability.gd
-  HUD.gd / Crosshair.gd / WeaponHUD.gd
-
-resources/
-  mechs/            -- MechDef .tres files (one per mech)
-  abilities/        -- Ability .tres files (JumpHeal, Stealth)
-
-shaders/
-  health_bar.gdshader
-  stealth_camo.gdshader   -- per-mech stealth effect
-
-tools/                    -- .gdignore: Godot skips this directory
-  hat_floor_tex.py        -- rasterizes hat_01.svg cluster polygons → hat_floor.png
-  hat_floor_gen.py        -- generates hat tiling geometry data
-  hat_01.svg              -- aperiodic hat tiling source (generator output)
-  penrose_faces_gen.py    -- de Bruijn Penrose face generator
-  penrose_int_faces_gen.py
-  fractal_wall_gen.py     -- exterior wall geometry generator
-
-build/
-  hardpoint_*.x86_64   -- versioned Linux binaries
-```
-
-Scenes live under `scenes/`: `arena/`, `beacon/`, `mech/`, `ui/`, `weapons/`.
-
----
-
-## Architecture in One Paragraph
-
-`InputSource → Player → Mech → Weapons`. The player is not the mech. `PlayerInputSource` and `AIInputSource` are interchangeable — bots use the same code path as the human player. `Mech` calls `fire()` on whatever weapon scenes are attached to its hardpoints; it does not know weapon types. New weapon = new `.tscn`, zero mech changes. `Game.gd`, `SoundManager.gd`, and `VFX.gd` are the only autoloads; match state lives in the arena scene and resets for free on scene change.
+Code and art: MIT ([`LICENSE`](LICENSE)). The engine, font and sound effects keep their own terms
+([`THIRD_PARTY.md`](THIRD_PARTY.md)).
