@@ -519,13 +519,25 @@ func _quit_clean(code: int) -> void:
 	await get_tree().create_timer(QUIT_SETTLE_S, true, false, true).timeout
 	get_tree().quit(code)
 
+const LOBBY_SQUAD_WAIT_MAX := 600  # physics ticks (~10 s)
+
 func _lobby_tick() -> void:
 	if _lobby_wait and get_tree().current_scene != null and get_tree().current_scene.name == "Lobby":
 		_lobby_wait = false
 		_lobby_check_frame = Engine.get_physics_frames() + 90  # 90 ticks after ARRIVING
 	if _lobby_check_frame >= 0 and Engine.get_physics_frames() >= _lobby_check_frame:
-		_lobby_check_frame = -1
 		var peers: Dictionary = Game.mp_lobby["peers"]
+		# T431 (B146): the game's host can't START until every squad is in; the harness used to
+		# start the next match 90 ticks after arriving, before a client's squad RPC that a lossy
+		# link dropped got resent (match_end_parity@bad: squads=0). Wait for it, up to ~10 s.
+		# (physics ticks: this runs from _process, and headless process frames are uncapped, B144)
+		if _role == "server" and Engine.get_physics_frames() < _lobby_check_frame + LOBBY_SQUAD_WAIT_MAX:
+			for pid in peers:
+				if int(pid) != 1 and (peers[pid].get("squad", []) as Array).is_empty():
+					return
+		if Engine.get_physics_frames() > _lobby_check_frame + 1:
+			print("[Harness] lobby_check waited %d ticks for client squads" % (Engine.get_physics_frames() - _lobby_check_frame))
+		_lobby_check_frame = -1
 		var squads := 0
 		for pid in peers:
 			squads += 1 if not (peers[pid].get("squad", []) as Array).is_empty() else 0
