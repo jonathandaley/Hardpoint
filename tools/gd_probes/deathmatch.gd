@@ -12,7 +12,7 @@ func _fail(msg: String) -> void:
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	Game.loadout["mode"] = "beacons"
-	# through the SP picker: DEATH MATCH ticked, 0 allies / 1 enemy
+	# through the SP picker: DEATH MATCH picked, 0 allies / 1 enemy
 	var h: Node = load("res://scenes/ui/Hangar.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(h)
 	for i in 3:
@@ -24,11 +24,11 @@ func _ready() -> void:
 	var box: Node = h.get_node("FindMatchPanel/MapChoices")
 	(box.find_child("AllyBots", true, false) as SpinBox).value = 0
 	(box.find_child("EnemyBots", true, false) as SpinBox).value = 1
-	var dm: CheckBox = box.find_child("SpDeathMatch", true, false)
-	if dm == null:
+	var dm: OptionButton = box.find_child("SpMode", true, false)  # T434: a menu
+	if dm == null or dm.get_item_text(2) != "DEATH MATCH":
 		_fail("no DEATH MATCH option in the SP picker")
 		return
-	dm.button_pressed = true
+	dm.select(2)
 	(box.find_child("SpPlay", true, false) as Button).pressed.emit()
 	for i in 6:
 		await get_tree().process_frame

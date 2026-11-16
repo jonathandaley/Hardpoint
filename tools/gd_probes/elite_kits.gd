@@ -4,7 +4,7 @@ extends Node
 # kit names real mechs and only weapons that fit their slots; an Elite match's named bots fly their
 # own kit and carry their personality into the AI (role, fighting distance); below Elite nothing
 # changes. T377: each Elite has a beacons hangar ("squad") and a death match one ("squad_dm"); a
-# match flies the one for its mode.
+# match flies the one for its mode. T434: and a BEACON RUSH one ("squad_rush").
 
 const Lobby := preload("res://scripts/Lobby.gd")
 const BotNames := preload("res://scripts/BotNames.gd")
@@ -20,7 +20,7 @@ func _ready() -> void:
 			bad.append("%s has no kit" % name)
 			continue
 		var kit: Dictionary = BotNames.ELITE_KIT[name]
-		for key in ["squad", "squad_dm"]:
+		for key in ["squad", "squad_dm", "squad_rush"]:
 			if not kit.has(key):
 				bad.append("%s has no %s" % [name, key])
 				continue
@@ -34,6 +34,8 @@ func _ready() -> void:
 						bad.append("%s %s: %s slot got %s for %s" % [name, key, kit[key][i][0], String(p).get_file(), fam])
 		if kit.get("squad_dm") == kit["squad"]:
 			bad.append("%s: the death match hangar is the beacons one" % name)
+		if kit.get("squad_rush") == kit["squad"] or kit.get("squad_rush") == kit.get("squad_dm"):
+			bad.append("%s: the rush hangar repeats another mode's" % name)
 	if not bad.is_empty():
 		_fail("; ".join(bad))
 		return
@@ -85,6 +87,15 @@ func _ready() -> void:
 		var kit: Dictionary = BotNames.ELITE_KIT.get(e["name"], {})
 		if int(e["peer_id"]) == 0 and not kit.is_empty() and (e["squad"] as Array).map(func(s): return s["mech"]) != (kit["squad"] as Array).map(func(k): return "res://resources/mechs/%s.tres" % k[0]):
 			bad.append("%s flies %s in a beacons match, not its beacons kit" % [e["name"], (e["squad"] as Array).map(func(s): return String(s["mech"]).get_file())])
+	# T434: a rush match flies the rush hangar
+	Game.loadout["mode"] = "rush"
+	Game.mp_active_match["roster"] = []
+	Game.setup_sp_match()
+	for e in Game.mp_active_match["roster"]:
+		var kit: Dictionary = BotNames.ELITE_KIT.get(e["name"], {})
+		if int(e["peer_id"]) == 0 and not kit.is_empty() and (e["squad"] as Array).map(func(s): return s["mech"]) != (kit["squad_rush"] as Array).map(func(k): return "res://resources/mechs/%s.tres" % k[0]):
+			bad.append("%s flies %s in a rush match, not its rush kit" % [e["name"], (e["squad"] as Array).map(func(s): return String(s["mech"]).get_file())])
+	Game.loadout["mode"] = "beacons"
 	# below Elite: no kits
 	Game.settings["bot_difficulty"] = 3
 	Game.mp_active_match["roster"] = []

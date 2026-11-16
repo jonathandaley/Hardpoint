@@ -149,6 +149,8 @@ func show_spawn_picker(points: Array) -> void:
 		minimap.add_child(back)
 		_spawn_ui.append(back)
 	for i in points.size():
+		if points[i] == null:  # T434: a beacon not held (yet)
+			continue
 		var b := Button.new()
 		b.name = "Spawn%d" % i
 		b.text = str(i + 1)

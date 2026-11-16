@@ -411,3 +411,4 @@ date|task|outcome|commit|finding|suite
 2026-11-16|queue|EMPTY|-|all open rows parked by the user (T421-T423 browser: their pomegranate test; T305, T326, T291, T261, T212) or BLOCKED with notes (T346, T404, T416, T418, T425); loop stopped|-
 2026-11-16|T404|DONE|(this commit)|lunge v2 unblocked: B147 owner dropped its own wall impact each snapshot (stop-start) + interp_smoothness now lead-shifts the owner's predicted series; probe lunge_sync_impact red/green, oracle red on synthetic stepping|see verify line
 2026-11-16|T404 verify|DONE|-|t404-v2 fast-forwarded into main|suite 185/185, net 64/64, selftest green
+2026-11-16|T434|DONE|(this commit)|mode menu (Lobby.MODES) + BEACON RUSH (spawn at held, uncontested beacons; home if lost while picking) + Elite squad_rush hangars; probe beacon_rush (8 maps, 0 blocked lanes; red before), deathmatch / elite_kits updated|suite 186/186; net 63/64 (bot_lock@bad: known Mech_r* flake, rerun green)

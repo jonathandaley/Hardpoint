@@ -21,6 +21,12 @@ var _match_over: bool = false
 # lengths (T338); multiplayer playtests may still move it.
 var deathmatch := false
 const DM_TIME_S := 900.0
+# T434 beacon rush (user 2026-11-16): beacons mode, plus a team spawns at any beacon it holds.
+# Spawn indices: the map's home points first, then every beacon in map order (same on every peer,
+# so a spawn index means the same spot everywhere); a beacon index is OPEN only while held.
+var rush := false
+var _rush_beacons: Array = []
+const RUSH_SPAWN_R := 3.5  # m from the beacon centre, inside its 6 m pad ring
 var _beacons_captured: Array[int] = [0, 0]
 var _captures_by_ri := {}  # T280: roster idx -> beacons its mechs were in the zone for when they flipped
 var _disconnected_peers: Dictionary = {}  # peer_id -> true; set on mid-match disconnect
@@ -58,6 +64,7 @@ func _ready() -> void:
 	if Game.mp_active_match["roster"].is_empty():
 		Game.setup_sp_match()
 	deathmatch = Game.mp_active_match.get("mode", "beacons") == "deathmatch"
+	rush = Game.mp_active_match.get("mode", "beacons") == "rush"
 	# T210: the map is its own scene (geometry, beacons, spawn points); built after the spawn
 	var md = Game.loadout.get("map_def")
 	var map_path: String = md.scene_path if md != null and md.get("scene_path") else "res://scenes/maps/MathTemple.tscn"
@@ -171,12 +178,37 @@ const DEBUG_OVERHEAD := false  # F5 overhead camera (was DEBUG_PENROSE)
 
 # T203/T210: the map's spawn points for `team` (world positions).
 func spawn_points(team: int) -> Array:
-	return _map.spawn_points(team)
+	var p: Array = _map.spawn_points(team).duplicate()
+	for b in _rush_beacons:
+		p.append((b as Node3D).global_position)
+	return p
+
+## T434: may `team` spawn at index `i` now? Home points always; a beacon only while the team
+## holds it and no enemy is contesting it. Server decides; the picker shows the same.
+func spawn_open(team: int, i: int) -> bool:
+	var n: int = _map.spawn_points(team).size()
+	if i < 0 or i >= n + _rush_beacons.size():
+		return false
+	if i < n:
+		return true
+	var b: Node = _rush_beacons[i - n]
+	return int(b.get("owner_team")) == team and int(b.get("state")) != 3  # Beacon.State.CONTESTED
+
+## The spawn picker's points: closed ones null (indices kept).
+func spawn_choices(team: int) -> Array:
+	var p := spawn_points(team)
+	for i in p.size():
+		if not spawn_open(team, i):
+			p[i] = null
+	return p
 
 ## Where mech `idx` of a `count`-strong team stands at `spawn`: a line across the facing (team 1
 ## mirrored, which keeps the pre-T203 slot order), `spawn_spacing` apart, kept clear by the map (T358).
 func spawn_position(team: int, idx: int, count: int, spawn: int) -> Vector3:
 	var base: Vector3 = spawn_points(team)[spawn]
+	if spawn >= _map.spawn_points(team).size():  # T434: a beacon -- round its pad, lane by lane
+		var a := TAU * float(idx) / float(maxi(count, 1))
+		return base + Vector3(cos(a), 0.0, sin(a)) * RUSH_SPAWN_R
 	var perp := Basis(Vector3.UP, deg_to_rad(_spawn_facing(base))).x * (1.0 if team == 0 else -1.0)
 	var perp_offset: float = (float(idx) - float(count - 1) * 0.5) * float(_map.get("spawn_spacing"))
 	return _map.clamp_spawn(Vector3(base.x + perp.x * perp_offset, 0.0, base.z + perp.z * perp_offset))
@@ -196,6 +228,8 @@ func _spawn_one_mech(mech_def, team: int, idx: int, count: int, weapon_paths: Ar
 	m.name = mech_name if mech_name != "" else "Mech_%d_%d" % [team, idx]
 	m.set_meta("spawn", [mech_def.resource_path, weapon_paths])  # T206: rebuilt by late joiners
 	m.position = Vector3(sx, _ground_y(sx, sz) + 1.0, sz)
+	if spawn >= _map.spawn_points(team).size():  # T434: beacon pads can sit above the map formula
+		m.position.y = _ground_y(sx, sz, base.y) + 1.0
 	m.rotation_degrees = Vector3(0, facing_y, 0)
 	m.team = team
 	m.scale = Vector3.ONE * mech_def.body_scale
@@ -282,7 +316,7 @@ func _spawn_mechs_mp() -> void:
 		# peer, so every peer places them alike.
 		var sp := 0
 		if entry["peer_id"] == 0:
-			sp = bot_start_idx[t] % spawn_points(t).size()
+			sp = bot_start_idx[t] % _map.spawn_points(t).size()  # home points only (T434)
 			bot_start_idx[t] += 1
 		var m: CharacterBody3D = _spawn_one_mech(mech_def, t, team_idx[t], team_counts[t], wpn_paths, "", sp)
 		m.owner_peer_id = entry["peer_id"]
@@ -449,6 +483,8 @@ func _wire_beacons() -> void:
 			n3d.position.y = _map.ground_y(n3d.position.x, n3d.position.z)
 			match_node.register_beacon(child)
 			child.captured.connect(_on_beacon_captured.bind(child))
+			if rush:
+				_rush_beacons.append(child)
 
 # T280 (HUMAN_FOUND 2026-11-05: the match-end capture count was wrong, "everyone on each team
 # gets counted for every beacon"): the team total stays, and each pilot is credited only for
@@ -1039,6 +1075,8 @@ func _process_pick_next_mech(sender: int, slot_idx: int, spawn: int) -> void:
 	if spawn < 0 or spawn >= spawn_points(peer_team).size():
 		Game.net_refuse(sender, "pick: no such spawn point")
 		return
+	if not spawn_open(peer_team, spawn):
+		spawn = 0  # T434: the beacon was lost (or contested) while picking -- home instead
 	_peer_slot_used[sender][slot_idx] = true
 	_rpc_spawn_next_mech.rpc(sender, slot_idx, peer_team, spawn)
 
@@ -1181,7 +1219,7 @@ var _pending_slot := -1
 func _on_squad_slot_selected(si: int) -> void:
 	_pending_slot = si
 	hud.hide_squad_picker_mp()
-	hud.show_spawn_picker(spawn_points(_local_team))
+	hud.show_spawn_picker(spawn_choices(_local_team))
 
 func _on_spawn_selected(sp: int) -> void:
 	var si := _pending_slot
@@ -1225,7 +1263,7 @@ func _process_start_pick(sender: int, slot: int, spawn: int) -> void:
 			team = entry.get("team", -1)
 	if team < 0 or slot < 0 or slot >= used.size() or (slot > 0 and used[slot]) or slot >= squad.size() \
 			or squad[slot].get("mech", "") == "" or match_node.elapsed > START_PICK_S + 2.0 \
-			or spawn < 0 or spawn >= spawn_points(team).size() or (slot == 0 and spawn == 0):
+			or not spawn_open(team, spawn) or (slot == 0 and spawn == 0):
 		_reveal_first(sender)  # T279: a refused swap keeps (and shows) the first mech
 		return
 	var first_idx := -1
@@ -1537,6 +1575,8 @@ func bot_spawn(team: int) -> int:
 	var best_s := -INF
 	var pts := spawn_points(team)
 	for i in pts.size():
+		if not spawn_open(team, i):
+			continue
 		var p: Vector3 = pts[i]
 		var s := 0.0
 		for b in get_tree().get_nodes_in_group("beacons"):
@@ -1590,8 +1630,9 @@ func _rpc_spawn_next_bot(ri: int, slot: int, spawn: int) -> void:
 # T203: spawn height = the real floor under the spot. The Penrose terraces don't follow
 # the bowl formula's circles exactly: a lane near a riser spawned mechs inside the step above
 # (stuck, falling in place). The match-start spawn runs before the floor exists = formula.
-func _ground_y(x: float, z: float) -> float:
-	var y0 := _map.ground_y(x, z)
+func _ground_y(x: float, z: float, y0: float = NAN) -> float:
+	if is_nan(y0):
+		y0 = _map.ground_y(x, z)
 	if not is_inside_tree():
 		return y0
 	var q := PhysicsRayQueryParameters3D.create(Vector3(x, y0 + 4.5, z), Vector3(x, y0 - 4.0, z))

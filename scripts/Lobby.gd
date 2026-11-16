@@ -11,6 +11,15 @@ const _MAP_OPTIONS: Array = [
 	{"name": "Corvette", "path": "res://resources/maps/Corvette.tres"},
 ]
 
+# T434: game modes, [mode string, menu label] -- the lobby and the single-player picker
+const MODES: Array = [["beacons", "BEACONS"], ["rush", "BEACON RUSH"], ["deathmatch", "DEATH MATCH"]]
+
+static func mode_index(mode: String) -> int:
+	for i in MODES.size():
+		if MODES[i][0] == mode:
+			return i
+	return 0
+
 const ROSTER: Array = [
 	"res://resources/mechs/Slip.tres",
 	"res://resources/mechs/Cesh.tres",
@@ -50,7 +59,7 @@ const WEAPON_CATALOG: Array = [
 @onready var _peer_list: VBoxContainer = $PeerList
 @onready var _host_controls: VBoxContainer = $HostControls
 @onready var _bot_fill_check: CheckBox = $HostControls/BotFillRow/BotFillCheck
-@onready var _dm_check: CheckBox = $HostControls/BotFillRow/DeathMatchCheck  # T285
+@onready var _mode_option: OptionButton = $HostControls/BotFillRow/ModeOption  # T285/T434
 @onready var _team_size_spin: SpinBox = $HostControls/TeamSizeRow/TeamSizeSpin
 @onready var _map_option: OptionButton = $HostControls/MapRow/MapOption
 @onready var _start_button: Button = $StartButton
@@ -64,8 +73,10 @@ func _ready() -> void:
 	Game.mp_peer_disconnected.connect(_on_peer_disconnected)
 
 	_setup_map_option()
-	_dm_check.toggled.connect(func(on: bool) -> void:  # T285
-		Game.mp_lobby["mode"] = "deathmatch" if on else "beacons"
+	for m in MODES:  # T434: a menu (was the T285 death match checkbox)
+		_mode_option.add_item(m[1])
+	_mode_option.item_selected.connect(func(i: int) -> void:
+		Game.mp_lobby["mode"] = MODES[i][0]
 		Game.broadcast_lobby())
 
 	# B44: Lobby also loads on the V40 return after a match -- the match is over, and
@@ -229,7 +240,7 @@ func _sync_host_controls_to_lobby() -> void:
 	if not multiplayer.is_server():
 		return
 	_bot_fill_check.set_pressed_no_signal(Game.mp_lobby.get("bot_fill", true))
-	_dm_check.set_pressed_no_signal(Game.mp_lobby.get("mode", "beacons") == "deathmatch")
+	_mode_option.select(mode_index(Game.mp_lobby.get("mode", "beacons")))
 	_team_size_spin.set_value_no_signal(Game.mp_lobby.get("team_size", 1))
 	var map_path: String = Game.mp_lobby.get("map_path", "")
 	for i in _MAP_OPTIONS.size():
@@ -367,8 +378,9 @@ static func _build_roster() -> Array:
 			e["name"] = BotNames.next_name(taken, elite)
 			e["skills"] = (BotNames.ELITE.get(e["name"], {}) as Dictionary).duplicate()
 			if elite and BotNames.ELITE_KIT.has(e["name"]):  # T350: the pilot's own hangar and style
-				var dm: bool = Game.mp_lobby.get("mode", "beacons") == "deathmatch"  # T377: a hangar per mode
-				e["squad"] = kit_squad(BotNames.ELITE_KIT[e["name"]]["squad_dm" if dm else "squad"])
+				var kit: Dictionary = BotNames.ELITE_KIT[e["name"]]  # T377/T434: a hangar per mode
+				var key: String = {"deathmatch": "squad_dm", "rush": "squad_rush"}.get(Game.mp_lobby.get("mode", "beacons"), "squad")
+				e["squad"] = kit_squad(kit.get(key, kit["squad"]))
 				e["personality"] = (BotNames.ELITE_KIT[e["name"]]["personality"] as Dictionary).duplicate()
 			taken.append(e["name"])
 	return roster
