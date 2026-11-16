@@ -43,3 +43,8 @@ The user's original Taurus ability, kept as a possible v2 when they picked the l
   - **Texture atlas for mechs** (after T427): one texture sheet + a custom shader so each moving mech part is one draw; worth it only if the browser comes back.
 
 - **30 Hz physics with smoothing** (from T425): would roughly halve the physics cost per second on every platform, but it changes how the game feels and how the netcode predicts; a design call for the user, not a fix.
+
+- **Taurus lunge: shorter recharge per consecutive hit** (user's T404 note; 2026-11-16: "I want to play as is and feel it out"). Small if wanted: ~10 lines in Mech.gd (a hit-streak counter scaling the Lunge cooldown, reset on a miss), e.g. 25% shorter per hit; needs NET_VERSION only if the cooldown rides the wire.
+- **Death match kill score on the HUD** (T411 follow-up; user 2026-11-16: "Don't do the Deathmatch score for now, I think it makes more sense not to know who's winning.").
+- **More game modes** (user 2026-11-16, "current plans", asked how hard): (1) beacon rush, held beacons are spawn points -- smallest: the spawn picker and respawn exist, add owned beacons to the list + bot spawn choice; (2) capture the flag -- medium: a replicated flag (carry / drop / return), scoring + HUD, and the big part, bot roles (fetch / escort / defend); (3) free-for-all death match -- largest: the code is two-team throughout (team arrays of 2, `1 - team`, own-vs-enemy HUD, two team colours, match end, lobby team counts, two spawn sets per map), so it means N teams, per-player colours and ~10 spawn points on every map. All three: a mode selector replacing the death match checkbox, NET_VERSION bump.
+
