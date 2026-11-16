@@ -645,6 +645,19 @@ func on_player_eliminated(p: Node) -> void:
 			return
 	match_node.force_end(1 - losing_team)
 
+## B145: a disabled mech leaves the physics space. Jolt errors ("ref_count <= 0") when a body
+## leaves an Area3D in the same step it entered, before the area reports it -- a mech stepping
+## into a beacon on the match's last tick. The zones stop monitoring first (that empties them the
+## same way the mechs leaving did; no capture after the match anyway).
+static func freeze_mechs(tree: SceneTree, mechs: Array) -> void:
+	for b in tree.get_nodes_in_group("beacons"):
+		var zone := b.get_node_or_null("CaptureZone")
+		if zone != null:
+			zone.set_deferred("monitoring", false)
+	for m in mechs:
+		if is_instance_valid(m):
+			m.set_deferred("process_mode", Node.PROCESS_MODE_DISABLED)
+
 func _on_match_ended(winning_team: int) -> void:
 	_match_over = true
 	if Game.sync_logging_enabled:
@@ -652,10 +665,7 @@ func _on_match_ended(winning_team: int) -> void:
 	if _movement_logger != null:
 		_movement_logger.stop_and_analyze()
 	# Disable all mechs (deferred so in-flight _physics_process finishes first - B17).
-	for team_mechs in _team_mechs:
-		for m in team_mechs:
-			if is_instance_valid(m):
-				m.set_deferred("process_mode", Node.PROCESS_MODE_DISABLED)
+	freeze_mechs(get_tree(), _team_mechs[0] + _team_mechs[1])
 	if multiplayer.is_server():  # SP = offline server: same stats + result path (T184)
 		var stats := _build_mp_stats()
 		if not (multiplayer.multiplayer_peer is OfflineMultiplayerPeer):  # V56: MP only
