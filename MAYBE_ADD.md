@@ -34,3 +34,12 @@ The user's original Taurus ability, kept as a possible v2 when they picked the l
   Ability: Charge: no recharge time. While spacebar is pressed, lock movement straight forward and disable mech rotation. Accelerate forward linearly, starting at normal (slow) speed and scaling. Releasing spacebar decelerates quickly, not instant. Release instantly unlocks steering and directional movement, so turning quickly and pressing spacebar again can preserve a small amount of the boost.
 
   While spacebar is pressed, deal moderate damage to colliding mechs based on relative speed. Floor for damage should be pretty high; no minor damage from repeated small hits. Red and maroon with some black. Crimson emissives. Shaped like a hunched minotaur, horns in front. Light weapons instead of arms. While charging, emit red glow that intensifies with speed.
+
+- **Browser-only speed work** (user 2026-11-15: "Only do the ones relevant to desktop for now, make a note of the others in maybe-add"; the browser build is parked: 5v5 ~35-49 fps in Firefox on the T3500, the bar is 5v5 on a potato with one version). Measured / found in T420-T425:
+  - **Speed-optimised web engine build**: the official web templates are compiled for small size; a custom `optimize=speed` + LTO template is untested (guess 10-25%). Needs SCons + Emscripten under `build/` (~3 GB, the user's OK) and a rebuild per Godot upgrade.
+  - **Shader warm-up behind the loading screen**: WebGL has no shader cache, so first use of each material / effect hitches (55-150 ms worst frames seen). Godot's docs: show every material once while loading.
+  - **WebGPU**: not in official Godot 4.6 / 4.7; community forks only, and it means a heavier renderer. Revisit when it lands upstream.
+  - **Tried, no gain**: the threaded web build (Corvette 5v5 37 vs 35 fps, Badlands 27 vs 35).
+  - **Texture atlas for mechs** (after T427): one texture sheet + a custom shader so each moving mech part is one draw; worth it only if the browser comes back.
+
+- **30 Hz physics with smoothing** (from T425): would roughly halve the physics cost per second on every platform, but it changes how the game feels and how the netcode predicts; a design call for the user, not a fix.
