@@ -414,3 +414,4 @@ date|task|outcome|commit|finding|suite
 2026-11-16|T434|DONE|(this commit)|mode menu (Lobby.MODES) + BEACON RUSH (spawn at held, uncontested beacons; home if lost while picking) + Elite squad_rush hangars; probe beacon_rush (8 maps, 0 blocked lanes; red before), deathmatch / elite_kits updated|suite 186/186; net 63/64 (bot_lock@bad: known Mech_r* flake, rerun green)
 2026-11-16|T341|DONE|-|status stale: Taurus is in the roster since T342 (lunge) landed; row closed|-
 2026-11-16|T432|DONE|(this commit)|preview < > buttons hid with mech_panel only; now follow the diorama container; probe preview_buttons red/green|batched with T433, suite below
+2026-11-16|T433|DONE|(this commit)|AUDIO page, 5 bus sliders saved + applied at start (first run too: the 0.5 master default never applied before); UI clicks on their own bus; ambience + music buses are stubs (no such sounds yet); Settings sub-pages share _build_page; probe audio_page red/green|batched with T432, suite below

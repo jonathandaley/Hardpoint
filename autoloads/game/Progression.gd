@@ -76,6 +76,7 @@ var settings: Dictionary = {
 	"mouse_sensitivity": 0.003,
 	"bot_difficulty": 1,  # 0=Easy  1=Normal  2=Medium  3=Hard  4=Elite
 	"master_volume": 0.5,
+	"ui_volume": 1.0, "sfx_volume": 1.0, "ambience_volume": 1.0, "music_volume": 1.0,  # T433
 	"view": "center",   # T252: "center" (raised, crosshair over the mech) or "shoulder"
 	"fancy_hangar": true,  # T254: the animated repair bay (GRAPHICS > FANCY HANGAR)
 	"casings_long": true,  # T263: spent casings pool 1000 (ON) or 150 (GRAPHICS > LONG-LASTING CASINGS)
@@ -272,17 +273,19 @@ static func sanitize_skills(raw, level: int) -> Dictionary:
 func _load_settings() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(_SETTINGS_PATH) != OK:
+		apply_volumes()  # first run: the defaults
 		return
 	settings["mouse_sensitivity"] = cfg.get_value("settings", "mouse_sensitivity", settings["mouse_sensitivity"])
 	settings["bot_difficulty"]    = cfg.get_value("settings", "bot_difficulty",    settings["bot_difficulty"])
-	settings["master_volume"]     = cfg.get_value("settings", "master_volume",     settings["master_volume"])
+	for bv in VOLUME_BUSES:  # T433: master + the four group sliders
+		settings[bv[1]] = clampf(float(cfg.get_value("settings", bv[1], settings[bv[1]])), 0.0, 1.0)
 	settings["view"]              = cfg.get_value("settings", "view",              settings["view"])
 	settings["fancy_hangar"]      = cfg.get_value("settings", "fancy_hangar",      settings["fancy_hangar"])
 	settings["casings_long"]      = cfg.get_value("settings", "casings_long",      settings["casings_long"])
 	settings["record_matches"]    = cfg.get_value("settings", "record_matches",    settings["record_matches"])
 	settings["render_scale"]      = clampf(float(cfg.get_value("settings", "render_scale", settings["render_scale"])), 0.5, 1.0)
 	shoulder = 0.0 if settings["view"] == "center" else 1.0  # T252
-	apply_volume(settings["master_volume"])
+	apply_volumes()
 
 func _load_loadout() -> void:
 	var cfg := ConfigFile.new()
@@ -407,7 +410,8 @@ func save_settings() -> void:
 	cfg.load(_SETTINGS_PATH)
 	cfg.set_value("settings", "mouse_sensitivity", settings.get("mouse_sensitivity", 0.003))
 	cfg.set_value("settings", "bot_difficulty",    settings.get("bot_difficulty",    1))
-	cfg.set_value("settings", "master_volume",     settings.get("master_volume",     0.5))
+	for bv in VOLUME_BUSES:  # T433
+		cfg.set_value("settings", bv[1], settings.get(bv[1], 1.0))
 	cfg.set_value("settings", "view",              settings.get("view",              "center"))
 	cfg.set_value("settings", "fancy_hangar",      settings.get("fancy_hangar",      true))
 	cfg.set_value("settings", "casings_long",      settings.get("casings_long",      true))
@@ -415,5 +419,18 @@ func save_settings() -> void:
 	cfg.set_value("settings", "render_scale",      settings.get("render_scale",      1.0))
 	cfg.save(_SETTINGS_PATH)
 
-func apply_volume(linear: float) -> void:
-	AudioServer.set_bus_volume_db(AudioServer.get_bus_index("Master"), linear_to_db(linear))
+# T433 (user 2026-11-16: "Multiple volume sliders, probably under an \"Audio\" tag: master, UI, SFX,
+# ambiance, music (stub)"): [bus, settings key, label]. Every bus but Master sends to Master. No
+# music or ambience sounds exist yet: their buses + sliders wait for them (players set .bus).
+const VOLUME_BUSES := [["Master", "master_volume", "MASTER"], ["UI", "ui_volume", "UI"],
+	["SFX", "sfx_volume", "EFFECTS"], ["Ambience", "ambience_volume", "AMBIENCE"], ["Music", "music_volume", "MUSIC"]]
+
+func apply_volumes() -> void:
+	for bv in VOLUME_BUSES:
+		var i := AudioServer.get_bus_index(bv[0])
+		if i < 0:
+			i = AudioServer.bus_count
+			AudioServer.add_bus(i)
+			AudioServer.set_bus_name(i, bv[0])
+			AudioServer.set_bus_send(i, "Master")
+		AudioServer.set_bus_volume_db(i, linear_to_db(float(settings.get(bv[1], 1.0))))

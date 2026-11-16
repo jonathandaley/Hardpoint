@@ -2,8 +2,6 @@ extends Control
 
 @onready var sens_slider: HSlider = $Scroll/Content/SensRow/SensSlider
 @onready var sens_label:  Label   = $Scroll/Content/SensRow/SensValue
-@onready var vol_slider:  HSlider = $Scroll/Content/VolRow/VolSlider
-@onready var vol_label:   Label   = $Scroll/Content/VolRow/VolValue
 
 const DIFF_LABELS := ["EASY", "NORMAL", "MEDIUM", "HARD", "ELITE"]
 
@@ -20,14 +18,6 @@ func _ready() -> void:
 	sens_slider.set_block_signals(false)
 	_update_sens_label()
 
-	vol_slider.set_block_signals(true)
-	vol_slider.min_value = 0.0
-	vol_slider.max_value = 1.0
-	vol_slider.step      = 0.05
-	vol_slider.value     = Game.settings.get("master_volume", 0.5)
-	vol_slider.set_block_signals(false)
-	_update_vol_label()
-
 	var diff_row: HBoxContainer = $Scroll/Content/DiffRow/DiffButtons
 	var cur_diff: int = Game.settings.get("bot_difficulty", 1)
 	for i in DIFF_LABELS.size():
@@ -43,6 +33,7 @@ func _ready() -> void:
 	_build_controls_section()
 	_build_toggle_section($Scroll/Content, "RECORD MATCHES (FOR BUG REPORTS)", "record_matches", "Record")  # T389
 	_build_graphics_page()  # T253: SHADOWS (and the later graphics toggles) live there
+	_build_audio_page()  # T433
 
 # T252: VIEW -- CENTER (raised camera, crosshair over the mech; default) or SHOULDER
 # (T196's over-the-shoulder, V swaps sides).
@@ -87,8 +78,6 @@ func _highlight_view() -> void:
 func _update_sens_label() -> void:
 	sens_label.text = "%.4f" % sens_slider.value
 
-func _update_vol_label() -> void:
-	vol_label.text = "%d%%" % int(vol_slider.value * 100.0)
 
 func _on_sens_changed(value: float) -> void:
 	Game.settings["mouse_sensitivity"] = value
@@ -186,8 +175,47 @@ func _build_controls_section() -> void:
 var graphics_box: VBoxContainer = null
 
 func _build_graphics_page() -> void:
+	graphics_box = _build_page("Graphics", "GRAPHICS")
+	_build_toggle_section(graphics_box, "FANCY HANGAR", "fancy_hangar", "Fancy")  # T254
+	_build_toggle_section(graphics_box, "LONG-LASTING CASINGS", "casings_long", "Casings")  # T263: 1000 / 150
+	# T428: lower = faster on a weak graphics card, blurrier 3D; the HUD stays sharp
+	_build_choice_section(graphics_box, "RESOLUTION (IN MATCH)", "render_scale", "Res",
+		[[1.0, "100%"], [0.75, "75%"], [0.5, "50%"]], 1.0)
+
+# T433: AUDIO -- a volume slider per bus (Game.VOLUME_BUSES); master moved here from the main page.
+func _build_audio_page() -> void:
+	var box := _build_page("Audio", "AUDIO")
+	for bv in Game.VOLUME_BUSES:
+		var row := HBoxContainer.new()
+		row.name = "Vol" + bv[0]
+		row.add_theme_constant_override("separation", 12)
+		var lbl := Label.new()
+		lbl.text = bv[2]
+		lbl.custom_minimum_size = Vector2(110, 0)
+		lbl.add_theme_font_size_override("font_size", 14)
+		row.add_child(lbl)
+		var sl := HSlider.new()
+		sl.name = "Slider"
+		sl.custom_minimum_size = Vector2(260, 20)
+		sl.max_value = 1.0
+		sl.step = 0.05
+		sl.value = float(Game.settings.get(bv[1], 1.0))
+		row.add_child(sl)
+		var val := Label.new()
+		val.text = "%d%%" % roundi(sl.value * 100.0)
+		val.add_theme_font_size_override("font_size", 14)
+		row.add_child(val)
+		sl.value_changed.connect(func(v: float) -> void:
+			Game.settings[bv[1]] = v
+			Game.apply_volumes()
+			Game.save_settings()
+			val.text = "%d%%" % roundi(v * 100.0))
+		box.add_child(row)
+
+## A sub-page of Settings (`<name>Page`, opened by `<name>Button` next to CONTROLS); returns its box.
+func _build_page(pname: String, title_text: String) -> VBoxContainer:
 	var page := Control.new()
-	page.name = "GraphicsPage"
+	page.name = pname + "Page"
 	page.set_anchors_preset(Control.PRESET_FULL_RECT)
 	page.visible = false
 	add_child(page)
@@ -197,21 +225,16 @@ func _build_graphics_page() -> void:
 	scroll.offset_right = 640.0
 	scroll.offset_bottom = 306.0
 	page.add_child(scroll)
-	graphics_box = VBoxContainer.new()
-	graphics_box.name = "GraphicsBox"
-	graphics_box.offset_left = 24.0
-	graphics_box.offset_top = 12.0
-	graphics_box.add_theme_constant_override("separation", 8)
-	scroll.add_child(graphics_box)
+	var box := VBoxContainer.new()
+	box.name = pname + "Box"
+	box.offset_left = 24.0
+	box.offset_top = 12.0
+	box.add_theme_constant_override("separation", 8)
+	scroll.add_child(box)
 	var title := Label.new()
-	title.text = "GRAPHICS"
+	title.text = title_text
 	title.add_theme_font_size_override("font_size", 18)
-	graphics_box.add_child(title)
-	_build_toggle_section(graphics_box, "FANCY HANGAR", "fancy_hangar", "Fancy")  # T254
-	_build_toggle_section(graphics_box, "LONG-LASTING CASINGS", "casings_long", "Casings")  # T263: 1000 / 150
-	# T428: lower = faster on a weak graphics card, blurrier 3D; the HUD stays sharp
-	_build_choice_section(graphics_box, "RESOLUTION (IN MATCH)", "render_scale", "Res",
-		[[1.0, "100%"], [0.75, "75%"], [0.5, "50%"]], 1.0)
+	box.add_child(title)
 	var back := Button.new()
 	back.offset_left = 200.0
 	back.offset_top = 316.0
@@ -225,8 +248,8 @@ func _build_graphics_page() -> void:
 		$BackButton.visible = true)
 	page.add_child(back)
 	var open := Button.new()
-	open.name = "GraphicsButton"
-	open.text = "GRAPHICS"
+	open.name = pname + "Button"
+	open.text = title_text
 	open.custom_minimum_size = Vector2(80, 24)
 	open.add_theme_font_size_override("font_size", 14)
 	open.pressed.connect(func():
@@ -234,6 +257,7 @@ func _build_graphics_page() -> void:
 		$BackButton.visible = false
 		page.visible = true)
 	$Scroll/Content/PageButtons.add_child(open)
+	return box
 
 # An ON / OFF row for a boolean Game.settings key (graphics toggles: T254 ...).
 func _build_toggle_section(box: VBoxContainer, title: String, key: String, prefix: String) -> void:
@@ -271,12 +295,6 @@ func _build_choice_section(box: VBoxContainer, title: String, key: String, prefi
 			Game.save_settings()
 			paint.call())
 	paint.call()
-
-func _on_vol_changed(value: float) -> void:
-	Game.settings["master_volume"] = value
-	Game.apply_volume(value)
-	Game.save_settings()
-	_update_vol_label()
 
 func _on_diff_pressed(idx: int) -> void:
 	Game.settings["bot_difficulty"] = idx

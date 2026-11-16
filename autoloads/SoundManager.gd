@@ -31,20 +31,7 @@ const _MUSIC_PATHS: Dictionary = {
 var _streams: Dictionary = {}
 var _music_player: AudioStreamPlayer = null
 
-func _ready() -> void:
-	_setup_buses()
-
-func _setup_buses() -> void:
-	if AudioServer.get_bus_index("Music") < 0:
-		var idx := AudioServer.bus_count
-		AudioServer.add_bus(idx)
-		AudioServer.set_bus_name(idx, "Music")
-		AudioServer.set_bus_send(idx, "Master")
-	if AudioServer.get_bus_index("SFX") < 0:
-		var idx := AudioServer.bus_count
-		AudioServer.add_bus(idx)
-		AudioServer.set_bus_name(idx, "SFX")
-		AudioServer.set_bus_send(idx, "Master")
+# Buses (Master / UI / SFX / Ambience / Music): Game.apply_volumes (T433) makes and sets them.
 
 const SFX_MAX_M := 80.0
 
@@ -90,7 +77,7 @@ func play_sfx_2d(key: String, volume_db: float = 0.0, broadcast: bool = false) -
 		return
 	var player := AudioStreamPlayer.new()
 	player.stream = stream
-	player.bus = "SFX"
+	player.bus = "UI" if key.begins_with("ui_") else "SFX"  # T433
 	player.volume_db = volume_db
 	get_tree().root.add_child(player)
 	player.play()

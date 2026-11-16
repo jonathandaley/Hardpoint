@@ -74,21 +74,6 @@ theme_override_constants/separation = 12
 [node name="DiffButtons" type="HBoxContainer" parent="Scroll/Content/DiffRow"]
 theme_override_constants/separation = 8
 
-[node name="VolSection" type="Label" parent="Scroll/Content"]
-theme_override_font_sizes/font_size = 14
-text = "MASTER VOLUME"
-
-[node name="VolRow" type="HBoxContainer" parent="Scroll/Content"]
-theme_override_constants/separation = 12
-
-[node name="VolSlider" type="HSlider" parent="Scroll/Content/VolRow"]
-custom_minimum_size = Vector2(260.0, 20.0)
-
-[node name="VolValue" type="Label" parent="Scroll/Content/VolRow"]
-custom_minimum_size = Vector2(70.0, 0.0)
-theme_override_font_sizes/font_size = 14
-text = "100%"
-
 [node name="BottomDivider" type="ColorRect" parent="."]
 offset_left = 0.0
 offset_top = 306.0
@@ -106,5 +91,4 @@ theme_override_font_sizes/font_size = 20
 text = "BACK"
 
 [connection signal="value_changed" from="Scroll/Content/SensRow/SensSlider" to="." method="_on_sens_changed"]
-[connection signal="value_changed" from="Scroll/Content/VolRow/VolSlider" to="." method="_on_vol_changed"]
 [connection signal="pressed" from="BackButton" to="." method="_on_back_pressed"]
