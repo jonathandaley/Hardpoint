@@ -98,6 +98,7 @@ func build() -> void:
 		spots.append(-v)
 	for s in spots:
 		_ruin(s, rng)
+	_wrecks_and_scrub(spots)
 
 func _terrain() -> void:
 	var n := int(HALF * 2.0 / CELL) + 1
@@ -149,6 +150,100 @@ func _boundary() -> void:  # invisible walls on top of the berm
 		body.add_child(col)
 		body.position = side[0]
 		add_child(body)
+
+# ---- T448: bricks, wrecks, scrub ----
+# User 2026-11-17: yes to "an adobe-brick pixel texture plus a few rusted vehicle hulks or dead
+# shrubs between the ruins". Bricks: one 16 x 16 px greyscale tile (15 cm pixels, T440's chunky
+# size) shared by every ruin, tinted by the ruin's wall colour; world triplanar so it merges.
+# Hulks and scrub are visual only (no colliders: the layout, bot paths and map_stuck stay as they
+# were; a mech wades through a knee-high wreck), half sunk in the sand, from their own RNG.
+var _bricks: ImageTexture
+
+func _brick_mat(c: Color) -> StandardMaterial3D:
+	if _bricks == null:
+		var r := RandomNumberGenerator.new()
+		r.seed = 2112
+		var img := Image.create(16, 16, false, Image.FORMAT_RGB8)
+		for row in 4:  # 4 courses of 4 px: 3 px of brick + 1 px of mortar; 8 px bricks, staggered
+			var shades := [r.randf_range(0.78, 1.0), r.randf_range(0.78, 1.0)]
+			for y in range(row * 4, row * 4 + 4):
+				for x in 16:
+					var xs := (x + (4 if row % 2 else 0)) % 16
+					var v: float = 0.68 if y == row * 4 + 3 or xs % 8 == 0 else shades[xs / 8] - r.randf_range(0.0, 0.06)
+					img.set_pixel(x, y, Color(v, v, v))
+		img.generate_mipmaps()
+		_bricks = ImageTexture.create_from_image(img)
+	var m := _mat(c.lightened(0.15))  # the tile's average is ~0.85: keep the walls' tone
+	m.albedo_texture = _bricks
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+	m.uv1_triplanar = true
+	m.uv1_world_triplanar = true
+	m.uv1_scale = Vector3.ONE / 2.4
+	return m
+
+func _wrecks_and_scrub(spots: Array) -> void:
+	var r := RandomNumberGenerator.new()
+	r.seed = 2113
+	var paints := [_mat(RUST), _mat(RUST.lightened(0.15)), _mat(Color("#4a4f52"))]
+	var glass := _mat(Color("#1d2226"))
+	var scrub := _mat(Color("#5b4a35"))
+	for k in spots.size():
+		if k % 4:
+			continue  # a hulk by every other mirrored pair of ruins, mirrored itself (fair look both sides)
+		var a := r.randf() * TAU
+		var d := r.randf_range(16.0, 22.0)
+		var yaw := r.randf() * PI
+		var paint: Material = paints[k / 2 % paints.size()]
+		for s in [1.0, -1.0]:
+			var p: Vector2 = (spots[k] as Vector2) * s + Vector2(cos(a), sin(a)) * d * s
+			if not _clear_of_play(p):
+				continue
+			_hulk(p, yaw + (0.0 if s > 0.0 else PI), paint, glass)
+	for k in 90:  # dead scrub: clumps of splayed twigs
+		var p := Vector2(r.randf_range(-HALF + EDGE, HALF - EDGE), r.randf_range(-HALF + EDGE, HALF - EDGE))
+		var twigs := r.randi_range(4, 6)
+		var size := r.randf_range(0.8, 1.6)
+		if not _clear_of_play(p):
+			continue
+		var g := ground_min(p.x, p.y, size * 0.5)
+		for t in twigs:
+			var mi := MeshInstance3D.new()
+			var bm := BoxMesh.new()
+			bm.size = Vector3(0.08, size, 0.08)
+			mi.mesh = bm
+			mi.material_override = scrub
+			var rot := Vector3(0.5 + 0.25 * (t % 2), t * TAU / twigs, 0.0)
+			mi.position = Vector3(p.x, g - 0.05 - MapScene.box_low(bm.size, rot), p.y)
+			mi.rotation = rot
+			add_child(mi)
+
+func _clear_of_play(p: Vector2) -> bool:
+	for b in BEACONS:
+		if p.distance_to(b) < 14.0:
+			return false
+	for team in SPAWNS:
+		for s in team:
+			if p.distance_to(s) < 20.0:
+				return false
+	return absf(p.x) < HALF - EDGE and absf(p.y) < HALF - EDGE
+
+## A rusted car hulk: body + cabin + a dark window band, sunk 0.4 m and tilted with the ground.
+func _hulk(p: Vector2, yaw: float, paint: Material, glass: Material) -> void:
+	var holder := Node3D.new()
+	var g := ground_min(p.x, p.y, 2.4)
+	holder.position = Vector3(p.x, g - 0.4, p.y)
+	holder.rotation = Vector3(0.06, yaw, -0.08)
+	for part in [[Vector3(4.4, 1.1, 1.9), Vector3(0, 0.55, 0), paint],
+			[Vector3(2.2, 0.8, 1.7), Vector3(-0.3, 1.5, 0), paint],
+			[Vector3(2.0, 0.45, 1.75), Vector3(-0.3, 1.45, 0), glass]]:
+		var mi := MeshInstance3D.new()
+		var bm := BoxMesh.new()
+		bm.size = part[0]
+		mi.mesh = bm
+		mi.material_override = part[2]
+		mi.position = part[1]
+		holder.add_child(mi)
+	add_child(holder)
 
 # ---- ruins ----
 
@@ -237,7 +332,7 @@ func _ruin(at: Vector2, rng: RandomNumberGenerator) -> void:
 	var d := rng.randf_range(10.0, 18.0)
 	var rot := rng.randf_range(0.0, PI)
 	var basis := Basis(Vector3.UP, rot)
-	var wall_mat := _mat(CONCRETE.darkened(rng.randf_range(0.0, 0.25)))
+	var wall_mat := _brick_mat(CONCRETE.darkened(rng.randf_range(0.0, 0.25)))  # T448: adobe bricks
 	var rust_mat := _mat(RUST.darkened(rng.randf_range(0.0, 0.2)))
 	var full_h := rng.randf_range(6.0, 11.0)
 	# 4 walls, each in 4 segments of uneven height; some segments gone (breaches, doors)

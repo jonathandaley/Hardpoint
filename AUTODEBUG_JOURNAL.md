@@ -439,3 +439,4 @@ date|task|outcome|commit|finding|suite
 2026-11-17|T447|DONE|(local, batched with T449)|Factory: bulkhead pipes, ramp hazard strips, gantry crane (legs outside the boundary), painted bay numbers; colliders unchanged (probe red -> green); draws +8 = new materials|batched
 2026-11-17|T449|DONE|(local, batched with T447)|Sydney streets: centre dashes, zebra crossings, pavements + kerbs (194 / 420 / 64); probe city_streets red -> green|batched
 2026-11-17|T447+T449|PUSHED|(this commit)|batch suite 199/200: factory_no_zfight caught the T447 catwalk hazard strip sharing a face with a guard rail's foot -> 5.4 m wide, 1 cm up; probe green|199/200 -> fixed
+2026-11-17|T448|DONE|(local, batched with T450)|Badlands: adobe bricks on every ruin wall, 12 walk-through car hulks, dead scrub; colliders unchanged (probe red -> green); draws flat|batched
