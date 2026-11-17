@@ -83,6 +83,7 @@ func _panel_texture() -> ImageTexture:
 			img.set_pixel(e, i, Color("#262a30"))
 	for r in [Vector2i(4, 4), Vector2i(59, 4), Vector2i(4, 59), Vector2i(59, 59)]:
 		img.set_pixel(r.x, r.y, Color("#5a6069"))
+	img.generate_mipmaps()
 	return ImageTexture.create_from_image(img)
 
 func build() -> void:
@@ -91,6 +92,7 @@ func build() -> void:
 	_sky(rng)
 	var deck := _mat(Color.WHITE, 0.7, 0.4)
 	deck.albedo_texture = _panel_texture()
+	deck.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS  # T440: crisp texels
 	deck.uv1_triplanar = true
 	deck.uv1_scale = Vector3.ONE / 8.0
 	var body := StaticBody3D.new()  # the deck plate (not in _blocked: it's the floor)

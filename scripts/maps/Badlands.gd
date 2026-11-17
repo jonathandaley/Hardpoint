@@ -128,17 +128,7 @@ func _terrain() -> void:
 	var mat := StandardMaterial3D.new()
 	mat.vertex_color_use_as_albedo = true
 	mat.roughness = 0.95
-	var grain := NoiseTexture2D.new()  # sand / grit detail
-	var fn := FastNoiseLite.new()
-	fn.frequency = 0.08
-	fn.seed = 211
-	grain.noise = fn
-	grain.seamless = true
-	mat.detail_enabled = true
-	mat.detail_albedo = grain
-	mat.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MUL
-	mat.uv1_triplanar = true
-	mat.uv1_scale = Vector3(0.15, 0.15, 0.15)
+	pixelate(mat, 211, FLOOR_TEXEL_M)  # T440: sand / grit, chunky pixels (was a soft noise)
 	mi.material_override = mat
 	add_child(mi)
 	var body := StaticBody3D.new()

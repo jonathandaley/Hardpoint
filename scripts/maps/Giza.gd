@@ -83,17 +83,7 @@ func build() -> void:
 		env.ambient_light_color = Color("#f0d9b0")
 		env.ambient_light_energy = 0.75
 	var stone := _mat(STONE)
-	stone.detail_enabled = true
-	var grain := NoiseTexture2D.new()
-	var fn := FastNoiseLite.new()
-	fn.frequency = 0.15
-	fn.seed = 224
-	grain.noise = fn
-	grain.seamless = true
-	stone.detail_albedo = grain
-	stone.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MUL
-	stone.uv1_triplanar = true
-	stone.uv1_scale = Vector3(0.1, 0.1, 0.1)
+	pixelate(stone, 224, OBSTACLE_TEXEL_M * 1.5)  # T440: chunky pixels (was a soft noise)
 	for py in PYRAMIDS:
 		_pyramid(py[0], py[1], stone)
 	_sphinx(SPHINX, stone)

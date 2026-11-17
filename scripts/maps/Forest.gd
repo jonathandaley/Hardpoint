@@ -66,7 +66,7 @@ func _free(p: Vector2, r: float) -> bool:
 
 func build() -> void:
 	make_terrain(HALF, 2.0, func(x: float, z: float, y: float) -> Color:
-		return MOSS.lerp(SOIL, clampf(0.5 + 0.5 * sin(x * 0.21) * cos(z * 0.17), 0.0, 1.0) * 0.6).lightened(clampf(y * 0.02, -0.1, 0.1)), 223)
+		return MOSS.lerp(SOIL, clampf(0.5 + 0.5 * sin(x * 0.21) * cos(z * 0.17), 0.0, 1.0) * 0.6).lightened(clampf(y * 0.02, -0.1, 0.1)), 223, true)  # T440: soft floor kept
 	make_boundary(HALF)
 	var env := own_environment()
 	if env != null:

@@ -51,7 +51,7 @@ func minimap_outline() -> PackedVector2Array:
 ## this map's ground_y, every `cell` m; `color_at(x, z, y) -> Color` paints the vertices.
 ## Godot's front faces wind clockwise seen from above (T211: the other way round and every
 ## mech fell through).
-func make_terrain(half: float, cell: float, color_at: Callable, detail_seed := 0) -> void:
+func make_terrain(half: float, cell: float, color_at: Callable, detail_seed := 0, soft := false) -> void:
 	var n := int(half * 2.0 / cell) + 1
 	var verts := PackedVector3Array()
 	var cols := PackedColorArray()
@@ -77,17 +77,20 @@ func make_terrain(half: float, cell: float, color_at: Callable, detail_seed := 0
 	var mat := StandardMaterial3D.new()
 	mat.vertex_color_use_as_albedo = true
 	mat.roughness = 0.95
-	var grain := NoiseTexture2D.new()
-	var fn := FastNoiseLite.new()
-	fn.frequency = 0.08
-	fn.seed = detail_seed
-	grain.noise = fn
-	grain.seamless = true
 	mat.detail_enabled = true
-	mat.detail_albedo = grain
 	mat.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MUL
 	mat.uv1_triplanar = true
-	mat.uv1_scale = Vector3(0.15, 0.15, 0.15)
+	if soft:  # Redwood's floor (user 2026-11-05: "Redwood's floor is great"): the soft noise
+		var grain := NoiseTexture2D.new()
+		var fn := FastNoiseLite.new()
+		fn.frequency = 0.08
+		fn.seed = detail_seed
+		grain.noise = fn
+		grain.seamless = true
+		mat.detail_albedo = grain
+		mat.uv1_scale = Vector3(0.15, 0.15, 0.15)
+	else:
+		pixelate(mat, detail_seed, FLOOR_TEXEL_M)
 	mi.material_override = mat
 	add_child(mi)
 	var body := StaticBody3D.new()
@@ -102,18 +105,7 @@ func make_terrain(half: float, cell: float, color_at: Callable, detail_seed := 0
 ## transparent) gets a soft triplanar noise detail layer -- grey 0.72..1.0 multiplied in, so
 ## surfaces vary without going darker overall. Shared materials are touched once.
 func add_surface_detail() -> void:
-	var grain := NoiseTexture2D.new()
-	var fn := FastNoiseLite.new()
-	fn.frequency = 0.12
-	fn.fractal_octaves = 3
-	grain.noise = fn
-	grain.seamless = true
-	grain.width = 128
-	grain.height = 128
-	var ramp := Gradient.new()
-	ramp.set_color(0, Color(0.72, 0.72, 0.72))
-	ramp.set_color(1, Color(1, 1, 1))
-	grain.color_ramp = ramp
+	var grain := pixel_grain(241)
 	var done := {}
 	for mi in find_children("*", "MeshInstance3D", true, false):
 		for mm in surface_materials(mi as MeshInstance3D):
@@ -127,8 +119,57 @@ func _dress(m: StandardMaterial3D, grain: Texture2D) -> void:
 	m.detail_enabled = true
 	m.detail_albedo = grain
 	m.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MUL
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
 	m.uv1_triplanar = true
-	m.uv1_scale = Vector3.ONE * 0.5
+	m.uv1_scale = Vector3.ONE / (GRAIN_N * OBSTACLE_TEXEL_M)
+
+## T440 (user 2026-11-17: "I prefer chunky-pixel over blurry -- the mechs are currently great,
+## sharpening many of the other textures would be fabulous"; T305 2026-11-05: "make the
+## pixels/texels bigger... like the bot texture, sharp bigger pixels"): map detail is a small
+## tileable grain of 4 flat shades, drawn with nearest filtering, so each texel is a visible
+## square like the mechs' (their armour: ~10 cm blocks; Redwood bark 15 cm, user T355). Was a
+## 128 px smooth noise at ~1.6 cm a texel, filtered: a blur.
+const GRAIN_N := 32
+const OBSTACLE_TEXEL_M := 0.12
+const FLOOR_TEXEL_M := 0.25
+const GRAIN_SHADES := [0.74, 0.83, 0.92, 1.0]  # obstacles: the old grain's 0.72-1 ramp
+const FLOOR_SHADES := [0.38, 0.48, 0.58, 0.68]  # floors / stone: the old full-range noise averaged ~0.5
+
+## GRAIN_N^2 texels: a coarse random lattice (every 4 texels), wrapped and blended so blotches
+## run across texels and the tile repeats seamlessly, + a little per-texel jitter, snapped to
+## GRAIN_SHADES. Mipmapped (nearest within a level) so distant surfaces don't sparkle.
+static func pixel_grain(seed: int, shades: Array = GRAIN_SHADES) -> ImageTexture:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	var cells := GRAIN_N / 4
+	var lattice: Array[float] = []
+	for k in cells * cells:
+		lattice.append(rng.randf())
+	var img := Image.create(GRAIN_N, GRAIN_N, false, Image.FORMAT_RGB8)
+	for y in GRAIN_N:
+		for x in GRAIN_N:
+			var fx := x / 4.0
+			var fy := y / 4.0
+			var x0 := int(fx) % cells
+			var y0 := int(fy) % cells
+			var tx := fx - floorf(fx)
+			var ty := fy - floorf(fy)
+			var top := lerpf(lattice[y0 * cells + x0], lattice[y0 * cells + (x0 + 1) % cells], tx)
+			var bot := lerpf(lattice[((y0 + 1) % cells) * cells + x0], lattice[((y0 + 1) % cells) * cells + (x0 + 1) % cells], tx)
+			var v := clampf(lerpf(top, bot, ty) + rng.randf_range(-0.18, 0.18), 0.0, 0.999)
+			var k: float = shades[int(v * shades.size())]
+			img.set_pixel(x, y, Color(k, k, k))
+	img.generate_mipmaps()
+	return ImageTexture.create_from_image(img)
+
+## A floor / stone material gets the grain as its detail at texel_m metres a texel, nearest.
+static func pixelate(m: StandardMaterial3D, seed: int, texel_m: float) -> void:
+	m.detail_enabled = true
+	m.detail_albedo = pixel_grain(seed, FLOOR_SHADES)
+	m.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MUL
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+	m.uv1_triplanar = true
+	m.uv1_scale = Vector3.ONE / (GRAIN_N * texel_m)
 
 ## T424 (browser / potato target): every separate mesh is a draw call (~0.02 ms each in a
 ## browser; Badlands had 611 rocks). After build(), each plain static mesh is folded into one

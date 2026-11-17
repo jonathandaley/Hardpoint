@@ -70,6 +70,7 @@ func _panel_texture(base: Color, seam: Color) -> ImageTexture:
 	for e in [8, 56]:  # vents / fastener rows
 		for i in range(12, 52, 4):
 			img.set_pixel(i, e, seam)
+	img.generate_mipmaps()
 	return ImageTexture.create_from_image(img)
 
 func _mat(c: Color, tex: Texture2D = null, scale := 6.0) -> StandardMaterial3D:
@@ -78,6 +79,7 @@ func _mat(c: Color, tex: Texture2D = null, scale := 6.0) -> StandardMaterial3D:
 	m.roughness = 0.55
 	if tex != null:
 		m.albedo_texture = tex
+		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS  # T440: crisp texels
 		m.uv1_triplanar = true
 		m.uv1_scale = Vector3.ONE / scale
 	return m

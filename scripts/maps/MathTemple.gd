@@ -2709,6 +2709,7 @@ func _bowl_height(x: float, z: float) -> float:
 func _create_penrose_bowl() -> void:
 	var mat := StandardMaterial3D.new()
 	mat.albedo_texture = load("res://scenes/arena/hat_floor.png") as Texture2D
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS  # T440: crisp texels like every map
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
 	var pos: Array[Vector3] = []
 	for i in range(0, _BOWL_V.size(), 2):
