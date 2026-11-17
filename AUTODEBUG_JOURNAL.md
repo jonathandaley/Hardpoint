@@ -441,3 +441,4 @@ date|task|outcome|commit|finding|suite
 2026-11-17|T447+T449|PUSHED|(this commit)|batch suite 199/200: factory_no_zfight caught the T447 catwalk hazard strip sharing a face with a guard rail's foot -> 5.4 m wide, 1 cm up; probe green|199/200 -> fixed
 2026-11-17|T448|DONE|(local, batched with T450)|Badlands: adobe bricks on every ruin wall, 12 walk-through car hulks, dead scrub; colliders unchanged (probe red -> green); draws flat|batched
 2026-11-17|T450|DONE|(local, batched with T448)|beacons: plinth + state-coloured lamp atop the beam (fog-exempt, reads across Swamp); probe beacon_look red -> green; +10 draws a map (5 beacons x 2)|batched
+2026-11-17|T448+T450|PUSHED|-|batch suite green|202/202
