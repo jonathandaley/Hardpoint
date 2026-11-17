@@ -21,7 +21,7 @@ measured, draw calls checked, an off-switch for anything that costs frame time).
 | T441 | Sydney small buildings. Today they're grey boxes with a window grid. Add: sandstone / brick / rendered-concrete facade colours, a lit shopfront band with an awning strip at street level, a parapet lip, roof clutter (AC units, water tank, stair hut), and varied heights within a block. Everything merges per material, so draw calls stay about the same. |
 | T442 | Redwood canopy, ferns and trunk flares. From below, crowns read as flat green lily pads (squashed spheres); make them clumps of 3-4 overlapping blobs with darker undersides and pixel leaves. Ferns are single bright-green wedges that look like confetti; make 4-5-blade clumps in a mossier green. Fix the visible seam ring where the root flare meets the trunk. |
 | T443 | Giza stone. Pyramids are smooth, so add block courses as a pixel texture: horizontal lines, a step every ~1.5 m. Make the causeway slabs and casing stones read as cut stone. |
-| T444 | Small-car shapes in Sydney. The coloured boxes in the streets become a body plus cabin, with pixel windows and headlights. |
+| ~~T444~~ | Dropped: the coloured boxes I took for cars are kiosks; they got their own dressing in T441. |
 
 ## Your call
 
