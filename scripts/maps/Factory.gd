@@ -186,7 +186,7 @@ func _dressing() -> void:
 		for sz in [-1.0, 1.0]:
 			var length := HALF - CATWALK_Z
 			for face in [-1.0, 1.0]:
-				_pipe(Vector3(x + face * 3.3, 1.6, sz * (CATWALK_Z + length * 0.5)), length, 0.25, rust)
+				_pipe(Vector3(x + face * 3.22, 1.6, sz * (CATWALK_Z + length * 0.5)), length, 0.25, rust)
 			# hazard stripes: on the deck at the ramp's foot, on the catwalk's lip at its top
 			# 5.4 m: between the guard rails (+-2.85); 1 cm off the surface so no face is shared
 			# with the deck / catwalk top or a rail's foot (probe factory_no_zfight)
@@ -350,7 +350,9 @@ func _containers(rng: RandomNumberGenerator) -> void:
 				for row in rows:
 					var mi := MeshInstance3D.new()
 					var bm := BoxMesh.new()
-					bm.size = Vector3(12.0, 2.5, 2.5) if along_x else Vector3(2.5, 2.5, 12.0)
+					# T452 (user 2026-11-17: "unsupported gaps between them"): 2.6 m tall, each level
+					# sits on the one below (was 2.5 on a 2.6 m pitch: 10 cm of air between levels)
+					bm.size = Vector3(12.0, 2.6, 2.5) if along_x else Vector3(2.5, 2.6, 12.0)
 					mi.mesh = bm
 					mi.material_override = colors[lv * rows + row]
 					var off := (row - (rows - 1) * 0.5) * 2.6

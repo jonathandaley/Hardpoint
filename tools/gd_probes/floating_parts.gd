@@ -118,6 +118,27 @@ static func problems(map: Node) -> Array:
 			if reached[j] == 0 and gb.intersects(boxes[j]):
 				reached[j] = 1
 				todo.append(j)
+	# near miss (user 2026-11-17: Factory's stacked containers hovered 0.1 m apart, inside TOUCH): a
+	# piece off the floor that touches nothing at all, yet has a piece's top just under its bottom
+	for i in boxes.size():
+		var a := boxes[i]
+		if a.position.y <= _ground(map, a.get_center().x, a.get_center().z) + GROUND_TOL:
+			continue
+		var ar := _xz(a).grow(-minf(0.1, minf(a.size.x, a.size.z) * 0.25))
+		var rests := false
+		var gap := INF
+		for j in boxes.size():
+			var b := boxes[j]
+			if j == i or not _xz(b).intersects(ar):
+				continue
+			if b.end.y < a.position.y - 0.02:
+				gap = minf(gap, a.position.y - b.end.y)
+		for j in boxes.size():
+			if j != i and boxes[j].grow(0.02).intersects(a):  # on, against or hung from something
+				rests = true
+				break
+		if not rests and gap > 0.02 and gap <= TOUCH:
+			out.append("%s rests %.2f m above the piece under it, at %s" % [names[i], gap, a.get_center()])
 	for i in boxes.size():
 		if reached[i] == 0:
 			out.append("%s floats at %s (aabb %s)" % [names[i], boxes[i].get_center(), boxes[i]])
