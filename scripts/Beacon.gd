@@ -27,6 +27,8 @@ const RING_Y := 0.25  # T229: clears every map's beacon pads (probe beacon_ring)
 var _cap_mat: StandardMaterial3D
 var _beam_mat: StandardMaterial3D
 var _circle_mat: StandardMaterial3D
+var _lamp_mat: StandardMaterial3D
+static var _plinth_mat: StandardMaterial3D
 
 func _ready() -> void:
 	add_to_group("beacons")
@@ -64,6 +66,41 @@ func _ready() -> void:
 	circle_mi.set_surface_override_material(0, _circle_mat)
 	circle_mi.position = Vector3(0.0, RING_Y, 0.0)
 	$Visual.add_child(circle_mi)
+
+	# T450 (user 2026-11-17: yes to "a plinth at the base and a team-coloured light at the top"):
+	# a dark octagonal plinth round the pole's foot, and a bright lamp where the beam ends that
+	# takes the beacon's colour in _update_visuals (no new network state: it follows `state`).
+	# Visual only; +2 draws a beacon (scripted, so not merged).
+	if _plinth_mat == null:
+		_plinth_mat = StandardMaterial3D.new()
+		_plinth_mat.albedo_color = Color(0.22, 0.23, 0.25)
+		_plinth_mat.metallic = 0.6
+		_plinth_mat.roughness = 0.5
+	var pm := CylinderMesh.new()
+	pm.top_radius = 0.9
+	pm.bottom_radius = 1.3
+	pm.height = 0.6
+	pm.radial_segments = 8
+	pm.rings = 1
+	var plinth := MeshInstance3D.new()
+	plinth.mesh = pm
+	plinth.set_surface_override_material(0, _plinth_mat)
+	plinth.position.y = 0.3
+	$Visual.add_child(plinth)
+	_lamp_mat = StandardMaterial3D.new()
+	_lamp_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_lamp_mat.emission_enabled = true
+	_lamp_mat.disable_fog = true  # reads from across the map, Swamp's murk included
+	var lm := SphereMesh.new()
+	lm.radius = 0.75
+	lm.height = 1.5
+	lm.radial_segments = 8
+	lm.rings = 4
+	var lamp := MeshInstance3D.new()
+	lamp.mesh = lm
+	lamp.set_surface_override_material(0, _lamp_mat)
+	lamp.position.y = BEAM_HEIGHT
+	$Visual.add_child(lamp)
 
 	$CaptureZone.body_entered.connect(_on_body_entered)
 	$CaptureZone.body_exited.connect(_on_body_exited)
@@ -203,6 +240,11 @@ func _update_visuals() -> void:
 		_circle_mat.albedo_color = col
 		_circle_mat.emission = col
 		_circle_mat.emission_energy_multiplier = 1.2
+	if _lamp_mat != null:  # T450: brighter than the beam; neutral a pale white so it still reads
+		var lc := col.lightened(0.35) if state == State.NEUTRAL else col
+		_lamp_mat.albedo_color = lc
+		_lamp_mat.emission = lc
+		_lamp_mat.emission_energy_multiplier = 2.5
 
 # T105: periodic progress sync so clients see capture bar move in real-time (V33).
 @rpc("authority", "unreliable_ordered")
