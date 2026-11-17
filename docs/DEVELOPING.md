@@ -5,12 +5,15 @@ server's operator wants [`deploy/README.md`](../deploy/README.md).
 
 ## Run from source
 
-Godot **4.6.2** (official build). A fresh clone needs one editor pass to build the class cache:
+Godot **4.6.2** (official build).
 
 ```bash
-godot --headless --editor --quit     # once per fresh clone
-godot .                              # play
+godot --headless --import    # after cloning AND after every pull: imports new art, builds the class cache
+godot .                      # play
 ```
+
+Running the game never imports anything: a pulled PNG that wasn't imported loads as nothing
+(Denali showed untextured on clones that pulled it and ran `godot .`, 2026-11-16).
 
 ## Tests
 

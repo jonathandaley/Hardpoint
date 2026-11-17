@@ -418,3 +418,4 @@ date|task|outcome|commit|finding|suite
 2026-11-16|T435|DONE|(this commit)|README: player-first rewrite, checked against code (11 mechs, 10 weapon families, 8 maps, 3 modes with real win rules); dev notes -> docs/DEVELOPING.md; new screenshot tool tools/art/readme_shot|docs only (no suite)
 2026-11-16|T393|CLOSED|(this commit)|stopped at part 2: what is left of Game.gd is one networking subsystem whose sections call each other; splitting further = scaffolding + RPC churn, no gain|-
 2026-11-16|T436|DONE|5ea00ac|v0.5.0 released (NET_VERSION 3); smoke-tested Linux server + SP, Windows server under Wine; server pack built, install waits on the user (sudo)|suite 188/188, net 64/64
+2026-11-16|T416|DONE|(this commit)|the sunken ruin side slabs stood across both centre boardwalks (+-16.6, +-8.3); shortened 14 -> 7 m at z 0; probe swamp_walkways (deck rays) red/green; Elite 300 s watch: no walkway stall, open-water dithering split to T437|suite 189/189

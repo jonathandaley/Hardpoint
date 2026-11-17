@@ -199,11 +199,14 @@ func _dead_tree(p: Vector2, h: float, lean: Vector3, mat: Material) -> void:
 	add_child(body)
 
 # A sunken concrete hulk at the centre: tilted wall slabs half in the water, gaps >= 9 m.
+# T416 (user 2026-11-16: bots stuck "at an intersection of walkway and wall near the center beacon"):
+# the side slabs were 14 m long at z -4 and stood across the two centre boardwalks at (+-16.6, +-8.3);
+# now 7 m at z 0, ~3 m clear of the deck (probe swamp_walkways).
 func _sunken_ruin() -> void:
 	var conc := _mat(Color("#6b6a62"))
 	for s in [1.0, -1.0]:
 		_box(Vector3(18, 7, 1.2), Vector3(-6 * s, 1.5, 15 * s), conc, Vector3(0.25 * s, 0.3, 0.1))
-		_box(Vector3(1.2, 6, 14), Vector3(17 * s, 1.0, -4 * s), conc, Vector3(0, 0.2, 0.22 * s))
+		_box(Vector3(1.2, 6, 7), Vector3(17 * s, 1.0, 0.0), conc, Vector3(0, 0.2, 0.22 * s))
 		_box(Vector3(9, 0.8, 7), Vector3(13 * s, 2.6, 16 * s), conc, Vector3(0.4 * s, 0, 0.15))
 
 # T233 (HUMAN_FOUND_ISSUES 2026-11-04): wading is a status effect -- the slow builds from

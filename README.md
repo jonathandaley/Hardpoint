@@ -76,7 +76,8 @@ Mouse sensitivity, view, graphics and audio are under SETTINGS.
 
 ## Build from source
 
-Godot 4.6.2: `godot --headless --editor --quit` once, then `godot .` in this folder. Tests,
+Godot 4.6.2, in this folder: `godot --headless --import`, then `godot .` to play. Run the import again
+after every pull: the game doesn't import new art itself, so a new mech's textures go missing without it. Tests,
 releases and the code's layout are in [`docs/DEVELOPING.md`](docs/DEVELOPING.md).
 
 ## License

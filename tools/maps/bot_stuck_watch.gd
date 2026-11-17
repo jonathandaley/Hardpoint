@@ -25,6 +25,7 @@ func _ready() -> void:
 	Game.settings["bot_difficulty"] = int(args[2]) if args.size() > 2 else 3
 	Game.loadout["map_def"] = load("res://resources/maps/%s.tres" % (args[0] if args.size() > 0 else "Swamp"))
 	Game.loadout["team_size"] = 5
+	Game.loadout["sp_bots"] = [4, 5]  # bots-only 5v5 whatever the profile last saved
 	Game.loadout["mode"] = "beacons"
 	Game.mp_active_match["roster"] = []
 	Game.setup_sp_match()
