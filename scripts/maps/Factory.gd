@@ -131,12 +131,6 @@ func build() -> void:
 # renderer at exit (whether that Sky is freed early, kept static or duplicated); recolouring the
 # arena's own Sky doesn't. That Sky is shared through the resource cache, so the material goes
 # back when the map leaves.
-var _sky_restore: Array = []
-
-func _exit_tree() -> void:
-	if not _sky_restore.is_empty():
-		(_sky_restore[0] as Sky).sky_material = _sky_restore[1]
-
 func _sky(rng: RandomNumberGenerator) -> void:
 	for k in 4000:  # replay the T226 starfield's draws (same calls: randf/randi advance
 		rng.randf_range(0.25, 1.0)  # differently) so the container layout stays the same
@@ -151,10 +145,10 @@ func _sky(rng: RandomNumberGenerator) -> void:
 	sm.sky_horizon_color = Color("#c8582a")
 	sm.ground_horizon_color = Color("#9c4420")
 	sm.ground_bottom_color = Color("#2a0f08")
-	if env.sky == null:  # an environment without a sky (tools): give it one
-		env.sky = Sky.new()
-	else:
-		_sky_restore = [env.sky, env.sky.sky_material]
+	# T346 (GL texture leak at exit after playing Factory: 4 x 349524 B = two skies' radiance maps):
+	# its own Sky. own_environment() copies the Environment but shares Arena.tscn's cached Sky; this
+	# used to repaint that shared Sky and paint it back in _exit_tree, during teardown.
+	env.sky = Sky.new()
 	env.sky.sky_material = sm
 	env.background_mode = Environment.BG_SKY
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
