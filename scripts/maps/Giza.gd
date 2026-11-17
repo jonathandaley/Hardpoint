@@ -48,6 +48,8 @@ func ground_y(x: float, z: float) -> float:
 		h = lerpf(h, 0.0, smoothstep(7.5, 4.5, absf(x)))
 	return h
 
+const FOG_SKY := 0.7  # T445: share of the sky the fog paints (1 = all of it, the old flat tan)
+
 func _mat(c: Color, rough := 0.95) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_color = c
@@ -79,9 +81,18 @@ func build() -> void:
 	if env != null:
 		env.fog_enabled = true
 		env.fog_light_color = Color("#d9c29a")
-		env.fog_density = 0.0025
 		env.ambient_light_color = Color("#f0d9b0")
 		env.ambient_light_energy = 0.75
+		# T445 (user 2026-11-17: yes to "a sun disc and a gradient ... lighter fog"): the sky was one
+		# flat tan -- the fog painted all of it (fog_sky_affect 1). Now the fog paints FOG_SKY of it
+		# over the arena's own sky, so it darkens overhead and pales to sand at the horizon, the
+		# sun's glow shows through (the Sun light warmed), and the fog is lighter (0.0025 -> 0.0018)
+		# so the far pyramids still read. No Sky of its own: a Sky.new() leaks at exit (T346).
+		env.fog_density = 0.0018
+		env.fog_sky_affect = FOG_SKY
+	var sun := get_parent().get_node_or_null("Sun") as DirectionalLight3D
+	if sun != null:
+		sun.light_color = Color(1.0, 0.93, 0.8)  # desert sun (Arena's default is a cool white)
 	# T443: cut-stone courses (T440's pixel grain before); 0.6 x: the grain used to multiply the
 	# stone to about that, and the map's light was tuned for it
 	var stone := course_mat(Color(STONE.r * 0.6, STONE.g * 0.6, STONE.b * 0.6), 224)
