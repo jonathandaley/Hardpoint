@@ -148,11 +148,9 @@ func _sky(rng: RandomNumberGenerator) -> void:
 	sm.sky_horizon_color = Color("#c8582a")
 	sm.ground_horizon_color = Color("#9c4420")
 	sm.ground_bottom_color = Color("#2a0f08")
-	# T346 (GL texture leak at exit after playing Factory: 4 x 349524 B = two skies' radiance maps):
-	# its own Sky. own_environment() copies the Environment but shares Arena.tscn's cached Sky; this
-	# used to repaint that shared Sky and paint it back in _exit_tree, during teardown.
-	env.sky = Sky.new()
-	env.sky.sky_material = sm
+	# T346: its own Sky via own_sky() (repainting Arena.tscn's shared Sky leaked; so did a plain
+	# Sky.new() that dropped the arena's freshly loaded one -- see own_sky)
+	own_sky(env).sky_material = sm
 	env.background_mode = Environment.BG_SKY
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("#d09a7a")

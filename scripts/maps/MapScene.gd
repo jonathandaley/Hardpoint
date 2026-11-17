@@ -322,6 +322,16 @@ func make_boundary(half: float, height := 40.0) -> void:
 
 ## T223: the arena's environment, made this map's own (a copy) so changes (fog, sky) don't
 ## leak into the next match on another map.
+## A Sky of this map's own on env (T346). Holds on to the Sky it replaces while the map lives:
+## Godot 4.6's compatibility renderer doesn't unlink a freed Sky from its list of skies to build,
+## so dropping one in the frame it was loaded or changed (the arena's, just instanced) leaks two
+## radiance maps at exit. Later, it has drawn once and frees cleanly with the map.
+var _replaced_sky: Sky
+func own_sky(env: Environment) -> Sky:
+	_replaced_sky = env.sky
+	env.sky = Sky.new()
+	return env.sky
+
 func own_environment() -> Environment:
 	var we := get_parent().get_node_or_null("WorldEnvironment") as WorldEnvironment
 	if we == null or we.environment == null:

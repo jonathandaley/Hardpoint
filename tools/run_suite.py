@@ -169,7 +169,11 @@ def _run_probes(args, results):
         with open(log, "w") as f:
             try:
                 # 180 s: room for the ~110 s map_stuck_big when probes share the CPU
-                rc = subprocess.run([godot, "--headless", "--path", os.path.dirname(HERE),
+                # T346: render_* probes need GL (renderer leaks): a virtual display, not --headless
+                # ponytail: xvfb-run -a can race when two start at once; one render_ probe so far
+                head = (["xvfb-run", "-a", "-s", "-screen 0 1280x720x24", godot] if os.path.basename(probe).startswith("render_")
+                        else [godot, "--headless"])
+                rc = subprocess.run(head + ["--path", os.path.dirname(HERE),
                                      "res://tools/gd_probes/" + os.path.basename(probe), "--quit-after", "20000",
                                      "--fixed-bots=Pegasus"],  # T376: regular bots fly fixed squads in probes  # frames, ~135 a second headless: past the 180 s timeout below (T397: difficulty_steps runs 95 s)
                                     stdout=f, stderr=subprocess.STDOUT, env=env, timeout=180).returncode
