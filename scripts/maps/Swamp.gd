@@ -126,6 +126,106 @@ func build() -> void:
 		for q in [p, -p]:
 			placed.append(q)
 			_dead_tree(q, h, lean if q == p else Vector3(-lean.x, lean.y + PI, -lean.z), dead)
+	_shore_dressing()
+	_fireflies()
+
+# T446 (user 2026-11-17: yes to Swamp's dressing, "keep the moody fog"): reeds along the water's
+# edge, lily pads out on the water, moss on the dead trees, fireflies over it all. The fog is not
+# touched. Visual only (no colliders: wading and paths unchanged), from its own RNG (the tree
+# layout's draws stay put), merged per material (T424); the fireflies are one particle system,
+# off with GRAPHICS > AMBIENT EFFECTS.
+var _moss: StandardMaterial3D = _mat(Color("#55603f"))
+const REED_COLS := [Color("#6b7443"), Color("#857c4c")]
+const PAD := Color("#3a5228")
+
+func _shore_dressing() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2251
+	var reeds := [_mat(REED_COLS[0]), _mat(REED_COLS[1])]
+	var pad := _mat(PAD, 0.6)
+	for gx in range(-HALF + 6, HALF - 6, 3):
+		for gz in range(-HALF + 6, HALF - 6, 3):
+			var p := Vector2(gx + rng.randf_range(-1.2, 1.2), gz + rng.randf_range(-1.2, 1.2))
+			var roll := rng.randf()
+			if not _dress_clear(p):
+				continue
+			var g := ground_y(p.x, p.y)
+			if absf(g - WATER_Y) < 0.18 and roll < 0.45:  # the water's edge
+				for k in 5:
+					var mi := MeshInstance3D.new()
+					var bm := BoxMesh.new()
+					bm.size = Vector3(0.09, rng.randf_range(1.2, 2.2), 0.09)
+					mi.mesh = bm
+					mi.material_override = reeds[k % 2]
+					var o := Vector2(rng.randf_range(-0.6, 0.6), rng.randf_range(-0.6, 0.6))
+					mi.position = Vector3(p.x + o.x, g + bm.size.y * 0.5 - 0.15, p.y + o.y)
+					mi.rotation = Vector3(rng.randf_range(-0.15, 0.15), 0, rng.randf_range(-0.15, 0.15))
+					add_child(mi)
+			elif g < WATER_Y - 0.25 and roll < 0.022:  # open water
+				for k in 3:
+					var mi := MeshInstance3D.new()
+					var cm := CylinderMesh.new()
+					var r := rng.randf_range(0.45, 0.9)
+					cm.top_radius = r
+					cm.bottom_radius = r
+					cm.height = 0.03
+					cm.radial_segments = 8
+					cm.rings = 1
+					mi.mesh = cm
+					mi.material_override = pad
+					mi.position = Vector3(p.x + rng.randf_range(-1.5, 1.5), WATER_Y + 0.02 + k * 0.004, p.y + rng.randf_range(-1.5, 1.5))
+					add_child(mi)
+
+## Dressing stays off the beacon rings, spawns and boardwalk decks (it would poke through them).
+func _dress_clear(p: Vector2) -> bool:
+	for b in BEACONS:
+		if p.distance_to(b) < Beacon.CIRCLE_RADIUS + 2.0:
+			return false
+	for team in SPAWNS:
+		for s in team:
+			if p.distance_to(s) < 12.0:
+				return false
+	for bw in BOARDWALKS:
+		for s in [1.0, -1.0]:
+			var a: Vector2 = bw[0] * s
+			var b: Vector2 = bw[1] * s
+			var t := clampf((p - a).dot(b - a) / (b - a).length_squared(), 0.0, 1.0)
+			if p.distance_to(a + (b - a) * t) < 5.5:  # half the deck + a pad cluster's spread
+				return false
+	return true
+
+func _fireflies() -> void:
+	if not Game.settings.get("map_effects", true) or DisplayServer.get_name() == "headless":
+		return
+	var fx := CPUParticles3D.new()
+	fx.name = "Fireflies"
+	fx.amount = 160
+	fx.lifetime = 7.0
+	fx.preprocess = 7.0
+	fx.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	fx.emission_box_extents = Vector3(HALF - 10.0, 1.6, HALF - 10.0)
+	fx.position.y = WATER_Y + 2.2
+	fx.direction = Vector3.UP
+	fx.spread = 180.0
+	fx.gravity = Vector3.ZERO
+	fx.initial_velocity_min = 0.1
+	fx.initial_velocity_max = 0.4
+	var fade := Curve.new()  # blink in, glow, blink out
+	fade.add_point(Vector2(0.0, 0.0))
+	fade.add_point(Vector2(0.2, 1.0))
+	fade.add_point(Vector2(0.7, 1.0))
+	fade.add_point(Vector2(1.0, 0.0))
+	fx.scale_amount_curve = fade
+	var q := QuadMesh.new()
+	q.size = Vector2(0.14, 0.14)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	m.albedo_color = Color(0.85, 1.0, 0.45)
+	m.disable_fog = true  # they glow through the murk instead of vanishing in it
+	q.material = m
+	fx.mesh = q
+	add_child(fx)
 
 func _clear(p: Vector2, placed: Array) -> bool:
 	for b in BEACONS:
@@ -196,6 +296,16 @@ func _dead_tree(p: Vector2, h: float, lean: Vector3, mat: Material) -> void:
 		br.position = Vector3(0, h * (0.55 + 0.12 * k), 0)
 		br.rotation = Vector3(0.9, k * 2.1, 0)
 		body.add_child(br)
+		# T446: a strand of moss hanging from the branch's tip (visual), length by branch
+		var tip := br.position + Basis.from_euler(br.rotation) * Vector3(0, h * 0.15, 0)
+		var moss := MeshInstance3D.new()
+		var mm := BoxMesh.new()
+		mm.size = Vector3(0.35, 1.4 + k * 0.8, 0.06)
+		moss.mesh = mm
+		moss.material_override = _moss
+		moss.position = tip - Vector3(0, mm.size.y * 0.5 - 0.1, 0)
+		moss.rotation.y = k * 2.1
+		body.add_child(moss)
 	add_child(body)
 
 # A sunken concrete hulk at the centre: tilted wall slabs half in the water, gaps >= 9 m.

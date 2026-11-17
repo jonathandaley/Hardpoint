@@ -45,9 +45,16 @@ static func _checked(map: Node, mi: MeshInstance3D) -> bool:
 		p = p.get_parent()
 	return true
 
-## Floor height under p: the map's ground, or a collider under p (Math Temple's raised floors).
+## The map's ground, or its water surface where a map has one (WATER_Y: lily pads float on it).
+static func _ground(map: Node, x: float, z: float) -> float:
+	var g := float(map.call("ground_y", x, z))
+	var water = map.get_script().get_script_constant_map().get("WATER_Y")
+	return maxf(g, float(water)) if water != null else g
+
+## Floor height under p: the map's ground, its water surface (WATER_Y), or a collider under p
+## (Math Temple's raised floors).
 static func _floor(map: Node3D, p: Vector3, exclude: Array) -> float:
-	var g := float(map.call("ground_y", p.x, p.z))
+	var g := _ground(map, p.x, p.z)
 	var q := PhysicsRayQueryParameters3D.create(p + Vector3(0, 0.5, 0), p + Vector3(0, -30, 0))
 	q.exclude = exclude
 	var hit := map.get_world_3d().direct_space_state.intersect_ray(q)
@@ -61,6 +68,7 @@ static func problems(map: Node) -> Array:
 	var boxes: Array[AABB] = []
 	var names: Array = []
 	var feet: Array = []  # the mesh's own bottom-face corners + centre, in world space
+	var covers: Array = []  # [world -> mesh transform, its own AABB]: what it really sits over
 	var bodies: Array = []  # its collider's RID (excluded from the floor ray), or none
 	for n in map.find_children("*", "MeshInstance3D", true, false):
 		var mi := n as MeshInstance3D
@@ -71,6 +79,7 @@ static func problems(map: Node) -> Array:
 			for k in [Vector2(0, 0), Vector2(1, 0), Vector2(0, 1), Vector2(1, 1), Vector2(0.5, 0.5)]:
 				f.append(mi.global_transform * (la.position + Vector3(la.size.x * k.x, 0.0, la.size.z * k.y)))
 			feet.append(f)
+			covers.append([mi.global_transform.affine_inverse(), la])
 			bodies.append([(mi.get_parent() as CollisionObject3D).get_rid()] if mi.get_parent() is CollisionObject3D else [])
 			names.append("%s %s" % [mi.mesh.get_class(), str(mi.mesh.get("size") if mi.mesh.get("size") != null else "")])
 	var out: Array = []
@@ -82,7 +91,7 @@ static func problems(map: Node) -> Array:
 		var hi := -INF
 		var lo := INF
 		for c in [b.get_center(), b.position, b.position + Vector3(b.size.x, 0, 0), b.position + Vector3(0, 0, b.size.z), b.end]:
-			var g := float(map.call("ground_y", c.x, c.z))
+			var g := _ground(map, c.x, c.z)
 			hi = maxf(hi, g)
 			lo = minf(lo, g)
 		if b.position.y <= hi + GROUND_TOL:
@@ -118,8 +127,13 @@ static func problems(map: Node) -> Array:
 		for j in boxes.size():
 			var b := boxes[j]
 			var gap := b.position.y - a.end.y
-			if gap <= TOUCH or gap >= GAP_MAX or b.size.y >= 40.0 or not _xz(b).encloses(ar):
+			if gap <= TOUCH or gap >= GAP_MAX or b.size.y >= 40.0 or not _xz(b).encloses(ar) \
+					or b.size.y >= minf(b.size.x, b.size.z):  # covers are flat (roofs, slabs), not branches
 				continue
+			var local: Vector3 = (covers[j][0] as Transform3D) * a.get_center()
+			var cl: AABB = covers[j][1]
+			if local.x < cl.position.x or local.x > cl.end.x or local.z < cl.position.z or local.z > cl.end.z:
+				continue  # under its bounding box but not under it (a long diagonal plank)
 			var between := false
 			for k in boxes.size():
 				var c := boxes[k]
