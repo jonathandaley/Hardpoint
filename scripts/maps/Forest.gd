@@ -81,6 +81,7 @@ func build() -> void:
 	var log_bark := _mat(BARK)  # fallen logs lie sideways: vertical streaks would run across them
 	var moss_rock := _mat(Color("#55644a"))
 	var leaf := _mat(Color("#1f3a1c"))
+	_leaf_under = _mat(Color("#142616"))  # T442: the canopy's underside
 	# giant trunks, placed in symmetric pairs
 	for k in 260:
 		var p := Vector2(rng.randf_range(-HALF, HALF), rng.randf_range(-HALF, HALF))
@@ -113,7 +114,7 @@ func build() -> void:
 			_blocked.append([q, s])
 			_rock(q, s, yaw, moss_rock)
 	# ferns: dressing only (no collision)
-	var fern := _mat(Color("#3f7a32"))
+	var fern := _mat(Color("#4a6b34"))  # T442: mossier (was #3f7a32, a bright confetti green)
 	for k in 500:
 		var q := Vector2(rng.randf_range(-HALF + 6, HALF - 6), rng.randf_range(-HALF + 6, HALF - 6))
 		var mi := MeshInstance3D.new()
@@ -125,11 +126,28 @@ func build() -> void:
 		if BEACONS.any(func(b): return q.distance_to(b) < Beacon.CIRCLE_RADIUS + 1.2):
 			mi.free()
 			continue
+		mi.free()
+		_fern(q, pm.size, yaw, fern)
+
+# T442 (2026-11-17 survey: ferns were single bright wedges, "confetti"): a fern is 4 fronds -- thin
+# upright triangles leaning out from the centre -- sized from the old wedge's draws, so the layout
+# and every later draw stay where they were. Visual only, merged into one draw (T424).
+func _fern(q: Vector2, s: Vector3, yaw: float, mat: Material) -> void:
+	for k in 4:
+		var mi := MeshInstance3D.new()
+		var pm := PrismMesh.new()
+		pm.size = Vector3(s.x * 0.5, s.y * 1.6, 0.08)
 		mi.mesh = pm
-		mi.material_override = fern
+		mi.material_override = mat
+		var a := yaw + k * PI * 0.5 + (0.3 if k % 2 else 0.0)
+		var rot := Vector3(0.6, a, 0.0)  # lean outward (the top tips toward +z, = out)
+		var out := Vector2(sin(a), cos(a)) * s.y * 0.45  # base set out so the fronds part from the centre
+		var g := ground_min(q.x + out.x, q.y + out.y, pm.size.x * 0.5)
+		mi.position = Vector3(q.x + out.x, g - 0.05 - box_low(pm.size, rot), q.y + out.y)
+		mi.rotation = rot
 		add_child(mi)
-		mi.position = Vector3(q.x, ground_min(q.x, q.y, maxf(pm.size.x, pm.size.z) * 0.5) + pm.size.y * 0.4, q.y)  # T439
-		mi.rotation.y = yaw
+
+var _leaf_under: Material
 
 func _trunk(p: Vector2, r: float, h: float, bark: Material, leaf: Material) -> void:
 	var y0 := ground_y(p.x, p.y) - 0.5
@@ -157,22 +175,38 @@ func _trunk(p: Vector2, r: float, h: float, bark: Material, leaf: Material) -> v
 	body.add_child(mi)
 	var flare := MeshInstance3D.new()  # root flare (visual; the trunk collider covers its core)
 	var fm := CylinderMesh.new()
-	fm.top_radius = r
+	# T442: the flare's top ring stuck out past the tapering trunk (a visible seam ring): it now
+	# ends just inside the trunk's radius at 3 m, with no cap
+	fm.top_radius = r * (1.0 - 0.3 * 3.0 / (h * 0.85)) * 0.98
+	fm.cap_top = false
 	fm.bottom_radius = r * 1.35
 	fm.height = 3.0
 	flare.mesh = fm
 	flare.material_override = bark
 	flare.position.y = 1.5
 	body.add_child(flare)
-	var crown := MeshInstance3D.new()  # canopy far overhead (no collision)
-	var sm := SphereMesh.new()
-	sm.radius = r * 4.0
-	sm.height = r * 3.0
-	crown.mesh = sm
-	crown.material_override = leaf
-	crown.position.y = h * 0.85
-	body.add_child(crown)
+	# canopy far overhead (no collision). T442 (2026-11-17 survey: from below the crowns read as
+	# flat green lily pads): a main blob, 3 smaller ones round it at staggered heights, and a
+	# darker flattened underside; chunky low-poly spheres (fewer vertices than the old smooth one).
+	var turn := fmod(h * 7.3 + r * 3.1, TAU)  # per-tree, no rng draw (the layout stays put)
+	_blob(body, r * 3.4, r * 2.6, Vector3(0, h * 0.85, 0), leaf)
+	for k in 3:
+		var a := turn + k * TAU / 3.0
+		_blob(body, r * 2.3, r * 1.8, Vector3(sin(a) * r * 2.4, h * 0.85 + (k - 1) * r * 0.6, cos(a) * r * 2.4), leaf)
+	_blob(body, r * 3.6, r * 1.1, Vector3(0, h * 0.85 - r * 1.1, 0), _leaf_under)
 	add_child(body)
+
+func _blob(body: Node3D, radius: float, height: float, at: Vector3, mat: Material) -> void:
+	var mi := MeshInstance3D.new()
+	var sm := SphereMesh.new()
+	sm.radius = radius
+	sm.height = height
+	sm.radial_segments = 10
+	sm.rings = 5
+	mi.mesh = sm
+	mi.material_override = mat
+	mi.position = at
+	body.add_child(mi)
 
 func _log(p: Vector2, length: float, r: float, yaw: float, bark: Material) -> void:
 	var body := StaticBody3D.new()

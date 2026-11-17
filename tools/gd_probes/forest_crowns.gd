@@ -17,17 +17,16 @@ func _ready() -> void:
 	var bad := 0
 	for body in (arena.get("_map") as Node).get_children():
 		var trunk: MeshInstance3D = null
-		var crown: MeshInstance3D = null
+		var crown_top := -INF  # T442: the crown is several blobs; its top is the highest
 		for c in body.get_children():
 			if c is MeshInstance3D and c.mesh is CylinderMesh and (c.mesh as CylinderMesh).height > 10.0:
 				trunk = c
 			elif c is MeshInstance3D and c.mesh is SphereMesh:
-				crown = c
-		if trunk == null or crown == null:
+				crown_top = maxf(crown_top, c.position.y + (c.mesh as SphereMesh).height * 0.5)
+		if trunk == null or crown_top == -INF:
 			continue
 		trees += 1
 		var top := trunk.position.y + (trunk.mesh as CylinderMesh).height * 0.5
-		var crown_top := crown.position.y + (crown.mesh as SphereMesh).height * 0.5
 		if top > crown_top - 1.0:
 			bad += 1
 			if bad <= 3:
