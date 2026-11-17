@@ -126,6 +126,7 @@ func build() -> void:
 		for s in team:
 			_box(Vector3(10, 0.06, 10), Vector3(s.x, 0.03, s.y), _mat(Color("#55402a")), false)
 	_containers(rng)
+	_dressing()
 
 # T234: burnt orange-red sky, warm ambient light, a light haze (was a starfield + planet).
 # T320 (HUMAN_FOUND 2026-11-05: "Texture with GL ID of 63: leaked 349524 bytes" on closing the
@@ -159,6 +160,87 @@ func _sky(rng: RandomNumberGenerator) -> void:
 	env.fog_enabled = true
 	env.fog_light_color = Color("#b4542a")
 	env.fog_density = 0.0015  # T300 (HUMAN_FOUND 2026-11-05: "less atmospheric haze"; was 0.004)
+
+# T447 (user 2026-11-17: yes to "pipe runs along the bulkheads, hazard stripes on the ramp edges,
+# a gantry crane over the deck, painted deck numbers by the beacons"). All visual (no colliders:
+# the T221 layout and lanes stay as they were), merged per material (T424). The crane's legs stand
+# on the hull outside the boundary (x = +-HALF + 3), its beam 26 m up: nothing a mech walks into.
+const CRANE_Z := 30.0
+const CRANE_Y := 26.0
+const DIGITS := ["010110010010111", "111001111100111", "111001111001111", "101101111001001", "111100111001111"]  # 3 wide, rows top-down
+
+func _dressing() -> void:
+	var rust := _mat(Color("#7a4a2a"), 0.7, 0.5)
+	var pipe := _mat(Color("#6d747c"), 0.4, 0.8)
+	var hazard := _hazard_mat()
+	var paint := _mat(Color("#c9c4b0"), 0.9, 0.0)
+	# pipes along both faces of the tall bulkheads (two runs) and the catwalk blocks' sides (one)
+	for sx in [-1.0, 1.0]:
+		var x: float = sx * BULK_X
+		for seg in TALL:
+			var z0: float = seg[0]
+			var z1: float = seg[1]
+			for face in [-1.0, 1.0]:
+				_pipe(Vector3(x + face * 1.85, 3.2, (z0 + z1) * 0.5), z1 - z0, 0.35, rust)
+				_pipe(Vector3(x + face * 1.75, 6.4, (z0 + z1) * 0.5), z1 - z0, 0.22, pipe)
+		for sz in [-1.0, 1.0]:
+			var length := HALF - CATWALK_Z
+			for face in [-1.0, 1.0]:
+				_pipe(Vector3(x + face * 3.3, 1.6, sz * (CATWALK_Z + length * 0.5)), length, 0.25, rust)
+			# hazard stripes: on the deck at the ramp's foot, on the catwalk's lip at its top
+			_box(Vector3(6.0, 0.04, 0.8), Vector3(x, 0.02, sz * (CATWALK_Z - RAMP_L - 0.4)), hazard, false)
+			_box(Vector3(6.0, 0.04, 0.8), Vector3(x, CATWALK_H + 0.02, sz * (CATWALK_Z + 0.4)), hazard, false)
+	# gantry crane across the deck
+	var steel := _mat(Color("#b8862a"), 0.6, 0.6)  # crane yellow
+	for sx in [-1.0, 1.0]:
+		_box(Vector3(1.6, CRANE_Y + 1.0, 1.6), Vector3(sx * (HALF + 3.0), (CRANE_Y - 1.0) * 0.5, CRANE_Z), steel, false)  # hull top (y -1) to the beam
+	_box(Vector3(HALF * 2.0 + 8.0, 1.8, 2.2), Vector3(0, CRANE_Y + 0.9, CRANE_Z), steel, false)
+	_box(Vector3(4.0, 1.6, 3.4), Vector3(22.0, CRANE_Y - 0.8, CRANE_Z), _mat(Color("#4a515b")), false)  # trolley
+	_box(Vector3(0.12, 9.0, 0.12), Vector3(22.0, CRANE_Y - 6.1, CRANE_Z), pipe, false)  # cable
+	_box(Vector3(1.4, 1.2, 1.0), Vector3(22.0, CRANE_Y - 11.2, CRANE_Z), hazard, false)  # hook block
+	# bay numbers painted on the beacon pads, in a corner outside the capture ring
+	for i in BEACONS.size():
+		var b: Vector2 = BEACONS[i]
+		_digit(i + 1, Vector3(b.x + 5.4, 0.075, b.y + 4.6), paint)
+
+## A horizontal pipe along z (a cylinder on its side) with a bracket at each end.
+func _pipe(at: Vector3, length: float, r: float, mat: Material) -> void:
+	var mi := MeshInstance3D.new()
+	var cm := CylinderMesh.new()
+	cm.top_radius = r
+	cm.bottom_radius = r
+	cm.height = length
+	cm.radial_segments = 8
+	cm.rings = 1
+	mi.mesh = cm
+	mi.material_override = mat
+	mi.position = at
+	mi.rotation.x = PI * 0.5
+	add_child(mi)
+
+## Yellow / black diagonal stripes: 8 x 8 px over 1 m, nearest, world triplanar.
+func _hazard_mat() -> StandardMaterial3D:
+	var img := Image.create(8, 8, false, Image.FORMAT_RGB8)
+	for y in 8:
+		for x in 8:
+			img.set_pixel(x, y, Color("#e0a020") if (x + y) % 8 < 4 else Color("#1c1c1c"))
+	img.generate_mipmaps()
+	var m := _mat(Color.WHITE, 0.8, 0.0)
+	m.albedo_texture = ImageTexture.create_from_image(img)
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+	m.uv1_triplanar = true
+	m.uv1_world_triplanar = true
+	return m
+
+## A painted digit from 0.6 m squares (3 wide, 5 tall), flat on the deck.
+func _digit(n: int, corner: Vector3, mat: Material) -> void:
+	var rows: String = DIGITS[n - 1]
+	var w := 3
+	for k in rows.length():
+		if rows[k] == "1":
+			var cx := k % w
+			var cy := k / w
+			_box(Vector3(0.6, 0.02, 0.6), corner + Vector3(cx * 0.6, 0.0, cy * 0.6), mat, false)
 
 # Launch rails down the middle line (flush, visual) with a lit centre stripe; a blast
 # deflector (solid, upright) across each rail near either end.
