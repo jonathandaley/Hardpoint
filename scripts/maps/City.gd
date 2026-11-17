@@ -134,6 +134,7 @@ func build() -> void:
 	# central avenue median + plaza paving at the beacons
 	for b in BEACONS:
 		_solid(Vector3(22, 0.12, 22), Vector3(b.x, 0.06, b.y), _mat(PAVE), 0.0, false)
+	_streets()
 
 # T231 (HUMAN_FOUND_ISSUES 2026-11-04: "Sydney feels too open"): the beacon / spawn
 # clearings, the promenade and the avenue get low and mid-rise buildings and kiosks
@@ -314,6 +315,76 @@ func _roof_plant(c: Vector2, size: Vector2, h: float) -> void:
 		mi.set_meta(&"deco", "RoofPlant")
 		mi.position = Vector3(tk.x, top + 0.6 + 1.1, tk.y)
 		add_child(mi)
+
+# T449 (user 2026-11-17: yes to "lane markings, crosswalks and kerbs"): dashed white centre lines
+# down the streets, zebra crossings on each arm of a junction, and a pavement with a kerb round
+# every city block. Flat and visual only (no colliders); markings skip anything solid at street
+# level (_rects: blocks, parks, kiosks), the beacon plazas and the spawns; merged per material.
+const STREET_X := [0.0, 52.0, -52.0, 100.0, -100.0]  # centre lines between the block columns
+const STREET_Z := [-66.0, -18.0, 30.0, 78.0]          # and between the block rows
+const DASH := 3.0
+const DASH_GAP := 3.0
+
+func _street_free(p: Vector2, margin: float) -> bool:
+	if p.x < -HALF + 6.0 or p.x > HALF - 6.0 or p.y < QUAY_Z + 4.0 or p.y > HALF - 6.0:
+		return false
+	for r in _rects:
+		if (r as Rect2).grow(margin).has_point(p):
+			return false
+	for b in BEACONS:
+		if absf(p.x - b.x) < 11.0 + margin and absf(p.y - b.y) < 11.0 + margin:
+			return false
+	return not _near_spawn(p)
+
+func _streets() -> void:
+	var paint := _mat(Color("#d6d4c8"), 0.8)
+	var walk := _mat(Color("#6e7076"))
+	var kerb := _mat(Color("#9a9a94"))
+	# centre dashes, along z on the x lines and along x on the z lines
+	for x in STREET_X:
+		var z := QUAY_Z + 4.0
+		while z < HALF - 6.0:
+			if _street_free(Vector2(x, z), 1.0) and _street_free(Vector2(x, z + DASH), 1.0) and not _at_junction(Vector2(x, z + DASH * 0.5)):
+				_solid(Vector3(0.25, 0.03, DASH), Vector3(x, 0.015, z + DASH * 0.5), paint, 0.0, false)
+			z += DASH + DASH_GAP
+	for z in STREET_Z:
+		var x := -HALF + 6.0
+		while x < HALF - 6.0:
+			if _street_free(Vector2(x, z), 1.0) and _street_free(Vector2(x + DASH, z), 1.0) and not _at_junction(Vector2(x + DASH * 0.5, z)):
+				_solid(Vector3(DASH, 0.03, 0.25), Vector3(x + DASH * 0.5, 0.015, z), paint, 0.0, false)
+			x += DASH + DASH_GAP
+	# zebra crossings on each arm of every junction, 9 m out from its centre
+	for x in STREET_X:
+		for z in STREET_Z:
+			for arm in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
+				var c: Vector2 = Vector2(x, z) + arm * 9.0
+				if not _street_free(c, 0.5):
+					continue
+				for k in 6:  # stripes run along the street, stepped across it
+					var off := (k - 2.5) * 1.6
+					var at: Vector2 = c + Vector2(arm.y, arm.x) * off
+					var size := Vector3(2.4, 0.03, 0.7) if arm.x != 0.0 else Vector3(0.7, 0.03, 2.4)
+					if _street_free(at, 0.3):
+						_solid(size, Vector3(at.x, 0.015, at.y), paint, 0.0, false)
+	# pavement + kerb round every city block (34 m squares), skipping the parks' green
+	for r in _rects:
+		var rect := r as Rect2
+		if absf(rect.size.x - BLOCK) > 0.5 or absf(rect.size.y - BLOCK) > 0.5:
+			continue
+		var c := rect.get_center()
+		var side := BLOCK * 0.5 + 0.9
+		for s in [-1.0, 1.0]:
+			_solid(Vector3(BLOCK + 3.6, 0.12, 1.8), Vector3(c.x, 0.06, c.y + s * side), walk, 0.0, false)
+			_solid(Vector3(1.8, 0.12, BLOCK), Vector3(c.x + s * side, 0.06, c.y), walk, 0.0, false)
+			_solid(Vector3(BLOCK + 4.0, 0.2, 0.2), Vector3(c.x, 0.1, c.y + s * (side + 1.0)), kerb, 0.0, false)
+			_solid(Vector3(0.2, 0.2, BLOCK + 4.0), Vector3(c.x + s * (side + 1.0), 0.1, c.y), kerb, 0.0, false)
+
+func _at_junction(p: Vector2) -> bool:
+	for x in STREET_X:
+		for z in STREET_Z:
+			if absf(p.x - x) < 12.0 and absf(p.y - z) < 12.0:
+				return true
+	return false
 
 func _near_any(c: Vector2, pts: Array, r: float) -> bool:
 	for p in pts:

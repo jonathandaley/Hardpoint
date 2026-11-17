@@ -437,3 +437,4 @@ date|task|outcome|commit|finding|suite
 2026-11-17|T445|DONE|(this commit)|Giza sky: fog paints 70% of the sky (gradient + sun glow), warm sun, lighter fog; own Sky avoided (T346 leak); probe map_skies red -> green|197/197
 2026-11-17|T446|DONE|(this commit)|Swamp: reeds, lily pads, moss, fireflies (AMBIENT EFFECTS switch); fog exactly as before (probe); floating_parts learned water + flat covers + oriented footprints (pads under diagonal-plank AABBs); suite red only on sp_map_pick ('MAP EFFECTS' label) -> renamed, probe green|197/198 -> label fix
 2026-11-17|T447|DONE|(local, batched with T449)|Factory: bulkhead pipes, ramp hazard strips, gantry crane (legs outside the boundary), painted bay numbers; colliders unchanged (probe red -> green); draws +8 = new materials|batched
+2026-11-17|T449|DONE|(local, batched with T447)|Sydney streets: centre dashes, zebra crossings, pavements + kerbs (194 / 420 / 64); probe city_streets red -> green|batched
