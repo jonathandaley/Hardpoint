@@ -1,7 +1,9 @@
 extends Node
 # Visual survey: one map from several fixed viewpoints (overview, eye level, looking up) -> PNGs.
 #   xvfb-run -a -s "-screen 0 1280x720x24" ~/bin/godot --resolution 1280x720 \
-#     res://tools/art/map_survey.tscn -- <out_dir> <Map>
+#     res://tools/art/map_survey.tscn -- <out_dir> <Map> [x,y,z ...]
+# With points: one close shot of each (from 10 m off, 4 m up) instead of the fixed views,
+# written as <Map>_p<n>.png -- for looking at what a probe reported.
 # Writes <out_dir>/<Map>_<n>.png. Viewpoints are fractions of the map's half-size, so every map
 # gets comparable shots without per-map tuning.
 const VIEWS := [  # [x, z, height above ground, look-at x, look-at z, look-at height]
@@ -35,6 +37,17 @@ func _ready() -> void:
 	arena.add_child(cam)
 	cam.current = true
 	arena.get("hud").visible = false
+	if args.size() > 2:
+		for i in range(2, args.size()):
+			var p := str_to_var("Vector3(%s)" % args[i]) as Vector3
+			cam.global_position = p + Vector3(8.0, 4.0, 6.0)
+			cam.look_at(p)
+			for f in 4:
+				await get_tree().process_frame
+			await RenderingServer.frame_post_draw
+			get_viewport().get_texture().get_image().save_png("%s/%s_p%d.png" % [args[0], args[1], i - 2])
+		get_tree().quit(0)
+		return
 	for i in VIEWS.size():
 		var v: Array = VIEWS[i]
 		var at := Vector3(v[0] * half, 0.0, v[1] * half)

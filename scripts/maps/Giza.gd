@@ -44,8 +44,8 @@ func ground_y(x: float, z: float) -> float:
 		var d := maxf(absf(x - py[0].x), absf(z - py[0].y)) - float(py[1]) * 0.5
 		h = lerpf(h, 0.0, smoothstep(14.0, 2.0, d))
 	h = lerpf(h, 0.0, smoothstep(30.0, 18.0, p.distance_to(SPHINX)))
-	if absf(x) < 6.0:  # causeway line down the middle: flat
-		h = lerpf(h, 0.0, smoothstep(6.0, 3.0, absf(x)))
+	if absf(x) < 7.5:  # causeway line down the middle: flat under all 8 m of slab (T439: was 3 m)
+		h = lerpf(h, 0.0, smoothstep(7.5, 4.5, absf(x)))
 	return h
 
 func _mat(c: Color, rough := 0.95) -> StandardMaterial3D:
@@ -177,14 +177,32 @@ func _temple(c: Vector2, plan: Array, mat: Material, sx: float) -> void:
 	var rows: int = plan[1]
 	var h: float = plan[3]
 	var pitch := 7.0  # >= LANE: no wedges between pillars (T221)
-	for i in cols:
-		for j in rows:
-			var p := c + Vector2((i - (cols - 1) * 0.5) * pitch, (j - (rows - 1) * 0.5) * pitch)
-			_box(Vector3(1.6, h, 1.6), Vector3(p.x, ground_y(p.x, p.y) + h * 0.5 - 0.2, p.y), mat)
 	var w := cols * pitch
 	var d := rows * pitch
+	# T439 (user 2026-11-17: floating pieces in Giza): the roof sat at h + 0.4 while each pillar
+	# stood h tall on its own dune height, so roofs hovered up to ~1 m over the low pillars. Now
+	# every pillar reaches one top (h over the highest pillar's ground) and the roof rests on it.
+	var top := -INF
+	for i in cols:
+		for j in rows:
+			var q := c + Vector2((i - (cols - 1) * 0.5) * pitch, (j - (rows - 1) * 0.5) * pitch)
+			top = maxf(top, ground_y(q.x, q.y) + h)
+	for i in cols:
+		for j in rows:
+			var dx := (i - (cols - 1) * 0.5) * pitch
+			if plan[2] and dx > 0.9:  # dx is already toward sx (positions mirror below)
+				continue  # under the fallen half: these pillars went down with it
+			var p := c + Vector2(dx * sx, (j - (rows - 1) * 0.5) * pitch)
+			var foot := ground_y(p.x, p.y) - 0.2
+			_box(Vector3(1.6, top - foot, 1.6), Vector3(p.x, (top + foot) * 0.5, p.y), mat)
 	if plan[2]:
-		_box(Vector3(w * 0.5, 0.8, d), Vector3(c.x - w * 0.25 * sx, h + 0.4, c.y), mat)
-		_box(Vector3(w * 0.45, 0.8, d * 0.9), Vector3(c.x + w * 0.3 * sx, h * 0.45, c.y), mat, Vector3(0, 0, 0.45 * sx))
+		_box(Vector3(w * 0.5, 0.8, d), Vector3(c.x - w * 0.25 * sx, top + 0.4, c.y), mat)
+		# the other half leans from the sand up against the standing half's end
+		var length := w * 0.45
+		var foot_x := c.x + sx * length * 0.8
+		var g := ground_min(foot_x, c.y, length * 0.5) - 0.2
+		var tilt := asin(clampf((top - g) / length, 0.0, 1.0))
+		var cx := c.x + sx * (cos(tilt) * length * 0.5 - 0.1)  # high end tucked under the roof end
+		_box(Vector3(length, 0.8, d * 0.9), Vector3(cx, g + sin(tilt) * length * 0.5 + cos(tilt) * 0.4, c.y), mat, Vector3(0, 0, -tilt * sx))
 	else:
-		_box(Vector3(w, 0.8, d), Vector3(c.x, h + 0.4, c.y), mat)
+		_box(Vector3(w, 0.8, d), Vector3(c.x, top + 0.4, c.y), mat)

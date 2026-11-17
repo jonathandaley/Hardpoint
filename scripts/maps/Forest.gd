@@ -128,7 +128,7 @@ func build() -> void:
 		mi.mesh = pm
 		mi.material_override = fern
 		add_child(mi)
-		mi.position = Vector3(q.x, ground_y(q.x, q.y) + pm.size.y * 0.4, q.y)
+		mi.position = Vector3(q.x, ground_min(q.x, q.y, maxf(pm.size.x, pm.size.z) * 0.5) + pm.size.y * 0.4, q.y)  # T439
 		mi.rotation.y = yaw
 
 func _trunk(p: Vector2, r: float, h: float, bark: Material, leaf: Material) -> void:

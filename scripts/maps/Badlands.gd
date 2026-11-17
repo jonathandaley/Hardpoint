@@ -214,18 +214,44 @@ func _window_wall(c: Vector3, along: Vector3, x_long: bool, seg_len: float, h: f
 	window_count += 1
 	return true
 
+# T439 (user 2026-11-17: floating pieces): the slab used to sit at base + 0.45 full_h in the middle
+# of the ruin whatever the walls did, so some hung in the air. Now its low end is in the ground
+# and its high end leans on the back wall (side 2, local -z): against the inner face of the
+# tallest segment under it, or on top of it when that segment is lower than the slab can reach.
+# No plain back segment under it: the slab lies nearly flat in the rubble.
+func _collapsed_roof(at: Vector2, w: float, d: float, rot: float, tilt: float, tops: Array, mat: Material) -> void:
+	var size := Vector3(w * 0.8, 0.45, d * 0.6)
+	var length := size.z
+	var basis := Basis(Vector3.UP, rot)
+	var low_xz: Vector3 = Vector3(at.x, 0, at.y) + basis * Vector3(0, 0, -d * 0.5 + 0.35 + length)
+	var g_low := ground_min(low_xz.x, low_xz.z, size.x * 0.5) - 0.2
+	var on_top := false
+	if tops.is_empty():
+		tilt = 0.06
+	else:
+		var top: float = tops.max()
+		var reach := sin(tilt) * length + cos(tilt) * size.y  # rise of the high top edge
+		if reach > top - g_low:  # the wall is lower than the slab's reach: rest on its top
+			tilt = asin(clampf((top - g_low) / length, 0.0, 1.0))  # its underside on the top
+			on_top = true
+	# centre along local z: the high end at the wall's inner face (or 0.4 m onto its top)
+	var zc := -d * 0.5 + 0.35 + cos(tilt) * length * 0.5 + sin(tilt) * size.y * 0.5 - (0.4 if on_top else 0.0)
+	var yc := g_low + sin(tilt) * length * 0.5 + cos(tilt) * size.y * 0.5
+	var c: Vector3 = Vector3(at.x, 0, at.y) + basis * Vector3(0, 0, zc)
+	_block(size, Vector3(c.x, yc, c.z), rot, mat, Vector3(tilt, 0, 0))
+
 var window_count := 0  # T288: how many window holes this build cut (probe)
 
 func _ruin(at: Vector2, rng: RandomNumberGenerator) -> void:
 	var w := rng.randf_range(12.0, 22.0)
 	var d := rng.randf_range(10.0, 18.0)
 	var rot := rng.randf_range(0.0, PI)
-	var base := ground_y(at.x, at.y)
 	var basis := Basis(Vector3.UP, rot)
 	var wall_mat := _mat(CONCRETE.darkened(rng.randf_range(0.0, 0.25)))
 	var rust_mat := _mat(RUST.darkened(rng.randf_range(0.0, 0.2)))
 	var full_h := rng.randf_range(6.0, 11.0)
 	# 4 walls, each in 4 segments of uneven height; some segments gone (breaches, doors)
+	var back_tops: Array = []  # T439: top y of each plain segment of the back wall (side 2)
 	for side in 4:
 		var length: float = w if side % 2 == 0 else d
 		var off: Vector3 = basis * (Vector3(0, 0, d * 0.5) if side == 0 else Vector3(0, 0, -d * 0.5) if side == 2
@@ -241,10 +267,11 @@ func _ruin(at: Vector2, rng: RandomNumberGenerator) -> void:
 			if not _window_wall(c, along, side % 2 == 0, seg_len, h, rot, wall_mat):
 				_block(Vector3(seg_len, h, 0.7) if side % 2 == 0 else Vector3(0.7, h, seg_len),
 					Vector3(c.x, ground_y(c.x, c.z) + h * 0.5 - 0.3, c.z), rot, wall_mat)
+				if side == 2 and absf(((float(k) + 0.5) / segs - 0.5) * length) < w * 0.4:
+					back_tops.append(ground_y(c.x, c.z) - 0.3 + h)
 	if rng.randf() < 0.6:  # collapsed roof: a slab resting on one wall, tilted to the ground
 		var tilt := deg_to_rad(rng.randf_range(14.0, 26.0))
-		_block(Vector3(w * 0.8, 0.45, d * 0.6), Vector3(at.x, base + full_h * 0.45, at.y), rot,
-			rust_mat, Vector3(tilt, 0, 0))
+		_collapsed_roof(at, w, d, rot, tilt, back_tops, rust_mat)
 	for k in rng.randi_range(4, 8):  # rubble
 		var r := Vector2(rng.randf_range(-w, w), rng.randf_range(-d, d)) * 0.7
 		var s := Vector3(rng.randf_range(0.6, 2.0), rng.randf_range(0.4, 1.2), rng.randf_range(0.6, 2.0))

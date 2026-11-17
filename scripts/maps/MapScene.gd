@@ -25,6 +25,24 @@ func clamp_spawn(p: Vector3) -> Vector3:
 func ground_y(_x: float, _z: float) -> float:
 	return 0.0
 
+## T439: the lowest floor under a footprint of radius r around (x, z). Props set on this don't
+## hang an edge off a slope (setting them at the centre's height did; probe floating_parts).
+func ground_min(x: float, z: float, r: float) -> float:
+	var g := ground_y(x, z)
+	for k in 8:
+		var d := Vector2.from_angle(k * PI * 0.25) * r
+		g = minf(g, ground_y(x + d.x, z + d.y))
+	return g
+
+## Lowest corner (y) of a box of this size turned by this euler rotation, relative to its centre.
+static func box_low(size: Vector3, rot: Vector3) -> float:
+	var b := Basis.from_euler(rot)
+	var low := INF
+	for k in 8:
+		var c := Vector3(size.x * (0.5 if k & 1 else -0.5), size.y * (0.5 if k & 2 else -0.5), size.z * (0.5 if k & 4 else -0.5))
+		low = minf(low, (b * c).y)
+	return low
+
 ## Map boundary for the minimap, world XZ.
 func minimap_outline() -> PackedVector2Array:
 	return PackedVector2Array()

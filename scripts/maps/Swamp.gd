@@ -207,7 +207,9 @@ func _sunken_ruin() -> void:
 	for s in [1.0, -1.0]:
 		_box(Vector3(18, 7, 1.2), Vector3(-6 * s, 1.5, 15 * s), conc, Vector3(0.25 * s, 0.3, 0.1))
 		_box(Vector3(1.2, 6, 7), Vector3(17 * s, 1.0, 0.0), conc, Vector3(0, 0.2, 0.22 * s))
-		_box(Vector3(9, 0.8, 7), Vector3(13 * s, 2.6, 16 * s), conc, Vector3(0.4 * s, 0, 0.15))
+		# T439: the low edge sits 0.4 m into the mud (was at y 2.6 with its lowest corner in the air)
+		var rot := Vector3(0.4 * s, 0, 0.15)
+		_box(Vector3(9, 0.8, 7), Vector3(13 * s, ground_min(13 * s, 16 * s, 5.0) - 0.4 - box_low(Vector3(9, 0.8, 7), rot), 16 * s), conc, rot)
 
 # T233 (HUMAN_FOUND_ISSUES 2026-11-04): wading is a status effect -- the slow builds from
 # none to WADE over WADE_IN_S in the water and wears off over WADE_OUT_S out of it (user:
