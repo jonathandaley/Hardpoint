@@ -82,13 +82,14 @@ func build() -> void:
 		env.fog_density = 0.0025
 		env.ambient_light_color = Color("#f0d9b0")
 		env.ambient_light_energy = 0.75
-	var stone := _mat(STONE)
-	pixelate(stone, 224, OBSTACLE_TEXEL_M * 1.5)  # T440: chunky pixels (was a soft noise)
+	# T443: cut-stone courses (T440's pixel grain before); 0.6 x: the grain used to multiply the
+	# stone to about that, and the map's light was tuned for it
+	var stone := course_mat(Color(STONE.r * 0.6, STONE.g * 0.6, STONE.b * 0.6), 224)
 	for py in PYRAMIDS:
 		_pyramid(py[0], py[1], stone)
 	_sphinx(SPHINX, stone)
 	# causeway: flush stone slabs down the middle (0.25 m: steppable)
-	var slab := _mat(Color("#bfae88"))
+	var slab := course_mat(Color("#bfae88").darkened(0.25), 225)  # T443: flagstones (the top view of the courses)
 	for z in range(-150, 151, 12):
 		var zz := float(z)
 		if _inside_monument(Vector2(0, zz), 3.0):
@@ -116,6 +117,45 @@ func build() -> void:
 		var yaw := rng.randf() * PI
 		for sx in [-1.0, 1.0]:
 			_box(s, Vector3(p.x * sx, ground_y(p.x * sx, p.y) + s.y * 0.4, p.y), stone, Vector3(0, yaw * sx, 0.1 * sx))
+
+# T443 (2026-11-17 survey: the pyramids were smooth): stone laid in courses. 16 x 16 px over 3 m
+# (~19 cm a pixel, chunky like T440): two 1.5 m courses of 1.5 m blocks, the upper one offset half a
+# block, 1 px mortar lines, each block its own shade with a little pixel grain. World triplanar
+# with a sharp blend, so on a pyramid face (closer to upright than flat) the side projection wins
+# and the courses run level; seen from above (causeway, roofs) the same tile reads as flagstones.
+const COURSE_PX := 16
+const COURSE_M := 3.0
+
+static func course_image(base: Color, seed: int) -> Image:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	var img := Image.create(COURSE_PX, COURSE_PX, false, Image.FORMAT_RGB8)
+	var mortar := base.darkened(0.45)
+	for row in 2:
+		var shift := 0 if row == 0 else COURSE_PX / 4
+		var shades := [rng.randf_range(-0.1, 0.06), rng.randf_range(-0.1, 0.06)]
+		for y in range(row * 8, row * 8 + 8):
+			for x in COURSE_PX:
+				var xs := (x + shift) % COURSE_PX
+				var c: Color
+				if y == row * 8 or xs % 8 == 0:
+					c = mortar
+				else:
+					var k: float = shades[xs / 8] + rng.randf_range(-0.04, 0.04)
+					c = base.lightened(k) if k > 0.0 else base.darkened(-k)
+				img.set_pixel(x, y, c)
+	img.generate_mipmaps()
+	return img
+
+func course_mat(base: Color, seed: int) -> StandardMaterial3D:
+	var m := _mat(Color.WHITE)
+	m.albedo_texture = ImageTexture.create_from_image(course_image(base, seed))
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+	m.uv1_triplanar = true
+	m.uv1_world_triplanar = true
+	m.uv1_triplanar_sharpness = 8.0
+	m.uv1_scale = Vector3.ONE / COURSE_M
+	return m
 
 func _inside_monument(p: Vector2, margin: float) -> bool:
 	for py in PYRAMIDS:
