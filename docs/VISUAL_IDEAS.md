@@ -34,3 +34,13 @@ User: "All your ideas sound good, except keep the moody fog in Swamp." So Swamp 
 - **Sydney streets.** Lane markings, crosswalks and kerbs (all flat, cheap).
 - **Beacons.** The poles are thin grey lines; a plinth at the base and a team-coloured light at the top would read better from a distance. Gameplay-adjacent, so it's your call.
 - **Corvette.** Not surveyed: it's indoor and the survey camera sat outside. Next pass.
+
+## Your call (2) -- from the Corvette survey (T451, 2026-11-17)
+
+Corvette checks out (nothing floating, textures crisp, no leaks; the beacon lamps now hang under its ceiling), but every corridor is the same white panelling, so it's hard to tell where you are. Ideas, not built:
+
+- **Coloured guide stripes** down each corridor's floor (one colour per corridor: say red, amber, teal), plus a matching band at waist height on the walls, so you know which corridor you're in at a glance.
+- **Door frames** (a heavy dark frame with yellow-black edges) where the cross corridors meet the long ones.
+- **Painted corridor numbers / deck signs** on the walls at the junctions (pixel digits like Factory's bay numbers).
+- **Darker, warmer reactor room** in the middle (its own floor colour and a few glowing conduits), so the centre reads as a place.
+

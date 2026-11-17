@@ -1,7 +1,8 @@
 extends Node
 # T450 probe (user 2026-11-17: yes to "a plinth at the base and a team-coloured light at the top"):
 # a beacon has a plinth at its foot and a lamp at the top of its beam whose colour follows the
-# beacon's state (neutral / team A / team B / contested) through the existing visuals update.
+# beacon's state (neutral / team A / team B / contested) through the existing visuals update; on the
+# roofed Corvette the lamps hang under the ceiling (T451).
 
 func _fail(msg: String) -> void:
 	push_error("[probe] beacon_look: " + msg)
@@ -31,5 +32,27 @@ func _ready() -> void:
 		if seen.size() != 4:
 			bad += 1
 			_fail("the lamp shows %d colours over the 4 states, want 4" % seen.size())
+	b.queue_free()  # and let it go before the arena's HUD lists the beacons group
+	for i in 3:
+		await get_tree().process_frame
+	# T451: on the roofed Corvette (10 m ceiling) every lamp hangs under the ceiling, in sight
+	Game.mp_active_match["roster"] = []
+	Game.loadout["team_size"] = 1
+	Game.loadout["map_def"] = load("res://resources/maps/Corvette.tres")
+	var arena: Node = load("res://scenes/arena/Arena.tscn").instantiate()
+	get_tree().root.add_child.call_deferred(arena)
+	for i in 6:
+		await get_tree().physics_frame
+	var lamps := 0
+	for beacon in get_tree().get_nodes_in_group("beacons"):
+		for c in beacon.get_node("Visual").get_children():
+			if c is MeshInstance3D and c.mesh is SphereMesh:
+				lamps += 1
+				if c.global_position.y > 9.0:
+					bad += 1
+					_fail("Corvette: a lamp at y %.1f, above the 10 m ceiling" % c.global_position.y)
+	if lamps < 5:
+		bad += 1
+		_fail("Corvette: %d beacon lamps found" % lamps)
 	print("[probe] beacon_look: %s" % ("PASS" if bad == 0 else "FAIL %d" % bad))
 	get_tree().quit(1 if bad else 0)

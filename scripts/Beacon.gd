@@ -101,10 +101,23 @@ func _ready() -> void:
 	lamp.set_surface_override_material(0, _lamp_mat)
 	lamp.position.y = BEAM_HEIGHT
 	$Visual.add_child(lamp)
+	_fit_lamp.call_deferred(lamp)
 
 	$CaptureZone.body_entered.connect(_on_body_entered)
 	$CaptureZone.body_exited.connect(_on_body_exited)
 	_update_visuals()
+
+## T451 (Corvette survey): indoors the lamp sat above the 10 m ceiling, out of sight. Once physics
+## is up, a ray from the pole's top to the beam's top finds any roof and hangs the lamp under it.
+func _fit_lamp(lamp: MeshInstance3D) -> void:
+	await get_tree().physics_frame
+	if not is_inside_tree():
+		return
+	var from := global_position + Vector3.UP * 4.0
+	var q := PhysicsRayQueryParameters3D.create(from, global_position + Vector3.UP * BEAM_HEIGHT, 1)
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	if not hit.is_empty():
+		lamp.global_position.y = (hit["position"] as Vector3).y - 1.0
 
 func _process(delta: float) -> void:
 	# T40: capture logic runs server-only; clients receive state via _sync_state RPC.

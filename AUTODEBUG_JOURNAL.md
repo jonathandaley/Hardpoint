@@ -442,3 +442,5 @@ date|task|outcome|commit|finding|suite
 2026-11-17|T448|DONE|(local, batched with T450)|Badlands: adobe bricks on every ruin wall, 12 walk-through car hulks, dead scrub; colliders unchanged (probe red -> green); draws flat|batched
 2026-11-17|T450|DONE|(local, batched with T448)|beacons: plinth + state-coloured lamp atop the beam (fog-exempt, reads across Swamp); probe beacon_look red -> green; +10 draws a map (5 beacons x 2)|batched
 2026-11-17|T448+T450|PUSHED|-|batch suite green|202/202
+2026-11-17|T451|DONE|(this commit)|Corvette interior survey (from>to cameras): clean; T450 lamp was above the ceiling -> _fit_lamp under any roof (beacon_look red -> green); accent ideas -> VISUAL_IDEAS 'Your call (2)' + NEEDS_HUMAN|202/202
+2026-11-17|queue|EMPTY|-|approved visual ideas T445-T451 done (Swamp fog untouched); open: T346 leak (repro + 2 failed fixes noted), Factory floating question, T448 hulks solid?, Corvette 'Your call (2)' -> loop stopped|-
