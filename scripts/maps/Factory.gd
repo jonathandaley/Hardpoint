@@ -188,8 +188,10 @@ func _dressing() -> void:
 			for face in [-1.0, 1.0]:
 				_pipe(Vector3(x + face * 3.3, 1.6, sz * (CATWALK_Z + length * 0.5)), length, 0.25, rust)
 			# hazard stripes: on the deck at the ramp's foot, on the catwalk's lip at its top
-			_box(Vector3(6.0, 0.04, 0.8), Vector3(x, 0.02, sz * (CATWALK_Z - RAMP_L - 0.4)), hazard, false)
-			_box(Vector3(6.0, 0.04, 0.8), Vector3(x, CATWALK_H + 0.02, sz * (CATWALK_Z + 0.4)), hazard, false)
+			# 5.4 m: between the guard rails (+-2.85); 1 cm off the surface so no face is shared
+			# with the deck / catwalk top or a rail's foot (probe factory_no_zfight)
+			_box(Vector3(5.4, 0.04, 0.8), Vector3(x, 0.03, sz * (CATWALK_Z - RAMP_L - 0.4)), hazard, false)
+			_box(Vector3(5.4, 0.04, 0.8), Vector3(x, CATWALK_H + 0.03, sz * (CATWALK_Z + 0.4)), hazard, false)
 	# gantry crane across the deck
 	var steel := _mat(Color("#b8862a"), 0.6, 0.6)  # crane yellow
 	for sx in [-1.0, 1.0]:
