@@ -148,10 +148,12 @@ func _trunk(p: Vector2, r: float, h: float, bark: Material, leaf: Material) -> v
 	var cm := CylinderMesh.new()
 	cm.top_radius = r * 0.7
 	cm.bottom_radius = r
-	cm.height = h
+	# T438 (user 2026-11-17: "trunks extend past the highest leaves"): the drawn trunk stops at
+	# the crown's centre (it ran to h, 3-11 m above the crown); the collider still reaches h
+	cm.height = h * 0.85
 	mi.mesh = cm
 	mi.material_override = bark
-	mi.position.y = h * 0.5
+	mi.position.y = h * 0.85 * 0.5
 	body.add_child(mi)
 	var flare := MeshInstance3D.new()  # root flare (visual; the trunk collider covers its core)
 	var fm := CylinderMesh.new()

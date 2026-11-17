@@ -424,3 +424,4 @@ date|task|outcome|commit|finding|suite
 2026-11-16|T437|PART|(this commit)|two Elite Swamp watches: defenders camping beacons (intended) + one bot frozen in place with non-zero velocity/move (not dithering; cause open); trace prints mech/anchored/lunging/physics now|tools only
 2026-11-16|T437|PARKED|-|3rd watch traced a beacon defender again; long off-beacon stalls remain untraced (trace should pick the longest stall); bounded look done, queue otherwise empty/parked -> loop stopped|-
 2026-11-17|queue|ADDED|-|visual pass from user direction + render survey (tools/art/map_survey.tscn, every map, 8 views): T438-T444 queued, ideas + 'your call' list in docs/VISUAL_IDEAS.md, floating check parked red in tools/art/floating_parts.tscn (Giza temples, Badlands; Factory clean -> NEEDS_HUMAN)|-
+2026-11-17|T438|DONE|(this commit)|redwood trunks end inside the crown (drawn height 0.85 h); probe forest_crowns red at HEAD, green|191/191
