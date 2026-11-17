@@ -432,3 +432,4 @@ date|task|outcome|commit|finding|suite
 2026-11-17|T443|DONE|(local, batched with T442)|Giza stone in cut courses (pixel tile, world triplanar, sharp blend); first try too pale (the old grain multiplied to ~0.6) -> 0.6 x; probe giza_courses red -> green|batched
 2026-11-17|T442+T443|PUSHED|-|batch suite green|196/196
 2026-11-17|queue|EMPTY|-|visual pass T438-T443 done (T444 dropped); open rows left are parked or need the user (T266 install, T305 superseded by T440, T346 retest, T421-T423, T437); 'Your call' list in docs/VISUAL_IDEAS.md + Factory floating question in NEEDS_HUMAN -> loop stopped|-
+2026-11-17|queue|ADDED|-|user approved the 'Your call' list except lighter Swamp fog -> T445-T451 (Giza sky, Swamp dressing w/ fog unchanged, Factory dressing, Badlands bricks + hulks, Sydney streets, beacon plinth + team light, Corvette survey)|-

@@ -23,10 +23,12 @@ measured, draw calls checked, an off-switch for anything that costs frame time).
 | T443 | Giza stone. Pyramids are smooth, so add block courses as a pixel texture: horizontal lines, a step every ~1.5 m. Make the causeway slabs and casing stones read as cut stone. |
 | ~~T444~~ | Dropped: the coloured boxes I took for cars are kiosks; they got their own dressing in T441. |
 
-## Your call
+## Your call -> approved 2026-11-17, queued T445-T451
+
+User: "All your ideas sound good, except keep the moody fog in Swamp." So Swamp keeps its fog as is; the rest of its dressing goes in.
 
 - **Giza sky.** It's one flat tan; a sun disc and a gradient (paler near the horizon) would add depth. Lighter fog would show the pyramids from further away.
-- **Swamp mood.** The fog is heavy enough that the whole map is one olive tone. Options: a slightly lighter fog with a cooler tint near the water; reeds and lily pads at the water's edge; hanging moss on the dead trees; fireflies (with an off-switch).
+- **Swamp mood.** The fog is heavy enough that the whole map is one olive tone. ~~a slightly lighter fog with a cooler tint near the water~~ (no: the fog stays); reeds and lily pads at the water's edge; hanging moss on the dead trees; fireflies (with an off-switch).
 - **Factory dressing.** Pipe runs along the bulkheads, hazard stripes on the ramp edges, a gantry crane over the deck, painted deck numbers by the beacons. The deck itself works; the bulkheads are plain slabs.
 - **Badlands ruins.** The walls are flat adobe colour. An adobe-brick pixel texture plus a few rusted vehicle hulks or dead shrubs between the ruins.
 - **Sydney streets.** Lane markings, crosswalks and kerbs (all flat, cheap).
