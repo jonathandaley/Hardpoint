@@ -17,6 +17,10 @@ func _trace(m: Node3D) -> void:
 				(m as CharacterBody3D).velocity.snapped(Vector3.ONE * 0.01), ai.get("_move_dir") if ai else "?",
 				(m.get("torso") as Node3D).global_rotation.y, ai.get("_strafe_sign") if ai else "?",
 				m.global_position.distance_to(ai.get("_target").global_position) if ai and is_instance_valid(ai.get("_target")) else -1.0])
+			if k == 0:
+				var sp: Array = m.get_meta("spawn", ["?"])
+				print("[trace] mech %s anchored %s lunging %s dead %s physics %s mode %d floor %s" % [String(sp[0]).get_file().get_basename(),
+					m.get("anchored"), m.get("lunging"), m.get("is_dead"), m.is_physics_processing(), m.process_mode, (m as CharacterBody3D).is_on_floor()])
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS

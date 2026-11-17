@@ -420,3 +420,5 @@ date|task|outcome|commit|finding|suite
 2026-11-16|T436|DONE|5ea00ac|v0.5.0 released (NET_VERSION 3); smoke-tested Linux server + SP, Windows server under Wine; server pack built, install waits on the user (sudo)|suite 188/188, net 64/64
 2026-11-16|T416|DONE|(this commit)|the sunken ruin side slabs stood across both centre boardwalks (+-16.6, +-8.3); shortened 14 -> 7 m at z 0; probe swamp_walkways (deck rays) red/green; Elite 300 s watch: no walkway stall, open-water dithering split to T437|suite 189/189
 2026-11-16|T346|PART|(this commit)|Factory no longer mutates the shared Arena.tscn Sky (own Sky); probe factory_sky red/green; real display (GLES only from here) clean; user retest with godot . pending|suite 190/190
+2026-11-16|T418|CLOSED|-|green in all 7 suites today; reopen if it fails|-
+2026-11-16|T437|PART|(this commit)|two Elite Swamp watches: defenders camping beacons (intended) + one bot frozen in place with non-zero velocity/move (not dithering; cause open); trace prints mech/anchored/lunging/physics now|tools only
