@@ -422,3 +422,4 @@ date|task|outcome|commit|finding|suite
 2026-11-16|T346|PART|(this commit)|Factory no longer mutates the shared Arena.tscn Sky (own Sky); probe factory_sky red/green; real display (GLES only from here) clean; user retest with godot . pending|suite 190/190
 2026-11-16|T418|CLOSED|-|green in all 7 suites today; reopen if it fails|-
 2026-11-16|T437|PART|(this commit)|two Elite Swamp watches: defenders camping beacons (intended) + one bot frozen in place with non-zero velocity/move (not dithering; cause open); trace prints mech/anchored/lunging/physics now|tools only
+2026-11-16|T437|PARKED|-|3rd watch traced a beacon defender again; long off-beacon stalls remain untraced (trace should pick the longest stall); bounded look done, queue otherwise empty/parked -> loop stopped|-
