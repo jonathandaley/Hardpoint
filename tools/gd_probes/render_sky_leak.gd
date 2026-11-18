@@ -13,7 +13,7 @@ func _ready() -> void:
 		return
 	Game.mp_active_match["roster"] = []
 	Game.loadout["team_size"] = 1
-	for map in ["Giza", "Glacier", "Factory"]:  # every map with own_sky() (T453 Giza); the last stays up at quit
+	for map in ["Giza", "Glacier", "Caldera", "Factory"]:  # every map with own_sky() (T453 Giza); the last stays up at quit
 		Game.loadout["map_def"] = load("res://resources/maps/%s.tres" % map)
 		var arena: Node = load("res://scenes/arena/Arena.tscn").instantiate()  # a temporary PackedScene, as map_survey
 		get_tree().root.add_child.call_deferred(arena)
