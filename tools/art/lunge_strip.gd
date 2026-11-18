@@ -3,7 +3,9 @@ extends Node3D
 # the low leap (start, mid-arc, late) and the landing -- side on, glow included.
 #   xvfb-run -a -s "-screen 0 1280x720x24" ~/bin/godot --resolution 995x560 \
 #     res://tools/art/lunge_strip.tscn -- <out.png> [Name]
+# T454: a mech with DASH (Swift) plays the dash curve instead.
 const TIMES := [0.0, 0.05, 0.1, 0.14, 0.75, 1.42, 1.5, 1.62, 1.78]  # T404: crouch, spring, dash, plant, rock back, settled
+const DASH_TIMES := [0.0, 0.03, 0.08, 0.14, 0.2, 0.26, 0.31, 0.36, 0.5]
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	var mname: String = args[1] if args.size() > 1 else "Taurus"
@@ -24,30 +26,37 @@ func _ready() -> void:
 	add_child(ground)
 	var md: Resource = load("res://resources/mechs/%s.tres" % mname)
 	var dt := 1.0 / 60.0
-	for i in TIMES.size():
+	var dash := false
+	for a in md.abilities:
+		dash = dash or a.effect_key == "dash"
+	var times: Array = DASH_TIMES if dash else TIMES
+	for i in times.size():
 		var m: Node3D = md.scene.instantiate()
 		m.scale = Vector3.ONE * md.body_scale
 		MechVisuals.apply(m, md.display_name)
-		m.position = Vector3((i - (TIMES.size() - 1) * 0.5) * 2.5, 0, 0)
+		m.position = Vector3((i - (times.size() - 1) * 0.5) * 2.5, 0, 0)
 		m.rotation_degrees.y = 270.0  # facing +x: the dash runs left to right
 		add_child(m)
 		m.set_physics_process(false)
 		m.configure_weapons(md.weapon_slots)
+		m.call("configure_abilities", md.abilities)
 		var legs: Node = m.get("legs")
 		var dir: Vector3 = -m.global_transform.basis.z
 		m.set("lunging", true)
 		var t := 0.0
-		while t < float(TIMES[i]) - 0.0001:  # play the clock up to the frame: the stride phase is real
+		var ti := float(times[i])
+		var leg_v := Vector3.ZERO if dash else dir  # as Mech.gait_velocity: a dash doesn't step
+		while t < ti - 0.0001:  # play the clock up to the frame: the stride phase is real
 			t += dt
 			m.set("lunge_t", t)
-			legs.call("update_gait", dir * Mech.lunge_speed(t), m.global_transform.basis, 15.0, md.walk_speed, dt, false, m.call("lunge_pose"))
-		m.set("lunge_t", float(TIMES[i]))
-		if float(TIMES[i]) == 0.0:
+			legs.call("update_gait", leg_v * Mech.lunge_speed(t, dash), m.global_transform.basis, 15.0, md.walk_speed, dt, false, m.call("lunge_pose"))
+		m.set("lunge_t", ti)
+		if ti == 0.0:
 			m.set("lunging", false)
-		legs.call("update_gait", dir * Mech.lunge_speed(float(TIMES[i])), m.global_transform.basis, 15.0, md.walk_speed, dt, false, m.call("lunge_pose"))
-		m.call("_set_lunge_glow", Mech.lunge_speed(float(TIMES[i])) / Mech.LUNGE_PEAK)
+		legs.call("update_gait", leg_v * Mech.lunge_speed(ti, dash), m.global_transform.basis, 15.0, md.walk_speed, dt, false, m.call("lunge_pose"))
+		m.call("_set_lunge_glow", Mech.lunge_speed(ti, dash) / (Mech.DASH_PEAK if dash else Mech.LUNGE_PEAK))
 		var lbl := Label3D.new()
-		lbl.text = "%.2f s  %.0f m/s" % [TIMES[i], Mech.lunge_speed(float(TIMES[i]))]
+		lbl.text = "%.2f s  %.0f m/s" % [ti, Mech.lunge_speed(ti, dash)]
 		lbl.font_size = 48
 		lbl.pixel_size = 0.005
 		lbl.position = Vector3(m.position.x, 3.3, 0)

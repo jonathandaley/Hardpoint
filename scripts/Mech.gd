@@ -1077,8 +1077,14 @@ func _update_legs(delta: float) -> void:
 	var pose := lunge_pose()
 	if pose == Vector3.ZERO and _anchor_pose > 0.0:
 		pose = Vector3(_anchor_pose, 0.0, 0.0)
-	legs.call("update_gait", velocity, global_transform.basis, leg_rotation_speed, walk_speed, delta, airborne,
+	legs.call("update_gait", gait_velocity(), global_transform.basis, leg_rotation_speed, walk_speed, delta, airborne,
 		pose)
+
+## T454 (user 2026-11-17: Swift's "legs just look funny while dashing"): a dash doesn't step -- at
+## 20 m/s the gait spun the stride and swung the hips round to a sideways dash and back. The legs
+## see a standstill (no stepping, no turning) and hold DASH's braced crouch while the body skims.
+func gait_velocity() -> Vector3:
+	return Vector3.ZERO if lunging and _dash else velocity
 
 # T150 (B48) / V37: render remote AND own mechs INTERP_DELAY behind the newest
 # server state, interpolating between the two buffered snapshots around that
@@ -1598,6 +1604,8 @@ const DASH_S := 0.22       # s at speed
 const DASH_RAMP_S := 0.04
 const DASH_STOP_S := 0.12
 const DASH_PEAK := 20.0    # m/s: ~5 m a dash
+const DASH_CROUCH := 0.55  # leg pose crouch at mid-dash (0..1)
+const DASH_LIFT := 0.12    # m the legs rise at mid-dash (visual): the feet skim
 var _dash := false  # this mech's lunge clock runs the DASH curve (configure_abilities)
 
 ## The curve's phases for this mech: [windup, dash, stop, settle].
@@ -1807,8 +1815,9 @@ func _lunge_catch_up(slt: float, ahead: int) -> void:
 func lunge_pose() -> Vector3:
 	if not lunging or lunge_t < 0.0:
 		return Vector3.ZERO
-	if _dash:  # T454: a low skating stride, no crouch or hop
-		return Vector3(0.2, 1.0 - clampf((lunge_t - DASH_S) / DASH_STOP_S, 0.0, 1.0), 0.0)
+	if _dash:  # T454: a braced crouch and a slight thruster lift, in and out over the dash, no leap
+		var k := sin(PI * clampf(lunge_t / (DASH_S + DASH_STOP_S), 0.0, 1.0))
+		return Vector3(DASH_CROUCH * k, 0.0, DASH_LIFT * k)
 	if lunge_t < LUNGE_WINDUP_S:
 		return Vector3(lunge_t / LUNGE_WINDUP_S, 0.0, 0.0)
 	var d := lunge_t - LUNGE_WINDUP_S

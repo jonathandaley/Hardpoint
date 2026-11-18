@@ -3,6 +3,8 @@ extends Node
 # along the move input, on the lunge's clock with its own curve. On a deck high above the map:
 #  S strafes right and dashes: it goes ~the curve's distance to its RIGHT (not along its facing),
 #    and is done after the curve's length;
+#    its legs don't swing round to the sideways dash, and crouch at mid-dash (user: "legs just look
+#    funny while dashing");
 #  N dashes with no input: along its facing;
 #  E dashes sideways into an enemy 2.5 m off: stops at it, the enemy takes no damage (no ram);
 #  B is a Hard bot with DASH and a target in range: it dashes on its own, no more than its charges
@@ -126,6 +128,11 @@ func _ready() -> void:
 	ss.move = Vector2.ZERO  # the dash keeps the direction it started with
 	es.move = Vector2.ZERO
 	var wf := float(Engine.physics_ticks_per_second)
+	var s_legs: Node3D = s.get("legs")
+	var legs_yaw0 := s_legs.rotation.y
+	var legs_swing := 0.0  # T454 (user: "its legs just look funny while dashing"): no turning to a sideways dash
+	var knee_mid := 0.0    # and a braced crouch at mid-dash
+	var knee_rest := float(s_legs.get("left_knee1").rotation.x)
 	var s_done := -1.0
 	var b_at := -1.0
 	var b_dashes := 0
@@ -135,6 +142,10 @@ func _ready() -> void:
 		var t := (k + 1) / wf
 		if s_done < 0.0 and not s.get("lunging"):
 			s_done = t
+		if s.get("lunging"):
+			legs_swing = maxf(legs_swing, absf(angle_difference(legs_yaw0, s_legs.rotation.y)))
+			if absf(t - 0.5 * (Mech.DASH_S + Mech.DASH_STOP_S)) < 0.5 / wf + 0.001:
+				knee_mid = knee_rest - float(s_legs.get("left_knee1").rotation.x)
 		var bl: bool = b.get("lunging")
 		if bl and not b_was:
 			b_dashes += 1
@@ -155,6 +166,10 @@ func _ready() -> void:
 		bad.append("S went %s, not to its right %s" % [ds.normalized(), right_s])
 	if s_done < 0.0 or absf(s_done - total) > 0.1:
 		bad.append("S's dash ended at %.2f s (want %.2f)" % [s_done, total])
+	if legs_swing > 0.05:
+		bad.append("S's legs swung %.2f rad toward the sideways dash (want them braced, facing ahead)" % legs_swing)
+	if knee_mid < 0.3:
+		bad.append("S's knees bent %.2f rad at mid-dash (want a braced crouch)" % knee_mid)
 	var dn := _flat(n.global_position - n0)
 	if dn.length() < want - 1.0 or dn.normalized().dot(face_n) < 0.9:
 		bad.append("N (no input) went %.1f m along %s (want ~%.1f along its facing %s)" % [dn.length(), dn.normalized(), want, face_n])
