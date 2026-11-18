@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="MechDef" load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/MechDef.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/mech/Mech.tscn" id="2"]
+[ext_resource type="Script" path="res://scripts/WeaponSlotDef.gd" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/RifleLight.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/RifleHeavy.tscn" id="5"]
+[ext_resource type="Resource" path="res://resources/abilities/FieldRepair.tres" id="6"]
+
+[sub_resource type="Resource" id="1"]
+script = ExtResource("3")
+slot_size = 0
+position = Vector3(-0.46, 1.66, -0.28)
+weapon_scene = ExtResource("4")
+
+[sub_resource type="Resource" id="2"]
+script = ExtResource("3")
+slot_size = 0
+position = Vector3(0.46, 1.66, -0.28)
+weapon_scene = ExtResource("4")
+
+[resource]
+script = ExtResource("1")
+display_name = "Heron"
+description = "Medium, 380 HP, no shield, two light hardpoints. FIELD REPAIR (SPACE): for 5 s it repairs itself and every ally within 18 m -- 150 HP each, a green ring marks the reach -- then 25 s to recharge. Slate grey with a green repair mast: marsh crews built Heron to wade in behind the line, and squads that keep one close stay standing."
+class_tag = "Medium"
+max_health = 380.0
+walk_speed = 1.9
+weapon_scale = 1.3
+turn_acceleration = 12.0
+leg_rotation_speed = 15.0
+leg_hip_sweep = 0.24
+leg_bob_magnitude = 0.06
+leg_cycle_rate = 1.0
+body_scale = 1.0
+abilities = [ExtResource("6")]
+weapon_slots = [SubResource("1"), SubResource("2")]
+scene = ExtResource("2")

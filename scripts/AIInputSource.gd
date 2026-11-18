@@ -821,11 +821,24 @@ func _use_abilities(bot_mech: Node3D, fighting: bool, own_hp_pct: float, has_tar
 				_ability_press = lunge_wanted(bot_mech, has_target, dist)
 			"anchor":  # T430: plant when trading shots in range with a clear line
 				_ability_press = has_target and _has_clear_shot and dist <= fire_range
+			"field_repair":  # T455: when it or an ally in reach is hurt
+				_ability_press = field_repair_wanted(bot_mech, own_hp_pct, fighting)
 			"dash":  # T454: in a gunfight, burst along whatever it's strafing; charges spaced DASH_GAP_TICKS
 				_ability_press = fighting and has_target and dist <= fire_range \
 						and Engine.get_physics_frames() - _last_dash_frame > DASH_GAP_TICKS
 				if _ability_press:
 					_last_dash_frame = Engine.get_physics_frames()
+
+## T455: repair when it's hurt in a fight, or an ally in reach is down to 70% or less.
+static func field_repair_wanted(bot_mech: Node3D, own_hp_pct: float, fighting: bool) -> bool:
+	if own_hp_pct < 0.6 and fighting:
+		return true
+	for m in bot_mech.get_tree().get_nodes_in_group("mechs"):
+		if m != bot_mech and m.get("team") == bot_mech.get("team") and float(m.get("health")) > 0.0 \
+				and float(m.get("health")) <= 0.7 * float(m.get("max_health")) \
+				and m.global_position.distance_to(bot_mech.global_position) <= Mech.FIELD_R:
+			return true
+	return false
 
 const DASH_GAP_TICKS := 90  # T454: 1.5 s at 60 Hz -- a bot doesn't spend both dash charges at once
 var _last_dash_frame := -100000

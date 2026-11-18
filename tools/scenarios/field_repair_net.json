@@ -1,0 +1,148 @@
+{
+  "name": "field_repair_net",
+  "seed": 4550,
+  "port": 8992,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Heron.tres",
+  "net": {
+    "latency_ms": 160,
+    "jitter_ms": 10,
+    "loss": 0.01
+  },
+  "duration_ticks": 1200,
+  "oracles": [
+    "prediction_recon",
+    "transform_desync",
+    "health_desync",
+    "input_delivery",
+    "spawn_join",
+    "team_assignment",
+    "crash_scan",
+    "log_flood",
+    "rpc_integrity"
+  ],
+  "thresholds": {
+    "pred_snap_frac": 0.01
+  },
+  "_comment": "T455: both peers fly Heron. The server takes 150 off each (kill_mech amount, ticks 120/130), then each presses FIELD REPAIR (server 200, client 230): 5 s of repair, the server's call, reaching clients through _sync_health ~5x a second (snapshots carry no health). health_desync: the client's view of both mechs must track the server's while they climb back; crash_scan / rpc_integrity: the ring's RPC path (_rpc_ability_activated / _deactivated) on every peer.",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 100,
+            "look": [
+              2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 110,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 500,
+            "look": [
+              -2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 510,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "pulses": [
+          {
+            "tick": 200,
+            "action": "ability"
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 100,
+            "look": [
+              -2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 110,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 500,
+            "look": [
+              2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 510,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "pulses": [
+          {
+            "tick": 230,
+            "action": "ability"
+          }
+        ]
+      }
+    }
+  },
+  "actions": [
+    {
+      "tick": 120,
+      "peer": "server",
+      "action": "kill_mech",
+      "slot": "client_1",
+      "amount": 150
+    },
+    {
+      "tick": 130,
+      "peer": "server",
+      "action": "kill_mech",
+      "slot": "server",
+      "amount": 150
+    }
+  ]
+}

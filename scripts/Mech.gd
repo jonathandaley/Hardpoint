@@ -1431,6 +1431,8 @@ func _handle_ability() -> void:
 			_ability_active_timers[key] = maxf(0.0, _ability_active_timers[key] - delta)
 			if _ability_active_timers[key] == 0.0:
 				_deactivate_ability(key)
+	if field_repair:
+		_field_repair_tick(delta)
 	if not _input_source.is_ability_pressed():
 		return
 	Game.sync_log_event("input_applied", name, {"action": "ability", "slot": -1})  # T158
@@ -1487,6 +1489,8 @@ func _activate_ability(ability: Resource) -> void:
 			_apply_stealth_visual(true)
 		"anchor":
 			anchored = true
+		"field_repair":
+			_set_field_repair(true)
 		"lunge", "dash":
 			_lunge_begin(_dash_dir() if ability.effect_key == "dash" else _lunge_facing())
 			if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
@@ -1516,6 +1520,8 @@ func _deactivate_ability(key: String) -> void:
 			_apply_stealth_visual(false)
 		"anchor":
 			anchored = false
+		"field_repair":
+			_set_field_repair(false)
 	for ability in _abilities:
 		if ability.effect_key == key:
 			var cd: float = ability.cooldown * maxf(0.0, 1.0 - skill("ability_recharge") * ability.recharge_skill_k)  # T332, T454
@@ -1523,6 +1529,59 @@ func _deactivate_ability(key: String) -> void:
 			if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 				_rpc_ability_deactivated.rpc(_abilities.find(ability))
 			break
+
+# ---- T455: Heron FIELD REPAIR (effect_key "field_repair", a duration ability) ----
+# User 2026-11-17: "add as many mechs as you think are good" -- nobody supported the team. For the
+# ability's 5 s the server repairs Heron and every living ally within FIELD_R (3D distance) by
+# FIELD_HPS; health reaches clients through _sync_health (snapshots carry none), a few times a
+# second. Everyone sees a ring on the ground at the reach (one torus, unshaded, while it runs).
+# Calibration knobs.
+const FIELD_R := 18.0
+const FIELD_HPS := 30.0          # 150 HP over the 5 s
+const FIELD_COLOR := Color("#5cff9a")
+var field_repair := false
+var _field_ring: MeshInstance3D
+var _heal_sync_frame := -100
+
+func _set_field_repair(on: bool) -> void:
+	field_repair = on
+	if on and _field_ring == null:
+		_field_ring = MeshInstance3D.new()
+		var tm := TorusMesh.new()
+		tm.inner_radius = FIELD_R - 0.3
+		tm.outer_radius = FIELD_R
+		tm.rings = 64
+		tm.ring_segments = 4
+		_field_ring.mesh = tm
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.albedo_color = FIELD_COLOR
+		_field_ring.material_override = m
+		_field_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(_field_ring)
+		_field_ring.scale = Vector3.ONE / maxf(0.01, scale.x)  # the reach in metres, whatever the body_scale
+		_field_ring.position = Vector3(0, 0.25 / maxf(0.01, scale.x), 0)
+	if _field_ring != null:
+		_field_ring.visible = on
+
+## Server: this tick's repair for every living ally in reach, this mech included.
+func _field_repair_tick(delta: float) -> void:
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		return
+	if health <= 0.0:
+		return
+	for m in get_tree().get_nodes_in_group("mechs"):
+		if m.get("team") == team and m.global_position.distance_to(global_position) <= FIELD_R:
+			m.call("repair", FIELD_HPS * delta)
+
+## Server: add health (not past max, not to the dead); clients hear it ~5x a second (T455).
+func repair(amount: float) -> void:
+	if health <= 0.0 or is_dead or health >= max_health:
+		return
+	health = minf(health + amount, max_health)
+	if multiplayer.has_multiplayer_peer() and (Engine.get_physics_frames() - _heal_sync_frame >= 12 or health >= max_health):
+		_heal_sync_frame = Engine.get_physics_frames()
+		_sync_health.rpc(health)
 
 # ---- T430: Denali ANCHOR (ability effect_key "anchor", a duration ability) ----
 # Plants its feet for the ability's duration: no walking (it still turns and aims), half damage
@@ -1869,6 +1928,8 @@ func _rpc_ability_activated(slot: int) -> void:
 			_apply_stealth_visual(true)
 		"anchor":
 			anchored = true  # the owner's prediction stops too (one RTT/2 late, reconciled)
+		"field_repair":
+			_set_field_repair(true)  # T455: the ring, for everyone
 
 @rpc("authority", "reliable")
 func _rpc_ability_deactivated(slot: int) -> void:
@@ -1879,5 +1940,7 @@ func _rpc_ability_deactivated(slot: int) -> void:
 		"stealth":
 			is_stealthy = false
 			_apply_stealth_visual(false)
+		"field_repair":
+			_set_field_repair(false)
 		"anchor":
 			anchored = false
