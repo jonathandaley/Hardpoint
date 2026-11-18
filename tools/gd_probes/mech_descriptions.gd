@@ -2,7 +2,7 @@ extends Node
 # T406 probe (HUMAN_FOUND, queued 2026-11-13: "Improve mech descriptions: they currently barely
 # mention shields, and don't mention abilities at all. Also add some lore ... Do a similar thing for
 # the weapons."): every roster mech's description names its shield (physical / energy) and its
-# ability with the key that fires it; the hangar shows it on the mech name; every weapon's hangar
+# ability with the key that fires it; the hangar shows it from an info button after the mech name; every weapon's hangar
 # tooltip carries a description line under the numbers.
 
 const Lobby := preload("res://scripts/Lobby.gd")
@@ -39,8 +39,29 @@ func _ready() -> void:
 	await get_tree().process_frame
 	var lbl := h.get("mech_name_label") as Label
 	var md0: Resource = Game.loadout.get("mech_def")
-	if lbl == null or md0 == null or lbl.tooltip_text != String(md0.description):
-		bad.append("the hangar's mech name doesn't show the description on hover")
+	# T466: a click on the "i" after the name opens the description; the next click closes it
+	var btn: Button = lbl.get_node_or_null("MechInfo") if lbl != null else null
+	if btn == null or md0 == null:
+		bad.append("the hangar's mech name has no info button")
+	else:
+		btn.pressed.emit()
+		await get_tree().process_frame
+		var box: Control = h.get("_info_box")
+		if box == null or not box.is_visible_in_tree() or (box.get_child(0) as Label).text != String(md0.description):
+			bad.append("the info button doesn't open the description")
+		else:
+			var f := lbl.get_theme_font("font")
+			var w := f.get_string_size(lbl.text, HORIZONTAL_ALIGNMENT_LEFT, -1, lbl.get_theme_font_size("font_size")).x
+			if btn.get_global_rect().position.x < lbl.global_position.x + w:
+				bad.append("the info button sits on the mech name")
+			if box.get_global_rect().end.x > 640.0:
+				bad.append("the description box runs off screen")
+			var ev := InputEventMouseButton.new()
+			ev.button_index = MOUSE_BUTTON_LEFT
+			ev.pressed = true
+			h.call("_input", ev)
+			if box.visible:
+				bad.append("a click elsewhere doesn't close the description")
 	if not bad.is_empty():
 		_fail("; ".join(bad))
 	print("[probe] mech_descriptions done")

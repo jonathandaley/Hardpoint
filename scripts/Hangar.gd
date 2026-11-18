@@ -498,8 +498,15 @@ func _update_mech_panel() -> void:
 	if md == null:
 		return
 	mech_name_label.text = "MECH: %s" % md.display_name.to_upper()
-	mech_name_label.tooltip_text = md.description  # T406: role, shield, ability and a line of lore
-	mech_name_label.mouse_filter = Control.MOUSE_FILTER_PASS
+	# T406: role, shield, ability and a line of lore, behind the T466 "i" just after the name
+	var info: Button = mech_name_label.get_node_or_null("MechInfo")
+	if info == null:
+		info = _info_button(mech_name_label, "", "MechInfo")
+	info.set_meta("info", md.description)
+	var f := mech_name_label.get_theme_font("font")
+	info.position = Vector2(f.get_string_size(mech_name_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
+		mech_name_label.get_theme_font_size("font_size")).x + 8.0, 1.0)
+	info.size = Vector2(22, 22)
 	var shield_str: String
 	if md.has_shields:
 		shield_str = "PHYSICAL (FRONT)"
@@ -566,8 +573,6 @@ func _build_weapon_picker(md) -> void:
 		var wep_lbl := Label.new()
 		wep_lbl.name = "Weapon"
 		wep_lbl.text = wep_name
-		wep_lbl.tooltip_text = weapon_tip(cat_idx)  # T283
-		wep_lbl.mouse_filter = Control.MOUSE_FILTER_PASS  # labels ignore the mouse by default: no tooltip
 		wep_lbl.add_theme_font_size_override("font_size", 13)
 		wep_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		wep_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -582,6 +587,7 @@ func _build_weapon_picker(md) -> void:
 		next_btn.add_theme_font_size_override("font_size", 13)
 		next_btn.pressed.connect(_on_weapon_cycle.bind(i, 1))
 		row.add_child(next_btn)
+		_info_button(row, weapon_tip(cat_idx))  # T283 numbers + T406 description, T466 "i"
 
 	# T308: from the picker's real height (rows are 26 px, not row_h: 3-slot mechs overlapped)
 	var stats_top: float = picker_top + maxf(slots.size() * row_h, picker.get_combined_minimum_size().y) + 8.0
@@ -590,8 +596,8 @@ func _build_weapon_picker(md) -> void:
 	mech_stats_label.offset_right = 415.0
 	mech_stats_label.add_theme_font_size_override("font_size", 13)  # T308: the picker's size
 
-# T283 (user 2026-11-05: range "in a drop-down mouseover menu", not in the name): hover a
-# weapon in the picker for its numbers. Read once per weapon scene.
+# T283 (user 2026-11-05: range "in a drop-down mouseover menu", not in the name): a weapon's
+# numbers, behind its picker row's "i" (T466; was a hover tooltip). Read once per weapon scene.
 static var _tips := {}
 
 # T406 (HUMAN_FOUND: "Improve mech descriptions ... add some lore ... Do a similar thing for the
@@ -689,7 +695,7 @@ func _on_weapon_cycle(slot_idx: int, direction: int) -> void:
 
 	if slot_idx < _weapon_name_labels.size() and is_instance_valid(_weapon_name_labels[slot_idx]):
 		_weapon_name_labels[slot_idx].text = WEAPON_CATALOG[_weapon_indices[slot_idx]]["long"]
-		_weapon_name_labels[slot_idx].tooltip_text = weapon_tip(_weapon_indices[slot_idx])
+		_weapon_name_labels[slot_idx].get_parent().get_node("Info").set_meta("info", weapon_tip(_weapon_indices[slot_idx]))
 	_refresh_diorama_mech()  # T188: the shown mech carries the new pick
 	_refresh_lineup_mechs()
 
@@ -832,6 +838,59 @@ func _on_matchmaking_pressed() -> void:
 	SoundManager.play_sfx_2d("ui_click")
 	_on_matchmaking_reset()
 	$FindMatchPanel.visible = true
+
+# T466 (user: "I didn't know mechs had tooltips. Make an info icon that's clickable instead of a
+# mouseover tooltip." / "For both mechs and weapons."): an "i" button after the mech name and on
+# every weapon row opens its text on the old tooltip's dark box under the mech name; the same "i"
+# again, or a click anywhere else, closes it (a click on the box itself goes no further).
+var _info_box: PanelContainer
+var _info_from: Button
+
+func _info_button(parent: Control, text: String, bname := "Info") -> Button:
+	var b := Button.new()
+	b.name = bname
+	b.text = "i"
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(18, 0)
+	b.add_theme_font_size_override("font_size", 13)
+	b.set_meta("info", text)
+	b.pressed.connect(_on_info_pressed.bind(b))
+	parent.add_child(b)
+	return b
+
+func _on_info_pressed(b: Button) -> void:
+	SoundManager.play_sfx_2d("ui_click")
+	if _info_box == null:
+		_info_box = PanelContainer.new()
+		_info_box.name = "InfoBox"
+		_info_box.z_index = 10  # over the picker and stats drawn after the name
+		_info_box.add_theme_stylebox_override("panel", theme.get_stylebox("panel", "TooltipPanel"))
+		var l := Label.new()
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.custom_minimum_size.x = 418
+		l.add_theme_font_size_override("font_size", 12)
+		_info_box.add_child(l)
+		mech_name_label.add_child(_info_box)  # hides with the detail screen
+	elif _info_box.visible and _info_from == b:
+		_info_box.visible = false
+		return
+	_info_from = b
+	(_info_box.get_child(0) as Label).text = String(b.get_meta("info"))
+	_info_box.size = Vector2.ZERO  # shrink to the new text
+	_info_box.global_position = Vector2(mech_name_label.global_position.x, b.get_global_rect().end.y + 4.0)
+	_info_box.visible = true
+
+func _input(e: InputEvent) -> void:
+	if _info_box == null or not _info_box.is_visible_in_tree():
+		return
+	if not (e is InputEventMouseButton and e.pressed):
+		return
+	var m := get_global_mouse_position()
+	if _info_from != null and _info_from.get_global_rect().has_point(m):
+		return  # its "i" toggles it
+	if _info_box.get_global_rect().has_point(m):
+		get_viewport().set_input_as_handled()
+	_info_box.visible = false
 
 # T336 (user on the T283 weapon tooltip: "Make the box background opaque so it's easier to
 # read"): the hangar's tooltips sit on a solid dark box (the engine default is see-through).
