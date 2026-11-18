@@ -789,6 +789,13 @@ func _update_boost_status() -> void:
 			lbl.add_theme_constant_override("outline_size", 2)
 			lbl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
 			boost_status.add_child(lbl)
+		var st := Label.new()  # T478: Etna's STOMP -- slowed and weakened while slow_s runs
+		st.name = "Stomped"
+		st.add_theme_font_size_override("font_size", 9)
+		st.add_theme_color_override("font_color", Color(1.0, 0.55, 0.15))
+		st.add_theme_constant_override("outline_size", 2)
+		st.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+		boost_status.add_child(st)
 		add_child(boost_status)
 	var alive: bool = is_instance_valid(_player_mech) and not _player_mech.get("is_dead")
 	var any := false
@@ -798,6 +805,11 @@ func _update_boost_status() -> void:
 		lbl.visible = secs > 0.0
 		lbl.text = "%s  %ds" % [_PickupScript.LABELS[kind], ceili(secs)]
 		any = any or lbl.visible
+	var stomped: float = float(_player_mech.get("slow_s")) if alive and "slow_s" in _player_mech else 0.0
+	var st := boost_status.get_node("Stomped") as Label
+	st.visible = stomped > 0.0
+	st.text = "STOMPED -%d%% DMG %ds" % [roundi((1.0 - Mech.STOMP_WEAKEN_K) * 100.0), ceili(stomped)]  # fits the minimap's width
+	any = any or st.visible
 	if not any or minimap == null or not minimap.visible:
 		boost_status.visible = false
 		return

@@ -22,7 +22,7 @@ weapon_scene = ExtResource("5")
 [resource]
 script = ExtResource("1")
 display_name = "Etna"
-description = "Heavy, 950 HP, no shield, two heavy hardpoints. STOMP (SPACE): a shockwave through every enemy within 12 m -- up to 80 damage, half at the edge -- and they walk at half speed for 3 s, then 18 s to recharge. Black rock cracked with orange fire: Etna was dug out of a caldera foundry, and close quarters is where it wants you."
+description = "Heavy, 950 HP, no shield, two heavy hardpoints. STOMP (SPACE): a shockwave through every enemy within 12 m -- up to 80 damage, half at the edge -- and for 10 s they walk at half speed and their guns hit 40% softer, then 18 s to recharge. Black rock cracked with orange fire: Etna was dug out of a caldera foundry, and close quarters is where it wants you."
 class_tag = "Heavy"
 max_health = 950.0
 walk_speed = 0.9

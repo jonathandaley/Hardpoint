@@ -1,7 +1,8 @@
 extends Node
 # T456 probe (Etna STOMP; user 2026-11-17: "add as many mechs as you think are good"): the server hits
 # every living enemy within Mech.STOMP_R, STOMP_DMG falling to half at the edge, and slows it to
-# STOMP_SLOW_K for STOMP_SLOW_S. On a deck:
+# STOMP_SLOW_K for STOMP_SLOW_S; T478: while slowed its hits deal x STOMP_WEAKEN_K and the
+# stomped player's HUD says STOMPED. On a deck:
 #  S stomps: enemy N at 4 m takes ~the falloff damage and walks at half speed, back to full after the
 #    slow; enemy M at 11 m takes less; enemy F at 14 m nothing; ally A at 4 m nothing; S nothing;
 #  B is a Hard bot Etna: an enemy walks to 6 m -> it stomps on its own.
@@ -109,14 +110,43 @@ func _ready() -> void:
 		if float(m.get("health")) < hp[m]:
 			bad.append("%s took %.1f (out of reach / own team)" % [("F" if m == f else ("A" if m == a else "S")), hp[m] - float(m.get("health"))])
 	var slowed: float = n.get("walk_speed")
+	if float(n.get("_shake_timer")) < Mech.STOMP_SHAKE_S * 0.5:  # T478: the stomped camera shakes
+		bad.append("N's camera didn't shake (timer %.2f)" % float(n.get("_shake_timer")))
+	Game.settings["camera_shake"] = false
+	mm.set("_shake_timer", 0.0)
+	mm.call("apply_camera_shake", 0.1, 1.0)
+	if float(mm.get("_shake_timer")) > 0.0:
+		bad.append("CAMERA SHAKE off and the camera still shook")
+	Game.settings["camera_shake"] = true
 	if absf(slowed - ws_n * Mech.STOMP_SLOW_K) > 0.01:
 		bad.append("N walks at %.2f after the stomp (want %.2f)" % [slowed, ws_n * Mech.STOMP_SLOW_K])
 	if absf(float(f.get("walk_speed")) - float(f.get("base_walk_speed"))) > 0.01 and float(f.get("terrain_speed")) == 1.0:
 		bad.append("F (out of reach) slowed")
+	# T478: stomped, N's hits deal x STOMP_WEAKEN_K; after the slow, full again
+	var wn: Node = (n.call("get_weapons") as Array)[0]
+	var dmg: float = float(wn.get("damage"))
+	var s0: float = s.get("health")
+	s.call("request_damage", dmg, wn)
+	var cut: float = s0 - float(s.get("health"))
+	if absf(cut - dmg * Mech.STOMP_WEAKEN_K) > 0.01:
+		bad.append("stomped N's %.1f hit dealt %.2f (want x%.2f = %.2f)" % [dmg, cut, Mech.STOMP_WEAKEN_K, dmg * Mech.STOMP_WEAKEN_K])
+	var me: Node = t0[0]
+	me.set("slow_s", 5.0)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var lbl := arena.get("hud").find_child("Stomped", true, false) as Label  # under the minimap (T371's list)
+	if lbl == null or not lbl.is_visible_in_tree() or not lbl.text.begins_with("STOMPED"):
+		bad.append("a stomped player's HUD doesn't say STOMPED")
 	for k in int((Mech.STOMP_SLOW_S + 0.2) * wf):
 		await get_tree().physics_frame
 	if absf(float(n.get("walk_speed")) - ws_n) > 0.01:
 		bad.append("N still at %.2f after the slow (want %.2f)" % [n.get("walk_speed"), ws_n])
+	var s1: float = s.get("health")
+	s.call("request_damage", dmg, wn)
+	if absf((s1 - float(s.get("health"))) - dmg) > 0.01:
+		bad.append("N's hit after the slow dealt %.2f (want the full %.1f)" % [s1 - float(s.get("health")), dmg])
+	if lbl != null and lbl.is_visible_in_tree():
+		bad.append("the HUD still says STOMPED after the slow")
 	# bot: an enemy walks to 6 m
 	b.get("_input_source").set("difficulty", 3)
 	_place(n, b.global_position + Vector3(6, 0, 0))

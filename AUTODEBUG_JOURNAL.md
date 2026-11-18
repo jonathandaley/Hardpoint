@@ -470,3 +470,4 @@ date|task|outcome|commit|finding|suite
 2026-11-18|T470|DONE|(this commit)|a bot's dropped coin was its base only (the T364 bounty went only into its killer's match-end kill coins): the drop is now base + bounty; kill_bounty checks it (red before: 6, want 9)
 2026-11-18|T471|DONE|(this commit)|the spawn picker opens under the click that chose the mech: its buttons ignore presses for 400 ms; probe spawn_arm (red before: the early press spawned)
 2026-11-18|T475|DONE|(this commit)|the user on T430: "Great, just uncapitalize ANCHOR." -> the ability reads "Anchor" (name + Denali's description); the NEEDS_HUMAN entry is answered and gone
+2026-11-18|T478|DONE (local, branch surprise)|(this commit)|stomp: x0.6 damage + slow for 10 s (one timer), camera shake on the stomped (Settings CAMERA SHAKE turns every shake off), STOMPED line under the minimap; stomp probe red without the cut; suite 213/213

@@ -178,6 +178,7 @@ func _build_graphics_page() -> void:
 	graphics_box = _build_page("Graphics", "GRAPHICS")
 	_build_toggle_section(graphics_box, "FANCY HANGAR", "fancy_hangar", "Fancy")  # T254
 	_build_toggle_section(graphics_box, "AMBIENT EFFECTS", "map_effects", "MapFx")  # T446: Swamp's fireflies (not "MAP ...": probe sp_map_pick)
+	_build_toggle_section(graphics_box, "CAMERA SHAKE", "camera_shake", "Shake")  # T478: recoil + stomp
 	_build_toggle_section(graphics_box, "LONG-LASTING CASINGS", "casings_long", "Casings")  # T263: 1000 / 150
 	# T428: lower = faster on a weak graphics card, blurrier 3D; the HUD stays sharp
 	_build_choice_section(graphics_box, "RESOLUTION (IN MATCH)", "render_scale", "Res",

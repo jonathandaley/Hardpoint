@@ -84,6 +84,7 @@ var _lock_time: float = 3.0
 const _SHAKE_DURATION := 0.15
 var _shake_intensity: float = 0.0
 var _shake_timer: float = 0.0
+var _shake_len := _SHAKE_DURATION  # T478: this shake's length (a stomp shakes longer)
 
 var walk_speed: float:
 	get: return base_walk_speed * _modifiers.get("walk_speed", 1.0) * terrain_speed * (STOMP_SLOW_K if slow_s > 0.0 else 1.0)
@@ -252,7 +253,7 @@ func _process(delta: float) -> void:
 	_tilt_guns()
 	if _shake_timer > 0.0:
 		_shake_timer = maxf(0.0, _shake_timer - delta)
-		var frac := _shake_timer / _SHAKE_DURATION
+		var frac := _shake_timer / _shake_len
 		camera_arm.rotation.x = _camera_pitch + randf_range(-_shake_intensity, _shake_intensity) * frac
 	else:
 		camera_arm.rotation.x = _camera_pitch
@@ -295,9 +296,16 @@ func _tilt_guns() -> void:
 			var d: Vector3 = inv * (aim - (hp as Node3D).global_position)
 			(hp as Node3D).rotation.x = clampf(atan2(d.y, maxf(-d.z, 0.5)), -TILT_MAX, TILT_MAX)
 
-func apply_camera_shake(magnitude: float) -> void:
+## T478: Settings > CAMERA SHAKE turns every shake off (recoil and stomp); a weak shake never cuts
+## a stronger one short.
+func apply_camera_shake(magnitude: float, secs := _SHAKE_DURATION) -> void:
+	if not bool(Game.settings.get("camera_shake", true)):
+		return
+	if _shake_timer > 0.0 and _shake_intensity * _shake_timer / _shake_len > magnitude:
+		return
 	_shake_intensity = magnitude
-	_shake_timer = _SHAKE_DURATION
+	_shake_timer = secs
+	_shake_len = secs
 
 func configure_energy_shield(has_shield: bool, max_hp: float, regen_rate: float, regen_delay: float) -> void:
 	if not has_shield:
@@ -569,6 +577,8 @@ func request_damage(amount: float, source: Node3D = null) -> void:
 		amount *= DAMAGE_BOOST
 	if shooter != null and shooter.get("anchored"):  # T430
 		amount *= ANCHOR_DAMAGE_OUT
+	if shooter != null and float(shooter.get("slow_s")) > 0.0:  # T478: stomped -> weakened
+		amount *= STOMP_WEAKEN_K
 	_apply_damage(amount, source)
 
 var _last_hurt_sfx := -3
@@ -812,6 +822,7 @@ func _rpc_boost(kind: String, secs: float) -> void:
 		apply_modifier("walk_speed", SPEED_BOOST)
 	elif kind == "slow":  # T455/T456: STOMP -- every peer, so the owner's prediction slows too
 		slow_s = secs
+		apply_camera_shake(STOMP_SHAKE, STOMP_SHAKE_S)  # T478 (user: "Yes" to a shake on stomped players)
 	elif kind == "burn":  # T457: the flames on a burning mech (the damage is the server's, ignite)
 		burn_s = maxf(burn_s, secs)
 
@@ -1622,7 +1633,13 @@ const STOMP_R := 12.0
 const STOMP_DMG := 80.0
 const STOMP_FALLOFF := 0.5       # share of STOMP_DMG lost at the edge
 const STOMP_SLOW_K := 0.5
-const STOMP_SLOW_S := 3.0
+const STOMP_SLOW_S := 10.0  # T478 (user: "length 10s (and increase Slow duration)"; was 3)
+# T478 (user 2026-11-18, on "How expensive would making Etna's stomp suppress opponents' damage be?":
+# "Amount good, length 10s ... flamer burn is good."): a stomped mech's hits deal x STOMP_WEAKEN_K
+# for as long as it's slowed (one timer, slow_s); a burn it already set keeps its damage.
+const STOMP_WEAKEN_K := 0.6
+const STOMP_SHAKE := 0.06    # rad, the stomped player's camera (recoil shakes are 0.001-0.03)
+const STOMP_SHAKE_S := 0.6
 const STOMP_CROUCH := 0.6
 const STOMP_POSE_S := 0.4
 const STOMP_COLOR := Color("#ff7a1a")
