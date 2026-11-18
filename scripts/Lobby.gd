@@ -108,11 +108,49 @@ func _ready() -> void:
 		# Auto-send current squad so server has it immediately.
 		Game._rpc_set_squad.rpc_id(1, _build_squad_data())
 
+	_build_hangar_pick()  # T477
 	_update_host_controls_visibility()
 	_rebuild_peer_list()
 	_sync_host_controls_to_lobby()
 	_update_start_button()
 	_update_ready_btn()
+
+# T477 (HUMAN_FOUND 2026-11-18, with T467: "Team selection, hangar selection, etc"): a HANGAR menu by
+# READY UP brings one of the hangar's saved squads (T177 presets) without leaving the lobby. It becomes
+# the hangar's squad too; the server gets it the usual way (_rpc_set_squad, cleaned there), the host's
+# straight into its own lobby entry.
+var _hangar_opt: OptionButton = null
+
+func _build_hangar_pick() -> void:
+	var names: Array = (Game.loadout.get("presets", {}) as Dictionary).keys()
+	names.sort()
+	_hangar_opt = OptionButton.new()
+	_hangar_opt.name = "HangarPick"
+	_hangar_opt.add_theme_font_size_override("font_size", 13)
+	_hangar_opt.add_item("HANGAR: CURRENT")
+	for n in names:
+		_hangar_opt.add_item("HANGAR: " + String(n).to_upper())
+		_hangar_opt.set_item_metadata(_hangar_opt.item_count - 1, n)
+	_hangar_opt.disabled = names.is_empty()
+	_hangar_opt.position = Vector2(275.0, 183.0)
+	_hangar_opt.size = Vector2(255.0, 27.0)
+	_hangar_opt.item_selected.connect(_on_hangar_picked)
+	add_child(_hangar_opt)
+
+func _on_hangar_picked(i: int) -> void:
+	var pname = _hangar_opt.get_item_metadata(i)
+	if not pname is String or not Game.load_preset(pname):
+		return
+	SoundManager.play_sfx_2d("ui_click")
+	Game.save_loadout()
+	if multiplayer.is_server():
+		var me := multiplayer.get_unique_id()
+		if Game.mp_lobby["peers"].has(me):
+			Game.mp_lobby["peers"][me]["squad"] = _build_squad_data()
+			Game.broadcast_lobby()
+		_rebuild_peer_list()
+	else:
+		Game._rpc_set_squad.rpc_id(1, _build_squad_data())
 
 # ---- Peer meta helpers ----
 
