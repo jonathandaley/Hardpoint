@@ -292,6 +292,27 @@ func host(port: int = 8910) -> void:
 	(multiplayer as SceneMultiplayer).server_relay = false
 	multiplayer.multiplayer_peer = peer
 	_session_start()
+	if lan_open:  # T467: MPEntry's "OPEN TO LAN" (a dedicated server never sets it)
+		_lan_stop()
+		_lan = LanDiscovery.new()
+		_lan.name = "LanBeacon"
+		add_child(_lan)
+		_lan.broadcast(_lan_info.bind(port))
+
+## T467: what a LAN beacon says about the game this host runs.
+var lan_open := false
+var _lan: LanDiscovery = null
+
+func _lan_info(port: int) -> Dictionary:
+	var ts := int(mp_lobby.get("team_size", 1))
+	var mp: String = String(mp_lobby.get("map_path", "")).get_file().get_basename()
+	return {"name": profile.get("pilot_name", "Pilot"), "port": port,
+		"players": (mp_lobby.get("peers", {}) as Dictionary).size(), "max": ts * 2, "map": mp}
+
+func _lan_stop() -> void:
+	if is_instance_valid(_lan):
+		_lan.queue_free()
+	_lan = null
 
 ## T385: signed in and joining the server the account lives on -> fetch a single-use join
 ## ticket over TLS first (the session itself never goes on the unencrypted game
@@ -320,6 +341,7 @@ func join(ip: String, port: int = 8910) -> void:
 	_session_start()
 
 func disconnect_mp() -> void:
+	_lan_stop()  # T467
 	if multiplayer.multiplayer_peer != null:
 		multiplayer.multiplayer_peer.close()
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
