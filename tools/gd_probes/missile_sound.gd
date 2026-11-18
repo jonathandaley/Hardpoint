@@ -24,7 +24,7 @@ func _ready() -> void:
 		p.set("is_ghost", ghost)
 		add_child(p)
 		var t0 := Time.get_ticks_msec()
-		while Time.get_ticks_msec() - t0 < 1000 and _booms().size() <= before:
+		while Time.get_ticks_msec() - t0 < 4000 and _booms().size() <= before:  # T465: wait-until deadlines generous (exit on the event; a loaded machine runs fewer ticks a second)
 			await get_tree().physics_frame
 		if _booms().size() <= before:
 			msg = "a %s missile burst without the missile_explosion sound" % ("ghost" if ghost else "real")

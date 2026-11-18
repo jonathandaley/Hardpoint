@@ -74,7 +74,7 @@ func _ready() -> void:
 	# back down"): the bot's canister is gone by its apex, never seen falling
 	var vy := 0.0
 	t0 = Time.get_ticks_msec()
-	while is_instance_valid(pod) and Time.get_ticks_msec() - t0 < 7000:
+	while is_instance_valid(pod) and Time.get_ticks_msec() - t0 < 15000:  # T465: wait-until deadlines generous (exit on the event; a loaded machine runs fewer ticks a second)
 		vy = float(pod.get("vel").y)
 		await get_tree().process_frame
 	if is_instance_valid(pod) or vy < -1.0:
