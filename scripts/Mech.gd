@@ -265,11 +265,7 @@ func _process(delta: float) -> void:
 	if repair_eff > 0.0 and (not multiplayer.has_multiplayer_peer() or multiplayer.is_server()):
 		_no_damage_timer += delta
 		if _no_damage_timer >= 3.0 and health > 0.0 and health < max_health:
-			health = minf(health + repair_eff * delta, max_health)
-			_regen_sync_t += delta
-			if multiplayer.has_multiplayer_peer() and (_regen_sync_t >= 0.25 or health >= max_health):
-				_regen_sync_t = 0.0
-				_sync_health.rpc(health)  # snapshots carry no health: clients see the repair here
+			health = minf(health + repair_eff * delta, max_health)  # clients: the snapshots carry it (T474)
 
 # T329 (user 2026-11-05: "make the weapons tilt up and down as they aim"): every hardpoint pitches
 # with the aim, clamped to TILT_MAX. Remote mechs get the pitch in the snapshot (their camera
@@ -357,7 +353,6 @@ func _rpc_shield_broken() -> void:
 # T332: this mech's pilot's skills (its roster entry, Arena._apply_skills) -- on a server the
 # local profile (Game.get_skill_effect) is the host's own, not the pilot's.
 var pilot_skills: Dictionary = {}
-var _regen_sync_t := 0.0
 
 func skill(key: String) -> float:
 	return Game.skill_effect_in(pilot_skills, key)
@@ -634,9 +629,8 @@ func _apply_damage(amount: float, source: Node3D = null) -> void:
 		# both driven by `died`) never triggered. Reliable death RPC fixes all three.
 		if multiplayer.has_multiplayer_peer():
 			_sync_death.rpc()
-	# T40: broadcast health to clients after mutation.
-	if multiplayer.has_multiplayer_peer():
-		_sync_health.rpc(health)
+	# T474: clients get the health from every snapshot (receive_snapshot); a reliable RPC per hit queued
+	# behind ENet's resends (flamer_net@bad: all reliable traffic held 2-5 s behind one lost packet)
 
 # T40: clients receive health updates here (death arrives via _sync_death, reliable).
 # B49 (V44): change-driven state -> reliable. Unreliable left a client showing a stale
@@ -704,6 +698,10 @@ func receive_snapshot(entry: Dictionary, local_t: float = -1.0) -> void:
 	# so the global_transform defaults below must only run inside the tree.)
 	if not is_inside_tree():
 		return
+	if entry.has("hp") and not is_dead:
+		# T474: the health rides every snapshot (newest wins, nothing waits on a resend); a death still
+		# comes reliable (_sync_death)
+		health = float(entry["hp"])
 	if _predicting():
 		_reconcile(entry)  # T205: own mech predicts; the snapshot corrects it
 		return
@@ -1673,15 +1671,13 @@ func _stomp_fx() -> void:
 # ---- T455: Heron FIELD REPAIR (effect_key "field_repair", a duration ability) ----
 # User 2026-11-17: "add as many mechs as you think are good" -- nobody supported the team. For the
 # ability's 5 s the server repairs Heron and every living ally within FIELD_R (3D distance) by
-# FIELD_HPS; health reaches clients through _sync_health (snapshots carry none), a few times a
-# second. Everyone sees a ring on the ground at the reach (one torus, unshaded, while it runs).
+# FIELD_HPS; health reaches clients in the snapshots (T474). Everyone sees a ring on the ground at the reach (one torus, unshaded, while it runs).
 # Calibration knobs.
 const FIELD_R := 18.0
 const FIELD_HPS := 30.0          # 150 HP over the 5 s
 const FIELD_COLOR := Color("#5cff9a")
 var field_repair := false
 var _field_ring: MeshInstance3D
-var _heal_sync_frame := -100
 
 func _set_field_repair(on: bool) -> void:
 	field_repair = on
@@ -1714,14 +1710,11 @@ func _field_repair_tick(delta: float) -> void:
 		if m.get("team") == team and m.global_position.distance_to(global_position) <= FIELD_R:
 			m.call("repair", FIELD_HPS * delta)
 
-## Server: add health (not past max, not to the dead); clients hear it ~5x a second (T455).
+## Server: add health (not past max, not to the dead); clients see it in the snapshots (T474).
 func repair(amount: float) -> void:
 	if health <= 0.0 or is_dead or health >= max_health:
 		return
 	health = minf(health + amount, max_health)
-	if multiplayer.has_multiplayer_peer() and (Engine.get_physics_frames() - _heal_sync_frame >= 12 or health >= max_health):
-		_heal_sync_frame = Engine.get_physics_frames()
-		_sync_health.rpc(health)
 
 # ---- T430: Denali ANCHOR (ability effect_key "anchor", a duration ability) ----
 # Plants its feet for the ability's duration: no walking (it still turns and aims), half damage

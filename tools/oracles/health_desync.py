@@ -1,7 +1,7 @@
 """health_desync oracle: each client's HP for a mech must track the server.
 
-HP is server-authoritative, pushed to clients via _sync_health RPC, so a client
-can lag by the RPC latency. A FAIL requires the gap to persist for
+HP is server-authoritative and rides every snapshot (T474; was a reliable
+_sync_health RPC per hit), so a client can lag by the snapshot latency. A FAIL requires the gap to persist for
 `hp_persist_ticks` consecutive common ticks -- a real desync is a permanent gap
 (e.g. dead on the server, alive on the client), not transient sync lag.
 """

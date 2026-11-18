@@ -1538,7 +1538,7 @@ func _collect(id: int, pk: Pickup, m: Node) -> void:
 			m.set_meta("repair_frame", Engine.get_physics_frames())  # T343
 			m.health = minf(m.health + m.max_health * 0.35, m.max_health)
 			if multiplayer.has_multiplayer_peer():
-				m.rpc(&"_sync_health", m.health)  # snapshots carry no health (clients kept the old HP)
+				m.rpc(&"_sync_health", m.health)  # at once (the snapshots carry it too, T474)
 		"ammo":
 			m.call("refill_ammo")
 		"damage", "speed":  # T332: powerup_duration is the pilot's own skill
@@ -1773,6 +1773,7 @@ func _snapshot_tick() -> void:
 				"vel": m.velocity,
 				"torso_y": m.torso.rotation.y,
 				"pitch": m.get("_camera_pitch"),  # T329: guns tilt with the aim on every peer
+				"hp": m.health,  # T474: health rides every snapshot (Mech.receive_snapshot)
 			}
 			if m.owner_peer_id > 1:  # T205: a client's mech -> its prediction's reference
 				e["ack"] = m.input_ack
