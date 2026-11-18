@@ -2,8 +2,8 @@ extends Node
 # T283 + T308 probe (user 2026-11-05: weapon range "in a drop-down mouseover menu", not the
 # name; mech stats "partially occluded by the mech visual, fix that by using more of the space
 # under the weapon picker"; T336 "Make the box background opaque"): every weapon in the hangar
-# picker has a hover tooltip (on an opaque box) with its
-# range (and the label takes the mouse, so the tooltip can show); for every roster mech the
+# picker has an "i" (T466; was a hover tooltip) that opens, on an opaque box, its
+# range; for every roster mech the
 # stats text sits under the picker and every line fits inside the picker's width.
 
 func _fail(msg: String) -> void:
@@ -27,14 +27,23 @@ func _ready() -> void:
 			bad = true
 			continue
 		for lbl in picker.find_children("Weapon", "Label", true, false):
-			var tip: String = (lbl as Label).tooltip_text
-			var box = (lbl as Label).get_theme_stylebox("panel", "TooltipPanel")  # T336: opaque box
+			# T466: the numbers sit behind the row's "i" (was a hover tooltip), on an opaque box
+			var info: Button = lbl.get_parent().get_node_or_null("Info")
+			var tip: String = String(info.get_meta("info", "")) if info != null else ""
+			if not tip.contains("RANGE") or not tip.contains(" m"):
+				_fail("%s: weapon %s has no range info (info '%s')" % [path.get_file(), (lbl as Label).text, tip])
+				bad = true
+				continue
+			info.pressed.emit()
+			var ib: PanelContainer = h.get("_info_box")
+			var box = ib.get_theme_stylebox("panel") if ib != null else null  # T336: opaque box
 			if not (box is StyleBoxFlat) or (box as StyleBoxFlat).bg_color.a < 1.0:
-				_fail("%s: the weapon tooltip box isn't opaque (%s)" % [path.get_file(), box])
+				_fail("%s: the weapon info box isn't opaque (%s)" % [path.get_file(), box])
 				bad = true
-			if not tip.contains("RANGE") or not tip.contains(" m") or (lbl as Label).mouse_filter == Control.MOUSE_FILTER_IGNORE:
-				_fail("%s: weapon %s has no range tooltip (tip '%s', mouse_filter %d)" % [path.get_file(), (lbl as Label).text, tip, (lbl as Label).mouse_filter])
+			elif (ib.get_child(0) as Label).text != tip or not ib.visible:
+				_fail("%s: weapon %s's info button doesn't open its info" % [path.get_file(), (lbl as Label).text])
 				bad = true
+			ib.visible = false
 		var pr := picker.get_global_rect()
 		var sr := stats.get_global_rect()
 		var font := stats.get_theme_font("font")
