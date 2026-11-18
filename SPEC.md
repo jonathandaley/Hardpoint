@@ -270,6 +270,7 @@ T482|.|HUMAN_FOUND 2026-11-18: "The weapon picker changing sizes while scrolling
 T483|.|HUMAN_FOUND 2026-11-18: "Taurus accelerates much too quickly. It should take at least 15 seconds to get to the current top speed. Slip and Swift should outrun it under most circumstances that aren't just a straight very long line." -- CHARGE_ACCEL so walking pace -> CHARGE_TOP takes >= 15 s (0.9 m/s per s: ~15.7 s); check Slip (3.75) / Swift stay ahead over the first several seconds|T473
 T484|.|HUMAN_FOUND 2026-11-18: "Make a table of DPS and range on all the weapons, I think they need a balance. It may just be how they're used, but I want to see the numbers." -- burst and sustained DPS (magazine / reload / heat / refill), range, lock, notes, from the weapon scenes; for the user (this branch: it lists the new weapons too)|-
 T485|.|HUMAN_FOUND 2026-11-18: "Caldera looks great, but the center bridge has a flicker that looks like two materials at the same height. Falling into the lava should kill you." -- z-fighting on the centre bridge (two coplanar surfaces); lava kills a mech that falls in|T460
+T486|.|HUMAN_FOUND 2026-11-18: "In the mech overview, remove the \"shields: -\" line for mechs that don't have shields, and instead give a short description. There's not room for the whole info dropdown, but abilities at least." -- the hangar's stats under the picker: no SHIELDS line when there are none; an ABILITY line (name + key + a few words) in its place (main)|T308,T466
 
 ## §B BUGS
 
