@@ -481,3 +481,6 @@ date|task|outcome|commit|finding|suite
 2026-11-18|T487|DONE (local, branch surprise)|(this commit)|the Heron pilot always sees its reach ring (dim while FIELD REPAIR is off); field_repair probe
 2026-11-18|T467|DONE|(this commit)|LAN discovery: HOST > OPEN TO LAN broadcasts a beacon (UDP 8920, 1 s); a LAN tab lists found games, a click joins; the beacon parser treats it as untrusted input (bounded, ASCII, magic, typed); team / hangar choice split to T476 (next release) / T477; probe lan_discovery
 2026-11-18|T479 fix|DONE (local, branch surprise)|(this commit)|batch suite (T479 T484 T485 T483 T487 + main merge) 213/215: elite_kits mapped weapon families to file names (INFERNO = Flamer*.tscn) -> fixed; bot_rwf = an old load flake (3/88 archived runs, 3/3 alone) -> T489
+2026-11-18|T477|DONE|(this commit)|lobby HANGAR menu (saved squads) next to READY UP; probe lobby_hangar
+2026-11-18|T482+T486|DONE|(this commit)|one commit (two small edits in the same hangar function + probe): fixed-width weapon picker (longest catalog name); ABILITY line instead of SHIELDS: - for shieldless mechs
+2026-11-18|T477/T482/T486 suite|204/206|-|lunge_net prediction_recon 2/187 snaps (1.07%) and difficulty_steps (T418 noise, 4/90 archived) failed; both 3/3 alone, unrelated to the hangar / lobby UI -> pushed; T490 queued

@@ -17,6 +17,7 @@ func _ready() -> void:
 	var bad := false
 	var roster: Array = h.get_script().get_script_constant_map()["ROSTER"]
 	var stats: Label = h.get("mech_stats_label")
+	var row_w := -1.0
 	for path in roster:
 		Game.loadout["mech_def"] = load(path)
 		h.call("_update_mech_panel")
@@ -44,6 +45,16 @@ func _ready() -> void:
 				_fail("%s: weapon %s's info button doesn't open its info" % [path.get_file(), (lbl as Label).text])
 				bad = true
 			ib.visible = false
+		# T482: the rows keep one width whatever the names; T486: a shieldless mech shows its ability
+		var mdef: Resource = load(path)
+		if row_w < 0.0:
+			row_w = picker.get_combined_minimum_size().x
+		elif absf(picker.get_combined_minimum_size().x - row_w) > 0.5:
+			_fail("%s: the picker is %.0f wide (another mech's was %.0f)" % [path.get_file(), picker.get_combined_minimum_size().x, row_w])
+			bad = true
+		if not mdef.has_shields and not mdef.has_energy_shield and (stats.text.contains("SHIELDS") or not stats.text.contains("ABILITY:")):
+			_fail("%s: no shield, but the stats read '%s'" % [path.get_file(), stats.text.replace("\n", " | ")])
+			bad = true
 		var pr := picker.get_global_rect()
 		var sr := stats.get_global_rect()
 		var font := stats.get_theme_font("font")
