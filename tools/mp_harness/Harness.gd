@@ -742,6 +742,11 @@ func _on_match_ended_mp(_winner: int, _stats: Array) -> void:
 	var p: Dictionary = Game.profile
 	print("[Harness] profile_after match=%d team=%d elo=%d xp=%d coins=%d level=%d" % [_match_n, team,
 		int(p.get("elo", 0)), int(p.get("xp", 0)), int(p.get("coins", 0)), int(p.get("level", 0))])
+	if _match_n < _matches:
+		# T465: more to play -> this match's deadline is void (the next match's start sets a fresh one).
+		# It ran on through the coordinated return to the lobby, which waits for client acks, and a lossy
+		# link's resend outlasted it: the server quit there (match_end_parity#m2@bad: no match 2 at all).
+		_deadline_frame = -1
 	if _scenario.get("dedicated", false) and _role != "server" and _match_n < _matches:
 		_back_to_lobby_ready()
 
