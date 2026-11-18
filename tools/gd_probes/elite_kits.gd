@@ -30,7 +30,7 @@ func _ready() -> void:
 			for i in squad.size():
 				var fam: String = kit[key][i][1]
 				for p in squad[i]["weapons"]:
-					if not String(p).get_file().to_upper().begins_with(fam.replace("MG", "MACHINEGUN").replace("MISSILE", "MISSILELAUNCHER").replace("ROCKET", "ROCKETLAUNCHER").replace("LASER", "LASERCANNON").replace("ARC", "ARCWEAPON").replace("AERIAL", "AERIALSTRIKE")):
+					if not String(p).get_file().to_upper().begins_with(fam.replace("MG", "MACHINEGUN").replace("MISSILE", "MISSILELAUNCHER").replace("ROCKET", "ROCKETLAUNCHER").replace("LASER", "LASERCANNON").replace("ARC", "ARCWEAPON").replace("AERIAL", "AERIALSTRIKE").replace("INFERNO", "FLAMER")):  # T479: INFERNO = FlamerLight/Heavy.tscn
 						bad.append("%s %s: %s slot got %s for %s" % [name, key, kit[key][i][0], String(p).get_file(), fam])
 		if kit.get("squad_dm") == kit["squad"]:
 			bad.append("%s: the death match hangar is the beacons one" % name)
