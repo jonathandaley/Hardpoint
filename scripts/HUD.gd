@@ -100,9 +100,15 @@ signal spawn_back  # T322: BACK from the spawn picker to the mech picker
 var _squad_args: Array = []  # T322: the last squad picker's [squad, slot_used, heading]
 const SPAWN_MAP_PX := 280.0
 var _spawn_ui: Array = []
+# T471 (HUMAN_FOUND 2026-11-18: "Too easy to double-click the spawnpoint and respawn immediately."):
+# the picker opens under the click that chose the mech, so a double-click's second half landed on a
+# spawn point. Its buttons ignore presses for SPAWN_ARM_MS after it opens.
+const SPAWN_ARM_MS := 400
+var _spawn_shown_ms := -100000
 
 func show_spawn_picker(points: Array) -> void:
 	hide_spawn_picker()
+	_spawn_shown_ms = Time.get_ticks_msec()
 	if minimap == null:
 		return
 	minimap.set_anchors_preset(Control.PRESET_CENTER)
@@ -159,7 +165,9 @@ func show_spawn_picker(points: Array) -> void:
 		b.add_theme_stylebox_override("hover", sb_hover)
 		b.add_theme_stylebox_override("pressed", sb_hover)
 		b.position = minimap.to_map(points[i]) - b.size * 0.5
-		b.pressed.connect(func() -> void: spawn_selected.emit(i))
+		b.pressed.connect(func() -> void:
+			if Time.get_ticks_msec() - _spawn_shown_ms >= SPAWN_ARM_MS:  # T471
+				spawn_selected.emit(i))
 		minimap.add_child(b)
 		_spawn_ui.append(b)
 
