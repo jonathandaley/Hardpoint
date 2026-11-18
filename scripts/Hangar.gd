@@ -966,6 +966,12 @@ func _on_find_sp_pressed() -> void:
 			box.visible = false
 			$FindMatchPanel/Choices.visible = true)
 		row.add_child(back)
+		# T469 (HUMAN_FOUND 2026-11-18: "Remove mode checkbox, just have \"MODE:\" text in match
+		# selector"): the menu says what it picks (the lobby's read as a checkbox: Bot Fill's sat by it)
+		var mode_l := Label.new()
+		mode_l.text = "MODE:"
+		mode_l.add_theme_font_size_override("font_size", 12)
+		row.add_child(mode_l)
 		var mode := OptionButton.new()  # T434: the mode menu (was the T285 death match checkbox)
 		mode.name = "SpMode"
 		mode.add_theme_font_size_override("font_size", 12)

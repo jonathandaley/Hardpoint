@@ -5,6 +5,7 @@ extends Node
 # kill coins = its difficulty value) but not mixed into picked-up coins; the killer carries a bounty
 # of half that; a bot that killed one of ours this life is worth its base plus that bounty; a player's
 # mech is worth only its bounty; the match result carries kills + kill coins and the payout adds them.
+# T470: a bot's dropped coin carries the same worth (base + bounty).
 
 func _fail(msg: String) -> void:
 	push_error("[probe] kill_bounty FAIL: " + msg)
@@ -61,6 +62,12 @@ func _ready() -> void:
 	await get_tree().physics_frame
 	if int(arena.get("kill_coins_by_ri").get(my_ri, 0)) != base + base + hb:
 		bad.append("killing the hunter paid %d in all, want %d (base + its bounty)" % [int(arena.get("kill_coins_by_ri").get(my_ri, 0)), base + base + hb])
+	# T470: the coin the hunter drops shows the same worth (it was the base alone)
+	var coins: Array = arena.get("_pickups").keys().filter(func(id): return arena.get("_pickups")[id].get("kind") == "coin")
+	coins.sort()
+	var drop_v: int = int(arena.get("_pickups")[coins[-1]].get("value")) if not coins.is_empty() else -1
+	if drop_v != base + hb:
+		bad.append("the hunter dropped a %d-coin, want %d (base + its bounty)" % [drop_v, base + hb])
 	# 3. a player's mech: base 0, only its bounty -- a bot that kills us gets half of our bounty
 	var my_bounty: int = int(me.get("bounty"))
 	var bot_ri: int = int(foes[1].get("roster_idx"))
