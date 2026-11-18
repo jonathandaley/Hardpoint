@@ -16,6 +16,13 @@ var owner_body: Node3D = null
 var source_weapon: Node3D = null  # T103/V28: weapon node for server-side damage clamp
 var is_ghost: bool = false  # T100: client-side visual ghost; skips hit detection
 var explode: bool = false   # T258: missiles burst into a fireball where they hit (ghosts too)
+var gravity_y: float = 0.0  # T458: a mortar shell falls (m/s^2); 0 = a straight shot at `speed`
+var _vel := Vector3.ZERO
+
+## T458: a basis looking along v (a falling shell's nose follows its path).
+static func basis_along(v: Vector3) -> Basis:
+	var d := v.normalized()
+	return Basis.looking_at(d, Vector3.UP if absf(d.y) < 0.99 else Vector3.FORWARD)
 
 @export var smoke_trail: bool = false
 
@@ -82,6 +89,12 @@ func _physics_process_impl(delta: float) -> void:
 			_spawn_smoke()
 
 	var step := -global_transform.basis.z * speed * delta
+	if gravity_y > 0.0:  # T458
+		if _vel == Vector3.ZERO:
+			_vel = step / delta
+		_vel.y -= gravity_y * delta
+		step = _vel * delta
+		global_transform.basis = basis_along(_vel)
 	_distance_traveled += step.length()
 
 	if is_ghost:

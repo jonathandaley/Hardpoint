@@ -133,6 +133,7 @@ func _weapon_icon_path(weapon: Node) -> String:
 	var path: String = weapon.get_script().resource_path
 	if "AerialStrike" in path:    return "res://assets/hardpoint/hud-icon-aerial.png"
 	if "ArcWeapon" in path:       return "res://assets/hardpoint/hud-icon-arc.png"
+	if "Mortar" in path:          return "res://assets/hardpoint/hud-icon-mortar.png"  # T458 (tools/art/weapon_icon)
 	if "Flamer" in path:          return "res://assets/hardpoint/hud-icon-flamer.png"  # T457 (tools/art/weapon_icon)
 	if "LaserCannon" in path:     return "res://assets/hardpoint/hud-icon-laser.png"
 	if "MachineGun" in path:      return "res://assets/hardpoint/hud-icon-mgun.png"

@@ -79,7 +79,7 @@ const ELITE_KIT := {
 		"squad_rush": [["Cesh", "ROCKET"], ["Pegasus", "ARC"], ["Cesh", "ARC"], ["Pegasus", "ROCKET"], ["Hornet", "ROCKET"]],
 		"personality": {"role": "flanker", "range_k": 1.2, "retreat_hp": 0.3}},     # abilities + lock speed: locks from the side
 	"Deadlock":   {"squad": [["Vesuvius", "AERIAL"], ["Hippogriff", "MISSILE"], ["Everest", "AERIAL"], ["Kestrel", "ARC"], ["Seeker", "AERIAL"]],
-		"squad_dm": [["Hippogriff", "MISSILE"], ["Vesuvius", "MISSILE"], ["Kestrel", "MISSILE"], ["Everest", "AERIAL"], ["Hornet", "MISSILE"]],
+		"squad_dm": [["Hippogriff", "MISSILE"], ["Vesuvius", "MORTAR"], ["Kestrel", "MISSILE"], ["Everest", "AERIAL"], ["Hornet", "MISSILE"]],
 		"squad_rush": [["Vesuvius", "AERIAL"], ["Hippogriff", "MISSILE"], ["Everest", "AERIAL"], ["Denali", "MISSILE"], ["Seeker", "AERIAL"]],
 		"personality": {"role": "attacker", "range_k": 1.3, "retreat_hp": 0.3}},    # lock weapons
 	"Bastion":    {"squad": [["Kestrel", "LASER"], ["Everest", "LASER"], ["Kestrel", "RIFLE"], ["Everest", "MG"], ["Kestrel", "LASER"]],

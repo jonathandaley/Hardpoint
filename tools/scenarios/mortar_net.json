@@ -1,0 +1,97 @@
+{
+  "name": "mortar_net",
+  "seed": 4580,
+  "port": 8997,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Vesuvius.tres",
+  "net": {
+    "latency_ms": 160,
+    "jitter_ms": 10,
+    "loss": 0.01
+  },
+  "duration_ticks": 1000,
+  "oracles": [
+    "prediction_recon",
+    "transform_desync",
+    "health_desync",
+    "input_delivery",
+    "spawn_join",
+    "team_assignment",
+    "crash_scan",
+    "log_flood",
+    "rpc_integrity"
+  ],
+  "thresholds": {
+    "pred_snap_frac": 0.01
+  },
+  "_comment": "T458: both peers fly Vesuvius with three MORTAR HV. The server's mech is put 8 m in front of the client's, facing it (place_mech ahead), and both hold the trigger (ticks 200-560): shells arc onto what each camera ray hits (the replay camera looks ~0.3 rad down: the ground ~7 m ahead, by the other mech); the server's shells burst on or by the client's mech (health_desync: hits and splash reach the client), every peer sees every shell fly (_rpc_shell, reliable) and burst (crash_scan / rpc_integrity), ammo runs down and reloads (ammo sync).",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 200,
+            "fire_primary": true
+          },
+          {
+            "tick": 560,
+            "fire_primary": false
+          }
+        ],
+        "pulses": []
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 200,
+            "fire_primary": true
+          },
+          {
+            "tick": 560,
+            "fire_primary": false
+          }
+        ],
+        "pulses": []
+      }
+    }
+  },
+  "actions": [
+    {
+      "tick": 150,
+      "peer": "server",
+      "action": "place_mech",
+      "slot": "server",
+      "near": "client_1",
+      "ahead": 8
+    }
+  ],
+  "weapons": [
+    "res://scenes/weapons/MortarHeavy.tscn",
+    "res://scenes/weapons/MortarHeavy.tscn",
+    "res://scenes/weapons/MortarHeavy.tscn"
+  ]
+}

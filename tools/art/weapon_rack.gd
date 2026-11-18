@@ -16,7 +16,7 @@ func _ready() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-45, 30, 0)
 	add_child(sun)
-	var fams := ["Rifle", "Sniper", "MachineGun", "Shotgun", "MissileLauncher", "RocketLauncher", "LaserCannon", "ArcWeapon", "Patience", "AerialStrike"]
+	var fams := ["Rifle", "Sniper", "MachineGun", "Shotgun", "MissileLauncher", "RocketLauncher", "LaserCannon", "ArcWeapon", "Patience", "AerialStrike", "Flamer", "Mortar"]
 	for i in fams.size():
 		for size in ["Light", "Heavy"]:
 			var path := "res://scenes/weapons/%s%s.tscn" % [fams[i], size]
@@ -24,7 +24,7 @@ func _ready() -> void:
 				continue
 			var w: Node3D = load(path).instantiate()
 			WeaponVisuals.apply(w)
-			w.position = Vector3((i % 5) * 2.6 - 5.2, 1.2 - (i / 5) * 1.9, 0.0 if size == "Light" else -1.4)
+			w.position = Vector3((i % 5) * 2.6 - 5.2, 1.6 - (i / 5) * 1.6, 0.0 if size == "Light" else -1.4)
 			w.rotation_degrees.y = -90.0  # muzzle (-Z) -> +X, to the right
 			add_child(w)
 	var cam := Camera3D.new()

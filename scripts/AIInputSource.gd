@@ -634,7 +634,8 @@ func _physics_process_impl(delta: float) -> void:
 			if _burst_timer <= 0.0:
 				_in_burst = not _in_burst
 				_burst_timer = BURST_FIRE if _in_burst else pause
-		var ready: bool = _in_burst and dist < fire_range and _has_clear_shot and _react_timer <= 0.0
+		var lob: bool = weapon != null and weapon.get("lobs") == true  # T458: a mortar fires over cover
+		var ready: bool = _in_burst and dist < fire_range and (_has_clear_shot or lob) and _react_timer <= 0.0
 		if tactics:
 			_firing = ready and _shot_worth_taking(bot_mech, weapon, aim_p) and not rwf_hold  # T359
 		else:

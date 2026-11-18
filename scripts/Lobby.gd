@@ -56,6 +56,7 @@ const WEAPON_CATALOG: Array = [
 	{"name": "MISSILE HV",    "path": "res://scenes/weapons/MissileLauncherHeavy.tscn","long": "MISSILE LAUNCHER HV", "slot_size": 1},
 	{"name": "LASER HV",      "path": "res://scenes/weapons/LaserCannonHeavy.tscn",    "long": "LASER CANNON HV", "slot_size": 1},
 	{"name": "ARC HV",        "path": "res://scenes/weapons/ArcWeaponHeavy.tscn",      "long": "ARC WEAPON HV", "slot_size": 1},
+	{"name": "MORTAR HV",     "path": "res://scenes/weapons/MortarHeavy.tscn",         "long": "MORTAR HEAVY", "slot_size": 1},  # T458
 	{"name": "FLAMER HV",     "path": "res://scenes/weapons/FlamerHeavy.tscn",         "long": "FLAMER HEAVY", "slot_size": 1},  # T457
 	{"name": "AERIAL HV",     "path": "res://scenes/weapons/AerialStrikeHeavy.tscn",   "long": "AERIAL STRIKE HV", "slot_size": 1},
 	{"name": "PATIENCE HV",   "path": "res://scenes/weapons/PatienceHeavy.tscn",        "long": "PATIENCE HV", "slot_size": 1},
@@ -452,10 +453,10 @@ const BOT_WEAPON_WEIGHTS := {
 	"Hippogriff": {"MISSILE": 4, "MG": 3, "RIFLE": 2, "LASER": 2},
 	"Kestrel":    {"LASER": 4, "RIFLE": 3, "ARC": 2, "MG": 2},
 	"Pegasus":    {"RIFLE": 4, "SHOTGUN": 3, "LASER": 2, "MG": 2},
-	"Everest":    {"MG": 4, "LASER": 3, "AERIAL": 2, "PATIENCE": 2, "RIFLE": 2},
-	"Vesuvius":   {"MG": 3, "MISSILE": 3, "AERIAL": 3, "PATIENCE": 2, "RIFLE": 2, "LASER": 2},
+	"Everest":    {"MG": 4, "LASER": 3, "AERIAL": 2, "PATIENCE": 2, "RIFLE": 2, "MORTAR": 2},
+	"Vesuvius":   {"MG": 3, "MISSILE": 3, "AERIAL": 3, "PATIENCE": 2, "RIFLE": 2, "LASER": 2, "MORTAR": 3},
 	"Taurus":     {"SHOTGUN": 4, "MG": 3, "FLAMER": 2, "RIFLE": 2, "SNIPER": 0},  # T363: rams in, fights up close (T457 flamer)
-	"Denali":     {"RIFLE": 4, "LASER": 3, "MG": 2, "PATIENCE": 2},  # T430: plants (ANCHOR) and trades shots at range
+	"Denali":     {"RIFLE": 4, "LASER": 3, "MG": 2, "PATIENCE": 2, "MORTAR": 2},  # T430: plants (ANCHOR) and trades shots at range
 	"Etna":       {"SHOTGUN": 4, "MG": 4, "FLAMER": 3, "ARC": 2, "RIFLE": 1},  # T456: walks in and stomps (T457 flamer)
 	"Heron":      {"RIFLE": 4, "LASER": 3, "MG": 2, "MISSILE": 2},  # T455: medic, stays with the squad at mid range
 	"Swift":      {"MG": 4, "SHOTGUN": 3, "RIFLE": 2, "ARC": 2, "FLAMER": 2},  # T454: dashes in close

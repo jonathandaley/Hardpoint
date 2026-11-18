@@ -294,10 +294,28 @@
     M.box(0.16, 0.22, 0.30, 0, -0.02, -0.46, A);            // stock
   }
 
+  // =========================== MORTAR (T458) ===============================
+  // game-side addition: a stubby wide tube raised 30 deg on a shoulder saddle, a recoil sleeve and
+  // a sight, the shell's glow in the mouth.
+  function Mortar(M) {
+    const A = M.armor, D = M.detail, MI = M.mid, K = M.dark;
+    const TILT = -0.52;                                     // muzzle (+Z) up ~30 deg
+    M.box(0.64, 0.18, 0.62, 0, -0.34, -0.02, A);            // saddle
+    M.box(0.46, 0.10, 0.46, 0, -0.22, -0.02, M.socket);
+    M.box(0.12, 0.30, 0.20, 0, -0.10, -0.18, D);            // trunnion post
+    M.box(0.40, 0.40, 0.92, 0, 0.12, 0.10, A, TILT);        // tube
+    M.box(0.46, 0.46, 0.20, 0, -0.02, -0.18, D, TILT);      // breech ring
+    M.box(0.44, 0.44, 0.12, 0, 0.32, 0.46, K, TILT);        // muzzle ring
+    M.box(0.30, 0.30, 0.06, 0, 0.36, 0.52, K, TILT);        // bore
+    M.glow(0xff6a1a, 0, 0.34, 0.50, 0.26);                  // shell glow in the mouth
+    M.box(0.06, 0.10, 0.22, 0.22, 0.22, 0.02, MI, TILT);    // sight
+    [-1, 1].forEach(s => M.box(0.06, 0.22, 0.40, s * 0.24, -0.20, 0.14, D));  // saddle cheeks
+  }
+
   window.WEAPONS = {
     Rifle, Sniper, MachineGun, Shotgun,
     MissileL, MissileH, RocketLauncher,
-    LaserCannon, ArcWeapon, Patience, AerialStrike, Flamer,
+    LaserCannon, ArcWeapon, Patience, AerialStrike, Flamer, Mortar,
     _meta: { MISSILES_L, MISSILES_H, C_LASER, C_ARC, C_PATIENCE },
   };
 })();
