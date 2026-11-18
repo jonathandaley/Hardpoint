@@ -94,12 +94,16 @@ func _box(size: Vector3, pos: Vector3, mat: Material, rot := Vector3.ZERO) -> vo
 	add_child(body)
 
 ## A basalt column: a six-sided prism you see, a box you bump into (V59: boxes).
-func _column(at: Vector2, base_y: float, h: float, r: float, mat: Material) -> void:
+## `hit` = the collider's width share of the column's (1.6: a box over the hexagon). The lava ring
+## uses 1.2: its overlapping boxes made a 2.3 m wall top the navmesh baked a strip along (an island
+## no bot reaches: Godot's path search into it logs errors); 1.74 m boxes leave 0.7 m gaps (no mech
+## fits) and no top wider than the bake's agent (2 x 0.75 m).
+func _column(at: Vector2, base_y: float, h: float, r: float, mat: Material, hit := 1.6) -> void:
 	var body := StaticBody3D.new()
 	body.position = Vector3(at.x, base_y + h * 0.5, at.y)
 	var col := CollisionShape3D.new()
 	var bs := BoxShape3D.new()
-	bs.size = Vector3(r * 1.6, h, r * 1.6)
+	bs.size = Vector3(r * hit, h, r * hit)
 	col.shape = bs
 	body.add_child(col)
 	var mi := MeshInstance3D.new()
@@ -172,22 +176,43 @@ func build() -> void:
 		if absf(p.y) < CAUSE_W * 0.5 + 1.2:
 			continue
 		var h := 2.6 + 1.6 * absf(sin(a * 7.0)) + rng.randf_range(0.0, 0.8)
-		_column(p, LAVA_Y - 0.4, h + 1.4, 1.45, basalt)
+		_column(p, LAVA_Y - 0.4, h + 1.4, 1.45, basalt, 1.2)
+	# T460: the bake ignores everything 1.6..9 m up inside the ring (only the column tops: the island,
+	# causeways and rails are below 1.6 m), so no navmesh island sits on top of the ring (bots' paths
+	# into one log Godot errors). An obstacle that only shapes the bake: no avoidance, no carving.
+	var cut := NavigationObstacle3D.new()
+	var ring_pts := PackedVector3Array()
+	for i in 24:
+		var a := -TAU * i / 24.0
+		ring_pts.append(Vector3(cos(a), 0, sin(a)) * (LAKE_R + 3.0))
+	cut.vertices = ring_pts
+	cut.height = 7.4
+	cut.position = Vector3(0, 1.6, 0)
+	cut.avoidance_enabled = false
+	cut.affect_navigation_mesh = true
+	cut.carve_navigation_mesh = false
+	add_child(cut)
 	# column clusters on the terraces, mirrored
 	for k in 22:
 		var p := Vector2(rng.randf_range(10, HALF - 25), rng.randf_range(-HALF + 25, HALF - 25))
 		if _crowded(p, 9.0):
 			continue
 		var count := rng.randi_range(3, 6)
-		var heights: Array = []
+		# heights 0.9 m apart (more than the navmesh's 0.6 m climb) on narrow boxes: every top stays
+		# its own ledge too small for the bake's agent -- no unreachable navmesh islands up there
+		var heights: Array = [1.8, 2.7, 3.6, 4.5, 5.4, 6.3]
+		for c in heights.size():
+			var j := rng.randi_range(c, heights.size() - 1)
+			var t: float = heights[c]
+			heights[c] = heights[j]
+			heights[j] = t
 		var offs: Array = []
 		for c in count:
 			offs.append(Vector2(rng.randf_range(-2.5, 2.5), rng.randf_range(-2.5, 2.5)))
-			heights.append(rng.randf_range(1.8, 5.5))
 		for sx in [-1.0, 1.0]:
 			for c in count:
 				var q := Vector2((p.x + offs[c].x) * sx, p.y + offs[c].y)
-				_column(q, ground_min(q.x, q.y, 1.2) - 0.5, heights[c] + 0.5, 1.0, basalt)
+				_column(q, ground_min(q.x, q.y, 1.2) - 0.5, heights[c] + 0.5, 1.0, basalt, 1.2)
 	_embers()
 
 func _crowded(p: Vector2, r: float) -> bool:
