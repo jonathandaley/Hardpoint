@@ -271,6 +271,7 @@ T483|.|HUMAN_FOUND 2026-11-18: "Taurus accelerates much too quickly. It should t
 T484|.|HUMAN_FOUND 2026-11-18: "Make a table of DPS and range on all the weapons, I think they need a balance. It may just be how they're used, but I want to see the numbers." -- burst and sustained DPS (magazine / reload / heat / refill), range, lock, notes, from the weapon scenes; for the user (this branch: it lists the new weapons too)|-
 T485|.|HUMAN_FOUND 2026-11-18: "Caldera looks great, but the center bridge has a flicker that looks like two materials at the same height. Falling into the lava should kill you." -- z-fighting on the centre bridge (two coplanar surfaces); lava kills a mech that falls in|T460
 T486|.|HUMAN_FOUND 2026-11-18: "In the mech overview, remove the \"shields: -\" line for mechs that don't have shields, and instead give a short description. There's not room for the whole info dropdown, but abilities at least." -- the hangar's stats under the picker: no SHIELDS line when there are none; an ABILITY line (name + key + a few words) in its place (main)|T308,T466
+T487|.|HUMAN_FOUND 2026-11-18: "Heron should always be able to see its own green circle, allies only seeing while it's active is fine." -- the FIELD REPAIR reach ring always on for the Heron's own pilot (dimmer while the ability is off: the reach, not the heal); everyone else as now|T455
 
 ## §B BUGS
 
