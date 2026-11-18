@@ -614,7 +614,7 @@ const WEAPON_DESC := {
 	"LASER": "A continuous beam: keep it on the target, nothing to lead or dodge. Kestrel pilots hold it like a searchlight.",
 	"ARC": "Needs a lock, then throws lightning at the target -- no travel time, no miss once locked. Bred from a mining cutter.",
 	"MORTAR": "Lobs a shell high over anything in the way onto where you aim -- a ring shows where it will land. Slow to fire, slow to reload, hits everything near the landing. Siege crews swear by it.",  # T458
-	"FLAMER": "A cone of fire for close work: everything in front of it burns, and keeps burning for 2 s after. The tank refills while you're not firing. Foundry crews never put theirs down.",  # T457
+	"INFERNO": "A cone of fire for close work: everything in front of it burns, and keeps burning for 2 s after. The tank refills while you're not firing. Foundry crews never put theirs down.",  # T457
 	"AERIAL": "Needs a lock, then calls a strike down from above. Made for targets that stay put.",
 	"PATIENCE": "Charges while you hold it -- up to 12 s for the full hit, 300 m reach. Named for what it takes.",
 }
