@@ -37,7 +37,8 @@ var invincible: bool = false
 var _modifiers: Dictionary = {}
 var _input_source: Node = null   # InputSource - untyped to avoid cache dependency
 var _abilities: Array = []
-var _ability_cooldowns: Dictionary = {}
+var _ability_cooldowns: Dictionary = {}  # key -> s until it can fire (with charges: until the next one)
+var _ability_charges: Dictionary = {}  # T454: key -> [ready, s until the next is back, max, recharge s] (charges > 1)
 var _ability_active_timers: Dictionary = {}
 var _camera_pitch: float = -0.3  # matches CameraArm initial rotation.x
 var _desired_move_dir: Vector3 = Vector3.ZERO
@@ -455,14 +456,19 @@ func configure_legs(hip_sweep: float, bob_magnitude: float, cycle_rate: float) -
 func configure_abilities(abilities: Array) -> void:
 	_abilities = abilities
 	_ability_cooldowns.clear()
+	_ability_charges.clear()
 	_ability_active_timers.clear()
 	is_stealthy = false
+	_dash = false
 	for ability in abilities:
 		var key: String = ability.effect_key
+		_dash = _dash or key == "dash"  # T454
 		if ability.trigger == 1:
 			_apply_passive(key)
 		else:
 			_ability_cooldowns[key] = 0.0
+			if ability.charges > 1:
+				_ability_charges[key] = [ability.charges, 0.0, ability.charges, 0.0]
 			if ability.duration > 0.0:
 				_ability_active_timers[key] = 0.0
 
@@ -1406,6 +1412,14 @@ func _handle_ability() -> void:
 	for key in _ability_cooldowns.keys():
 		if _ability_cooldowns[key] > 0.0:
 			_ability_cooldowns[key] = maxf(0.0, _ability_cooldowns[key] - delta)
+	for key in _ability_charges.keys():  # T454: one charge recharging at a time, the next right after
+		var ch: Array = _ability_charges[key]
+		if int(ch[0]) < int(ch[2]):
+			ch[1] = float(ch[1]) - delta
+			if float(ch[1]) <= 0.0:
+				ch[0] = int(ch[0]) + 1
+				ch[1] = float(ch[1]) + float(ch[3]) if int(ch[0]) < int(ch[2]) else 0.0
+		_ability_cooldowns[key] = 0.0 if int(ch[0]) > 0 else float(ch[1])
 	for key in _ability_active_timers.keys():
 		if _ability_active_timers[key] > 0.0:
 			_ability_active_timers[key] = maxf(0.0, _ability_active_timers[key] - delta)
@@ -1422,6 +1436,8 @@ func _handle_ability() -> void:
 			return
 		if _ability_active_timers.get(key, 0.0) > 0.0:
 			return
+		if lunging and (key == "dash" or key == "lunge"):
+			return  # T454: a second dash charge mid-dash would restart it (the first one's ground lost)
 		_activate_ability(ability)
 
 func _apply_stealth_visual(active: bool) -> void:
@@ -1465,15 +1481,22 @@ func _activate_ability(ability: Resource) -> void:
 			_apply_stealth_visual(true)
 		"anchor":
 			anchored = true
-		"lunge":
-			_lunge_begin(_lunge_facing())
+		"lunge", "dash":
+			_lunge_begin(_dash_dir() if ability.effect_key == "dash" else _lunge_facing())
 			if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 				# the owner lines its prediction up on the tick this input ran (T205)
 				_rpc_lunge.rpc(input_ack, input_ack_ticks + 1, _lunge_dir)
 	if ability.duration > 0.0:
 		_ability_active_timers[ability.effect_key] = ability.duration
 	else:
-		var cd: float = ability.cooldown * maxf(0.0, 1.0 - skill("ability_recharge"))  # T332
+		var cd: float = ability.cooldown * maxf(0.0, 1.0 - skill("ability_recharge") * ability.recharge_skill_k)  # T332, T454
+		var ch: Array = _ability_charges.get(ability.effect_key, [])
+		if not ch.is_empty():  # T454: spend one; a recharge starts now unless one is already running
+			ch[0] = int(ch[0]) - 1
+			ch[3] = cd
+			if float(ch[1]) <= 0.0:
+				ch[1] = cd
+			cd = 0.0 if int(ch[0]) > 0 else float(ch[1])
 		_ability_cooldowns[ability.effect_key] = cd
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		var slot := _abilities.find(ability)
@@ -1489,7 +1512,7 @@ func _deactivate_ability(key: String) -> void:
 			anchored = false
 	for ability in _abilities:
 		if ability.effect_key == key:
-			var cd: float = ability.cooldown * maxf(0.0, 1.0 - skill("ability_recharge"))  # T332
+			var cd: float = ability.cooldown * maxf(0.0, 1.0 - skill("ability_recharge") * ability.recharge_skill_k)  # T332, T454
 			_ability_cooldowns[key] = cd
 			if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 				_rpc_ability_deactivated.rpc(_abilities.find(ability))
@@ -1542,7 +1565,18 @@ var lunge_t := 0.0
 var _lunge_dir := Vector3.ZERO
 var _lunge_glow: Array = []  # [material, base energy] -- this mech's own copies
 
-static func lunge_speed(t: float) -> float:
+static func lunge_speed(t: float, dash := false) -> float:
+	if dash:  # T454: no crouch, a burst and a quick stop, no rock-back
+		if t < 0.0:
+			return 0.0
+		if t < DASH_S:
+			var w := 1.0 - minf(t / DASH_RAMP_S, 1.0)
+			return DASH_PEAK * (1.0 - w * w)
+		var e := t - DASH_S
+		if e < DASH_STOP_S:
+			var q := 1.0 - e / DASH_STOP_S
+			return DASH_PEAK * q * q
+		return 0.0
 	if t < LUNGE_WINDUP_S:
 		return 0.0
 	var d := t - LUNGE_WINDUP_S
@@ -1556,6 +1590,33 @@ static func lunge_speed(t: float) -> float:
 	d -= LUNGE_STOP_S
 	return -LUNGE_OVERSHOOT_V * sin(PI * minf(d / LUNGE_SETTLE_S, 1.0))  # rocks back, settles
 
+# ---- T454: Swift DASH (effect_key "dash", user 2026-11-17: "add as many mechs as you think are
+# good"): a short burst along the move input (any direction; the facing if none). It rides the
+# lunge's clock, owner prediction (_rpc_lunge) and snapshot sync (_lunge_sync), on its own curve:
+# no crouch, no ram damage (a mech or a wall just stops it), no rock-back. Calibration knobs.
+const DASH_S := 0.22       # s at speed
+const DASH_RAMP_S := 0.04
+const DASH_STOP_S := 0.12
+const DASH_PEAK := 20.0    # m/s: ~5 m a dash
+var _dash := false  # this mech's lunge clock runs the DASH curve (configure_abilities)
+
+## The curve's phases for this mech: [windup, dash, stop, settle].
+func _lphase() -> Array:
+	return [0.0, DASH_S, DASH_STOP_S, 0.0] if _dash else [LUNGE_WINDUP_S, LUNGE_DASH_S, LUNGE_STOP_S, LUNGE_SETTLE_S]
+
+func _ltotal() -> float:
+	var p := _lphase()
+	return p[0] + p[1] + p[2] + p[3]
+
+func _dash_dir() -> Vector3:
+	var d2: Vector2 = _input_source.get_move_direction() if _input_source != null else Vector2.ZERO
+	if d2 == Vector2.ZERO:
+		return _lunge_facing()
+	var aim := torso.global_transform.basis
+	var v := aim.x * d2.x + (-aim.z) * -d2.y
+	v.y = 0.0
+	return v.normalized() if v.length_squared() > 0.0001 else _lunge_facing()
+
 func _lunge_facing() -> Vector3:
 	var f := -torso.global_transform.basis.z
 	f.y = 0.0
@@ -1564,7 +1625,10 @@ func _lunge_facing() -> Vector3:
 var _lunge_hit := false  # T404: a ram / wall: settle in place, no rock-back
 var _lunge_hit_t := 0.0   # T404: the dash clock at that impact (the owner's sync compares with it)
 
+var _lunge_begin_ms := -100000  # T454: when this peer last started a lunge / dash
+
 func _lunge_begin(dir: Vector3, t0 := 0.0) -> void:
+	_lunge_begin_ms = Time.get_ticks_msec()
 	lunging = true
 	lunge_t = t0
 	_lunge_dir = dir
@@ -1579,13 +1643,13 @@ func _lunge_step(delta: float) -> bool:
 	if not lunging:
 		return false
 	lunge_t += delta
-	if lunge_t >= LUNGE_TOTAL_S:
+	if lunge_t >= _ltotal():
 		_lunge_end()
 		return false
-	var sp := 0.0 if _lunge_hit else lunge_speed(lunge_t)
+	var sp := 0.0 if _lunge_hit else lunge_speed(lunge_t, _dash)
 	velocity.x = _lunge_dir.x * sp
 	velocity.z = _lunge_dir.z * sp
-	_set_lunge_glow(maxf(sp, 0.0) / LUNGE_PEAK)
+	_set_lunge_glow(maxf(sp, 0.0) / (DASH_PEAK if _dash else LUNGE_PEAK))
 	return true
 
 ## Other peers: the clock for the pose and glow only.
@@ -1593,15 +1657,16 @@ func _lunge_visual_tick(delta: float) -> void:
 	if not lunging:
 		return
 	lunge_t += delta
-	if lunge_t >= LUNGE_TOTAL_S:
+	if lunge_t >= _ltotal():
 		_lunge_end()
 	else:
-		_set_lunge_glow(maxf(lunge_speed(lunge_t), 0.0) / LUNGE_PEAK)
+		_set_lunge_glow(maxf(lunge_speed(lunge_t, _dash), 0.0) / (DASH_PEAK if _dash else LUNGE_PEAK))
 
 ## After each move: a mech (or its shield) or a wall in the dash's way ends the lunge; the
 ## server deals the ram. The owner's prediction stops the same way, without the damage.
 func _lunge_contacts() -> void:
-	if not lunging or lunge_t < LUNGE_WINDUP_S or lunge_t >= LUNGE_WINDUP_S + LUNGE_DASH_S:
+	var ph := _lphase()
+	if not lunging or lunge_t < ph[0] or lunge_t >= ph[0] + ph[1]:
 		return
 	for i in get_slide_collision_count():
 		var col := get_slide_collision(i)
@@ -1613,7 +1678,7 @@ func _lunge_contacts() -> void:
 				# T404: the owner's prediction meets other mechs where they were INTERP_DELAY ago; a ram
 				# is the server's call -- its lunge clock jumping to the settle tells us (_lunge_sync)
 				continue
-			if m.get("team") != team and c.has_method("take_damage"):
+			if m.get("team") != team and c.has_method("take_damage") and not _dash:  # T454: a dash doesn't ram
 				var mv: Vector3 = m.get("velocity") if m.get("velocity") != null else Vector3.ZERO
 				var closing := lunge_speed(lunge_t) - mv.dot(_lunge_dir)
 				c.call("take_damage", maxf(RAM_FLOOR, RAM_K * closing), self)
@@ -1630,7 +1695,8 @@ func _lunge_impact() -> void:
 	velocity.z = 0.0
 	_lunge_hit = true
 	_lunge_hit_t = lunge_t
-	lunge_t = LUNGE_WINDUP_S + LUNGE_DASH_S + LUNGE_STOP_S
+	var ph := _lphase()
+	lunge_t = ph[0] + ph[1] + ph[2]
 
 func _lunge_stop() -> void:
 	_lunge_end()
@@ -1645,6 +1711,8 @@ func _rpc_lunge(seq: int, n: int, dir: Vector3) -> void:
 	if not _predicting():
 		_lunge_begin(dir, -INTERP_DELAY)
 		return
+	if Time.get_ticks_msec() - _lunge_snap_start_ms < LUNGE_RPC_STALE_MS:
+		return  # T454: a snapshot already started this one (_lunge_sync); a second start ran it twice
 	var idx := -1
 	for k in range(_pred_hist.size() - 1, -1, -1):
 		var h: Array = _pred_hist[k]
@@ -1661,7 +1729,7 @@ func _rpc_lunge(seq: int, n: int, dir: Vector3) -> void:
 	var off := Vector3.ZERO
 	for k in range(idx + 1, _pred_hist.size()):
 		lunge_t += dt
-		off += dir * lunge_speed(lunge_t) * dt
+		off += dir * lunge_speed(lunge_t, _dash) * dt
 		var rec: Vector3 = _pred_hist[k][2]
 		_pred_hist[k][2] = Vector3(base.x + off.x, rec.y, base.z + off.z)
 	if idx + 1 < _pred_hist.size():
@@ -1677,17 +1745,22 @@ func _lunge_sync(entry: Dictionary, ahead: int) -> void:
 	var slt: float = float(entry.get("lt", -1.0))
 	if slt >= 0.0:
 		var want := slt + float(ahead) * dt
-		if want >= LUNGE_TOTAL_S:
+		if want >= _ltotal():
 			return
 		if not lunging:
+			var missed := Time.get_ticks_msec() - _lunge_begin_ms > int((_ltotal() + 0.5) * 1000.0)
 			_lunge_begin(entry.get("ld", _lunge_facing()), want)
+			if missed:  # T454: we never started this one (its start RPC is late or lost)
+				_lunge_catch_up(slt, ahead)
+				_lunge_snap_start_ms = Time.get_ticks_msec()
 		else:
 			# T404: an impact settles in place instead of ending the lunge. We run ~a round trip ahead,
 			# so we meet a wall before the server's copy does (B147: dropping our impact whenever its
 			# snapshot still dashed sent us back into the wall every snapshot -- 0.1 m stop-start).
 			# Ours stands until the server's own clock passes our impact still dashing (it met
 			# nothing there: ours was local); its clock jumping to the settle while we dash -> settle too.
-			var settle0 := LUNGE_WINDUP_S + LUNGE_DASH_S + LUNGE_STOP_S
+			var ph := _lphase()
+			var settle0: float = ph[0] + ph[1] + ph[2]
 			if _lunge_hit:
 				if slt < settle0 and slt > _lunge_hit_t + 2.0 * dt:
 					_lunge_hit = false
@@ -1702,12 +1775,40 @@ func _lunge_sync(entry: Dictionary, ahead: int) -> void:
 	elif lunging and lunge_t > float(ahead + 1) * dt:  # ours began before that record; the server's is over
 		_lunge_stop()
 
+## T454 (dash_net@bad: 5 snaps / 3 dashes): a lunge we never started (its start RPC late or lost;
+## not one of ours that already ended early -- lunge_net: that moved Taurus 8 m) left us standing
+## where the server's copy had already moved off (a dash has no windup to hide that in) -> a snap.
+## Move the matched record, the ones after it, and us by the distance the server's copy covered by
+## each one's clock (slt at the matched record, a tick more per record), as _rpc_lunge does.
+const LUNGE_RPC_STALE_MS := 1500  # well under any lunge / dash cooldown (4 s+), over any RPC delay
+var _lunge_snap_start_ms := -100000
+
+func _lunge_catch_up(slt: float, ahead: int) -> void:
+	var i := _pred_hist.size() - 1 - ahead
+	if i < 0:
+		return
+	var dt := 1.0 / float(Engine.physics_ticks_per_second)
+	var dist := 0.0
+	var t := 0.0
+	while t + dt <= slt + 0.5 * dt:
+		t += dt
+		dist += lunge_speed(t, _dash) * dt
+	for k in range(i, _pred_hist.size()):
+		if k > i:
+			t += dt
+			dist += lunge_speed(t, _dash) * dt
+		var rec: Vector3 = _pred_hist[k][2]
+		_pred_hist[k][2] = Vector3(rec.x + _lunge_dir.x * dist, rec.y, rec.z + _lunge_dir.z * dist)
+	global_position += Vector3(_lunge_dir.x * dist, 0.0, _lunge_dir.z * dist)
+
 ## Leg pose for BipedLegs: x = crouch (the windup), y = stride (the dash).
 ## (crouch 0..1, leap 0..1, lift m) for BipedLegs. T366: the windup crouches; the leap keeps the
 ## body low (horns first) on a flat sin arc; the stop lands it back through the crouch.
 func lunge_pose() -> Vector3:
 	if not lunging or lunge_t < 0.0:
 		return Vector3.ZERO
+	if _dash:  # T454: a low skating stride, no crouch or hop
+		return Vector3(0.2, 1.0 - clampf((lunge_t - DASH_S) / DASH_STOP_S, 0.0, 1.0), 0.0)
 	if lunge_t < LUNGE_WINDUP_S:
 		return Vector3(lunge_t / LUNGE_WINDUP_S, 0.0, 0.0)
 	var d := lunge_t - LUNGE_WINDUP_S

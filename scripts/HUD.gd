@@ -839,7 +839,10 @@ func _update_ability_label() -> void:
 	var key: String = ability.effect_key
 	var remaining_active: float = active_timers.get(key, 0.0)
 	var cd: float = cooldowns.get(key, 0.0)
-	if remaining_active > 0.0:
+	var charges: Array = (_player_mech.get("_ability_charges") as Dictionary).get(key, []) if "_ability_charges" in _player_mech else []
+	if not charges.is_empty() and cd <= 0.0:  # T454: how many of its charges are ready
+		ability_label.text = "SPACE: %s  READY %d/%d" % [ability.ability_name, int(charges[0]), int(charges[2])]
+	elif remaining_active > 0.0:
 		ability_label.text = "SPACE: %s  %.1fs" % [ability.ability_name, remaining_active]
 	elif cd > 0.0:
 		ability_label.text = "SPACE: %s  RECHARGING %.1fs" % [ability.ability_name, cd]

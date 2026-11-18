@@ -1,0 +1,176 @@
+{
+  "name": "dash_net",
+  "seed": 4540,
+  "port": 8991,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Swift.tres",
+  "net": {
+    "latency_ms": 160,
+    "jitter_ms": 10,
+    "loss": 0.01
+  },
+  "duration_ticks": 1000,
+  "oracles": [
+    "prediction_recon",
+    "transform_desync",
+    "health_desync",
+    "input_delivery",
+    "spawn_join",
+    "team_assignment",
+    "crash_scan",
+    "log_flood",
+    "rpc_integrity"
+  ],
+  "thresholds": {
+    "pred_snap_frac": 0.01
+  },
+  "_comment": "T454: both peers fly Swift, strafe (move right / left, a little forward) and press DASH three times (server 150/450/750, client 180/480/780; two charges recharging one at a time, 5 s each, starting at the first use) while turning. DASH rides the lunge's clock: the owner's prediction lines up on the server's tick via _rpc_lunge, the snapshot's lunge clock (lt) keeps it on track on a lossy link (B131). A dash is ~5 m in 0.34 s -- faster than the lunge (20 vs 12 m/s), so a late start would show as a snap: capped at 1% as lunge_net.",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              1,
+              -0.3
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 100,
+            "look": [
+              2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 110,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 300,
+            "move": [
+              -1,
+              -0.3
+            ]
+          },
+          {
+            "tick": 500,
+            "look": [
+              -2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 510,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 600,
+            "move": [
+              1,
+              -0.3
+            ]
+          }
+        ],
+        "pulses": [
+          {
+            "tick": 150,
+            "action": "ability"
+          },
+          {
+            "tick": 450,
+            "action": "ability"
+          },
+          {
+            "tick": 750,
+            "action": "ability"
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              -1,
+              -0.3
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 100,
+            "look": [
+              -2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 110,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 300,
+            "move": [
+              1,
+              -0.3
+            ]
+          },
+          {
+            "tick": 500,
+            "look": [
+              2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 510,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 600,
+            "move": [
+              -1,
+              -0.3
+            ]
+          }
+        ],
+        "pulses": [
+          {
+            "tick": 180,
+            "action": "ability"
+          },
+          {
+            "tick": 480,
+            "action": "ability"
+          },
+          {
+            "tick": 780,
+            "action": "ability"
+          }
+        ]
+      }
+    }
+  }
+}

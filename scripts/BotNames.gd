@@ -87,7 +87,7 @@ const ELITE_KIT := {
 		"squad_rush": [["Denali", "LASER"], ["Kestrel", "LASER"], ["Everest", "LASER"], ["Denali", "RIFLE"], ["Kestrel", "LASER"]],
 		"personality": {"role": "defender", "range_k": 1.0, "retreat_hp": 0.15}},   # shields + repair: holds what it has
 	"Wraith":     {"squad": [["Cesh", "SHOTGUN"], ["Slip", "SHOTGUN"], ["Cesh", "SHOTGUN"], ["Hornet", "SHOTGUN"], ["Cesh", "MG"]],
-		"squad_dm": [["Cesh", "SHOTGUN"], ["Slip", "SHOTGUN"], ["Cesh", "SHOTGUN"], ["Taurus", "SHOTGUN"], ["Cesh", "MG"]],
+		"squad_dm": [["Cesh", "SHOTGUN"], ["Slip", "SHOTGUN"], ["Cesh", "SHOTGUN"], ["Taurus", "SHOTGUN"], ["Swift", "SHOTGUN"]],
 		"squad_rush": [["Cesh", "SHOTGUN"], ["Slip", "SHOTGUN"], ["Cesh", "SHOTGUN"], ["Hornet", "SHOTGUN"], ["Slip", "MG"]],
 		"personality": {"role": "flanker", "range_k": 0.6, "retreat_hp": 0.25}},    # speed + stealth: ambushes up close
 	"Halcyon":    {"squad": [["Pegasus", "RIFLE"], ["Pegasus", "LASER"], ["Hornet", "RIFLE"], ["Pegasus", "RIFLE"], ["Hippogriff", "RIFLE"]],
@@ -102,8 +102,8 @@ const ELITE_KIT := {
 		"squad_dm": [["Pegasus", "RIFLE"], ["Hippogriff", "MISSILE"], ["Taurus", "SHOTGUN"], ["Kestrel", "LASER"], ["Vesuvius", "RIFLE"]],
 		"squad_rush": [["Pegasus", "RIFLE"], ["Denali", "RIFLE"], ["Hornet", "MG"], ["Kestrel", "LASER"], ["Hippogriff", "MISSILE"]],
 		"personality": {"role": "attacker", "range_k": 1.0, "retreat_hp": 0.3}},    # all-rounder
-	"Tempest":    {"squad": [["Slip", "MG"], ["Seeker", "RIFLE"], ["Slip", "RIFLE"], ["Hornet", "MG"], ["Slip", "MG"]],
-		"squad_dm": [["Slip", "MG"], ["Seeker", "MG"], ["Slip", "RIFLE"], ["Hornet", "MG"], ["Cesh", "MG"]],
+	"Tempest":    {"squad": [["Slip", "MG"], ["Seeker", "RIFLE"], ["Swift", "MG"], ["Hornet", "MG"], ["Slip", "MG"]],
+		"squad_dm": [["Slip", "MG"], ["Seeker", "MG"], ["Slip", "RIFLE"], ["Hornet", "MG"], ["Swift", "MG"]],
 		"squad_rush": [["Slip", "MG"], ["Hornet", "MG"], ["Slip", "RIFLE"], ["Hornet", "RIFLE"], ["Slip", "MG"]],
 		"personality": {"role": "flanker", "range_k": 0.9, "retreat_hp": 0.3}},     # fast, fast shots
 	"Obsidian":   {"squad": [["Everest", "PATIENCE"], ["Vesuvius", "MG"], ["Everest", "MG"], ["Vesuvius", "PATIENCE"], ["Kestrel", "MG"]],

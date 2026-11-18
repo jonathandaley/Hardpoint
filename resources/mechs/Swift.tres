@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="MechDef" load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/MechDef.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/mech/Mech.tscn" id="2"]
+[ext_resource type="Script" path="res://scripts/WeaponSlotDef.gd" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/RifleLight.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/RifleHeavy.tscn" id="5"]
+[ext_resource type="Resource" path="res://resources/abilities/Dash.tres" id="6"]
+
+[sub_resource type="Resource" id="1"]
+script = ExtResource("3")
+slot_size = 0
+position = Vector3(-0.42, 1.36, -0.3)
+weapon_scene = ExtResource("4")
+
+[resource]
+script = ExtResource("1")
+display_name = "Swift"
+description = "Light, 200 HP, no shield, one light hardpoint. DASH (SPACE): a burst of about 5 m in whichever direction it is moving -- two charges, recharging one at a time, 5 s each. Pale grey with navy fins and amber lamps: courier pilots built Swift to cross open ground under fire, and the best of them are never where the last shot went."
+class_tag = "Light"
+max_health = 200.0
+walk_speed = 2.5
+weapon_scale = 1.3
+turn_acceleration = 18.0
+leg_rotation_speed = 20.0
+leg_hip_sweep = 0.16
+leg_bob_magnitude = 0.03
+leg_cycle_rate = 1.18
+body_scale = 0.85
+abilities = [ExtResource("6")]
+weapon_slots = [SubResource("1")]
+scene = ExtResource("2")

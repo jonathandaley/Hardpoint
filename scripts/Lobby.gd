@@ -23,6 +23,7 @@ static func mode_index(mode: String) -> int:
 const ROSTER: Array = [
 	"res://resources/mechs/Slip.tres",
 	"res://resources/mechs/Cesh.tres",
+	"res://resources/mechs/Swift.tres",
 	"res://resources/mechs/Seeker.tres",
 	"res://resources/mechs/Hornet.tres",
 	"res://resources/mechs/Hippogriff.tres",
@@ -451,6 +452,7 @@ const BOT_WEAPON_WEIGHTS := {
 	"Vesuvius":   {"MG": 3, "MISSILE": 3, "AERIAL": 3, "PATIENCE": 2, "RIFLE": 2, "LASER": 2},
 	"Taurus":     {"SHOTGUN": 4, "MG": 3, "RIFLE": 2, "SNIPER": 0},  # T363: rams in, fights up close
 	"Denali":     {"RIFLE": 4, "LASER": 3, "MG": 2, "PATIENCE": 2},  # T430: plants (ANCHOR) and trades shots at range
+	"Swift":      {"MG": 4, "SHOTGUN": 3, "RIFLE": 2, "ARC": 2},  # T454: dashes in close
 }
 
 ## T171: random bot loadout -- ONE weapon family (RIFLE, MG, ...) in every slot of

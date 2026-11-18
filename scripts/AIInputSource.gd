@@ -821,6 +821,14 @@ func _use_abilities(bot_mech: Node3D, fighting: bool, own_hp_pct: float, has_tar
 				_ability_press = lunge_wanted(bot_mech, has_target, dist)
 			"anchor":  # T430: plant when trading shots in range with a clear line
 				_ability_press = has_target and _has_clear_shot and dist <= fire_range
+			"dash":  # T454: in a gunfight, burst along whatever it's strafing; charges spaced DASH_GAP_TICKS
+				_ability_press = fighting and has_target and dist <= fire_range \
+						and Engine.get_physics_frames() - _last_dash_frame > DASH_GAP_TICKS
+				if _ability_press:
+					_last_dash_frame = Engine.get_physics_frames()
+
+const DASH_GAP_TICKS := 90  # T454: 1.5 s at 60 Hz -- a bot doesn't spend both dash charges at once
+var _last_dash_frame := -100000
 
 ## T342: ram a target that's straight ahead inside the dash's reach (~15 m) with a clear line
 ## (the LoS check doubles as "no wall in the way"); not point-blank, where the windup wastes it.
