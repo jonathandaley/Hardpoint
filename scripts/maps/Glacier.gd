@@ -116,10 +116,10 @@ func build() -> void:
 				var q := Vector2(p.x * sx, p.y)
 				_box(Vector3(4.2, hgt, 2.2), Vector3(q.x, ground_min(q.x, q.y, 2.5) + hgt * 0.5 - 0.4, q.y), ice,
 					Vector3(0, yaw * sx, 0))
-	# seracs: leaning ice towers, mirrored
-	for k in 30:
+	# seracs: leaning ice towers, mirrored (T463: 30 -> 70 tries, closer together)
+	for k in 70:
 		var p := Vector2(rng.randf_range(12, HALF - 22), rng.randf_range(-HALF + 22, HALF - 22))
-		if _crowded(p, 14.0):
+		if _crowded(p, 9.0):
 			continue
 		var s := Vector3(rng.randf_range(2.0, 3.5), rng.randf_range(4.0, 8.0), rng.randf_range(2.0, 3.5))
 		var lean := Vector3(rng.randf_range(-0.15, 0.15), rng.randf() * PI, rng.randf_range(-0.15, 0.15))
@@ -141,7 +141,48 @@ func build() -> void:
 	# research stations
 	for sx in [-1.0, 1.0]:
 		_station(Vector2(STATION.x * sx, STATION.y), sx, metal, orange)
+	# T463 (user 2026-11-18: "doesn't look like either new map has enough cover ... adding more ice
+	# and basalt would probably be good"): pressure ridges on the lake and ice walls across the open
+	# snow. Slabs 1.1 m thick: thinner than the navmesh agent (2 x 0.75 m), so no walkable top.
+	var rnd := Callable(rng, "randf_range")
+	for k in 24:  # the lake: broken ridges 22-50 m out from the beacon, tangent to it
+		var a := rng.randf_range(-PI * 0.5, PI * 0.5)
+		var e := rng.randf_range(0.35, 0.9)
+		var at := Vector2(cos(a) * LAKE.x * e, sin(a) * LAKE.y * e)
+		if at.length() < 22.0 or at.x < 5.0:
+			continue
+		_slab_row(at, a + PI * 0.5 + rng.randf_range(-0.4, 0.4), rng.randi_range(2, 4), ice, rnd)
+	for k in 80:  # the snowfields: short ice walls wherever there is room
+		var at := Vector2(rng.randf_range(14, HALF - 14), rng.randf_range(-HALF + 14, HALF - 14))
+		if _crowded_walls(at):
+			continue
+		_slab_row(at, rng.randf() * PI, rng.randi_range(2, 3), ice_dark, rnd)
 	_snowfall()
+
+## Ice slabs in a row along `yaw` (mirrored across x = 0), each tilted about its long axis.
+func _slab_row(at: Vector2, yaw: float, n: int, mat: Material, rnd: Callable) -> void:
+	var dir := Vector2(cos(yaw), -sin(yaw))
+	for i in n:
+		var p: Vector2 = at + dir * ((i - (n - 1) * 0.5) * 3.4) + Vector2(rnd.call(-0.6, 0.6), rnd.call(-0.6, 0.6))
+		var s := Vector3(rnd.call(2.8, 3.6), rnd.call(2.2, 3.4), 1.1)
+		var rot := Vector3(rnd.call(-0.25, 0.25), yaw + rnd.call(-0.15, 0.15), rnd.call(-0.06, 0.06))
+		for sx in [-1.0, 1.0]:
+			var q := Vector2(p.x * sx, p.y)
+			var r2 := Vector3(rot.x, rot.y * sx, rot.z * sx)
+			_box(s, Vector3(q.x, ground_min(q.x, q.y, 1.8) - 0.5 - MapScene.box_low(s, r2), q.y), mat, r2)
+
+## Walls stay off the beacons, spawn lines, stations and lake, and out of the ravine floors.
+func _crowded_walls(p: Vector2) -> bool:
+	if ravine_k(p.x, p.y) > 0.2:
+		return true
+	for b in BEACONS:
+		if Vector2(absf(p.x), p.y).distance_to(Vector2(absf(b.x), b.y)) < 16.0:
+			return true
+	for team in SPAWNS:
+		for s in team:  # the spawn line runs north-south, 5 x 8 m
+			if absf(absf(p.x) - absf(s.x)) < 12.0 and absf(p.y - s.y) < 26.0:
+				return true
+	return lake_k(p.x, p.y) > 0.05 or Vector2(absf(p.x), p.y).distance_to(STATION) < 22.0
 
 ## Keep props off the beacons, spawns, lake and stations.
 func _crowded(p: Vector2, r: float) -> bool:

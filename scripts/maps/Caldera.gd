@@ -192,10 +192,10 @@ func build() -> void:
 	cut.affect_navigation_mesh = true
 	cut.carve_navigation_mesh = false
 	add_child(cut)
-	# column clusters on the terraces, mirrored
-	for k in 22:
-		var p := Vector2(rng.randf_range(10, HALF - 25), rng.randf_range(-HALF + 25, HALF - 25))
-		if _crowded(p, 9.0):
+	# column clusters on the terraces, mirrored (T463: 22 -> 60 tries, closer together, out to the rim)
+	for k in 60:
+		var p := Vector2(rng.randf_range(10, HALF - 12), rng.randf_range(-HALF + 12, HALF - 12))
+		if _crowded(p, 6.0):
 			continue
 		var count := rng.randi_range(3, 6)
 		# heights 0.9 m apart (more than the navmesh's 0.6 m climb) on narrow boxes: every top stays
@@ -213,6 +213,40 @@ func build() -> void:
 			for c in count:
 				var q := Vector2((p.x + offs[c].x) * sx, p.y + offs[c].y)
 				_column(q, ground_min(q.x, q.y, 1.2) - 0.5, heights[c] + 0.5, 1.0, basalt, 1.2)
+	# T463 (user 2026-11-18: "doesn't look like either new map has enough cover ... adding more ice
+	# and basalt would probably be good"): basalt walls -- rows of touching columns, alternate ones
+	# 0.9 m taller (1.2 m boxes: no navmesh on top, as above)
+	for k in 110:
+		var p := Vector2(rng.randf_range(10, HALF - 10), rng.randf_range(-HALF + 10, HALF - 10))
+		if _crowded_walls(p):
+			continue
+		var dir := Vector2.from_angle(rng.randf() * PI)
+		if absf(p.length() - 140.0) < 14.0:
+			dir = p.normalized().orthogonal()  # beside the rim road: along it, never across
+		var cols := rng.randi_range(4, 7)
+		var base := rng.randf_range(2.2, 3.0)
+		for sx in [-1.0, 1.0]:
+			for c in cols:
+				var o := dir * ((c - (cols - 1) * 0.5) * 1.15)
+				var q := Vector2((p.x + o.x) * sx, p.y + o.y)
+				_column(q, ground_min(q.x, q.y, 1.0) - 0.5, base + 0.9 * float(c % 2) + 0.5, 0.7, basalt, 1.7)
+	# broken walls along both sides of the rim road (the road itself was open ground end to end)
+	for i in 13:
+		var a := -PI * 0.5 + PI * (i + 0.5) / 13.0
+		var rr := 131.0 if i % 2 == 0 else 149.0
+		var p := Vector2.from_angle(a) * rr
+		if _crowded_walls(p, false):
+			continue
+		for sx in [-1.0, 1.0]:
+			for c in 5:
+				var o := Vector2.from_angle(a).orthogonal() * ((c - 2) * 1.15)
+				var q := Vector2((p.x + o.x) * sx, p.y + o.y)
+				_column(q, ground_min(q.x, q.y, 1.0) - 0.5, 2.6 + 0.9 * float(c % 2) + 0.5, 0.7, basalt, 1.7)
+	# the island: four column pairs on its edge between the causeways, cover at the centre beacon
+	for a in [PI * 0.25, PI * 0.75, PI * 1.25, PI * 1.75]:
+		for c in 2:
+			var q := Vector2.from_angle(a + (c - 0.5) * 0.09) * (ISLAND_R - 2.5)
+			_column(q, -0.5, 2.4 + 0.9 * c + 0.5, 0.7, basalt, 1.7)
 	_embers()
 
 func _crowded(p: Vector2, r: float) -> bool:
@@ -225,7 +259,20 @@ func _crowded(p: Vector2, r: float) -> bool:
 		for s in team:
 			if Vector2(absf(p.x), p.y).distance_to(Vector2(absf(s.x), s.y)) < r + 18.0:
 				return true
-	return absf(p.length() - 140.0) < r + 3.0  # keep the rim road clear
+	return absf(p.length() - 140.0) < r + 4.0  # keep the rim road clear
+
+## Walls: off the lava ring, beacons, spawn lines (north-south, 5 x 8 m) and the rim road itself.
+func _crowded_walls(p: Vector2, road := true) -> bool:
+	if p.length() < LAKE_R + 10.0 or (road and absf(p.length() - 140.0) < 7.0):
+		return true
+	for b in BEACONS:
+		if Vector2(absf(p.x), p.y).distance_to(Vector2(absf(b.x), b.y)) < 15.0:
+			return true
+	for team in SPAWNS:
+		for s in team:
+			if absf(absf(p.x) - absf(s.x)) < 12.0 and absf(p.y - s.y) < 26.0:
+				return true
+	return false
 
 ## 16 x 16 px of crusted lava: bright channels between dark plates (chunky like T440).
 func _lava_tex() -> ImageTexture:
