@@ -24,7 +24,7 @@
   "thresholds": {
     "pred_snap_frac": 0.01
   },
-  "_comment": "T455: both peers fly Heron. The server takes 150 off each (kill_mech amount, ticks 120/130), then each presses FIELD REPAIR (server 200, client 230): 5 s of repair, the server's call, reaching clients through _sync_health ~5x a second (snapshots carry no health). health_desync: the client's view of both mechs must track the server's while they climb back; crash_scan / rpc_integrity: the ring's RPC path (_rpc_ability_activated / _deactivated) on every peer.",
+  "_comment": "T455: both peers fly Heron. The server takes 150 off each (kill_mech amount, ticks 120/130), then each presses FIELD REPAIR (server 200, client 230): 5 s of repair, the server's call, reaching clients through _sync_health ~5x a second (snapshots carry no health). health_desync: the client's view of both mechs must track the server's while they climb back; crash_scan / rpc_integrity: the ring's RPC path (_rpc_ability_activated / _deactivated) on every peer. No turning: walking ~2 m/s with anchor_net's hard turns sits on the wifi p95 0.6 m line for any mech that fast (Pegasus with no ability failed 1 in 3 the same way, 2026-11-18); this scenario is about health, so the peers walk straight.",
   "peers": {
     "server": {
       "input": {
@@ -35,34 +35,6 @@
               0,
               -1
             ],
-            "look": [
-              0.0,
-              0.0
-            ]
-          },
-          {
-            "tick": 100,
-            "look": [
-              2.0,
-              0.0
-            ]
-          },
-          {
-            "tick": 110,
-            "look": [
-              0.0,
-              0.0
-            ]
-          },
-          {
-            "tick": 500,
-            "look": [
-              -2.0,
-              0.0
-            ]
-          },
-          {
-            "tick": 510,
             "look": [
               0.0,
               0.0
@@ -86,34 +58,6 @@
               0,
               -1
             ],
-            "look": [
-              0.0,
-              0.0
-            ]
-          },
-          {
-            "tick": 100,
-            "look": [
-              -2.0,
-              0.0
-            ]
-          },
-          {
-            "tick": 110,
-            "look": [
-              0.0,
-              0.0
-            ]
-          },
-          {
-            "tick": 500,
-            "look": [
-              2.0,
-              0.0
-            ]
-          },
-          {
-            "tick": 510,
             "look": [
               0.0,
               0.0
