@@ -856,6 +856,7 @@ func _physics_process_impl(delta: float) -> void:
 	# V38: non-server peers skip all local simulation; transforms driven by snapshot interp.
 	# T205: except the client's own mech, which predicts its movement (V37).
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		_tick_ability_timers_client(delta)  # T468
 		if _predicting():
 			_handle_look()
 			_maybe_forward_input()
@@ -1440,14 +1441,7 @@ func _handle_ability() -> void:
 	for key in _ability_cooldowns.keys():
 		if _ability_cooldowns[key] > 0.0:
 			_ability_cooldowns[key] = maxf(0.0, _ability_cooldowns[key] - delta)
-	for key in _ability_charges.keys():  # T454: one charge recharging at a time, the next right after
-		var ch: Array = _ability_charges[key]
-		if int(ch[0]) < int(ch[2]):
-			ch[1] = float(ch[1]) - delta
-			if float(ch[1]) <= 0.0:
-				ch[0] = int(ch[0]) + 1
-				ch[1] = float(ch[1]) + float(ch[3]) if int(ch[0]) < int(ch[2]) else 0.0
-		_ability_cooldowns[key] = 0.0 if int(ch[0]) > 0 else float(ch[1])
+	_tick_charges(delta)
 	for key in _ability_active_timers.keys():
 		if _ability_active_timers[key] > 0.0:
 			_ability_active_timers[key] = maxf(0.0, _ability_active_timers[key] - delta)
@@ -1530,19 +1524,58 @@ func _activate_ability(ability: Resource) -> void:
 	if ability.duration > 0.0:
 		_ability_active_timers[ability.effect_key] = ability.duration
 	else:
-		var cd: float = ability.cooldown * maxf(0.0, 1.0 - skill("ability_recharge") * ability.recharge_skill_k)  # T332, T454
-		var ch: Array = _ability_charges.get(ability.effect_key, [])
-		if not ch.is_empty():  # T454: spend one; a recharge starts now unless one is already running
-			ch[0] = int(ch[0]) - 1
-			ch[3] = cd
-			if float(ch[1]) <= 0.0:
-				ch[1] = cd
-			cd = 0.0 if int(ch[0]) > 0 else float(ch[1])
+		var cd: float = _spend_charge(ability, ability_cooldown(ability))  # T454 charges, T468 shared with clients
 		_ability_cooldowns[ability.effect_key] = cd
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		var slot := _abilities.find(ability)
 		if slot >= 0:
 			_rpc_ability_activated.rpc(slot)
+
+## The recharge after a use (or after a duration ability ends), the pilot's skill off (T332).
+func ability_cooldown(ability: Resource) -> float:
+	return ability.cooldown * maxf(0.0, 1.0 - skill("ability_recharge") * ability.recharge_skill_k)  # T332, T454
+
+## T454: one charge recharging at a time, the next right after; the cooldown shows 0 while any is
+## left. Server, and (T468) a client's HUD copies.
+func _tick_charges(delta: float) -> void:
+	for key in _ability_charges.keys():
+		var ch: Array = _ability_charges[key]
+		if int(ch[0]) < int(ch[2]):
+			ch[1] = float(ch[1]) - delta
+			if float(ch[1]) <= 0.0:
+				ch[0] = int(ch[0]) + 1
+				ch[1] = float(ch[1]) + float(ch[3]) if int(ch[0]) < int(ch[2]) else 0.0
+		_ability_cooldowns[key] = 0.0 if int(ch[0]) > 0 else float(ch[1])
+
+## T454: spend one charge of `ability` (if it has charges): a recharge of `cd` starts now unless one
+## is already running; returns the cooldown to show (0 while charges are left). Server + client copies.
+func _spend_charge(ability: Resource, cd: float) -> float:
+	var ch: Array = _ability_charges.get(ability.effect_key, [])
+	if ch.is_empty():
+		return cd
+	ch[0] = int(ch[0]) - 1
+	ch[3] = cd
+	if float(ch[1]) <= 0.0:
+		ch[1] = cd
+	return 0.0 if int(ch[0]) > 0 else float(ch[1])
+
+# T468 (HUMAN_FOUND 2026-11-18: "Client hud doesn't show ability recharge"): only the server runs the
+# ability timers (V38); a client keeps its own copies for the HUD -- started by the ability RPCs,
+# ticked here, never acting on anything (the server's RPCs still turn abilities off).
+func _tick_ability_timers_client(delta: float) -> void:
+	for key in _ability_cooldowns.keys():
+		if not _ability_charges.has(key):  # a charges ability's cooldown comes from its charges
+			_ability_cooldowns[key] = maxf(0.0, float(_ability_cooldowns[key]) - delta)
+	_tick_charges(delta)  # T454 x T468
+	for key in _ability_active_timers.keys():
+		var left: float = float(_ability_active_timers[key])
+		if left <= 0.0:
+			continue
+		_ability_active_timers[key] = maxf(0.0, left - delta)
+		if _ability_active_timers[key] == 0.0:  # ran out here: the recharge shows now, the RPC corrects it
+			for a in _abilities:
+				if a.effect_key == key:
+					_ability_cooldowns[key] = ability_cooldown(a)
 
 func _deactivate_ability(key: String) -> void:
 	match key:
@@ -1555,8 +1588,7 @@ func _deactivate_ability(key: String) -> void:
 			_set_field_repair(false)
 	for ability in _abilities:
 		if ability.effect_key == key:
-			var cd: float = ability.cooldown * maxf(0.0, 1.0 - skill("ability_recharge") * ability.recharge_skill_k)  # T332, T454
-			_ability_cooldowns[key] = cd
+			_ability_cooldowns[key] = ability_cooldown(ability)
 			if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 				_rpc_ability_deactivated.rpc(_abilities.find(ability))
 			break
@@ -2203,6 +2235,10 @@ func _rpc_ability_activated(slot: int) -> void:
 	if slot < 0 or slot >= _abilities.size():
 		return
 	var ability: Resource = _abilities[slot]
+	if ability.duration > 0.0:  # T468: the HUD's copies
+		_ability_active_timers[ability.effect_key] = ability.duration
+	else:
+		_ability_cooldowns[ability.effect_key] = _spend_charge(ability, ability_cooldown(ability))  # T454 charges too
 	match ability.effect_key:
 		"jump_heal":
 			if _predicting():
@@ -2222,6 +2258,8 @@ func _rpc_ability_deactivated(slot: int) -> void:
 	if slot < 0 or slot >= _abilities.size():
 		return
 	var ability: Resource = _abilities[slot]
+	_ability_active_timers[ability.effect_key] = 0.0  # T468: the HUD's copies
+	_ability_cooldowns[ability.effect_key] = ability_cooldown(ability)
 	match ability.effect_key:
 		"stealth":
 			is_stealthy = false

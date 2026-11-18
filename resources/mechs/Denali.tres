@@ -22,7 +22,7 @@ weapon_scene = ExtResource("5")
 [resource]
 script = ExtResource("1")
 display_name = "Denali"
-description = "Heavy, 900 HP, no shield, two heavy hardpoints. Anchor (SPACE): it plants its feet for 6 s -- no walking, but it still turns and aims, takes half damage and hits 30% harder -- then 18 s to recharge. Sand armour with green survey lamps: mountain-pass crews built Denali to hold a road, and where one stops, the line stops."
+description = "Heavy, 900 HP, no shield, two heavy hardpoints. ANCHOR (SPACE): it plants its feet for 6 s -- no walking, but it still turns and aims, takes half damage and hits 30% harder -- then 18 s to recharge. Sand armour with green survey lamps: mountain-pass crews built Denali to hold a road, and where one stops, the line stops."
 class_tag = "Heavy"
 max_health = 900.0
 walk_speed = 0.85
