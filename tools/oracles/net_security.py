@@ -20,6 +20,9 @@ real server).
 6. T462: a mech's or weapon's unreliable server -> client RPC goes out through rpc_fx (held
    after a respawn: on a lossy link it overtook the reliable spawn -> "Node not found" on
    clients), never a bare `<name>.rpc(`.
+7. T465 (B148): `_rpc_snapshot` rides a transfer channel no other unreliable_ordered RPC uses.
+   unreliable_ordered RPCs on one ENet channel share one sequence, so on a reordering link a
+   packet that arrives behind a newer one is dropped: effect RPCs cost ~1/3 of the snapshots.
 """
 import glob
 import hashlib
@@ -54,7 +57,7 @@ BANNED = {
 VAR_OK = {("autoloads/Game.gd", "_on_mp_auth")}       # client decoding the server's late-join state
 TLS_UNSAFE_OK = {("autoloads/Game.gd", "_account_tls")}  # unofficial servers only; the official host is pinned (T401)
 
-NET_SIG = (4, "f8d32122e21a1cae")  # (Game.NET_VERSION, rpc_hash()) -- change both together, never the hash alone
+NET_SIG = (4, "7b816c6b781176bd")  # (Game.NET_VERSION, rpc_hash()) -- change both together, never the hash alone
 
 _SIG = re.compile(r'@rpc\(([^)]*)\)\s*\n\s*func\s+(\w+)\s*\(([^)]*)\)')
 _FUNC = re.compile(r'^(?:static\s+)?func\s+(\w+)\s*\(', re.M)
@@ -73,6 +76,12 @@ def functions(text):
     hits = list(_FUNC.finditer(text))
     return {m.group(1): text[m.start():(hits[i + 1].start() if i + 1 < len(hits) else len(text))]
             for i, m in enumerate(hits)}
+
+
+def _channel(args):
+    """An @rpc's transfer channel: its bare integer argument, 0 by default."""
+    ints = [a.strip() for a in args.split(",") if a.strip().isdigit()]
+    return int(ints[0]) if ints else 0
 
 
 def rpc_hash(files=None):
@@ -125,6 +134,12 @@ def scan(files=None):
         for f in unreliable:
             if own.get(f, True) and re.search(r'\b%s\.rpc\(' % re.escape(f), text):
                 bad.append("%s: %s.rpc( -- send a mech / weapon unreliable RPC through rpc_fx (T462)" % (rel, f))
+    ordered = [(f, _channel(args)) for _, text in (files if files is not None else game_files())
+               for args, f in _RPC.findall(text) if "unreliable_ordered" in args]
+    snap = [c for f, c in ordered if f == "_rpc_snapshot"]
+    for f, c in ordered:
+        if f != "_rpc_snapshot" and c in snap:
+            bad.append("%s: unreliable_ordered on the snapshot's channel %d -- it drops snapshots on a reordering link (B148)" % (f, c))
     if files is None and (net_version(), rpc_hash()) != NET_SIG:
         bad.append("an @rpc signature or Game.NET_VERSION changed: bump NET_VERSION (old clients must be told to update) "
                    "and set NET_SIG = (%d, \"%s\") with the bumped version (T388)" % (net_version(), rpc_hash()))

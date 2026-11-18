@@ -21,6 +21,8 @@ CASES = {
     "exec": 'func f():\n\tOS.execute("sh", [])\n',
     "unsafe tls": 'func f():\n\treturn TLSOptions.client_unsafe()\n',
     "session in the hello": 'func _on_mp_peer_authenticating(id):\n\tvar hello = "token:" + account["session"]\n',
+    "fx on the snapshot channel": '@rpc("authority", "call_remote", "unreliable_ordered", 1)\nfunc _rpc_snapshot(s: Array) -> void:\n\tpass\n'
+        '@rpc("authority", "unreliable_ordered", "call_remote", 1)\nfunc _rpc_beam_fx(a: Vector3) -> void:\n\tpass\n',
     "bare conversion": GOOD.replace("_rpc_set_ready(ready: bool)", "_rpc_send_meta(meta: Dictionary)") + '\tvar e := int(meta.get("elo", 0))\n',
 }
 

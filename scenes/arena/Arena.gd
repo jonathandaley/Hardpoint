@@ -1806,7 +1806,11 @@ func _check_host_silence() -> void:
 		print("[Arena] no snapshot from the server for %.0f s: leaving" % (HOST_SILENCE_MS / 1000.0))
 		Game._leave_server()
 
-@rpc("authority", "unreliable_ordered")
+# T465 (B148): its own ENet channel (transfer channel 1). Every unreliable_ordered RPC on channel 0
+# shares one ENet sequence, and a reordering link drops whatever arrives behind a newer packet: a
+# firefight's effect RPCs knocked out ~1/3 of the snapshots (remote mechs froze 0.3-0.6 s on the bad
+# link, dedicated_server@bad interp_smoothness). net_security rule 7 keeps the channel to itself.
+@rpc("authority", "call_remote", "unreliable_ordered", 1)
 func _rpc_snapshot(snapshots: Array) -> void:
 	_last_snapshot_ms = Time.get_ticks_msec()  # T214
 	Game.server_heard = true  # B101: the server has us connected; our input may flow
