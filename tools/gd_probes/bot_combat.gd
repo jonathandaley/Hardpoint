@@ -77,9 +77,10 @@ func _ready() -> void:
 	ai.set("_target", a)
 	ai.set("_retaliate_cd", 0.0)
 	# shooters within weapon range of E and hits <= 1.5x weapon damage (min 0.6), or
-	# request_damage's server-side validation drops them (SP counts as server too)
-	(b as Node3D).global_position = (e as Node3D).global_position + Vector3(20, 0, 0)
-	(c as Node3D).global_position = (e as Node3D).global_position + Vector3(-20, 0, 0)
+	# request_damage's server-side validation drops them (SP counts as server too). T465: 10 m, inside
+	# every weapon's range (20 m was past a short-range weapon's: the hit dropped, no retaliation)
+	(b as Node3D).global_position = (e as Node3D).global_position + Vector3(10, 0, 0)
+	(c as Node3D).global_position = (e as Node3D).global_position + Vector3(-10, 0, 0)
 	e.take_damage(0.5, b.get_weapons()[0])
 	if ai.get("_target") != b:
 		_fail("shot by B while targeting A, still on %s" % ai.get("_target"))

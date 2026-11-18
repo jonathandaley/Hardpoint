@@ -23,23 +23,25 @@ func _ready() -> void:
 	bot.set("invincible", true)
 	var ai: Node = bot.get("_input_source")
 	var bad: Array = []
-	for case in [[3, 5.0, true], [0, 5.0, true]]:  # 5 m, 20 s: a miss is ~0.1% at Hard
-		ai.set("difficulty", case[0])
+	# T461 (flaked once under suite load): the roll ran on a 20 s WALL-CLOCK wait while the bot walked
+	# its own way (out of NOTICE_RANGE) and a loaded machine ran fewer ticks in it. Now the bot's own
+	# notice tick runs 100 s of game time in one go, the target held 5 m off: a Hard miss is ~e^-35.
+	for case in [3, 0]:
+		ai.set("difficulty", case)
 		ai.set("_spotted", {})
 		ai.set("_target", null)
-		me.global_position = bot.global_position + Vector3(case[1], 0, 0)
+		me.global_position = bot.global_position + Vector3(5.0, 0, 0)
 		me.set("is_stealthy", true)
 		var seen := false
-		var t0 := Time.get_ticks_msec()
-		while Time.get_ticks_msec() - t0 < 20000 and not seen:
+		for i in 6000:
 			me.set("last_fired_frame", Engine.get_physics_frames())  # shooting: noisy
-			me.set("is_stealthy", true)
-			await get_tree().physics_frame
-			var sp = ai.get("_spotted")
-			seen = sp is Dictionary and (sp as Dictionary).has(me)
-		if case[0] == 3 and not seen:
-			bad.append("a Hard bot 5 m from a stealthed mech that keeps shooting never spotted it in 20 s")
-		if case[0] == 0 and seen:
+			ai.call("_tick_noticing", bot, 1.0 / 60.0)
+			if (ai.get("_spotted") as Dictionary).has(me):
+				seen = true
+				break
+		if case == 3 and not seen:
+			bad.append("a Hard bot 5 m from a stealthed mech that keeps shooting never spotted it in 100 s")
+		if case == 0 and seen:
 			bad.append("an Easy bot spotted a stealthed mech")
 	if not bad.is_empty():
 		push_error("[probe] stealth_notice FAIL: " + "; ".join(bad))
