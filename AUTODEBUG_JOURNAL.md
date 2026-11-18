@@ -476,3 +476,4 @@ date|task|outcome|commit|finding|suite
 2026-11-18|merge|DONE (local, branch surprise)|(this commit)|main (T468 client ability timers, T475 revert) into surprise; T468 x T454: the client copies spend and tick dash charges too (Mech._spend_charge / _tick_charges shared with the server), ability_cooldown keeps recharge_skill_k; ability_desync lands on dash_net (git took lunge_net -> dash_net as the rename): anchor_net / charge_net / dash_net x lan/wifi/bad 9/9
 2026-11-18|T479|DONE (local, branch surprise)|(this commit)|the flamer is INFERNO (LT / HV) everywhere a player sees it; files keep their names
 2026-11-18|T484|DONE (local, branch surprise)|(this commit)|weapon table: tools/weapon_table.py -> docs/WEAPON_TABLE.md; shotguns dominate, rifles / lasers / arcs sustain 3-5 DPS, rocket LT weakest
+2026-11-18|T485|DONE (local, branch surprise)|(this commit)|Caldera: island / causeway tops off the terrain and each other (the flicker); lava kills; probe caldera_lava

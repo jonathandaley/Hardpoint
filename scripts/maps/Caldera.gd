@@ -15,6 +15,8 @@ const LAKE_R := 40.0        # lava lake radius (the column ring stands on it)
 const ISLAND_R := 14.0
 const LAVA_Y := -1.6        # the lava surface (terrain under it a little lower)
 const CAUSE_W := 8.0        # causeway width (x from the island to the ring)
+const ISLAND_TOP := 0.06     # T485: off the terrain (y 0) and off the causeways
+const CAUSE_TOP := 0.03
 const TERRACES := [[62.0, 3.0], [98.0, 3.0], [128.0, 3.0]]  # [radius of the bank, rise]
 const BANK := 4.5           # metres a bank's rise spreads over (~34 deg)
 const ROCK := Color("#4a423d")
@@ -161,11 +163,15 @@ func build() -> void:
 	glow.position = Vector3(0, 6.0, 0)
 	add_child(glow)
 	# the island and the causeways: solid rock over the lava, railed
-	_box(Vector3(ISLAND_R * 2.0, 2.4, ISLAND_R * 2.0), Vector3(0, -1.2, 0), basalt_top)
+	# T485 (HUMAN_FOUND 2026-11-18: "the center bridge has a flicker that looks like two materials at
+	# the same height"): the terrain is at y 0 under the island and causeways, and both tops were too
+	# (and the causeways run 3 m into the island) -- the island now tops at ISLAND_TOP, the causeways
+	# at CAUSE_TOP: no two surfaces share a height
+	_box(Vector3(ISLAND_R * 2.0, 2.4, ISLAND_R * 2.0), Vector3(0, ISLAND_TOP - 1.2, 0), basalt_top)
 	for sx in [-1.0, 1.0]:
 		var span := LAKE_R - ISLAND_R + 6.0
 		var cx: float = sx * (ISLAND_R + span * 0.5 - 3.0)
-		_box(Vector3(span, 2.4, CAUSE_W), Vector3(cx, -1.2, 0), basalt_top)
+		_box(Vector3(span, 2.4, CAUSE_W), Vector3(cx, CAUSE_TOP - 1.2, 0), basalt_top)
 		for sz in [-1.0, 1.0]:
 			_box(Vector3(span - 2.0, 1.3, 0.8), Vector3(cx, 0.65, sz * (CAUSE_W * 0.5 - 0.4)), basalt)
 	# the column ring around the lava (gaps where the causeways come in)
@@ -338,3 +344,14 @@ func _embers() -> void:
 	q.material = m
 	fx.mesh = q
 	add_child(fx)
+
+# T485 (HUMAN_FOUND 2026-11-18: "Falling into the lava should kill you."): a mech whose feet are under
+# the lava surface over the lava bed dies (the server's call, like falling off the world: Mech
+# FALL_KILL_Y); the island and causeways are rock, above it.
+func _physics_process(_delta: float) -> void:
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		return
+	for m in get_tree().get_nodes_in_group("mechs"):
+		var p: Vector3 = (m as Node3D).global_position
+		if p.y < LAVA_Y - 0.05 and in_lava(p.x, p.z) and not m.get("is_dead") and float(m.get("health")) > 0.0:
+			m.call("_apply_damage", 1.0e9)
