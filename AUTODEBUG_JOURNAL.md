@@ -462,3 +462,4 @@ date|task|outcome|commit|finding|suite
 2026-11-18|T475|REVERTED|(this commit)|the user meant the agent's own writing, not the game: ability back to ANCHOR; notes and chat name abilities in lowercase (anchor, stealth)
 2026-11-18|T467|DONE|(this commit)|LAN discovery: HOST > OPEN TO LAN broadcasts a beacon (UDP 8920, 1 s); a LAN tab lists found games, a click joins; the beacon parser treats it as untrusted input (bounded, ASCII, magic, typed); team / hangar choice split to T476 (next release) / T477; probe lan_discovery
 2026-11-18|T477|DONE|(this commit)|lobby HANGAR menu (saved squads) next to READY UP; probe lobby_hangar
+2026-11-18|T482+T486|DONE|(this commit)|one commit (two small edits in the same hangar function + probe): fixed-width weapon picker (longest catalog name); ABILITY line instead of SHIELDS: - for shieldless mechs

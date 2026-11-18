@@ -493,6 +493,17 @@ func _on_roster_selected(idx: int) -> void:
 	_update_mech_panel()
 	_refresh_diorama_mech()
 
+# T482 (HUMAN_FOUND 2026-11-18: "The weapon picker changing sizes while scrolling is annoying. Set the
+# width to the maximum, and have there just be empty space for the short names."): every name cell is
+# as wide as the longest name in the catalog, so the rows never resize.
+func _weapon_name_w(lbl: Label) -> float:
+	var f := lbl.get_theme_font("font")
+	var fs := lbl.get_theme_font_size("font_size")
+	var w := 0.0
+	for e in WEAPON_CATALOG:
+		w = maxf(w, f.get_string_size(String(e["long"]), HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x)
+	return ceilf(w) + 2.0
+
 func _update_mech_panel() -> void:
 	var md = Game.loadout.get("mech_def")
 	if md == null:
@@ -515,7 +526,15 @@ func _update_mech_panel() -> void:
 	else:
 		shield_str = "-"
 	# T308: one stat per line under the weapon picker (one 16 px line ran into the preview)
-	mech_stats_label.text = "SPEED: %.2f\nHEALTH: %.0f\nSHIELDS: %s" % [md.walk_speed, md.max_health, shield_str]
+	# T486 (HUMAN_FOUND 2026-11-18: "remove the \"shields: -\" line for mechs that don't have shields, and
+	# instead give a short description ... abilities at least"): no shield -> its ability (and key) there
+	var third := "SHIELDS: %s" % shield_str
+	if not md.has_shields and not md.has_energy_shield:
+		third = "ABILITY: -"
+		for a in md.abilities:
+			third = "ABILITY: %s%s" % [a.ability_name, " (SPACE)" if a.trigger == 0 else " (PASSIVE)"]
+			break
+	mech_stats_label.text = "SPEED: %.2f\nHEALTH: %.0f\n%s" % [md.walk_speed, md.max_health, third]
 	_build_weapon_picker(md)
 
 func _build_weapon_picker(md) -> void:
@@ -575,6 +594,7 @@ func _build_weapon_picker(md) -> void:
 		wep_lbl.text = wep_name
 		wep_lbl.add_theme_font_size_override("font_size", 13)
 		wep_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		wep_lbl.custom_minimum_size.x = _weapon_name_w(wep_lbl)  # T482
 		wep_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		wep_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		row.add_child(wep_lbl)
