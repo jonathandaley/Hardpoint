@@ -67,7 +67,7 @@ const ELITE := {
 # spawn points, so beacons are taken and held: Denali (ANCHOR) holders, fast capturers. Same personality.
 const ELITE_KIT := {
 	"Inexorable": {"squad": [["Hippogriff", "MG"], ["Everest", "MG"], ["Hornet", "SHOTGUN"], ["Vesuvius", "MG"], ["Hippogriff", "SHOTGUN"]],
-		"squad_dm": [["Taurus", "SHOTGUN"], ["Everest", "MG"], ["Taurus", "MG"], ["Etna", "SHOTGUN"], ["Hippogriff", "SHOTGUN"]],
+		"squad_dm": [["Taurus", "SHOTGUN"], ["Everest", "MG"], ["Taurus", "FLAMER"], ["Etna", "SHOTGUN"], ["Hippogriff", "SHOTGUN"]],
 		"squad_rush": [["Denali", "MG"], ["Taurus", "SHOTGUN"], ["Everest", "MG"], ["Hippogriff", "SHOTGUN"], ["Vesuvius", "MG"]],
 		"personality": {"role": "attacker", "range_k": 0.7, "retreat_hp": 0.12}},   # health + speed + capture: rushes beacons
 	"Vantablack": {"squad": [["Slip", "SNIPER"], ["Seeker", "SNIPER"], ["Hornet", "SNIPER"], ["Slip", "SNIPER"], ["Seeker", "SNIPER"]],

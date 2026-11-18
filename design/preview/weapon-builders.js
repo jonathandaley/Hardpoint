@@ -272,10 +272,32 @@
     [-1, 1].forEach(s => M.box(0.05, 0.34, 0.30, s * (W / 2 + 0.10), 0.14, 0.0, D, 0.14));
   }
 
+  // =========================== FLAMER (T457) ==============================
+  // game-side addition (not from the design kit): twin fuel tanks under a short body, a wide
+  // nozzle shroud, and a pilot light under the mouth (the orange heat).
+  function Flamer(M) {
+    const A = M.armor, D = M.detail, MI = M.mid, K = M.dark;
+    M.box(0.30, 0.28, 0.66, 0, 0.00, 0.00, A);              // body
+    M.box(0.14, 0.06, 0.56, 0, 0.17, 0.00, D);              // top rail
+    [-1, 1].forEach(s => {
+      M.box(0.15, 0.22, 0.58, s * 0.21, -0.12, -0.06, MI);  // fuel tank
+      M.box(0.17, 0.06, 0.08, s * 0.21, 0.01, -0.33, K);    // tank cap
+      M.box(0.04, 0.04, 0.30, s * 0.10, -0.06, 0.30, K);    // feed line
+    });
+    M.box(0.15, 0.15, 0.36, 0, 0.02, 0.50, K);              // barrel
+    M.box(0.26, 0.26, 0.18, 0, 0.02, 0.76, D);              // nozzle shroud
+    M.box(0.20, 0.20, 0.08, 0, 0.02, 0.88, K);              // nozzle mouth
+    M.box(0.05, 0.05, 0.12, 0, -0.13, 0.84, K);             // pilot tube
+    boreHeat(M, 0, -0.13, 0.92, 0.18);                      // pilot light (kit halo)
+    M.glow(0xff7a1a, 0, -0.13, 0.92, 0.22);                  // pilot light (in game: a small hot box)
+    grip(M, 0, -0.06);
+    M.box(0.16, 0.22, 0.30, 0, -0.02, -0.46, A);            // stock
+  }
+
   window.WEAPONS = {
     Rifle, Sniper, MachineGun, Shotgun,
     MissileL, MissileH, RocketLauncher,
-    LaserCannon, ArcWeapon, Patience, AerialStrike,
+    LaserCannon, ArcWeapon, Patience, AerialStrike, Flamer,
     _meta: { MISSILES_L, MISSILES_H, C_LASER, C_ARC, C_PATIENCE },
   };
 })();

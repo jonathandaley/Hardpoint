@@ -812,12 +812,15 @@ func _rpc_boost(kind: String, secs: float) -> void:
 		apply_modifier("walk_speed", SPEED_BOOST)
 	elif kind == "slow":  # T455/T456: STOMP -- every peer, so the owner's prediction slows too
 		slow_s = secs
+	elif kind == "burn":  # T457: the flames on a burning mech (the damage is the server's, ignite)
+		burn_s = maxf(burn_s, secs)
 
 func _tick_boosts(delta: float) -> void:
 	if damage_boost_s > 0.0:
 		damage_boost_s = maxf(damage_boost_s - delta, 0.0)
 	if slow_s > 0.0:
 		slow_s = maxf(slow_s - delta, 0.0)
+	_tick_burn(delta)
 	if speed_boost_s > 0.0:
 		speed_boost_s = maxf(speed_boost_s - delta, 0.0)
 		if speed_boost_s == 0.0:
@@ -1540,6 +1543,68 @@ func _deactivate_ability(key: String) -> void:
 			if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 				_rpc_ability_deactivated.rpc(_abilities.find(ability))
 			break
+
+# ---- T457: burning (Flamer) ----
+# A flamer's hit sets the target alight: the server deals `dps` for `secs` after (refreshed while it
+# stays in the flame), straight to health so the gun's range check (request_damage) can't drop it
+# once the target walks out of reach; kill credit stays with the gun. Every peer shows a few flames
+# on it (_rpc_boost "burn", re-sent every BURN_SYNC_TICKS while it's refreshed).
+const BURN_SYNC_TICKS := 30
+var burn_s := 0.0
+var _burn_dps := 0.0
+var _burn_src: Node3D
+var _burn_sync_frame := -1000
+var _burn_fx: CPUParticles3D
+
+func ignite(secs: float, dps: float, source: Node3D) -> void:
+	if health <= 0.0 or is_dead:
+		return
+	_burn_dps = dps if burn_s <= 0.0 else maxf(_burn_dps, dps)
+	_burn_src = source
+	burn_s = maxf(burn_s, secs)
+	if Engine.get_physics_frames() - _burn_sync_frame >= BURN_SYNC_TICKS:
+		_burn_sync_frame = Engine.get_physics_frames()
+		rpc(&"_rpc_boost", "burn", secs)
+
+func _tick_burn(delta: float) -> void:
+	if burn_s <= 0.0:
+		if _burn_fx != null and _burn_fx.emitting:
+			_burn_fx.emitting = false
+		return
+	burn_s = maxf(burn_s - delta, 0.0)
+	if (not multiplayer.has_multiplayer_peer() or multiplayer.is_server()) and _burn_dps > 0.0:
+		_apply_damage(_burn_dps * delta, _burn_src if is_instance_valid(_burn_src) else null)
+	if _burn_fx == null and DisplayServer.get_name() != "headless":
+		_burn_fx = CPUParticles3D.new()
+		_burn_fx.amount = 16
+		_burn_fx.lifetime = 0.5
+		_burn_fx.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+		_burn_fx.emission_sphere_radius = 0.7
+		_burn_fx.direction = Vector3.UP
+		_burn_fx.spread = 20.0
+		_burn_fx.gravity = Vector3(0, 3.0, 0)
+		_burn_fx.initial_velocity_min = 0.5
+		_burn_fx.initial_velocity_max = 1.5
+		_burn_fx.scale_amount_min = 0.25
+		_burn_fx.scale_amount_max = 0.45
+		var ramp := Gradient.new()
+		ramp.set_color(0, Color(1.0, 0.8, 0.3, 0.9))
+		ramp.set_color(1, Color(0.6, 0.15, 0.05, 0.0))
+		_burn_fx.color_ramp = ramp
+		var q := QuadMesh.new()
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		m.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+		m.vertex_color_use_as_albedo = true
+		q.material = m
+		_burn_fx.mesh = q
+		_burn_fx.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_burn_fx.position = Vector3(0, 1.4, 0)
+		add_child(_burn_fx)
+	if _burn_fx != null and not _burn_fx.emitting:
+		_burn_fx.emitting = true
 
 # ---- T456: Etna STOMP (effect_key "stomp", instant) ----
 # User 2026-11-17: "add as many mechs as you think are good" -- no heavy won a close brawl. The

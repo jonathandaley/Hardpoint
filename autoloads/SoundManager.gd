@@ -14,6 +14,7 @@ const _SFX_PATHS: Dictionary = {
 	"patience_shot":   "res://audio/sfx/weapons/patience_shot.wav",
 	"laser_loop":      "res://audio/sfx/weapons/laser_loop.ogg",
 	"arc_loop":        "res://audio/sfx/weapons/arc_loop.ogg",
+	"flamer_loop":     "res://audio/sfx/weapons/flamer_loop.ogg",  # T457: synthesized (noise roar + crackle)
 	"hit_impact":      "res://audio/sfx/weapons/hit_impact.wav",
 	# T351 hook: "pickup" plays when a pickup is taken -- add it here once the user sends the file
 	# (a missing path logs an error, an unknown key is silent)

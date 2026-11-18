@@ -22,6 +22,7 @@ UNRELIABLE_OK = {
     # cosmetic one-shots: a loss is a missing effect, never wrong state
     "_rpc_beam_fx", "_rpc_shot_fx", "_rpc_spawn_ghost", "_rpc_pellet_ghosts", "_rpc_play_sfx", "_rpc_play_sfx_2d",
     "_rpc_muzzle_flash", "_rpc_tracer", "_rpc_hit_sparks", "_rpc_death_explosion",
+    "_rpc_flame_fx",  # T457: the flame, refreshed every fire tick (hides itself FLAME_HOLD_S later)
 }
 
 _RPC = re.compile(r'@rpc\(([^)]*)\)\s*\n\s*func\s+(\w+)')

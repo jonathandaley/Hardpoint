@@ -699,6 +699,12 @@ func _run_action(a: Dictionary) -> void:
 			if mv != null and to != null:
 				var o: Array = a.get("offset", [6, 0, 0])
 				mv.global_position = to.global_position + Vector3(float(o[0]), float(o[1]), float(o[2]))
+				if a.has("ahead"):  # T457: in front of "near" (its facing), turned to face it
+					var fwd: Vector3 = to.call("_lunge_facing")
+					mv.global_position = to.global_position + fwd * float(a.get("ahead"))
+					mv.look_at(to.global_position, Vector3.UP)
+					mv.rotation.x = 0.0
+					mv.rotation.z = 0.0
 				mv.velocity = Vector3.ZERO
 		"lobby_after_match":
 			# T154: the real post-match return (all ready / 30 s timeout -> Game._do_return_to_lobby)

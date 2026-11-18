@@ -605,6 +605,7 @@ const WEAPON_DESC := {
 	"ROCKET": "Needs a lock (hold the box on a target), then fires a homing rocket that hits hard. Lock early, fire once.",
 	"LASER": "A continuous beam: keep it on the target, nothing to lead or dodge. Kestrel pilots hold it like a searchlight.",
 	"ARC": "Needs a lock, then throws lightning at the target -- no travel time, no miss once locked. Bred from a mining cutter.",
+	"FLAMER": "A cone of fire for close work: everything in front of it burns, and keeps burning for 2 s after. The tank refills while you're not firing. Foundry crews never put theirs down.",  # T457
 	"AERIAL": "Needs a lock, then calls a strike down from above. Made for targets that stay put.",
 	"PATIENCE": "Charges while you hold it -- up to 12 s for the full hit, 300 m reach. Named for what it takes.",
 }
