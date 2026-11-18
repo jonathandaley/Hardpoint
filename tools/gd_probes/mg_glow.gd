@@ -55,9 +55,12 @@ func _ready() -> void:
 	var w: Node = me.get_weapons()[0]
 	src.firing = true
 	var mid_r := -1.0
-	var t0 := Time.get_ticks_msec()
-	while Time.get_ticks_msec() - t0 < 4000 and float(w.call("get_heat")) < 0.99:
-		await get_tree().process_frame
+	# T465: heat ramps / decays per physics tick: count ticks, not wall-clock ms (a loaded machine
+	# runs fewer ticks a second, and the 2 s cool-down check below read that as a stuck glow)
+	var ticks := 0
+	while ticks < 480 and float(w.call("get_heat")) < 0.99:
+		await get_tree().physics_frame
+		ticks += 1
 		var g: MeshInstance3D = w.get_node_or_null("BarrelGlow")
 		if mid_r < 0.0 and g != null and float(w.call("get_heat")) > 0.4 and float(w.call("get_heat")) < 0.6:
 			mid_r = (g.mesh.surface_get_material(0) as StandardMaterial3D).albedo_color.r
@@ -74,9 +77,11 @@ func _ready() -> void:
 		_fail("glow does not build with the ramp (mid %.2f vs max %.2f)" % [mid_r, hot.r])
 		return
 	src.firing = false
-	t0 = Time.get_ticks_msec()
-	while Time.get_ticks_msec() - t0 < 2000 and glow.visible:
-		await get_tree().process_frame
+	ticks = 0
+	while ticks < 120 and glow.visible:
+		await get_tree().physics_frame
+		await get_tree().process_frame  # the glow follows the heat in _process
+		ticks += 1
 	if glow.visible:
 		_fail("barrel still glowing 2 s after release (heat %.2f)" % float(w.call("get_heat")))
 		return

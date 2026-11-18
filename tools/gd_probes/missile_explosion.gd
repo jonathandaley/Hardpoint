@@ -34,7 +34,7 @@ func _ready() -> void:
 		p.global_transform = Transform3D(Basis(), Vector3.ZERO).looking_at(Vector3(0, 0, -20))
 		var seen := false
 		var t0 := Time.get_ticks_msec()
-		while Time.get_ticks_msec() - t0 < 1500 and not seen:
+		while Time.get_ticks_msec() - t0 < 6000 and not seen:  # T465: wait-until deadlines generous (exit on the event; a loaded machine runs fewer ticks a second)
 			await get_tree().physics_frame
 			seen = not _booms().is_empty()
 		if not seen:

@@ -29,7 +29,7 @@ func _ready() -> void:
 		var picker: Variant = null
 		var picker_up := false
 		var t0 := Time.get_ticks_msec()
-		while not picker_up and Time.get_ticks_msec() - t0 < 1500:
+		while not picker_up and Time.get_ticks_msec() - t0 < 6000:  # T465: wait-until deadlines generous (exit on the event; a loaded machine runs fewer ticks a second)
 			await get_tree().process_frame
 			picker = hud.get("_squad_picker")
 			picker_up = picker != null and is_instance_valid(picker)

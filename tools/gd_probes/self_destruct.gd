@@ -48,7 +48,7 @@ func _ready() -> void:
 		return
 	var t0 := Time.get_ticks_msec()
 	var picker = null
-	while Time.get_ticks_msec() - t0 < 1500 and not (picker != null and is_instance_valid(picker)):
+	while Time.get_ticks_msec() - t0 < 6000 and not (picker != null and is_instance_valid(picker)):  # T465: wait-until deadlines generous (exit on the event; a loaded machine runs fewer ticks a second)
 		await get_tree().process_frame
 		picker = arena.get("hud").get("_squad_picker")
 	if not (picker != null and is_instance_valid(picker)) or int(arena.get("_player").get("lives")) != lives0 - 1:

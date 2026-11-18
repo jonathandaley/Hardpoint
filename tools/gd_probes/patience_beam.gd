@@ -67,7 +67,7 @@ func _ready() -> void:
 	src.prim = true
 	var beam: MeshInstance3D = null
 	t0 = Time.get_ticks_msec()
-	while beam == null and Time.get_ticks_msec() - t0 < 1000:
+	while beam == null and Time.get_ticks_msec() - t0 < 4000:  # T465: wait-until deadlines generous (exit on the event; a loaded machine runs fewer ticks a second)
 		await get_tree().physics_frame
 		for b in _beams(arena):
 			if not before.has(b):

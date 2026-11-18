@@ -39,7 +39,7 @@ func _ready() -> void:
 		p.global_transform = Transform3D(Basis(), Vector3.ZERO).looking_at(Vector3(0, 0, -20))
 		dummy.global_position = Vector3(1.0, 0, -20)  # 1 m beside where the range ends
 		var t0 := Time.get_ticks_msec()
-		while Time.get_ticks_msec() - t0 < 1500 and _booms().is_empty():
+		while Time.get_ticks_msec() - t0 < 6000 and _booms().is_empty():  # T465: wait-until deadlines generous (exit on the event; a loaded machine runs fewer ticks a second)
 			await get_tree().physics_frame
 		if _booms().is_empty():
 			_fail("a %s missile flew its range and never burst" % ("ghost" if ghost else "real"))
