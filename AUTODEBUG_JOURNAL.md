@@ -459,3 +459,4 @@ date|task|outcome|commit|finding|suite
 2026-11-18|T471|DONE|(this commit)|the spawn picker opens under the click that chose the mech: its buttons ignore presses for 400 ms; probe spawn_arm (red before: the early press spawned)
 2026-11-18|T475|DONE|(this commit)|the user on T430: "Great, just uncapitalize ANCHOR." -> the ability reads "Anchor" (name + Denali's description); the NEEDS_HUMAN entry is answered and gone
 2026-11-18|T468|DONE|(this commit)|only the server ran the ability timers, so a client HUD always read READY: clients keep HUD copies started by the ability RPCs (no new RPC; one cooldown formula, Mech.ability_cooldown); new oracle ability_desync on anchor_net + lunge_net, red on the old code (17.5 s / 10.5 s gaps), green lan/wifi/bad; suite 204/204, sweep 64/64
+2026-11-18|T475|REVERTED|(this commit)|the user meant the agent's own writing, not the game: ability back to ANCHOR; notes and chat name abilities in lowercase (anchor, stealth)
