@@ -4,7 +4,7 @@ extends Node
 # where mechs stand (team 0 spawns + beacons) at a locked mech where enemies stand (beacons + team 1
 # spawns), 25..170 m apart, must hit it at least MIN_RATE of the time on each map.
 
-const MAPS := ["MathTemple", "Badlands", "City", "Forest", "Giza", "Swamp", "Factory", "Corvette"]
+const MAPS := ["MathTemple", "Badlands", "City", "Forest", "Giza", "Swamp", "Factory", "Corvette", "Glacier"]
 const HOMING := preload("res://scenes/weapons/HomingProjectile.tscn")
 const MIN_RATE := 0.75
 const MUZZLE_UP := 3.0

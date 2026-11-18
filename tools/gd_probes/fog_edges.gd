@@ -4,7 +4,7 @@ extends Node
 # upgrade."): every square outdoor map (Forest, Giza, Factory, Swamp, Badlands) gets fog curtains on all
 # four edges in its own fog colour, the outermost opaque; the walls themselves don't move.
 
-const MAPS := ["Forest", "Giza", "Factory", "Swamp", "Badlands"]
+const MAPS := ["Forest", "Giza", "Factory", "Swamp", "Badlands", "Glacier"]
 
 func _fail(msg: String) -> void:
 	push_error("[probe] fog_edges FAIL: " + msg)

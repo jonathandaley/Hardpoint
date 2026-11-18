@@ -51,7 +51,7 @@ func minimap_outline() -> PackedVector2Array:
 ## this map's ground_y, every `cell` m; `color_at(x, z, y) -> Color` paints the vertices.
 ## Godot's front faces wind clockwise seen from above (T211: the other way round and every
 ## mech fell through).
-func make_terrain(half: float, cell: float, color_at: Callable, detail_seed := 0, soft := false) -> void:
+func make_terrain(half: float, cell: float, color_at: Callable, detail_seed := 0, soft := false, shades: Array = FLOOR_SHADES) -> void:
 	var n := int(half * 2.0 / cell) + 1
 	var verts := PackedVector3Array()
 	var cols := PackedColorArray()
@@ -90,7 +90,7 @@ func make_terrain(half: float, cell: float, color_at: Callable, detail_seed := 0
 		mat.detail_albedo = grain
 		mat.uv1_scale = Vector3(0.15, 0.15, 0.15)
 	else:
-		pixelate(mat, detail_seed, FLOOR_TEXEL_M)
+		pixelate(mat, detail_seed, FLOOR_TEXEL_M, shades)  # T459: snow wants a lighter grain
 	mi.material_override = mat
 	add_child(mi)
 	var body := StaticBody3D.new()
@@ -163,9 +163,9 @@ static func pixel_grain(seed: int, shades: Array = GRAIN_SHADES) -> ImageTexture
 	return ImageTexture.create_from_image(img)
 
 ## A floor / stone material gets the grain as its detail at texel_m metres a texel, nearest.
-static func pixelate(m: StandardMaterial3D, seed: int, texel_m: float) -> void:
+static func pixelate(m: StandardMaterial3D, seed: int, texel_m: float, shades: Array = FLOOR_SHADES) -> void:
 	m.detail_enabled = true
-	m.detail_albedo = pixel_grain(seed, FLOOR_SHADES)
+	m.detail_albedo = pixel_grain(seed, shades)
 	m.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MUL
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
 	m.uv1_triplanar = true

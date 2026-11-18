@@ -32,7 +32,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LIFE = re.compile(r"^\[bal\] (\{.*\})$", re.M)
 MATCH = re.compile(r"^\[bal-match\] (\{.*\})$", re.M)
 PAIR = re.compile(r"^\[bal-pair\] (\{.*\})$", re.M)
-MAPS = ["MathTemple", "Badlands", "City", "Forest", "Giza", "Swamp", "Factory", "Corvette"]
+MAPS = ["MathTemple", "Badlands", "City", "Forest", "Giza", "Swamp", "Factory", "Corvette", "Glacier"]
 
 
 def run_match(job, a):

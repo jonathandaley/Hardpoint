@@ -66,6 +66,7 @@ const MAPS: Array = [
 	"res://resources/maps/Swamp.tres",
 	"res://resources/maps/Factory.tres",
 	"res://resources/maps/Corvette.tres",
+	"res://resources/maps/Glacier.tres",  # T459 / T460
 ]
 
 var _pilot_stats_label: Label = null

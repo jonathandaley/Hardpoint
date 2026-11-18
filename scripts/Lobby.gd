@@ -9,6 +9,7 @@ const _MAP_OPTIONS: Array = [
 	{"name": "Swamp", "path": "res://resources/maps/Swamp.tres"},
 	{"name": "Factory", "path": "res://resources/maps/Factory.tres"},
 	{"name": "Corvette", "path": "res://resources/maps/Corvette.tres"},
+	{"name": "Glacier", "path": "res://resources/maps/Glacier.tres"},  # T459 / T460
 ]
 
 # T434: game modes, [mode string, menu label] -- the lobby and the single-player picker

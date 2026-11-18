@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="MapDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/MapDef.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+scene_path = "res://scenes/maps/Glacier.tscn"
+map_name = "Glacier"
+theme = "ice"
+ambient_color = Color(0.80, 0.86, 0.95, 1)
+ambient_energy = 0.7
