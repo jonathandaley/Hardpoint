@@ -1414,11 +1414,11 @@ func _on_bot_drop(mech: Node3D) -> void:
 	if _drop_rng == null:
 		_drop_rng = RandomNumberGenerator.new()
 		_drop_rng.seed = hash(["drops", Game.mp_lobby.get("match_seed", 0)])
-	var src: Node = mech.get("_input_source")
-	var diff: int = int(src.get("difficulty")) if src != null and src.get("difficulty") != null and int(src.get("difficulty")) >= 0 \
-		else int(Game.settings.get("bot_difficulty", 1))
 	var at: Vector3 = mech.global_position
-	_rpc_spawn_pickup.rpc(_next_pickup_id, "coin", at + Vector3(1.5, 0, 0), DROP_COINS[clampi(diff, 0, DROP_COINS.size() - 1)])
+	# T470 (HUMAN_FOUND 2026-11-18: "Coins don't appear to be modified by kill count, just give base
+	# coins"): the coin a bot drops is worth what the bot is worth to its killer -- its base plus the
+	# bounty it built this life (T364; it was the base alone)
+	_rpc_spawn_pickup.rpc(_next_pickup_id, "coin", at + Vector3(1.5, 0, 0), kill_coins(mech))
 	_next_pickup_id += 1
 
 ## T362 / T364: a mech's worth to its killer -- its base (a bot's by its difficulty, a player's 0)
