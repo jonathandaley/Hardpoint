@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1")
-ability_name = "LUNGE"
+ability_name = "CHARGE"
 trigger = 0
-effect_key = "lunge"
-cooldown = 11.0
+effect_key = "charge"
+cooldown = 0.0

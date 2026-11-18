@@ -818,8 +818,8 @@ func _use_abilities(bot_mech: Node3D, fighting: bool, own_hp_pct: float, has_tar
 				_ability_press = bot_mech.health <= bot_mech.max_health - Mech.JUMP_HEAL or (fighting and own_hp_pct < 0.6)
 			"stealth":
 				_ability_press = stealth_wanted(bot_mech, has_target, dist, fire_range, own_hp_pct)
-			"lunge":
-				_ability_press = lunge_wanted(bot_mech, has_target, dist)
+			"charge":
+				_ability_press = charge_wanted(bot_mech, has_target, dist)
 			"anchor":  # T430: plant when trading shots in range with a clear line
 				_ability_press = has_target and _has_clear_shot and dist <= fire_range
 			"stomp":  # T456: an enemy close enough to take most of it
@@ -854,20 +854,36 @@ static func field_repair_wanted(bot_mech: Node3D, own_hp_pct: float, fighting: b
 const DASH_GAP_TICKS := 90  # T454: 1.5 s at 60 Hz -- a bot doesn't spend both dash charges at once
 var _last_dash_frame := -100000
 
-## T342: ram a target that's straight ahead inside the dash's reach (~15 m) with a clear line
-## (the LoS check doubles as "no wall in the way"); not point-blank, where the windup wastes it.
-const LUNGE_MIN_M := 5.0
-const LUNGE_MAX_M := 15.0
-const LUNGE_AIM_RAD := 0.12
+## T473: set off at a target straight ahead with a clear line (the LoS check doubles as "no wall in
+## the way"), not point-blank, where it barely gets going; pull up once the target is no longer
+## ahead (dodged, passed, or lost). Presses spaced CHARGE_GAP_TICKS: a pull-up isn't a set-off.
+const CHARGE_MIN_M := 6.0
+const CHARGE_MAX_M := 40.0
+const CHARGE_AIM_RAD := 0.12
+const CHARGE_QUIT_RAD := 0.6
+const CHARGE_GAP_TICKS := 60
+var _last_charge_frame := -100000
 
-func lunge_wanted(bot_mech: Node3D, has_target: bool, dist: float) -> bool:
-	if not has_target or not _has_clear_shot or dist < LUNGE_MIN_M or dist > LUNGE_MAX_M:
+func charge_wanted(bot_mech: Node3D, has_target: bool, dist: float) -> bool:
+	if Engine.get_physics_frames() - _last_charge_frame < CHARGE_GAP_TICKS:
 		return false
-	var to := _target.global_position - bot_mech.global_position
-	to.y = 0.0
-	var fwd: Vector3 = -(bot_mech.get_aim_basis() as Basis).z
-	fwd.y = 0.0
-	return to.length() > 0.01 and fwd.angle_to(to) < LUNGE_AIM_RAD
+	var want := false
+	if bot_mech.call("charging"):
+		want = not has_target
+		if has_target:
+			var to := _target.global_position - bot_mech.global_position
+			to.y = 0.0
+			var dir: Vector3 = bot_mech.get("_lunge_dir")
+			want = to.length() < 0.01 or dir.angle_to(to) > CHARGE_QUIT_RAD
+	elif not bot_mech.get("lunging") and has_target and _has_clear_shot and dist >= CHARGE_MIN_M and dist <= CHARGE_MAX_M:
+		var to := _target.global_position - bot_mech.global_position
+		to.y = 0.0
+		var fwd: Vector3 = -(bot_mech.get_aim_basis() as Basis).z
+		fwd.y = 0.0
+		want = to.length() > 0.01 and fwd.angle_to(to) < CHARGE_AIM_RAD
+	if want:
+		_last_charge_frame = Engine.get_physics_frames()
+	return want
 
 ## T295 (HUMAN_FOUND 2026-11-05 late: "Cesh bots should use stealth more intelligently"): cloak
 ## for a reason, not whenever a fight is on (24 s on, 24 s off) -- to close in on a target still

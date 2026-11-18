@@ -1,5 +1,5 @@
 {
-  "name": "lunge_net",
+  "name": "charge_net",
   "seed": 3420,
   "port": 8953,
   "map_path": "res://resources/maps/MathTemple.tres",
@@ -24,7 +24,7 @@
   "thresholds": {
     "pred_snap_frac": 0.01
   },
-  "_comment": "T342: both peers fly Taurus and press LUNGE twice (ticks 150/180 and 600/640, past the 5.5 s cooldown) while walking and turning. The client's own lunge is predicted from the input tick the server ran it on (_rpc_lunge): prediction_recon must stay in its usual bounds (a lunge started a round trip late would put the owner ~1 m off = a snap); the server's copy and the client's view must agree (transform_desync); any ram damage must replicate (health_desync). Own link: 160 ms each way (320 ms round trip, longer than the 0.2 s windup), so the owner's catch-up (_rpc_lunge rewrites the ticks it ran past the server's start) is what keeps it in bounds; on wifi / bad the windup alone hides the delay. Snaps capped at 1%: without the catch-up the client's lunge peaked at 1.16 m with 2 snaps of 187 (a rubber-band; the run's p95 still passed), with it 0.02 m, none; B131: on a lossy link (sweep @bad) a lost start RPC can still cost one snap, then the snapshot's lunge clock takes over.",
+  "_comment": "T473 (was T342's lunge_net): both peers fly Taurus and toggle CHARGE while walking and turning -- set off, pull up, set off again out of the pull-up (the boost it kept), pull up, then a later charge (server 150/300/320/450/600/760, client 180/330/352/480/640/800; a charge that meets a wall first ends there, so the next press sets off instead). The server runs each press on its input tick and tells the owner where (_rpc_lunge / _rpc_charge_end); the owner rewrites the ticks it ran past that record, so prediction_recon stays in its usual bounds (a set-off or pull-up a round trip late is ~2-4 m off at charge speed = a snap); the server's copy and the client's view must agree (transform_desync); any ram damage must replicate (health_desync). Own link: 160 ms each way (320 ms round trip). Snaps capped at 1%; B131: on a lossy link (sweep @bad) a late RPC is covered by the snapshot's clock (lt / ld / lv / le / lh).",
   "peers": {
     "server": {
       "input": {
@@ -75,7 +75,23 @@
             "action": "ability"
           },
           {
+            "tick": 300,
+            "action": "ability"
+          },
+          {
+            "tick": 320,
+            "action": "ability"
+          },
+          {
+            "tick": 450,
+            "action": "ability"
+          },
+          {
             "tick": 600,
+            "action": "ability"
+          },
+          {
+            "tick": 760,
             "action": "ability"
           }
         ]
@@ -130,7 +146,23 @@
             "action": "ability"
           },
           {
+            "tick": 330,
+            "action": "ability"
+          },
+          {
+            "tick": 352,
+            "action": "ability"
+          },
+          {
+            "tick": 480,
+            "action": "ability"
+          },
+          {
             "tick": 640,
+            "action": "ability"
+          },
+          {
+            "tick": 800,
             "action": "ability"
           }
         ]

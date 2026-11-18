@@ -460,9 +460,11 @@ func configure_abilities(abilities: Array) -> void:
 	_ability_active_timers.clear()
 	is_stealthy = false
 	_dash = false
+	_charge = false
 	for ability in abilities:
 		var key: String = ability.effect_key
 		_dash = _dash or key == "dash"  # T454
+		_charge = _charge or key == "charge"  # T473
 		if ability.trigger == 1:
 			_apply_passive(key)
 		else:
@@ -857,7 +859,7 @@ func _physics_process_impl(delta: float) -> void:
 			_update_legs(delta)
 			return
 		_apply_snapshot_interp()
-		_lunge_visual_tick(delta)  # T342: crouch / stride pose + glow only
+		_lunge_visual_tick(delta)  # T342 / T473: pose + glow only
 		if _input_source != null and owner_peer_id == multiplayer.get_unique_id():
 			_handle_look()   # camera still tracks local mouse
 			_maybe_forward_input()
@@ -1225,7 +1227,7 @@ func _handle_look() -> void:
 	# camera_arm.rotation.x is owned by _process (shake + pitch combined)
 
 func _handle_movement(delta: float) -> void:
-	if _lunge_step(delta):  # T342: the lunge drives the legs, no steering
+	if _lunge_step(delta):  # T342 / T473: a charge (or dash) drives the motion, no steering
 		return
 	if anchored:  # T430: feet planted -- stops dead, still turns and aims
 		_desired_move_dir = Vector3.ZERO
@@ -1451,11 +1453,14 @@ func _handle_ability() -> void:
 		if ability.trigger != 0:
 			continue
 		var key: String = ability.effect_key
+		if key == "charge":
+			_charge_press()  # T473: a toggle, no recharge
+			return
 		if _ability_cooldowns.get(key, 0.0) > 0.0:
 			return
 		if _ability_active_timers.get(key, 0.0) > 0.0:
 			return
-		if lunging and (key == "dash" or key == "lunge"):
+		if lunging and key == "dash":
 			return  # T454: a second dash charge mid-dash would restart it (the first one's ground lost)
 		_activate_ability(ability)
 
@@ -1505,11 +1510,14 @@ func _activate_ability(ability: Resource) -> void:
 		"stomp":
 			_stomp()
 			_stomp_fx()
-		"lunge", "dash":
-			_lunge_begin(_dash_dir() if ability.effect_key == "dash" else _lunge_facing())
+		"charge":
+			_charge_press()  # T473: no recharge, no activation
+			return
+		"dash":
+			_lunge_begin(_dash_dir())
 			if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 				# the owner lines its prediction up on the tick this input ran (T205)
-				_rpc_lunge.rpc(input_ack, input_ack_ticks + 1, _lunge_dir)
+				_rpc_lunge.rpc(input_ack, input_ack_ticks + 1, _lunge_dir, 0.0)
 	if ability.duration > 0.0:
 		_ability_active_timers[ability.effect_key] = ability.duration
 	else:
@@ -1726,66 +1734,75 @@ const ANCHOR_CROUCH := 0.6   # leg pose crouch (0..1)
 var anchored := false
 var _anchor_pose := 0.0
 
-# ---- T342: Taurus LUNGE (ability effect_key "lunge") ----
-# User 2026-11-08 (picked over a held-SPACE charge): press -> a short crouch in place, then a
-# straight dash along the facing at the press that speeds up along a fixed curve, holds, and
-# stops quickly. No steering. Ramming an enemy mech (or its front shield) deals
-# max(RAM_FLOOR, RAM_K x closing speed) and ends the lunge; a wall met face-on ends it with no
-# damage. The server and the owner's prediction (T205) run the same tick curve; the owner lines
-# up on the input tick the server ran it on (_rpc_lunge). Other peers only run the clock for
-# the leg pose and the glow, INTERP_DELAY late to match the motion they're shown.
-# T366 (user 2026-11-09: "Crouch-jump forward-hit with horns ... Very flat trajectory, should not
-# really look like a jump"): the dash is one low leap out of the crouch -- full speed almost at
-# once (a spring, not a run), ~16 m as before; the hop itself is visual only (lunge_pose).
-# T404 (HUMAN_FOUND 2026-11-13: "Short crouch anticipation, explosive front-loaded acceleration
-# (ease-out), committed momentum with no steering, hard braking plant with a slight overshoot and
-# settle ... The \"overshoot\" should be cancelled if it hits a wall or mech, so that it just settles
-# out of the impact. Crouch should last .1 seconds."): 0.1 s crouch; ease-out to LUNGE_PEAK in
-# LUNGE_RAMP_S (most of it in the first ticks), held; a hard ease-out brake; then the body rocks back
-# LUNGE_OVERSHOOT_V on a half sine over LUNGE_SETTLE_S and settles. A ram / wall jumps to the settle
-# with no rock-back (_lunge_impact). Steering and ground accel were already out (velocity set directly).
-const LUNGE_WINDUP_S := 0.1   # T404 (user: "Crouch should last .1 seconds"; T366 0.12, was 0.2)
-const LUNGE_DASH_S := 1.3
-const LUNGE_STOP_S := 0.18    # T404: a hard plant (was a 0.25 s linear stop)
-const LUNGE_RAMP_S := 0.08    # T404: ease-out to LUNGE_PEAK (T366 was an ease-in 0.15 s)
-const LUNGE_SETTLE_S := 0.2   # T404: the rock back onto its feet after the plant
-const LUNGE_OVERSHOOT_V := 1.6  # m/s back at the rock's peak (~0.2 m) -- calibration knob
-const LUNGE_LIFT := 0.18     # m the body rises at mid-leap (visual) -- calibration knob
-const LUNGE_PEAK := 12.0     # m/s -- calibration knob (Taurus walks 0.9; T366 "a little faster": was 10)
+# ---- T473: Taurus CHARGE (ability effect_key "charge") ----
+# User 2026-11-18 ("the lunge is just really not what I wanted. Playing around with the Swift made
+# me realize that I wanted them separately; dashing skirmisher and lumbering charger"): their original
+# 2026-11-08 design with SPACE a toggle instead of held. A press sets it off straight along its facing
+# (the aim stays free), speeding up linearly from walking pace to CHARGE_TOP ("High top speed, cap is
+# good"); the next press pulls up: the boost bleeds off at CHARGE_DECEL ("quickly, not instant") while
+# steering and walking are back at once, so a quick turn and a press keep a little of it (the new
+# charge sets off at the speed it still carries along the new heading). No recharge. While it
+# charges, an enemy mech (or its front shield) in the way takes max(RAM_FLOOR, RAM_K x closing speed)
+# and the charge stops dead ("Stop on hit"); a wall met face-on stops it with no damage; it stands
+# CHARGE_HIT_S in either impact. Its glow parts and a red aura around the whole body brighten with
+# speed. Netcode as the T342 lunge it replaces: the server runs a press on its input tick and tells
+# the owner where (_rpc_lunge sets off, _rpc_charge_end pulls up / hits); the owner rewrites the
+# ticks it already ran past that record (T205); snapshots carry the clock (lt / ld / lv / le / lh)
+# for an RPC that comes late (B131). Other peers run the clock INTERP_DELAY late for pose and glow.
+const CHARGE_TOP := 15.0     # m/s -- calibration knob (the lunge peaked at 12; Taurus walks 0.9)
+const CHARGE_ACCEL := 5.0    # m/s per s from walking pace: ~2.8 s to the top -- calibration knob
+const CHARGE_DECEL := 30.0   # m/s per s once it pulls up: ~0.5 s from the top -- calibration knob
+const CHARGE_HIT_S := 0.3    # s it stands in an impact
+const CHARGE_CROUCH := 0.35  # leg pose crouch at the top speed: head down, horns first
+const CHARGE_AURA_R := 2.2   # m: the aura around the body (its centre CHARGE_AURA_Y up)
+const CHARGE_AURA_Y := 1.3
 const RAM_FLOOR := 60.0      # ~1/3 of a light mech -- calibration knob
-const RAM_K := 9.0           # damage per m/s of closing speed -- calibration knob
+const RAM_K := 9.0           # damage per m/s of closing speed -- calibration knob (135 at the top)
 const LUNGE_GLOW_K := 2.5    # extra glow at full speed (x the palette's energy)
-const LUNGE_TOTAL_S := LUNGE_WINDUP_S + LUNGE_DASH_S + LUNGE_STOP_S + LUNGE_SETTLE_S
-var lunging := false
+var lunging := false  # the charge / dash clock runs
 var bounty := 0  # T364 (server): coins this mech is worth on top of its base -- half of what it killed this life
 var lunge_t := 0.0
 var _lunge_dir := Vector3.ZERO
 var _lunge_glow: Array = []  # [material, base energy] -- this mech's own copies
+var _charge := false      # this mech's clock runs the CHARGE curve (configure_abilities)
+var _charge_v0 := 0.0     # m/s it set off at
+var _charge_end_t := INF  # the clock at the pull-up / impact; INF while it charges
+var _aura: MeshInstance3D = null
 
-static func lunge_speed(t: float, dash := false) -> float:
-	if dash:  # T454: no crouch, a burst and a quick stop, no rock-back
-		if t < 0.0:
-			return 0.0
-		if t < DASH_S:
-			var w := 1.0 - minf(t / DASH_RAMP_S, 1.0)
-			return DASH_PEAK * (1.0 - w * w)
-		var e := t - DASH_S
-		if e < DASH_STOP_S:
-			var q := 1.0 - e / DASH_STOP_S
-			return DASH_PEAK * q * q
+func charging() -> bool:
+	return lunging and _charge and lunge_t < _charge_end_t
+
+func _charge_speed(t: float) -> float:
+	if t < 0.0:
 		return 0.0
-	if t < LUNGE_WINDUP_S:
+	if t < _charge_end_t:
+		return minf(CHARGE_TOP, _charge_v0 + CHARGE_ACCEL * t)
+	if _lunge_hit:
 		return 0.0
-	var d := t - LUNGE_WINDUP_S
-	if d < LUNGE_DASH_S:
-		var u := 1.0 - minf(d / LUNGE_RAMP_S, 1.0)
-		return LUNGE_PEAK * (1.0 - u * u)  # ease-out: explosive off the crouch
-	d -= LUNGE_DASH_S
-	if d < LUNGE_STOP_S:
-		var s := 1.0 - d / LUNGE_STOP_S
-		return LUNGE_PEAK * s * s  # hard plant: most of the speed goes at once
-	d -= LUNGE_STOP_S
-	return -LUNGE_OVERSHOOT_V * sin(PI * minf(d / LUNGE_SETTLE_S, 1.0))  # rocks back, settles
+	return maxf(0.0, minf(CHARGE_TOP, _charge_v0 + CHARGE_ACCEL * _charge_end_t) - CHARGE_DECEL * (t - _charge_end_t))
+
+## This mech's curve at clock t: the dash's or the charge's.
+func _curve_speed(t: float) -> float:
+	return dash_speed(t) if _dash else _charge_speed(t)
+
+## T473 (server / offline): a press sets the charge off, pulls it up, or -- out of a pull-up -- sets
+## it off again from what it still carries along the new heading. Standing in an impact: nothing.
+func _charge_press() -> void:
+	if lunging and _lunge_hit:
+		return
+	if charging():
+		_charge_end_t = lunge_t
+		_charge_end_rpc(false)
+		return
+	var dir := _lunge_facing()
+	var v0 := maxf(walk_speed, velocity.x * dir.x + velocity.z * dir.z)
+	_lunge_begin(dir, 0.0, v0)
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_rpc_lunge.rpc(input_ack, input_ack_ticks + 1, dir, v0)  # the owner lines up on this tick (T205)
+
+func _charge_end_rpc(hit: bool) -> void:
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		_rpc_charge_end.rpc(input_ack, input_ack_ticks + 1, _charge_end_t, hit)
 
 # ---- T454: Swift DASH (effect_key "dash", user 2026-11-17: "add as many mechs as you think are
 # good"): a short burst along the move input (any direction; the facing if none). It rides the
@@ -1799,9 +1816,25 @@ const DASH_CROUCH := 0.55  # leg pose crouch at mid-dash (0..1)
 const DASH_LIFT := 0.12    # m the legs rise at mid-dash (visual): the feet skim
 var _dash := false  # this mech's lunge clock runs the DASH curve (configure_abilities)
 
-## The curve's phases for this mech: [windup, dash, stop, settle].
+static func dash_speed(t: float) -> float:
+	if t < 0.0:
+		return 0.0
+	if t < DASH_S:
+		var w := 1.0 - minf(t / DASH_RAMP_S, 1.0)
+		return DASH_PEAK * (1.0 - w * w)
+	var e := t - DASH_S
+	if e < DASH_STOP_S:
+		var q := 1.0 - e / DASH_STOP_S
+		return DASH_PEAK * q * q
+	return 0.0
+
+## The curve's phases for this mech: [windup, run, stop, settle] (a charge runs until its end).
 func _lphase() -> Array:
-	return [0.0, DASH_S, DASH_STOP_S, 0.0] if _dash else [LUNGE_WINDUP_S, LUNGE_DASH_S, LUNGE_STOP_S, LUNGE_SETTLE_S]
+	if _dash:
+		return [0.0, DASH_S, DASH_STOP_S, 0.0]
+	if _lunge_hit:
+		return [0.0, _charge_end_t, CHARGE_HIT_S, 0.0]
+	return [0.0, _charge_end_t, minf(CHARGE_TOP, _charge_v0 + CHARGE_ACCEL * _charge_end_t) / CHARGE_DECEL, 0.0]
 
 func _ltotal() -> float:
 	var p := _lphase()
@@ -1821,23 +1854,25 @@ func _lunge_facing() -> Vector3:
 	f.y = 0.0
 	return f.normalized() if f.length_squared() > 0.0001 else Vector3.FORWARD
 
-var _lunge_hit := false  # T404: a ram / wall: settle in place, no rock-back
-var _lunge_hit_t := 0.0   # T404: the dash clock at that impact (the owner's sync compares with it)
+var _lunge_hit := false  # T404: a ram / wall: stands in place
+var _lunge_hit_t := 0.0   # T404: the clock at that impact (the owner's sync compares with it)
 
-var _lunge_begin_ms := -100000  # T454: when this peer last started a lunge / dash
+var _lunge_begin_ms := -100000  # T454: when this peer last started a charge / dash
 
-func _lunge_begin(dir: Vector3, t0 := 0.0) -> void:
+func _lunge_begin(dir: Vector3, t0 := 0.0, v0 := 0.0) -> void:
 	_lunge_begin_ms = Time.get_ticks_msec()
 	lunging = true
 	lunge_t = t0
 	_lunge_dir = dir
 	_lunge_hit = false
+	_charge_v0 = v0
+	_charge_end_t = INF
 
 func _lunge_end() -> void:
 	lunging = false
 	_set_lunge_glow(0.0)
 
-## Server + owner: advance the curve one tick and drive the horizontal velocity; false = no lunge.
+## Server + owner: advance the curve one tick and drive the horizontal velocity; false = not running.
 func _lunge_step(delta: float) -> bool:
 	if not lunging:
 		return false
@@ -1845,10 +1880,19 @@ func _lunge_step(delta: float) -> bool:
 	if lunge_t >= _ltotal():
 		_lunge_end()
 		return false
-	var sp := 0.0 if _lunge_hit else lunge_speed(lunge_t, _dash)
+	var sp := 0.0 if _lunge_hit else _curve_speed(lunge_t)
 	velocity.x = _lunge_dir.x * sp
 	velocity.z = _lunge_dir.z * sp
-	_set_lunge_glow(maxf(sp, 0.0) / (DASH_PEAK if _dash else LUNGE_PEAK))
+	if _charge and not _lunge_hit and lunge_t >= _charge_end_t:
+		# T473: pulled up -- it steers and walks again while the boost bleeds off
+		var d2: Vector2 = _input_source.get_move_direction() if _input_source != null else Vector2.ZERO
+		_desired_move_dir = Vector3.ZERO
+		if d2 != Vector2.ZERO:
+			var aim := torso.global_transform.basis
+			_desired_move_dir = (aim.x * d2.x + (-aim.z) * -d2.y).normalized()
+			velocity.x += _desired_move_dir.x * walk_speed
+			velocity.z += _desired_move_dir.z * walk_speed
+	_set_lunge_glow(sp / (DASH_PEAK if _dash else CHARGE_TOP))
 	return true
 
 ## Other peers: the clock for the pose and glow only.
@@ -1859,13 +1903,13 @@ func _lunge_visual_tick(delta: float) -> void:
 	if lunge_t >= _ltotal():
 		_lunge_end()
 	else:
-		_set_lunge_glow(maxf(lunge_speed(lunge_t, _dash), 0.0) / (DASH_PEAK if _dash else LUNGE_PEAK))
+		_set_lunge_glow(_curve_speed(lunge_t) / (DASH_PEAK if _dash else CHARGE_TOP))
 
-## After each move: a mech (or its shield) or a wall in the dash's way ends the lunge; the
-## server deals the ram. The owner's prediction stops the same way, without the damage.
+## After each move: a mech (or its shield) or a wall in the way ends the run; the server deals the
+## ram. The owner's prediction stops the same way at walls; a mech is the server's call.
 func _lunge_contacts() -> void:
 	var ph := _lphase()
-	if not lunging or lunge_t < ph[0] or lunge_t >= ph[0] + ph[1]:
+	if not lunging or _lunge_hit or lunge_t < ph[0] or lunge_t >= ph[0] + ph[1]:
 		return
 	for i in get_slide_collision_count():
 		var col := get_slide_collision(i)
@@ -1875,11 +1919,11 @@ func _lunge_contacts() -> void:
 			var server := not multiplayer.has_multiplayer_peer() or multiplayer.is_server()
 			if not server:
 				# T404: the owner's prediction meets other mechs where they were INTERP_DELAY ago; a ram
-				# is the server's call -- its lunge clock jumping to the settle tells us (_lunge_sync)
+				# is the server's call -- its _rpc_charge_end (or the snapshot's clock) tells us
 				continue
 			if m.get("team") != team and c.has_method("take_damage") and not _dash:  # T454: a dash doesn't ram
 				var mv: Vector3 = m.get("velocity") if m.get("velocity") != null else Vector3.ZERO
-				var closing := lunge_speed(lunge_t) - mv.dot(_lunge_dir)
+				var closing := _curve_speed(lunge_t) - mv.dot(_lunge_dir)
 				c.call("take_damage", maxf(RAM_FLOOR, RAM_K * closing), self)
 			_lunge_impact()
 			return
@@ -1887,13 +1931,16 @@ func _lunge_contacts() -> void:
 			_lunge_impact()
 			return
 
-## T404: hit something -- skip the rest of the dash and the brake's rock-back; the body just
-## settles out of the impact (the settle pose, no motion).
+## Hit something: a dash skips to its end; a charge stands CHARGE_HIT_S where it is (T473).
 func _lunge_impact() -> void:
 	velocity.x = 0.0
 	velocity.z = 0.0
 	_lunge_hit = true
 	_lunge_hit_t = lunge_t
+	if _charge:
+		_charge_end_t = lunge_t
+		_charge_end_rpc(true)
+		return
 	var ph := _lphase()
 	lunge_t = ph[0] + ph[1] + ph[2]
 
@@ -1902,44 +1949,71 @@ func _lunge_stop() -> void:
 	velocity.x = 0.0
 	velocity.z = 0.0
 
-## Owner: the server started the lunge after its tick (seq, n). Ticks this client already ran
-## past that record get the dash they missed (horizontal), records included, so the next
-## snapshots compare like with like. Not in the history -> start now; reconcile eases the rest.
-@rpc("authority", "reliable")
-func _rpc_lunge(seq: int, n: int, dir: Vector3) -> void:
-	if not _predicting():
-		_lunge_begin(dir, -INTERP_DELAY)
-		return
-	if Time.get_ticks_msec() - _lunge_snap_start_ms < LUNGE_RPC_STALE_MS:
-		return  # T454: a snapshot already started this one (_lunge_sync); a second start ran it twice
-	var idx := -1
+## Owner: the record for tick n on input seq in the prediction history; -1 if gone.
+func _hist_index(seq: int, n: int) -> int:
 	for k in range(_pred_hist.size() - 1, -1, -1):
 		var h: Array = _pred_hist[k]
 		if int(h[0]) == seq and int(h[1]) <= n:
-			idx = k
-			break
+			return k
 		if int(h[0]) < seq:
 			break
-	_lunge_begin(dir)
-	if idx < 0:
-		return
+	return -1
+
+## Owner: the records after idx (and us) get the motion the curve gives from there; lunge_t is the
+## clock at idx on the way in, ours now on the way out.
+func _lunge_rewrite(idx: int) -> void:
 	var dt := 1.0 / float(Engine.physics_ticks_per_second)
 	var base: Vector3 = _pred_hist[idx][2]
 	var off := Vector3.ZERO
 	for k in range(idx + 1, _pred_hist.size()):
 		lunge_t += dt
-		off += dir * lunge_speed(lunge_t, _dash) * dt
+		off += _lunge_dir * _curve_speed(lunge_t) * dt
 		var rec: Vector3 = _pred_hist[k][2]
 		_pred_hist[k][2] = Vector3(base.x + off.x, rec.y, base.z + off.z)
 	if idx + 1 < _pred_hist.size():
 		global_position = Vector3(base.x + off.x, global_position.y, base.z + off.z)
 
+## Owner: the server started the run after its tick (seq, n). Ticks this client already ran past
+## that record get the motion they missed (horizontal), records included, so the next snapshots
+## compare like with like. Not in the history -> start now; reconcile eases the rest.
+@rpc("authority", "reliable")
+func _rpc_lunge(seq: int, n: int, dir: Vector3, v0: float) -> void:
+	if not _predicting():
+		_lunge_begin(dir, -INTERP_DELAY, v0)
+		return
+	if Time.get_ticks_msec() - _lunge_snap_start_ms < LUNGE_RPC_STALE_MS:
+		return  # T454: a snapshot already started this one (_lunge_sync); a second start ran it twice
+	var idx := _hist_index(seq, n)
+	_lunge_begin(dir, 0.0, v0)
+	if idx >= 0:
+		_lunge_rewrite(idx)
+
+## T473: the server's charge pulled up (hit = an impact) after its tick (seq, n), clock t_end. The
+## owner rewrites the ticks it ran past that record as for the start; others' clocks, INTERP_DELAY
+## late, reach t_end in step with the motion they're shown.
+@rpc("authority", "reliable")
+func _rpc_charge_end(seq: int, n: int, t_end: float, hit: bool) -> void:
+	if not lunging or not _charge:
+		return  # over here already (our own impact's stand ran out; a snapshot) -- or never started
+	_charge_end_t = t_end
+	_lunge_hit = hit
+	_lunge_hit_t = t_end
+	if not _predicting():
+		return
+	var idx := _hist_index(seq, n)
+	if idx >= 0:
+		lunge_t = t_end
+		_lunge_rewrite(idx)
+
 ## B131 (lunge_net@bad: 3 snaps in one dash): on a lossy link the reliable _rpc_lunge can land
 ## after later snapshots -- and reconcile has trimmed the history record it needs by then -- so the
-## owner started its lunge late. Each snapshot of our mech carries the server's lunge clock ("lt",
-## at the record it acks): start from it if we missed the start, keep our clock on it, and stop
-## when the server's lunge stopped (a ram) before ours. `ahead` = our records after that one.
+## owner started its run late. Each snapshot of our mech carries the server's clock ("lt", at the
+## record it acks): start from it if we missed the start, keep our clock on it, and stop when the
+## server's run stopped (a ram) before ours. `ahead` = our records after that one.
 func _lunge_sync(entry: Dictionary, ahead: int) -> void:
+	if _charge:
+		_charge_sync(entry, ahead)
+		return
 	var dt := 1.0 / float(Engine.physics_ticks_per_second)
 	var slt: float = float(entry.get("lt", -1.0))
 	if slt >= 0.0:
@@ -1953,11 +2027,9 @@ func _lunge_sync(entry: Dictionary, ahead: int) -> void:
 				_lunge_catch_up(slt, ahead)
 				_lunge_snap_start_ms = Time.get_ticks_msec()
 		else:
-			# T404: an impact settles in place instead of ending the lunge. We run ~a round trip ahead,
-			# so we meet a wall before the server's copy does (B147: dropping our impact whenever its
-			# snapshot still dashed sent us back into the wall every snapshot -- 0.1 m stop-start).
-			# Ours stands until the server's own clock passes our impact still dashing (it met
-			# nothing there: ours was local); its clock jumping to the settle while we dash -> settle too.
+			# T404 (B147): we run ~a round trip ahead, so we meet a wall before the server's copy does;
+			# ours stands until the server's own clock passes our impact still running (it met nothing
+			# there: ours was local); its clock jumping to the end while we run -> stop too.
 			var ph := _lphase()
 			var settle0: float = ph[0] + ph[1] + ph[2]
 			if _lunge_hit:
@@ -1965,7 +2037,7 @@ func _lunge_sync(entry: Dictionary, ahead: int) -> void:
 					_lunge_hit = false
 					lunge_t = want
 				elif want > lunge_t + 1.5 * dt:
-					lunge_t = want  # forward only: a settled lunge never goes back into the dash
+					lunge_t = want  # forward only: a stopped run never goes back into it
 				return
 			if want >= settle0 and lunge_t < settle0 - 2.0 * dt:
 				_lunge_hit = true
@@ -1974,12 +2046,69 @@ func _lunge_sync(entry: Dictionary, ahead: int) -> void:
 	elif lunging and lunge_t > float(ahead + 1) * dt:  # ours began before that record; the server's is over
 		_lunge_stop()
 
-## T454 (dash_net@bad: 5 snaps / 3 dashes): a lunge we never started (its start RPC late or lost;
+## T473: the charge's side of _lunge_sync. The snapshot also carries the server's set-off speed
+## (lv), its end clock (le, -1 while it charges) and whether that end was an impact (lh).
+func _charge_sync(entry: Dictionary, ahead: int) -> void:
+	var dt := 1.0 / float(Engine.physics_ticks_per_second)
+	var slt: float = float(entry.get("lt", -1.0))
+	if slt < 0.0:
+		if lunging and lunge_t > float(ahead + 1) * dt:  # ours began before that record; the server's is over
+			_lunge_stop()
+		return
+	var want := slt + float(ahead) * dt
+	var se: float = float(entry.get("le", -1.0))
+	var sh: bool = bool(entry.get("lh", false))
+	var sv: float = float(entry.get("lv", walk_speed))
+	var sd: Vector3 = entry.get("ld", _lunge_facing())
+	if not lunging:
+		var send := INF
+		if se >= 0.0:
+			send = se + (CHARGE_HIT_S if sh else minf(CHARGE_TOP, sv + CHARGE_ACCEL * se) / CHARGE_DECEL)
+		if want >= send:
+			return  # the server's is over by now too
+		if _lunge_hit and slt <= _lunge_hit_t + 2.0 * dt and sd.dot(_lunge_dir) > 0.999:
+			return  # B147: ours stood in an impact the server's copy hadn't reached in that snapshot
+		var missed := Time.get_ticks_msec() - _lunge_begin_ms > int((want + 0.5) * 1000.0)
+		_lunge_begin(sd, want, sv)
+		_charge_end_t = se if se >= 0.0 else INF
+		_lunge_hit = sh and se >= 0.0
+		_lunge_hit_t = se
+		if missed:  # we never started this one (its start RPC is late or lost)
+			_lunge_catch_up(slt, ahead)
+			_lunge_snap_start_ms = Time.get_ticks_msec()
+		return
+	if se < 0.0 and not is_inf(_charge_end_t) and not _lunge_hit and absf(lunge_t - want) > 6.0 * dt:
+		# a new charge the server set off out of our pull-up (its _rpc_lunge is late): take it up
+		_lunge_begin(sd, want, sv)
+		_lunge_snap_start_ms = Time.get_ticks_msec()
+		return
+	if se >= 0.0 and is_inf(_charge_end_t):
+		# the server's pull-up / ram we haven't had (its _rpc_charge_end is late): end there too
+		_charge_end_t = se
+		_lunge_hit = sh
+		_lunge_hit_t = se
+		if absf(lunge_t - want) > 1.5 * dt:
+			lunge_t = want
+		return
+	if _lunge_hit and se < 0.0:
+		# B147: ours hit a wall the server's copy hadn't reached in that snapshot -- stand; once the
+		# server's own clock passes our impact still charging, ours was local: charge on
+		if slt > _lunge_hit_t + 2.0 * dt:
+			_lunge_hit = false
+			_charge_end_t = INF
+			lunge_t = want
+		return
+	if not is_inf(_charge_end_t):
+		return  # ours ended on the server's word; a snapshot from before it changes nothing
+	if absf(lunge_t - want) > 1.5 * dt:
+		lunge_t = want
+
+## T454 (dash_net@bad: 5 snaps / 3 dashes): a run we never started (its start RPC late or lost;
 ## not one of ours that already ended early -- lunge_net: that moved Taurus 8 m) left us standing
-## where the server's copy had already moved off (a dash has no windup to hide that in) -> a snap.
-## Move the matched record, the ones after it, and us by the distance the server's copy covered by
-## each one's clock (slt at the matched record, a tick more per record), as _rpc_lunge does.
-const LUNGE_RPC_STALE_MS := 1500  # well under any lunge / dash cooldown (4 s+), over any RPC delay
+## where the server's copy had already moved off -> a snap. Move the matched record, the ones after
+## it, and us by the distance the server's copy covered by each one's clock (slt at the matched
+## record, a tick more per record), as _rpc_lunge does.
+const LUNGE_RPC_STALE_MS := 1500  # over any RPC delay, under the dash's recharge
 var _lunge_snap_start_ms := -100000
 
 func _lunge_catch_up(slt: float, ahead: int) -> void:
@@ -1991,39 +2120,31 @@ func _lunge_catch_up(slt: float, ahead: int) -> void:
 	var t := 0.0
 	while t + dt <= slt + 0.5 * dt:
 		t += dt
-		dist += lunge_speed(t, _dash) * dt
+		dist += _curve_speed(t) * dt
 	for k in range(i, _pred_hist.size()):
 		if k > i:
 			t += dt
-			dist += lunge_speed(t, _dash) * dt
+			dist += _curve_speed(t) * dt
 		var rec: Vector3 = _pred_hist[k][2]
 		_pred_hist[k][2] = Vector3(rec.x + _lunge_dir.x * dist, rec.y, rec.z + _lunge_dir.z * dist)
 	global_position += Vector3(_lunge_dir.x * dist, 0.0, _lunge_dir.z * dist)
 
-## Leg pose for BipedLegs: x = crouch (the windup), y = stride (the dash).
-## (crouch 0..1, leap 0..1, lift m) for BipedLegs. T366: the windup crouches; the leap keeps the
-## body low (horns first) on a flat sin arc; the stop lands it back through the crouch.
+## Leg pose for BipedLegs: (crouch 0..1, leap 0..1, lift m).
 func lunge_pose() -> Vector3:
 	if not lunging or lunge_t < 0.0:
 		return Vector3.ZERO
 	if _dash:  # T454: a braced crouch and a slight thruster lift, in and out over the dash, no leap
 		var k := sin(PI * clampf(lunge_t / (DASH_S + DASH_STOP_S), 0.0, 1.0))
 		return Vector3(DASH_CROUCH * k, 0.0, DASH_LIFT * k)
-	if lunge_t < LUNGE_WINDUP_S:
-		return Vector3(lunge_t / LUNGE_WINDUP_S, 0.0, 0.0)
-	var d := lunge_t - LUNGE_WINDUP_S
-	if d < LUNGE_DASH_S:
-		var leap := minf(d / 0.1, 1.0)
-		return Vector3(1.0 - 0.15 * leap, leap, LUNGE_LIFT * sin(PI * d / LUNGE_DASH_S))  # torso tops out ~level with standing
-	d -= LUNGE_DASH_S
-	if d < LUNGE_STOP_S:
-		var s := d / LUNGE_STOP_S
-		return Vector3(0.85 * (1.0 - s) + 0.35 * s, 1.0 - s, 0.0)  # T404: plants into a dip
-	var k := minf((d - LUNGE_STOP_S) / LUNGE_SETTLE_S, 1.0)
-	return Vector3(0.35 * (1.0 - k), 0.0, 0.0)  # and settles up out of it
+	# T473: head down, horns first, deeper with speed; the legs run under it (BipedLegs caps the cadence)
+	return Vector3(CHARGE_CROUCH * clampf(_charge_speed(lunge_t) / CHARGE_TOP, 0.0, 1.0), 0.0, 0.0)
 
 ## Glow parts brighten with speed: this mech's own copies of its (shared, T310) glow materials.
+## T473 (user: "Make the Taurus exude a red glow all around that gets brighter as it accelerates"):
+## a charger also wears an additive aura (one draw while it shows, none otherwise).
 func _set_lunge_glow(k: float) -> void:
+	if _charge and (_aura != null or k > 0.0):
+		_charge_aura(k)
 	if _lunge_glow.is_empty():
 		if k <= 0.0:
 			return
@@ -2038,6 +2159,27 @@ func _set_lunge_glow(k: float) -> void:
 				_lunge_glow.append([own, own.emission_energy_multiplier])
 	for g in _lunge_glow:
 		(g[0] as StandardMaterial3D).emission_energy_multiplier = float(g[1]) * (1.0 + LUNGE_GLOW_K * k)
+
+func _charge_aura(k: float) -> void:
+	if _aura == null:
+		if DisplayServer.get_name() == "headless":
+			return
+		var sm := SphereMesh.new()
+		sm.radius = CHARGE_AURA_R
+		sm.height = CHARGE_AURA_R * 2.0
+		sm.radial_segments = 24
+		sm.rings = 12
+		var mat := ShaderMaterial.new()
+		mat.shader = preload("res://shaders/charge_aura.gdshader")
+		sm.material = mat  # on the mesh: nothing else overrides it
+		_aura = MeshInstance3D.new()
+		_aura.name = "ChargeAura"
+		_aura.mesh = sm
+		_aura.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_aura.position = Vector3(0.0, CHARGE_AURA_Y, 0.0)
+		add_child(_aura)
+	_aura.visible = k > 0.02
+	(_aura.mesh.surface_get_material(0) as ShaderMaterial).set_shader_parameter("k", clampf(k, 0.0, 1.0))
 
 func _jump_launch() -> void:
 	velocity.y = 15.0

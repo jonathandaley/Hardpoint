@@ -1780,6 +1780,11 @@ func _snapshot_tick() -> void:
 				if m.get("lunging"):  # B131: the owner's lunge clock rides the snapshot too
 					e["lt"] = m.get("lunge_t")
 					e["ld"] = m.get("_lunge_dir")
+					if m.get("_charge"):  # T473: and the charge's set-off speed, end clock, impact
+						e["lv"] = m.get("_charge_v0")
+						var ce: float = m.get("_charge_end_t")
+						e["le"] = -1.0 if is_inf(ce) else ce
+						e["lh"] = m.get("_lunge_hit")
 			snapshots.append(e)
 	if snapshots.is_empty():
 		return

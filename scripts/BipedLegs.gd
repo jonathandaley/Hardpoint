@@ -78,15 +78,19 @@ func update_gait(velocity: Vector3, mech_basis: Basis, rot_speed: float, walk_sp
 	_air_time = _air_time + delta if airborne else 0.0
 	_air = move_toward(_air, 1.0 if _air_time > AIR_DELAY else 0.0, AIR_BLEND * delta)
 	_face_velocity(velocity, mech_basis, rot_speed, walk_speed, delta)
-	_animate_walk(velocity, delta)
+	_animate_walk(velocity, delta, walk_speed)
 
-func _animate_walk(velocity: Vector3, delta: float) -> void:
+# T473: a charge runs at ~16x a Taurus's walk; feet that kept up would blur. The cadence tops out at
+# GAIT_CAP_K x walking pace (no walk or boost reaches it) and the stride slides past that.
+const GAIT_CAP_K := 4.0
+
+func _animate_walk(velocity: Vector3, delta: float, walk_speed := 1.0) -> void:
 	var horiz := Vector3(velocity.x, 0.0, velocity.z)
 	var speed  := horiz.length()
 	var sweep := hip_sweep_amount
 	var no_slide_rate := 1.0 / (_J * maxf(sweep, 0.01))
 	if _air_time <= AIR_DELAY and _pose.y <= 0.0:  # T174: no stepping on thin air (T366: nor mid-leap)
-		_phase = fposmod(_phase + speed * no_slide_rate * cycle_rate * delta, TAU)
+		_phase = fposmod(_phase + minf(speed, maxf(walk_speed, 0.1) * GAIT_CAP_K) * no_slide_rate * cycle_rate * delta, TAU)
 
 	# Blend amplitude 0->1 over the first 1 m/s so joints return to rest when idle.
 	var t  := clampf(speed, 0.0, 1.0)

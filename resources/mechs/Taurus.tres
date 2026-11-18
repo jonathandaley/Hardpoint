@@ -5,7 +5,7 @@
 [ext_resource type="Script" path="res://scripts/WeaponSlotDef.gd" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/RifleLight.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/RifleHeavy.tscn" id="5"]
-[ext_resource type="Resource" path="res://resources/abilities/Lunge.tres" id="6"]
+[ext_resource type="Resource" path="res://resources/abilities/Charge.tres" id="6"]
 
 [sub_resource type="Resource" id="1"]
 script = ExtResource("3")
@@ -22,7 +22,7 @@ weapon_scene = ExtResource("4")
 [resource]
 script = ExtResource("1")
 display_name = "Taurus"
-description = "Medium, 390 HP, no shield, slow on foot. LUNGE (SPACE): it crouches, then springs low and straight ahead, horns first, ramming the first mech in its way -- harder the faster it's going. Blood red with crimson glow; arena brawlers bred it to end arguments at close range."
+description = "Medium, 390 HP, no shield, slow on foot. CHARGE (SPACE): it puts its head down and charges straight ahead, faster the longer it runs; SPACE again pulls it up. It rams the first mech in its way -- harder the faster it's going -- and a wall stops it cold. Blood red with a crimson glow that burns brighter with speed; arena brawlers bred it to end arguments at close range."
 class_tag = "Medium"
 max_health = 390.0
 walk_speed = 0.9

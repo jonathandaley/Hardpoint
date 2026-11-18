@@ -157,7 +157,7 @@ func _ready() -> void:
 	var tt := 0.0
 	while tt < total:
 		tt += 1.0 / wf
-		want += Mech.lunge_speed(tt, true) / wf
+		want += Mech.dash_speed(tt) / wf
 	var bad: Array = []
 	var ds := _flat(s.global_position - s0)
 	if ds.length() < want - 1.0 or ds.length() > want + 1.0:

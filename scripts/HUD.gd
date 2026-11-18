@@ -840,7 +840,9 @@ func _update_ability_label() -> void:
 	var remaining_active: float = active_timers.get(key, 0.0)
 	var cd: float = cooldowns.get(key, 0.0)
 	var charges: Array = (_player_mech.get("_ability_charges") as Dictionary).get(key, []) if "_ability_charges" in _player_mech else []
-	if not charges.is_empty() and cd <= 0.0:  # T454: how many of its charges are ready
+	if key == "charge":  # T473: a toggle with no recharge -- on or ready
+		ability_label.text = "SPACE: %s  %s" % [ability.ability_name, "ON" if _player_mech.call("charging") else "READY"]
+	elif not charges.is_empty() and cd <= 0.0:  # T454: how many of its charges are ready
 		ability_label.text = "SPACE: %s  READY %d/%d" % [ability.ability_name, int(charges[0]), int(charges[2])]
 	elif remaining_active > 0.0:
 		ability_label.text = "SPACE: %s  %.1fs" % [ability.ability_name, remaining_active]
