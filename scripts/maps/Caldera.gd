@@ -52,7 +52,12 @@ func ground_y(x: float, z: float) -> float:
 		h += float(t[1]) * smoothstep(float(t[0]) - BANK * 0.5, float(t[0]) + BANK * 0.5, r)
 	h += _rough(ax, z) * smoothstep(LAKE_R + 4.0, LAKE_R + 14.0, r)
 	if in_lava(x, z):
-		h = LAVA_Y - 0.15  # the lava disc (0.2 thick) rests on it
+		# the bed under the lava disc: a checkerboard of 4 m spikes (every terrain triangle ~70 deg,
+		# past the navmesh's 60): no walkable polygons in there. A flat bed baked a navmesh island
+		# nothing can reach, and Godot's path search into it logs "It's not expect to not find the
+		# most reachable polygons" (map_stuck's crash_scan).
+		var parity := (roundi((x + HALF) / 2.0) + roundi((z + HALF) / 2.0)) % 2
+		h = LAVA_Y - 0.2 - 4.0 * float(parity)
 	var p := Vector2(x, z)
 	for b in BEACONS:
 		if b != Vector2.ZERO:
