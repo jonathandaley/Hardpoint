@@ -48,7 +48,8 @@ func ground_y(x: float, z: float) -> float:
 		h = lerpf(h, 0.0, smoothstep(7.5, 4.5, absf(x)))
 	return h
 
-const FOG_SKY := 0.7  # T445: share of the sky the fog paints (1 = all of it, the old flat tan)
+const FOG_SKY := 0.35  # T445/T453: share of the sky the fog paints (1 = all of it, the old flat tan)
+const SUN_ELEVATION := 28.0  # T453: degrees
 
 func _mat(c: Color, rough := 0.95) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -87,12 +88,28 @@ func build() -> void:
 		# flat tan -- the fog painted all of it (fog_sky_affect 1). Now the fog paints FOG_SKY of it
 		# over the arena's own sky, so it darkens overhead and pales to sand at the horizon, the
 		# sun's glow shows through (the Sun light warmed), and the fog is lighter (0.0025 -> 0.0018)
-		# so the far pyramids still read. No Sky of its own: a Sky.new() leaks at exit (T346).
+		# so the far pyramids still read.
 		env.fog_density = 0.0018
 		env.fog_sky_affect = FOG_SKY
+		# T453 (T445's sun disc, after the T346 fix): a desert sky of its own -- dusty blue overhead,
+		# sand at the horizon, a small hard sun -- and the sun lowered to SUN_ELEVATION so it sits
+		# in view at eye level (Arena's is 45 deg up) and the pyramids cast long shadows
+		var sm := ProceduralSkyMaterial.new()
+		sm.sky_top_color = Color("#4f74a0")
+		sm.sky_horizon_color = Color("#e6d2a6")
+		sm.sky_curve = 0.12
+		sm.ground_horizon_color = Color("#d9c29a")
+		sm.ground_bottom_color = Color("#8a7350")
+		sm.sun_angle_max = 8.0
+		sm.sun_curve = 0.05
+		own_sky(env).sky_material = sm
 	var sun := get_parent().get_node_or_null("Sun") as DirectionalLight3D
 	if sun != null:
 		sun.light_color = Color(1.0, 0.93, 0.8)  # desert sun (Arena's default is a cool white)
+		var e := deg_to_rad(SUN_ELEVATION)  # same bearing as Arena's sun
+		var to_sun := Vector3(0.5 * cos(e), sin(e), 0.866 * cos(e))
+		sun.basis = Basis.looking_at(-to_sun, Vector3.UP)
+		sun.light_angular_distance = 1.2
 	# T443: cut-stone courses (T440's pixel grain before); 0.6 x: the grain used to multiply the
 	# stone to about that, and the map's light was tuned for it
 	var stone := course_mat(Color(STONE.r * 0.6, STONE.g * 0.6, STONE.b * 0.6), 224)
