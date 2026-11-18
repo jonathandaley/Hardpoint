@@ -821,6 +821,8 @@ func _use_abilities(bot_mech: Node3D, fighting: bool, own_hp_pct: float, has_tar
 				_ability_press = lunge_wanted(bot_mech, has_target, dist)
 			"anchor":  # T430: plant when trading shots in range with a clear line
 				_ability_press = has_target and _has_clear_shot and dist <= fire_range
+			"stomp":  # T456: an enemy close enough to take most of it
+				_ability_press = stomp_wanted(bot_mech)
 			"field_repair":  # T455: when it or an ally in reach is hurt
 				_ability_press = field_repair_wanted(bot_mech, own_hp_pct, fighting)
 			"dash":  # T454: in a gunfight, burst along whatever it's strafing; charges spaced DASH_GAP_TICKS
@@ -828,6 +830,14 @@ func _use_abilities(bot_mech: Node3D, fighting: bool, own_hp_pct: float, has_tar
 						and Engine.get_physics_frames() - _last_dash_frame > DASH_GAP_TICKS
 				if _ability_press:
 					_last_dash_frame = Engine.get_physics_frames()
+
+## T456: stomp when an enemy is within 3/4 of the reach (most of the damage, surely inside).
+static func stomp_wanted(bot_mech: Node3D) -> bool:
+	for m in bot_mech.get_tree().get_nodes_in_group("mechs"):
+		if m.get("team") != bot_mech.get("team") and not m.get("is_dead") and float(m.get("health")) > 0.0 \
+				and m.global_position.distance_to(bot_mech.global_position) <= 0.75 * Mech.STOMP_R:
+			return true
+	return false
 
 ## T455: repair when it's hurt in a fight, or an ally in reach is down to 70% or less.
 static func field_repair_wanted(bot_mech: Node3D, own_hp_pct: float, fighting: bool) -> bool:

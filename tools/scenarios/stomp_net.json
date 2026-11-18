@@ -1,0 +1,146 @@
+{
+  "name": "stomp_net",
+  "seed": 4560,
+  "port": 8993,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Etna.tres",
+  "net": {
+    "latency_ms": 160,
+    "jitter_ms": 10,
+    "loss": 0.01
+  },
+  "duration_ticks": 1100,
+  "oracles": [
+    "prediction_recon",
+    "transform_desync",
+    "health_desync",
+    "input_delivery",
+    "spawn_join",
+    "team_assignment",
+    "crash_scan",
+    "log_flood",
+    "rpc_integrity"
+  ],
+  "thresholds": {
+    "pred_snap_frac": 0.01
+  },
+  "_comment": "T456: both peers fly Etna. The server's mech is put 6 m from the client's (place_mech: the server's, which the client doesn't predict), then the server STOMPs (tick 200) while the client keeps walking: the client's mech takes the damage (health_desync) and walks at half speed for 3 s -- the slow reaches its own prediction through _rpc_boost (call_local); without it the client would walk on at full speed and snap back (prediction_recon). Then the client stomps back (tick 300).",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 100,
+            "look": [
+              2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 110,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 500,
+            "look": [
+              -2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 510,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "pulses": [
+          {
+            "tick": 200,
+            "action": "ability"
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 100,
+            "look": [
+              -2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 110,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 500,
+            "look": [
+              2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 510,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "pulses": [
+          {
+            "tick": 300,
+            "action": "ability"
+          }
+        ]
+      }
+    }
+  },
+  "actions": [
+    {
+      "tick": 150,
+      "peer": "server",
+      "action": "place_mech",
+      "slot": "server",
+      "near": "client_1",
+      "offset": [
+        6,
+        0,
+        0
+      ]
+    }
+  ]
+}

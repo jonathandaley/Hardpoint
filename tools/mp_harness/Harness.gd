@@ -691,6 +691,15 @@ func _run_action(a: Dictionary) -> void:
 					for m in get_tree().get_nodes_in_group("mechs"):
 						if int(m.get("owner_peer_id")) == pid and not m.get("is_dead"):
 							m.take_damage(float(a.get("amount", float(m.get("health")) + 1000.0)))
+		"place_mech":
+			# T456: server moves the mech of roster slot "slot" next to the one of "near" (+ "offset"),
+			# for abilities with a reach (STOMP). Move a mech the client doesn't predict (the server's).
+			var mv := _slot_mech(String(a.get("slot")))
+			var to := _slot_mech(String(a.get("near")))
+			if mv != null and to != null:
+				var o: Array = a.get("offset", [6, 0, 0])
+				mv.global_position = to.global_position + Vector3(float(o[0]), float(o[1]), float(o[2]))
+				mv.velocity = Vector3.ZERO
 		"lobby_after_match":
 			# T154: the real post-match return (all ready / 30 s timeout -> Game._do_return_to_lobby)
 			Game._do_return_to_lobby()
@@ -702,6 +711,19 @@ func _run_action(a: Dictionary) -> void:
 			_lobby_wait = true
 		_:
 			push_error("[Harness] unknown action %s" % action)
+
+## T456: the living mech flown by roster slot "server" / "client_<n>" (as kill_mech counts them).
+func _slot_mech(slot: String) -> Node:
+	var nth := 0
+	for e in Game.mp_active_match.get("roster", []):
+		var pid := int(e.get("peer_id", 0))
+		if pid > 1:
+			nth += 1
+		if (pid == 1 and slot == "server") or (pid > 1 and slot == "client_%d" % nth):
+			for m in get_tree().get_nodes_in_group("mechs"):
+				if int(m.get("owner_peer_id")) == pid and not m.get("is_dead"):
+					return m
+	return null
 
 # T147: one JSON line per visible HUD Control: path, class, global rect, text.
 # Headless still computes Control layout (offsets/anchors -> rects).

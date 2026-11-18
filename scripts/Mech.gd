@@ -86,7 +86,7 @@ var _shake_intensity: float = 0.0
 var _shake_timer: float = 0.0
 
 var walk_speed: float:
-	get: return base_walk_speed * _modifiers.get("walk_speed", 1.0) * terrain_speed
+	get: return base_walk_speed * _modifiers.get("walk_speed", 1.0) * terrain_speed * (STOMP_SLOW_K if slow_s > 0.0 else 1.0)
 var terrain_speed := 1.0  # T225: set by the map each tick (swamp water slows wading mechs)
 
 # ---- T462: respawned mechs and unreliable RPCs ----
@@ -810,10 +810,14 @@ func _rpc_boost(kind: String, secs: float) -> void:
 	elif kind == "speed":
 		speed_boost_s = secs
 		apply_modifier("walk_speed", SPEED_BOOST)
+	elif kind == "slow":  # T455/T456: STOMP -- every peer, so the owner's prediction slows too
+		slow_s = secs
 
 func _tick_boosts(delta: float) -> void:
 	if damage_boost_s > 0.0:
 		damage_boost_s = maxf(damage_boost_s - delta, 0.0)
+	if slow_s > 0.0:
+		slow_s = maxf(slow_s - delta, 0.0)
 	if speed_boost_s > 0.0:
 		speed_boost_s = maxf(speed_boost_s - delta, 0.0)
 		if speed_boost_s == 0.0:
@@ -1077,6 +1081,10 @@ func _update_legs(delta: float) -> void:
 	var pose := lunge_pose()
 	if pose == Vector3.ZERO and _anchor_pose > 0.0:
 		pose = Vector3(_anchor_pose, 0.0, 0.0)
+	if _stomp_t > 0.0:  # T456: a quick drop into the stomp and back up
+		_stomp_t = maxf(0.0, _stomp_t - delta)
+		if pose == Vector3.ZERO:
+			pose = Vector3(STOMP_CROUCH * sin(PI * (1.0 - _stomp_t / STOMP_POSE_S)), 0.0, 0.0)
 	legs.call("update_gait", gait_velocity(), global_transform.basis, leg_rotation_speed, walk_speed, delta, airborne,
 		pose)
 
@@ -1491,6 +1499,9 @@ func _activate_ability(ability: Resource) -> void:
 			anchored = true
 		"field_repair":
 			_set_field_repair(true)
+		"stomp":
+			_stomp()
+			_stomp_fx()
 		"lunge", "dash":
 			_lunge_begin(_dash_dir() if ability.effect_key == "dash" else _lunge_facing())
 			if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
@@ -1529,6 +1540,62 @@ func _deactivate_ability(key: String) -> void:
 			if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 				_rpc_ability_deactivated.rpc(_abilities.find(ability))
 			break
+
+# ---- T456: Etna STOMP (effect_key "stomp", instant) ----
+# User 2026-11-17: "add as many mechs as you think are good" -- no heavy won a close brawl. The
+# server hits every living enemy within STOMP_R: STOMP_DMG at its feet falling to half at the edge
+# (take_damage: shields and the kill feed as any hit), and slows it to STOMP_SLOW_K speed for
+# STOMP_SLOW_S (_rpc_boost "slow", call_local: the stomped owner's prediction slows with it). No
+# knockback (Jolt + prediction). Every peer sees a shockwave ring and the crouch. Calibration knobs.
+const STOMP_R := 12.0
+const STOMP_DMG := 80.0
+const STOMP_FALLOFF := 0.5       # share of STOMP_DMG lost at the edge
+const STOMP_SLOW_K := 0.5
+const STOMP_SLOW_S := 3.0
+const STOMP_CROUCH := 0.6
+const STOMP_POSE_S := 0.4
+const STOMP_COLOR := Color("#ff7a1a")
+var slow_s := 0.0
+var _stomp_t := 0.0
+
+func _stomp() -> void:
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		return
+	for m in get_tree().get_nodes_in_group("mechs"):
+		if m == self or m.get("team") == team or m.get("is_dead") or float(m.get("health")) <= 0.0:
+			continue
+		var d: float = m.global_position.distance_to(global_position)
+		if d > STOMP_R:
+			continue
+		m.call("take_damage", STOMP_DMG * (1.0 - STOMP_FALLOFF * d / STOMP_R), self)
+		if not m.get("is_dead"):
+			m.rpc(&"_rpc_boost", "slow", STOMP_SLOW_S)
+
+## Every peer: the crouch, and a ring of fire racing out to the reach and fading.
+func _stomp_fx() -> void:
+	_stomp_t = STOMP_POSE_S
+	var host := get_parent()
+	if host == null or DisplayServer.get_name() == "headless":
+		return
+	var ring := MeshInstance3D.new()
+	var tm := TorusMesh.new()
+	tm.inner_radius = 0.85
+	tm.outer_radius = 1.0
+	tm.rings = 48
+	tm.ring_segments = 4
+	ring.mesh = tm
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = STOMP_COLOR
+	ring.material_override = mat
+	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	host.add_child(ring)
+	ring.global_position = global_position + Vector3(0, 0.3, 0)
+	var tw := ring.create_tween().set_parallel(true)
+	tw.tween_property(ring, "scale", Vector3(STOMP_R, 1.0, STOMP_R), 0.35).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+	tw.tween_property(mat, "albedo_color:a", 0.0, 0.45)
+	tw.chain().tween_callback(ring.queue_free)
 
 # ---- T455: Heron FIELD REPAIR (effect_key "field_repair", a duration ability) ----
 # User 2026-11-17: "add as many mechs as you think are good" -- nobody supported the team. For the
@@ -1930,6 +1997,8 @@ func _rpc_ability_activated(slot: int) -> void:
 			anchored = true  # the owner's prediction stops too (one RTT/2 late, reconciled)
 		"field_repair":
 			_set_field_repair(true)  # T455: the ring, for everyone
+		"stomp":
+			_stomp_fx()  # T456: the shockwave and the crouch; the damage and slow are the server's
 
 @rpc("authority", "reliable")
 func _rpc_ability_deactivated(slot: int) -> void:
