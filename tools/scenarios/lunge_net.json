@@ -19,7 +19,8 @@
     "team_assignment",
     "crash_scan",
     "log_flood",
-    "rpc_integrity"
+    "rpc_integrity",
+    "ability_desync"
   ],
   "thresholds": {
     "pred_snap_frac": 0.01
