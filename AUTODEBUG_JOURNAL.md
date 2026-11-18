@@ -477,3 +477,4 @@ date|task|outcome|commit|finding|suite
 2026-11-18|T479|DONE (local, branch surprise)|(this commit)|the flamer is INFERNO (LT / HV) everywhere a player sees it; files keep their names
 2026-11-18|T484|DONE (local, branch surprise)|(this commit)|weapon table: tools/weapon_table.py -> docs/WEAPON_TABLE.md; shotguns dominate, rifles / lasers / arcs sustain 3-5 DPS, rocket LT weakest
 2026-11-18|T485|DONE (local, branch surprise)|(this commit)|Caldera: island / causeway tops off the terrain and each other (the flicker); lava kills; probe caldera_lava
+2026-11-18|T483|DONE (local, branch surprise)|(this commit)|charge build 5 -> 0.9 m/s per s: 15.7 s to the top, Slip ahead 6.3 s; charge probe reworked for the slow build

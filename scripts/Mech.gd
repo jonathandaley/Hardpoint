@@ -1792,7 +1792,10 @@ var _anchor_pose := 0.0
 # ticks it already ran past that record (T205); snapshots carry the clock (lt / ld / lv / le / lh)
 # for an RPC that comes late (B131). Other peers run the clock INTERP_DELAY late for pose and glow.
 const CHARGE_TOP := 15.0     # m/s -- calibration knob (the lunge peaked at 12; Taurus walks 0.9)
-const CHARGE_ACCEL := 5.0    # m/s per s from walking pace: ~2.8 s to the top -- calibration knob
+# T483 (HUMAN_FOUND 2026-11-18: "Taurus accelerates much too quickly. It should take at least 15 seconds to
+# get to the current top speed. Slip and Swift should outrun it under most circumstances that aren't just
+# a straight very long line."): walking pace -> CHARGE_TOP in ~15.7 s; Slip (3.75) stays ahead ~6 s / 24 m
+const CHARGE_ACCEL := 0.9    # m/s per s from walking pace (was 5: ~2.8 s to the top) -- calibration knob
 const CHARGE_DECEL := 30.0   # m/s per s once it pulls up: ~0.5 s from the top -- calibration knob
 const CHARGE_HIT_S := 0.3    # s it stands in an impact
 const CHARGE_CROUCH := 0.35  # leg pose crouch at the top speed: head down, horns first

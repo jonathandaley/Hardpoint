@@ -2,7 +2,8 @@ extends Node
 # T473 probe (Taurus CHARGE; user 2026-11-18, their original design with SPACE a toggle: "High top
 # speed, cap is good. Stop on hit. Original feel."): a press sets it off along its facing, speeding
 # up linearly from walking pace to CHARGE_TOP; a second press pulls up -- the speed bleeds off at
-# CHARGE_DECEL; a press out of a pull-up sets off from what it still carries along the new heading;
+# CHARGE_DECEL; a press out of a pull-up sets off from what it still carries along the new heading
+# (T483: a Taurus needs >= 15 s to the top, so a running Slip stays ahead short of a long straight);
 # ramming deals damage from the closing speed with a high floor, once, then stops it dead; walls
 # stop it with no damage; bots charge at a target straight ahead. On a deck high above the map, side
 # by side (300 m apart), all at once:
@@ -11,7 +12,7 @@ extends Node
 #  W charges a wall 10 m ahead: stops at the wall, nobody hurt;
 #  F charges into the open for 4 s: the speed climbs at CHARGE_ACCEL, caps at CHARGE_TOP; pulled up,
 #    it's at rest within CHARGE_TOP / CHARGE_DECEL; the distance matches the curve;
-#  P charges 2 s, pulls up, turns 30 deg and presses again 0.1 s later: it sets off well above
+#  P charges 6 s, pulls up, turns 30 deg and presses again 0.1 s later: it sets off well above
 #    walking pace (the boost it kept);
 #  B is a Hard bot with the charge and a target 15 m ahead: it charges on its own, without flicking
 #    the toggle on and off.
@@ -140,9 +141,10 @@ func _ready() -> void:
 	var f_rest_at := -1.0
 	var f_pull := 4.0
 	var p_v0 := -1.0
+	var p_pull_v := -1.0
 	var b_starts := 0
 	var b_was := false
-	for k in int(6.0 * wf):
+	for k in int(9.0 * wf):  # T483: a slow build (0.9 m/s per s)
 		await get_tree().physics_frame
 		var t := (k + 1) / wf
 		var d: float = tr.get("damage_taken_total")
@@ -162,9 +164,10 @@ func _ready() -> void:
 			f.call("_charge_press")
 		if t > f_pull and f_rest_at < 0.0 and not f.get("lunging"):
 			f_rest_at = t
-		if absf(t - 2.0) < 0.5 / wf:
+		if absf(t - 6.0) < 0.5 / wf:
+			p_pull_v = _flat(p.get("velocity"))
 			p.call("_charge_press")  # pull up
-		if absf(t - 2.1) < 0.5 / wf:
+		if absf(t - 6.1) < 0.5 / wf:
 			(p.get("torso") as Node3D).rotation.y += deg_to_rad(30.0)
 			p.call("_charge_press")  # and set off again
 			p_v0 = float(p.get("_charge_v0"))
@@ -191,9 +194,22 @@ func _ready() -> void:
 	var want_v1: float = fv0 + Mech.CHARGE_ACCEL * 1.0
 	if absf(f_v1 - want_v1) > 0.3:
 		bad.append("F at %.1f m/s after 1 s (want %.1f: linear from walking pace)" % [f_v1, want_v1])
-	if f_vmax > Mech.CHARGE_TOP + 0.01 or f_vmax < Mech.CHARGE_TOP - 0.01:
-		bad.append("F topped out at %.2f m/s (want the cap %.1f)" % [f_vmax, Mech.CHARGE_TOP])
-	var stop_s: float = Mech.CHARGE_TOP / Mech.CHARGE_DECEL
+	if f_vmax > Mech.CHARGE_TOP + 0.01:
+		bad.append("F went %.2f m/s, past the cap %.1f" % [f_vmax, Mech.CHARGE_TOP])
+	# T483 (user: "at least 15 seconds to get to the current top speed"; Slip outruns it short of a long line)
+	var taurus_walk: float = load("res://resources/mechs/Taurus.tres").walk_speed
+	var slip_walk: float = load("res://resources/mechs/Slip.tres").walk_speed
+	var to_top: float = (Mech.CHARGE_TOP - taurus_walk) / Mech.CHARGE_ACCEL
+	if to_top < 15.0:
+		bad.append("a Taurus reaches the top speed in %.1f s (want >= 15)" % to_top)
+	var even := 2.0 * (slip_walk - taurus_walk) / Mech.CHARGE_ACCEL  # Slip's lead is gone after this
+	if even < 5.0:
+		bad.append("a charging Taurus catches a running Slip after %.1f s (want Slip ahead >= 5 s)" % even)
+	f.set("_charge_v0", taurus_walk)
+	f.set("_charge_end_t", INF)
+	if absf(float(f.call("_charge_speed", 60.0)) - Mech.CHARGE_TOP) > 0.001:
+		bad.append("a long charge runs %.2f m/s (want the cap %.1f)" % [float(f.call("_charge_speed", 60.0)), Mech.CHARGE_TOP])
+	var stop_s: float = minf(Mech.CHARGE_TOP, fv0 + Mech.CHARGE_ACCEL * f_pull) / Mech.CHARGE_DECEL  # from its speed at the pull-up
 	if f_rest_at < 0.0 or f_rest_at - f_pull > stop_s + 0.05 or f_rest_at - f_pull < stop_s - 0.1:
 		bad.append("F pulled up at %.2f s and was at rest at %.2f s (want ~%.2f s later)" % [f_pull, f_rest_at, stop_s])
 	var want := 0.0
@@ -207,8 +223,9 @@ func _ready() -> void:
 	var fd := _flat(f.global_position - f0)
 	if absf(fd - want) > 1.0:
 		bad.append("F covered %.1f m (curve says %.1f)" % [fd, want])
-	if p_v0 < pw * 2.5:
-		bad.append("P set off again at %.1f m/s 0.1 s after a pull-up (want the boost it kept, not walking pace)" % p_v0)
+	var p_want := maxf(pw, (p_pull_v - Mech.CHARGE_DECEL * 0.1) * cos(deg_to_rad(30.0)))
+	if absf(p_v0 - p_want) > 0.35 or p_v0 < pw + 0.5:
+		bad.append("P set off again at %.1f m/s 0.1 s after a pull-up at %.1f (want ~%.1f: the boost it kept along the new heading)" % [p_v0, p_pull_v, p_want])
 	if b_starts < 1:
 		bad.append("the Hard bot never charged a target 15 m straight ahead")
 	elif b_starts > 3:
@@ -216,5 +233,5 @@ func _ready() -> void:
 	if not bad.is_empty():
 		_fail("; ".join(bad))
 		return
-	print("[probe] charge done (ram %.0f at %.2f s, wall stop %.1f m, open %.1f m / %.1f, top %.1f, re-press %.1f m/s, bot %d)" % [hits[0], r_hit_at, wd, fd, want, f_vmax, p_v0, b_starts])
+	print("[probe] charge done (ram %.0f at %.2f s, wall stop %.1f m, open %.1f m / %.1f, top in %.1f s, Slip ahead %.1f s, re-press %.1f m/s, bot %d)" % [hits[0], r_hit_at, wd, fd, want, to_top, even, p_v0, b_starts])
 	_quit(0)
