@@ -103,6 +103,14 @@ func _ready() -> void:
 	var ring_after: Node3D = h.get("_field_ring")
 	if ring_after != null and ring_after.is_visible_in_tree():
 		bad.append("ring still showing after the ability ended")
+	# T487: the player's own Heron always shows its reach, dim while the ability is off
+	var me: Node = arena.get("player_mech")
+	me.call("configure_abilities", [FieldRepair])
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var mine: MeshInstance3D = me.get("_field_ring")
+	if mine == null or not mine.is_visible_in_tree() or absf((mine.material_override as StandardMaterial3D).albedo_color.a - Mech.FIELD_RING_IDLE_A) > 0.01:
+		bad.append("our own Heron doesn't show its reach while FIELD REPAIR is off")
 	if h.get("field_repair"):
 		bad.append("H still repairing after the duration")
 	# bot: a hurt ally walks into reach

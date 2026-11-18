@@ -248,6 +248,8 @@ func _update_shoulder(delta: float) -> void:
 	camera_arm.position.x = _shoulder_x
 
 func _process(delta: float) -> void:
+	if _has_field_repair:
+		_update_field_ring()  # T487
 	if owner_peer_id != 0:  # bots keep a centred camera
 		_update_shoulder(delta)
 	_tilt_guns()
@@ -464,9 +466,11 @@ func configure_abilities(abilities: Array) -> void:
 	is_stealthy = false
 	_dash = false
 	_charge = false
+	_has_field_repair = false
 	for ability in abilities:
 		var key: String = ability.effect_key
 		_dash = _dash or key == "dash"  # T454
+		_has_field_repair = _has_field_repair or key == "field_repair"  # T487
 		_charge = _charge or key == "charge"  # T473
 		if ability.trigger == 1:
 			_apply_passive(key)
@@ -1730,7 +1734,21 @@ var _field_ring: MeshInstance3D
 
 func _set_field_repair(on: bool) -> void:
 	field_repair = on
-	if on and _field_ring == null:
+	_update_field_ring()
+
+# T487 (HUMAN_FOUND 2026-11-18: "Heron should always be able to see its own green circle, allies only
+# seeing while it's active is fine."): the pilot of a Heron always sees its reach -- dim while the
+# ability is off; everyone else sees the ring only while it runs. Checked every frame (_process).
+const FIELD_RING_IDLE_A := 0.35
+var _has_field_repair := false  # configure_abilities
+
+func _update_field_ring() -> void:
+	var mine: bool = _has_field_repair and owner_peer_id > 0 and owner_peer_id == multiplayer.get_unique_id() and not is_dead
+	if not (field_repair or mine):
+		if _field_ring != null:
+			_field_ring.visible = false
+		return
+	if _field_ring == null:
 		_field_ring = MeshInstance3D.new()
 		var tm := TorusMesh.new()
 		tm.inner_radius = FIELD_R - 0.3
@@ -1740,14 +1758,17 @@ func _set_field_repair(on: bool) -> void:
 		_field_ring.mesh = tm
 		var m := StandardMaterial3D.new()
 		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		m.albedo_color = FIELD_COLOR
 		_field_ring.material_override = m
 		_field_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(_field_ring)
 		_field_ring.scale = Vector3.ONE / maxf(0.01, scale.x)  # the reach in metres, whatever the body_scale
 		_field_ring.position = Vector3(0, 0.25 / maxf(0.01, scale.x), 0)
-	if _field_ring != null:
-		_field_ring.visible = on
+	var c := FIELD_COLOR
+	c.a = 1.0 if field_repair else FIELD_RING_IDLE_A
+	(_field_ring.material_override as StandardMaterial3D).albedo_color = c
+	_field_ring.visible = true
 
 ## Server: this tick's repair for every living ally in reach, this mech included.
 func _field_repair_tick(delta: float) -> void:
