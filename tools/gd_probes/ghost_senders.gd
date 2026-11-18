@@ -10,7 +10,7 @@ func _ready() -> void:
 	var bad: Array = []
 	for path in SENDERS:
 		var src: String = (load(path) as Script).source_code
-		if src.contains("func _do_fire") and src.contains("PROJECTILE_SCENE.instantiate()") and not src.contains("_rpc_spawn_ghost.rpc("):
+		if src.contains("func _do_fire") and src.contains("PROJECTILE_SCENE.instantiate()") and not (src.contains("_rpc_spawn_ghost.rpc(") or src.contains("rpc_fx(&\"_rpc_spawn_ghost\"")):  # T462: via rpc_fx
 			bad.append(path.get_file())
 	# any other script overriding _do_fire with its own projectile must send ghosts too
 	for f in DirAccess.get_files_at("res://scripts"):

@@ -447,3 +447,4 @@ date|task|outcome|commit|finding|suite
 2026-11-17|T452|DONE|161d27d|Factory container levels flush (2.5 m on a 2.6 m pitch); floating_parts near-miss check|202/202
 2026-11-17|T346|DONE|efa706c|engine bug: GLES3 free(sky) leaves it in dirty_sky_list -> a Sky dropped in its load/change frame leaks 2 radiance maps; MapScene.own_sky; first rendered probe (render_*)|203/203
 2026-11-17|T453|DONE|a6bfe86|Giza own desert sky + sun disc at 28 deg|202/203 (stealth_notice flake, 3/3 alone -> T461)
+2026-11-18|T462|DONE|(this commit)|respawned mech's unreliable RPCs held 2 s (overtook the reliable spawn on lossy links: Node not found, reproduced on main 1/6); net_security rule 6; ghost_senders / missile_explosion text checks accept rpc_fx|suite 201/203 -> the 2 probes fixed + green alone; net 63/64 (dedicated_server#m2@wifi p95 0.64 vs 0.60, 0 snaps; 2/2 green rerun)

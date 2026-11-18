@@ -89,7 +89,7 @@ func _do_fire() -> void:
 	# One RPC per damage tick (1/fire_rate); client-side fade timers hide the
 	# beam and stop the audio on their own when ticks stop arriving.
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
-		_rpc_beam_fx.rpc(hit_pos)
+		rpc_fx(&"_rpc_beam_fx", [hit_pos])  # T462
 
 func _beam_fx(hit_pos: Vector3) -> void:
 	var hit_dist := maxf(0.01, global_position.distance_to(hit_pos))

@@ -154,7 +154,7 @@ func _do_fire() -> void:
 	_beam_fx(target_pos)
 	# Audit #15: beam + loop audio were server-only; remote peers saw nothing.
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
-		_rpc_beam_fx.rpc(target_pos)
+		rpc_fx(&"_rpc_beam_fx", [target_pos])  # T462
 
 func _beam_fx(target_pos: Vector3) -> void:
 	var dist := maxf(0.01, global_position.distance_to(target_pos))

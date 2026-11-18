@@ -48,8 +48,8 @@ func _do_fire() -> void:
 	VFX.casing(self)  # T263
 	# B110: this override skipped ProjectileGun's T100 ghost send, so clients never saw MG rounds.
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
-		_rpc_spawn_ghost.rpc(global_position, proj.global_transform.basis,
-			proj.speed, proj.lifetime, proj.team)
+		rpc_fx(&"_rpc_spawn_ghost", [global_position, proj.global_transform.basis,
+			proj.speed, proj.lifetime, proj.team])  # T462
 
 func _ready() -> void:
 	super._ready()

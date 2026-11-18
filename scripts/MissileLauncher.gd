@@ -38,5 +38,5 @@ func _do_fire() -> void:
 	proj.global_transform = Transform3D(Basis(), global_position).looking_at(aim_point)
 	# T258: clients saw no missiles at all (this override skipped ProjectileGun's ghost send).
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
-		_rpc_spawn_ghost.rpc(global_position, proj.global_transform.basis,
-			proj.speed, proj.lifetime, proj.team)
+		rpc_fx(&"_rpc_spawn_ghost", [global_position, proj.global_transform.basis,
+			proj.speed, proj.lifetime, proj.team])  # T462

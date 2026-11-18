@@ -65,7 +65,7 @@ func _do_fire() -> void:
 	# Audit #15: pellets were server-only; remote peers saw nothing. One RPC per
 	# shot carrying every pellet's aim point; clients spawn visual-only ghosts.
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
-		_rpc_pellet_ghosts.rpc(ghost_aims)
+		rpc_fx(&"_rpc_pellet_ghosts", [ghost_aims])  # T462
 
 @rpc("authority", "unreliable")
 func _rpc_pellet_ghosts(aim_points: Array) -> void:

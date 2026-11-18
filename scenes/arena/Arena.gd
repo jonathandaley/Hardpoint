@@ -1122,6 +1122,7 @@ func _rpc_spawn_next_mech(peer_id: int, slot_idx: int, team: int, spawn: int) ->
 		"Mech_r%d_s%d" % [roster_idx, slot_idx], spawn)
 	new_mech.owner_peer_id = peer_id
 	new_mech.roster_idx = roster_idx
+	_spawn_ack(new_mech)  # T462
 	_apply_skills(new_mech)
 	var my_id := multiplayer.get_unique_id()
 	if peer_id == my_id:
@@ -1590,6 +1591,11 @@ func bot_spawn(team: int) -> int:
 			best = i
 	return best
 
+## T462 (see Mech.rpc_fx): a respawn mid-match -- the server holds its unreliable RPCs a moment.
+func _spawn_ack(m: Node) -> void:
+	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
+		m.call("hold_fx_after_respawn")
+
 # Server -> all: spawn a bot's next squad mech (same order on every peer: snapshots
 # address mechs by their index in _team_mechs).
 @rpc("authority", "call_local", "reliable")
@@ -1616,6 +1622,7 @@ func _rpc_spawn_next_bot(ri: int, slot: int, spawn: int) -> void:
 		entry["squad"][slot].get("weapons", []), "Mech_r%d_s%d" % [ri, slot], spawn)
 	m.owner_peer_id = 0
 	m.roster_idx = ri
+	_spawn_ack(m)  # T462
 	_apply_skills(m)
 	var bp: Node = get_node_or_null("BotPlayer_%d_%d" % [team, tidx])
 	if bp != null:

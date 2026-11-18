@@ -51,7 +51,7 @@ func _ready() -> void:
 			_fail("explosion still there after 1.5 s")
 			return
 	var src: String = (load("res://scripts/MissileLauncher.gd") as Script).source_code
-	if not src.contains("explode = true") or not src.contains("_rpc_spawn_ghost.rpc("):
+	if not src.contains("explode = true") or not (src.contains("_rpc_spawn_ghost.rpc(") or src.contains("rpc_fx(&\"_rpc_spawn_ghost\"")):  # T462: via rpc_fx
 		_fail("MissileLauncher does not mark shots explosive / send client ghosts")
 		return
 	print("[probe] missile_explosion done")

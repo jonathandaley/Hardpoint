@@ -49,8 +49,8 @@ func _do_fire() -> void:
 	VFX.casing(self)  # T263 (rifle, sniper; missiles have their own _do_fire)
 	# T100: broadcast ghost to clients when server in MP.
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
-		_rpc_spawn_ghost.rpc(global_position, proj.global_transform.basis,
-			proj.speed, proj.lifetime, proj.team)
+		rpc_fx(&"_rpc_spawn_ghost", [global_position, proj.global_transform.basis,
+			proj.speed, proj.lifetime, proj.team])  # T462
 
 # Audit #16: unreliable -- ghosts are cosmetic and per-bullet (MG ~14/s/mech);
 # a dropped ghost is one invisible tracer round, not worth retransmit overhead.

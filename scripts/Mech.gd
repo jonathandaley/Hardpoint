@@ -88,6 +88,26 @@ var walk_speed: float:
 	get: return base_walk_speed * _modifiers.get("walk_speed", 1.0) * terrain_speed
 var terrain_speed := 1.0  # T225: set by the map each tick (swamp water slows wading mechs)
 
+# ---- T462: respawned mechs and unreliable RPCs ----
+# Net sweep 2026-11-17 (bot_lock@bad, 3 in ~8 runs): "Node not found: Arena/Mech_r2_s1/Torso/
+# Hardpoint2/RifleLight", "Arena/Mech_r3_s1". ENet carries reliable and unreliable RPCs on separate
+# channels, so under loss a respawned bot's gunfire / lock progress overtook its reliable spawn
+# RPC and hit a node the client hadn't built yet. A mid-match respawn holds its unreliable RPCs
+# (all cosmetic or HUD) for FX_HOLD_TICKS while the spawn lands.
+# ponytail: a spawn RPC still in flight after 2 s would still miss; the exact fix is a per-client
+# "built it" ack, which adds an RPC = a NET_VERSION bump -- do it with the next release's bump.
+const FX_HOLD_TICKS := 120  # 2 s at 60 Hz: past a reliable resend or two on a bad link
+var _fx_hold_until := 0
+
+func hold_fx_after_respawn() -> void:
+	_fx_hold_until = Engine.get_physics_frames() + FX_HOLD_TICKS
+
+## An unreliable RPC of `node` (this mech or one of its weapons), unless this mech just respawned.
+func rpc_fx(node: Node, method: StringName, args: Array) -> void:
+	if Engine.get_physics_frames() < _fx_hold_until:
+		return
+	node.callv("rpc", [method] + args)
+
 func _ready() -> void:
 	add_to_group("mechs")
 	# T235: the camera arm casts a ball, not a ray: a ray parks the camera 1 cm off a wall or
@@ -1343,7 +1363,7 @@ func _broadcast_lock_state() -> void:
 		_sync_lock_state.rpc(ln, en, lock_progress)
 	elif lock_progress != _lock_synced_progress:
 		_lock_synced_progress = lock_progress
-		_sync_lock_progress.rpc(lock_progress)
+		rpc_fx(self, &"_sync_lock_progress", [lock_progress])  # T462
 
 # V31: cross-peer mech refs travel as names (unique, mirrors sync-log mech_id).
 func _find_mech(mech_name: String) -> Node3D:

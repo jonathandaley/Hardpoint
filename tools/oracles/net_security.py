@@ -17,6 +17,9 @@ real server).
 5. T388: the hash of every @rpc signature is recorded with Game.NET_VERSION (NET_SIG).
    Change an RPC and this fails until NET_VERSION is bumped and NET_SIG updated
    (`python3 -m oracles.net_security` in tools/ prints the new pair).
+6. T462: a mech's or weapon's unreliable server -> client RPC goes out through rpc_fx (held
+   after a respawn: on a lossy link it overtook the reliable spawn -> "Node not found" on
+   clients), never a bare `<name>.rpc(`.
 """
 import glob
 import hashlib
@@ -113,6 +116,15 @@ def scan(files=None):
                 bad.append("%s %s: an account session on the game connection (unencrypted; join tickets only, T385)" % (rel, name))
             if (name in any_peer or name in ("push_input", "handle")) and _BARE.search(body):
                 bad.append("%s %s: converts a client's value without checking its type first" % (rel, name))
+    mech_side = [(rel, text) for rel, text in (files if files is not None else game_files())
+                 if rel.endswith("scripts/Mech.gd") or "owner_mech" in text]
+    unreliable = {f for _, text in mech_side for args, f in _RPC.findall(text)
+                  if "unreliable" in args and "authority" in args}
+    for rel, text in mech_side:
+        own = {f: "unreliable" in args for args, f in _RPC.findall(text)}  # its own defs win (RocketLauncher's reliable ghost)
+        for f in unreliable:
+            if own.get(f, True) and re.search(r'\b%s\.rpc\(' % re.escape(f), text):
+                bad.append("%s: %s.rpc( -- send a mech / weapon unreliable RPC through rpc_fx (T462)" % (rel, f))
     if files is None and (net_version(), rpc_hash()) != NET_SIG:
         bad.append("an @rpc signature or Game.NET_VERSION changed: bump NET_VERSION (old clients must be told to update) "
                    "and set NET_SIG = (%d, \"%s\") with the bumped version (T388)" % (net_version(), rpc_hash()))

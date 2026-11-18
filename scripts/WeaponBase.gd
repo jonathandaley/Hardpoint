@@ -35,6 +35,14 @@ func _muzzle_flash(bc: bool) -> void:
 @export var muzzle_color: Color = Color(1.0, 0.80, 0.30)
 
 var owner_mech: Node3D = null   # set by Mech._setup_weapon_owners() at ready time
+
+## T462: an unreliable server -> clients RPC on this weapon, held while its mech has just respawned
+## (Mech.rpc_fx: a respawned mech's gunfire can overtake its reliable spawn on a lossy link).
+func rpc_fx(method: StringName, args: Array) -> void:
+	if owner_mech != null and owner_mech.has_method("rpc_fx"):
+		owner_mech.call("rpc_fx", self, method, args)
+	else:
+		callv("rpc", [method] + args)
 var ammo: int = -1
 var _cooldown: float = 0.0
 var _reloading: bool = false

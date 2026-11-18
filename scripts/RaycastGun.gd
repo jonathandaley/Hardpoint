@@ -37,7 +37,7 @@ func _do_fire() -> void:
 	_shot_fx(hit_pos)
 	# Audit #15: tracer + flash were server-only; remote peers saw nothing.
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
-		_rpc_shot_fx.rpc(hit_pos)
+		rpc_fx(&"_rpc_shot_fx", [hit_pos])  # T462
 
 func _shot_fx(hit_pos: Vector3) -> void:
 	_spawn_tracer(muzzle_flash.global_position, hit_pos)
