@@ -1678,8 +1678,72 @@ func _create_nav_region() -> void:
 	add_child(_nav_region)
 	# Bake on a background thread so the first frame isn't blocked.
 	_nav_region.bake_finished.connect(func():
+		_prune_nav_islands()
 		print("[Arena] NavMesh baked OK"))
 	_nav_region.bake_navigation_mesh(true)
+
+## T464: drop navmesh pieces no spawn point is on (box and roof tops, sealed pockets). Nothing walks
+## there, and Godot's path search into one logs "It's not expect to not find the most reachable
+## polygons" (map_stuck kept hitting it as maps gained cover). Pieces join where two polygons share
+## an edge, as the navigation map joins them.
+func _prune_nav_islands() -> void:
+	var nm := _nav_region.navigation_mesh
+	var verts := nm.get_vertices()
+	var n := nm.get_polygon_count()
+	var vid := {}  # quantized position -> one id (vertices may repeat per polygon)
+	var ids := PackedInt32Array()
+	for v in verts:
+		var key := Vector3i((v * 100.0).round())
+		if not vid.has(key):
+			vid[key] = vid.size()
+		ids.append(vid[key])
+	var root: Array = range(n)
+	var edge_poly := {}
+	for i in n:
+		var poly := nm.get_polygon(i)
+		for k in poly.size():
+			var a := ids[poly[k]]
+			var b := ids[poly[(k + 1) % poly.size()]]
+			var e := mini(a, b) * 4194304 + maxi(a, b)
+			if edge_poly.has(e):
+				root[_nav_root(root, i)] = _nav_root(root, edge_poly[e])
+			else:
+				edge_poly[e] = i
+	var keep := {}
+	for t in 2:
+		for s in spawn_points(t):
+			var best := -1
+			var best_d := INF
+			for i in n:
+				var poly := nm.get_polygon(i)
+				var c := Vector3.ZERO
+				for k in poly:
+					c += verts[k]
+				var d := (c / poly.size()).distance_squared_to(s)
+				if d < best_d:
+					best_d = d
+					best = i
+			if best >= 0:
+				keep[_nav_root(root, best)] = true
+	if keep.is_empty():
+		return
+	var polys: Array = []
+	for i in n:
+		if keep.has(_nav_root(root, i)):
+			polys.append(nm.get_polygon(i))
+	if polys.size() == n:
+		return
+	nm.clear_polygons()
+	for p in polys:
+		nm.add_polygon(p)
+	nm.emit_changed()
+	print("[Arena] navmesh: %d island polygons dropped of %d" % [n - polys.size(), n])
+
+func _nav_root(root: Array, i: int) -> int:
+	while root[i] != i:
+		root[i] = root[root[i]]
+		i = root[i]
+	return i
 
 func _start_snapshot_timer() -> void:
 	var t := Timer.new()

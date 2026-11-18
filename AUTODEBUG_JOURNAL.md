@@ -457,3 +457,4 @@ date|task|outcome|commit|finding|suite
 2026-11-18|T459|DONE (local, branch surprise)|(this commit)|Glacier map (lake, ravines, ridges, seracs, stations, snowfall); make_terrain shade sets; map probes green (stuck 0, floating 0)|suite batched with T460
 2026-11-18|T460|DONE (local, branch surprise)|(this commit)|Caldera map (terraces, fenced lava lake, island + causeways, basalt columns, embers); map probes green|suite batched with T459
 2026-11-18|T460 fix|DONE (local)|(this commit)|Caldera: no navmesh on column tops (bake-only obstacle over the ring, narrower boxes, cluster heights 0.9 m apart); 5v5 bot matches on both new maps clean|suite next
+2026-11-18|T464|DONE|(this commit)|navmesh pieces no spawn reaches are pruned after the bake (Godot path errors on box tops); map_stuck islands 21/2/2/10 -> 4/0/0/0, 0 unreached; queued T465 (suite flakes) + user items T466-T471|suite 213/213 (with T463)
