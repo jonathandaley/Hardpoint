@@ -46,7 +46,6 @@ offset_bottom = 305.0
 [node name="BotFillRow" type="HBoxContainer" parent="HostControls"]
 
 [node name="BotFillLabel" type="Label" parent="HostControls/BotFillRow"]
-size_flags_horizontal = 3
 text = "Bot Fill"
 theme_override_font_sizes/font_size = 15
 
@@ -56,7 +55,8 @@ theme_override_font_sizes/font_size = 15
 
 [node name="DeathMatchLabel" type="Label" parent="HostControls/BotFillRow"]
 size_flags_horizontal = 3
-text = "Mode"
+text = "Mode:"
+horizontal_alignment = 2
 theme_override_font_sizes/font_size = 15
 
 [node name="ModeOption" type="OptionButton" parent="HostControls/BotFillRow"]
