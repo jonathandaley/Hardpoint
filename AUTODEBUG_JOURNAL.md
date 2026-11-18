@@ -479,3 +479,4 @@ date|task|outcome|commit|finding|suite
 2026-11-18|T485|DONE (local, branch surprise)|(this commit)|Caldera: island / causeway tops off the terrain and each other (the flicker); lava kills; probe caldera_lava
 2026-11-18|T483|DONE (local, branch surprise)|(this commit)|charge build 5 -> 0.9 m/s per s: 15.7 s to the top, Slip ahead 6.3 s; charge probe reworked for the slow build
 2026-11-18|T487|DONE (local, branch surprise)|(this commit)|the Heron pilot always sees its reach ring (dim while FIELD REPAIR is off); field_repair probe
+2026-11-18|T467|DONE|(this commit)|LAN discovery: HOST > OPEN TO LAN broadcasts a beacon (UDP 8920, 1 s); a LAN tab lists found games, a click joins; the beacon parser treats it as untrusted input (bounded, ASCII, magic, typed); team / hangar choice split to T476 (next release) / T477; probe lan_discovery
