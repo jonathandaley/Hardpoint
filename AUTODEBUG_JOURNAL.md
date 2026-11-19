@@ -1,2 +1,2 @@
 
-2026-11-19|T501|DONE|(this commit)|beacon rush: contested after the click still spawns there; lost -> the picker again (no home spawn); beacon_rush updated
+2026-11-19|T501 suite/sweep|220/221, 74/74|-|map_stuck Corvette no nav path once (3/3 alone) -> folded into T488; pushed
