@@ -41,7 +41,8 @@ func _drain_tick() -> void:
 	if b > 0:
 		scores[0] = max(0, scores[0] - per_beacon * b)
 	if multiplayer.has_multiplayer_peer() and Game.mp_live:  # T159/V52 stream gate
-		_sync_scores.rpc(scores[0], scores[1], elapsed)
+		for p in Game.stream_peers():  # T511
+			_sync_scores.rpc_id(p, scores[0], scores[1], elapsed)
 
 # T40: clients receive score updates here for HUD display; win evaluation stays server-only.
 # T285: the match clock rides along (a client's Match never ticks: the HUD countdown).

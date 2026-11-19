@@ -206,7 +206,8 @@ func _stream_progress(delta: float, now: bool) -> void:
 	_progress_broadcast_timer -= delta
 	if (now or _progress_broadcast_timer <= 0.0) and Game.mp_live:  # T159/V52 stream gate
 		_progress_broadcast_timer = _PROGRESS_BROADCAST_INTERVAL
-		_sync_progress.rpc(_capture_progress, _capturing_team)
+		for p in Game.stream_peers():  # T511
+			_sync_progress.rpc_id(p, _capture_progress, _capturing_team)
 
 func _teams_present() -> Array:
 	var out: Array = []

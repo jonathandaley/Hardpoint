@@ -1,2 +1,2 @@
 
-2026-11-19|T500|parked|(this commit)|escape triggers per match: Giza 21/192/21/50 vs MathTemple 118/262, Swamp 171/35; no sphinx / middle hotspot; tool now stops at match end
+2026-11-19|T511|DONE|(this commit)|unreliable streams only to clients that acked this match (late joiners at AUTH_READY); rejoin / two_matches / dedicated lan+bad green; reload_desync flake -> T512

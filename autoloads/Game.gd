@@ -633,6 +633,7 @@ func _on_mp_auth(id: int, data: PackedByteArray) -> void:
 			smp.send_auth(id, var_to_bytes(st))
 		elif msg == AUTH_READY and p["late"] and not p["ready"]:
 			p["ready"] = true
+			_stream_peers[id] = true  # T511: a late joiner has its Arena built
 			smp.send_auth(id, AUTH_GO.to_utf8_buffer())
 			smp.complete_auth(id)
 		else:  # a second hello, "ready" out of turn, or anything else
@@ -801,6 +802,15 @@ func _rpc_change_scene(path: String) -> void:
 # while live, so nothing streams into a scene a client hasn't loaded yet or has
 # already left (Godot drops those packets and logs 'Node not found').
 var mp_live: bool = false
+# T511 (two_matches@bad: a client's reliable match start sat > 5 s behind resends; the await below
+# timed out, went live and streamed into a client with no Arena: "Node not found: Arena"): the
+# unreliable streams go only to clients that have this match's Arena (acked, or a late joiner's
+# AUTH_READY); the 5 s fallback still starts the match for the rest.
+var _stream_peers := {}
+
+## Server: the clients the match streams (snapshots, beacon progress, scores) go to.
+func stream_peers() -> Array:
+	return Array(multiplayer.get_peers()).filter(func(p): return _stream_peers.has(p))
 var _await_acks: Array = []
 var _await_then: Callable = Callable()
 var _await_id: int = 0
@@ -832,6 +842,7 @@ func _finish_await() -> void:
 func _rpc_transition_ack() -> void:
 	if not multiplayer.is_server():
 		return
+	_stream_peers[multiplayer.get_remote_sender_id()] = true  # T511: in the new scene (only read while live)
 	_await_acks.erase(multiplayer.get_remote_sender_id())  # V41: unknown sender = no-op
 	if _await_acks.is_empty() and _await_then.is_valid():
 		_finish_await()
@@ -842,6 +853,7 @@ const STREAM_DRAIN_S := 0.3  # B61: > bad-profile jitter (±30 ms) + snapshot in
 # then the server follows.
 func server_change_scene(path: String) -> void:
 	mp_live = false
+	_stream_peers.clear()  # T511
 	# B61: snapshots/scores ride unreliable ENet channels, the change rides a reliable one;
 	# on a jittery link a snapshot sent just before can land after it, once the client's
 	# Arena is gone ('Node not found: Arena'). Let in-flight streams drain first.
@@ -954,6 +966,7 @@ func _rpc_match_start(map_path: String, roster: Array, match_seed: int, mode: St
 		# T159: stream nothing until every client has loaded Arena (it acks from Arena._ready);
 		# set up before any ack can arrive.
 		mp_live = false
+		_stream_peers.clear()  # T511: each client streams from its own ack
 		server_await_clients(func() -> void: mp_live = true)
 	_sync_next_match()
 	mp_active_match = {

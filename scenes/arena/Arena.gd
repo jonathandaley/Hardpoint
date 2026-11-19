@@ -1854,7 +1854,8 @@ func _snapshot_tick() -> void:
 			snapshots.append(e)
 	if snapshots.is_empty():
 		return
-	_rpc_snapshot.rpc(snapshots)
+	for p in Game.stream_peers():  # T511: not into a client still loading the Arena
+		_rpc_snapshot.rpc_id(p, snapshots)
 
 # T150: client clock offset = min(receive - server send) ~ clock offset + minimum
 # one-way delay. Mapping server send times through it strips network jitter from
