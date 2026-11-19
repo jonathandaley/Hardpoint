@@ -194,6 +194,15 @@ func spawn_open(team: int, i: int) -> bool:
 	var b: Node = _rush_beacons[i - n]
 	return int(b.get("owner_team")) == team and int(b.get("state")) != 3  # Beacon.State.CONTESTED
 
+## T501 (user 2026-11-19: "you can spawn into a beacon even if it becomes contested after you click
+## (don't do the \"spawn at home\", that's very annoying. If there's a fatal error, return to the
+## picker)"): a pick stands while the team still owns the beacon, contested or not.
+func spawn_owned(team: int, i: int) -> bool:
+	var n: int = _map.spawn_points(team).size()
+	if i < 0 or i >= n + _rush_beacons.size():
+		return false
+	return i < n or int(_rush_beacons[i - n].get("owner_team")) == team
+
 ## The spawn picker's points: closed ones null (indices kept).
 func spawn_choices(team: int) -> Array:
 	var p := spawn_points(team)
@@ -990,6 +999,25 @@ func _check_input_silence() -> void:
 			print("[Arena] peer %d silent for %d ms: bot takes over" % [pid, now - last])
 			_on_peer_disconnected_in_match(pid)
 
+## T501: the server refused a pick at a beacon lost meanwhile -- pick again.
+@rpc("authority", "reliable")
+func _rpc_repick() -> void:
+	_reopen_picker()
+
+func _reopen_picker() -> void:
+	if _match_over or not is_inside_tree():
+		return
+	var my_id := multiplayer.get_unique_id()
+	if not _peer_slot_used.has(my_id):
+		return
+	var squad: Array = []
+	for entry in Game.mp_active_match["roster"]:
+		if entry.get("peer_id", 0) == my_id:
+			squad = entry["squad"]
+			break
+	hud.hide_spawn_picker()
+	hud.show_squad_picker_mp(squad, _peer_slot_used[my_id], "BEACON LOST -- PICK AGAIN")
+
 # T127: show squad picker when local mech dies and lives remain.
 func _on_local_mech_died_mp() -> void:
 	if _match_over or _player == null:
@@ -1082,8 +1110,14 @@ func _process_pick_next_mech(sender: int, slot_idx: int, spawn: int) -> void:
 	if spawn < 0 or spawn >= spawn_points(peer_team).size():
 		Game.net_refuse(sender, "pick: no such spawn point")
 		return
-	if not spawn_open(peer_team, spawn):
-		spawn = 0  # T434: the beacon was lost (or contested) while picking -- home instead
+	if not spawn_owned(peer_team, spawn):
+		# T501: the beacon was lost outright while picking -- back to the picker (the slot unspent),
+		# never a spawn at home; contested is fine (spawn_owned)
+		if sender == multiplayer.get_unique_id():
+			_reopen_picker()
+		else:
+			_rpc_repick.rpc_id(sender)
+		return
 	_peer_slot_used[sender][slot_idx] = true
 	_rpc_spawn_next_mech.rpc(sender, slot_idx, peer_team, spawn)
 

@@ -64,19 +64,32 @@ func _flow(arena: Node) -> void:  # on the first map
 	var to_foe := Vector2(foe.x - m.global_position.x, foe.z - m.global_position.z).normalized()
 	if Vector2(fwd.x, fwd.z).normalized().dot(to_foe) < 0.9:
 		_fail("respawned at a beacon facing %.0f deg off the enemy's side" % rad_to_deg(acos(clampf(Vector2(fwd.x, fwd.z).normalized().dot(to_foe), -1.0, 1.0))))
-	# lost while picking -> home
+	# T501: contested after the click -> still spawns there
+	b.set("state", 3)  # CONTESTED, still ours
+	arena.call("_self_destruct", 1)
+	await _frames(5)
+	arena.call("_process_pick_next_mech", 1, 2, homes)
+	await _frames(40)
+	m = _player(arena)
+	if m.is_dead or Vector2(m.global_position.x - b.global_position.x, m.global_position.z - b.global_position.z).length() > arena.RUSH_SPAWN_R + 1.0:
+		_fail("a pick at a beacon contested after the click didn't spawn there (%s)" % m.global_position)
+	# T501: lost outright while picking -> back to the picker, the slot unspent, no home spawn
 	b.set("owner_team", 1)
 	b.set("state", 2)  # TEAM_B
 	if arena.bot_spawn(0) >= homes:
 		_fail("a team-0 bot picked spawn %d (beacons all neutral / enemy)" % arena.bot_spawn(0))
 	arena.call("_self_destruct", 1)
 	await _frames(5)
-	arena.call("_process_pick_next_mech", 1, 2, homes)
+	var used_before: Array = (arena.get("_peer_slot_used")[1] as Array).duplicate()
+	arena.call("_process_pick_next_mech", 1, 3, homes)
 	await _frames(10)
-	m = _player(arena)
-	var home: Vector3 = arena.spawn_points(0)[0]
-	if m.is_dead or Vector2(m.global_position.x - home.x, m.global_position.z - home.z).length() > 25.0:
-		_fail("pick at a lost beacon didn't go home (%s, home %s)" % [m.global_position, home])
+	var alive := false
+	for mm2 in arena.get("_team_mechs")[0]:
+		if is_instance_valid(mm2) and int(mm2.get("owner_peer_id")) == 1 and not mm2.get("is_dead"):
+			alive = true
+	var picker = hud.get("_squad_picker")
+	if alive or picker == null or not is_instance_valid(picker) or arena.get("_peer_slot_used")[1] != used_before:
+		_fail("a pick at a lost beacon: spawned %s, picker open %s, slots %s -> %s (want no spawn, the picker back, the slot unspent)" % [alive, picker != null and is_instance_valid(picker), used_before, arena.get("_peer_slot_used")[1]])
 	b.set("owner_team", 1)
 	if arena.spawn_open(1, homes) == false:
 		_fail("team 1's own beacon not open to it")
