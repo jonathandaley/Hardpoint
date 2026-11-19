@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cyj0dn47w8met"
-path="res://.godot/imported/etna-armor.png-0575b0f00f5cc3808e4f65eb38fdabb0.ctex"
+uid="uid://cqytoqhfq8uir"
+path="res://.godot/imported/kanchenjunga-detail.png-090efb59c3754dc1fd9238cfbcb22206.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/hardpoint/textures/etna-armor.png"
-dest_files=["res://.godot/imported/etna-armor.png-0575b0f00f5cc3808e4f65eb38fdabb0.ctex"]
+source_file="res://assets/hardpoint/textures/kanchenjunga-detail.png"
+dest_files=["res://.godot/imported/kanchenjunga-detail.png-090efb59c3754dc1fd9238cfbcb22206.ctex"]
 
 [params]
 

@@ -831,6 +831,10 @@ func _rpc_boost(kind: String, secs: float) -> void:
 		burn_s = maxf(burn_s, secs)
 
 func _tick_boosts(delta: float) -> void:
+	if _stomp_hit_in >= 0.0:  # T480: the stomp lands at the slam
+		_stomp_hit_in -= delta
+		if _stomp_hit_in < 0.0:
+			_stomp_land()
 	if damage_boost_s > 0.0:
 		damage_boost_s = maxf(damage_boost_s - delta, 0.0)
 	if slow_s > 0.0:
@@ -1102,10 +1106,22 @@ func _update_legs(delta: float) -> void:
 	var pose := lunge_pose()
 	if pose == Vector3.ZERO and _anchor_pose > 0.0:
 		pose = Vector3(_anchor_pose, 0.0, 0.0)
-	if _stomp_t > 0.0:  # T456: a quick drop into the stomp and back up
+	var lift := 0.0
+	if _stomp_t > 0.0:  # T456 / T480: rear up, slam, settle into a crouch
+		var was := _stomp_t
 		_stomp_t = maxf(0.0, _stomp_t - delta)
-		if pose == Vector3.ZERO:
-			pose = Vector3(STOMP_CROUCH * sin(PI * (1.0 - _stomp_t / STOMP_POSE_S)), 0.0, 0.0)
+		var e := STOMP_POSE_S - _stomp_t  # time since the stomp began
+		if e < STOMP_RAISE_S:
+			lift = sin(0.5 * PI * e / STOMP_RAISE_S)  # eases up
+		elif e < STOMP_RAISE_S + STOMP_SLAM_S:
+			lift = 1.0 - (e - STOMP_RAISE_S) / STOMP_SLAM_S  # slams down
+		else:
+			if pose == Vector3.ZERO:
+				var k := (e - STOMP_RAISE_S - STOMP_SLAM_S) / STOMP_SETTLE_S
+				pose = Vector3(STOMP_CROUCH * sin(PI * clampf(k, 0.0, 1.0)), 0.0, 0.0)
+		if STOMP_POSE_S - was < STOMP_RAISE_S + STOMP_SLAM_S and e >= STOMP_RAISE_S + STOMP_SLAM_S:
+			_stomp_ring()  # the foot is down
+	legs.set("stomp_lift", lift)
 	legs.call("update_gait", gait_velocity(), global_transform.basis, leg_rotation_speed, walk_speed, delta, airborne,
 		pose)
 
@@ -1679,13 +1695,26 @@ const STOMP_WEAKEN_K := 0.6
 const STOMP_SHAKE := 0.06    # rad, the stomped player's camera (recoil shakes are 0.001-0.03)
 const STOMP_SHAKE_S := 0.6
 const STOMP_CROUCH := 0.6
-const STOMP_POSE_S := 0.4
-const STOMP_COLOR := Color("#ff7a1a")
+# T480 (user 2026-11-18: "put a stomp animation if there's none already" / "Make it the right leg."): the
+# right leg rears up over STOMP_RAISE_S and slams down over STOMP_SLAM_S -- the shockwave, the damage and
+# the slow land at the slam (every peer runs the same clock from the ability RPC); then the crouch settles.
+const STOMP_RAISE_S := 0.3
+const STOMP_SLAM_S := 0.08
+const STOMP_SETTLE_S := 0.32
+const STOMP_POSE_S := STOMP_RAISE_S + STOMP_SLAM_S + STOMP_SETTLE_S
+const STOMP_COLOR := Color("#ffc447")  # T481: Kanchenjunga's gold (was Etna's orange)
+var _stomp_hit_in := -1.0  # server: s until the slam deals the stomp
 var slow_s := 0.0
 var _stomp_t := 0.0
 
+## Server: arm the stomp -- it lands at the slam (_tick_boosts counts down _stomp_hit_in).
 func _stomp() -> void:
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		return
+	_stomp_hit_in = STOMP_RAISE_S + STOMP_SLAM_S
+
+func _stomp_land() -> void:
+	if is_dead or health <= 0.0:
 		return
 	for m in get_tree().get_nodes_in_group("mechs"):
 		if m == self or m.get("team") == team or m.get("is_dead") or float(m.get("health")) <= 0.0:
@@ -1697,9 +1726,11 @@ func _stomp() -> void:
 		if not m.get("is_dead"):
 			m.rpc(&"_rpc_boost", "slow", STOMP_SLOW_S)
 
-## Every peer: the crouch, and a ring of fire racing out to the reach and fading.
+## Every peer: the leg comes up now; at the slam (_update_legs) a ring races out to the reach and fades.
 func _stomp_fx() -> void:
 	_stomp_t = STOMP_POSE_S
+
+func _stomp_ring() -> void:
 	var host := get_parent()
 	if host == null or DisplayServer.get_name() == "headless":
 		return

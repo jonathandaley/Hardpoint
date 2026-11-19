@@ -3,7 +3,7 @@
   "seed": 4560,
   "port": 8993,
   "map_path": "res://resources/maps/MathTemple.tres",
-  "mech": "res://resources/mechs/Etna.tres",
+  "mech": "res://resources/mechs/Kanchenjunga.tres",
   "net": {
     "latency_ms": 160,
     "jitter_ms": 10,

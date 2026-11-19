@@ -67,7 +67,7 @@ const ELITE := {
 # spawn points, so beacons are taken and held: Denali (ANCHOR) holders, fast capturers. Same personality.
 const ELITE_KIT := {
 	"Inexorable": {"squad": [["Hippogriff", "MG"], ["Everest", "MG"], ["Hornet", "SHOTGUN"], ["Vesuvius", "MG"], ["Hippogriff", "SHOTGUN"]],
-		"squad_dm": [["Taurus", "SHOTGUN"], ["Everest", "MG"], ["Taurus", "INFERNO"], ["Etna", "SHOTGUN"], ["Hippogriff", "SHOTGUN"]],
+		"squad_dm": [["Taurus", "SHOTGUN"], ["Everest", "MG"], ["Taurus", "INFERNO"], ["Kanchenjunga", "SHOTGUN"], ["Hippogriff", "SHOTGUN"]],
 		"squad_rush": [["Denali", "MG"], ["Taurus", "SHOTGUN"], ["Everest", "MG"], ["Hippogriff", "SHOTGUN"], ["Vesuvius", "MG"]],
 		"personality": {"role": "attacker", "range_k": 0.7, "retreat_hp": 0.12}},   # health + speed + capture: rushes beacons
 	"Vantablack": {"squad": [["Slip", "SNIPER"], ["Seeker", "SNIPER"], ["Hornet", "SNIPER"], ["Slip", "SNIPER"], ["Seeker", "SNIPER"]],
@@ -107,7 +107,7 @@ const ELITE_KIT := {
 		"squad_rush": [["Slip", "MG"], ["Hornet", "MG"], ["Slip", "RIFLE"], ["Hornet", "RIFLE"], ["Slip", "MG"]],
 		"personality": {"role": "flanker", "range_k": 0.9, "retreat_hp": 0.3}},     # fast, fast shots
 	"Obsidian":   {"squad": [["Everest", "PATIENCE"], ["Vesuvius", "MG"], ["Everest", "MG"], ["Vesuvius", "PATIENCE"], ["Kestrel", "MG"]],
-		"squad_dm": [["Everest", "PATIENCE"], ["Vesuvius", "MG"], ["Etna", "MG"], ["Vesuvius", "PATIENCE"], ["Everest", "MG"]],
+		"squad_dm": [["Everest", "PATIENCE"], ["Vesuvius", "MG"], ["Kanchenjunga", "MG"], ["Vesuvius", "PATIENCE"], ["Everest", "MG"]],
 		"squad_rush": [["Denali", "RIFLE"], ["Everest", "PATIENCE"], ["Denali", "MG"], ["Vesuvius", "PATIENCE"], ["Everest", "MG"]],
 		"personality": {"role": "defender", "range_k": 1.1, "retreat_hp": 0.12}},   # a wall that hits hard
 	"Corsair":    {"squad": [["Hippogriff", "MISSILE"], ["Pegasus", "SHOTGUN"], ["Hippogriff", "MG"], ["Hornet", "MISSILE"], ["Pegasus", "MG"]],

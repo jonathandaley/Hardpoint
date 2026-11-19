@@ -95,8 +95,15 @@ func _ready() -> void:
 	var dm: float = mm.global_position.distance_to(s.global_position)
 	s.call("_activate_ability", Stomp)
 	var wf := float(Engine.physics_ticks_per_second)
+	# T480: the right leg rears up first -- nothing lands before the slam
 	await get_tree().physics_frame
-	await get_tree().physics_frame
+	if float(n.get("health")) < hp[n]:
+		_fail("the stomp hit before the slam")
+		return
+	if float((s.get("legs") as Node).get("stomp_lift")) <= 0.0 and float(s.get("_stomp_t")) > 0.0:
+		await get_tree().physics_frame
+	for k in int((Mech.STOMP_RAISE_S + Mech.STOMP_SLAM_S) * wf) + 2:
+		await get_tree().physics_frame
 	var bad: Array = []
 	var want_n := Mech.STOMP_DMG * (1.0 - Mech.STOMP_FALLOFF * dn / Mech.STOMP_R)
 	var want_m := Mech.STOMP_DMG * (1.0 - Mech.STOMP_FALLOFF * dm / Mech.STOMP_R)

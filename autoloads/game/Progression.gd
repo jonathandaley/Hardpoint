@@ -295,21 +295,21 @@ func _load_loadout() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(_SAVE_PATH) != OK:
 		return
-	var mech_path: String = cfg.get_value("loadout", "mech_path", "")
+	var mech_path: String = _migrate_weapons(cfg.get_value("loadout", "mech_path", ""))
 	if mech_path != "":
 		var md = load(mech_path)
 		if md != null:
 			loadout["mech_def"] = md
 	loadout["mech_weapon_choices"] = _migrate_weapons(cfg.get_value("loadout", "mech_weapon_choices", {}))
 	loadout["squad_weapons"] = _migrate_weapons(cfg.get_value("loadout", "squad_weapons", []))  # T345
-	var bot_path: String = cfg.get_value("loadout", "bot_path", "")
+	var bot_path: String = _migrate_weapons(cfg.get_value("loadout", "bot_path", ""))
 	if bot_path != "":
 		var bd = load(bot_path)
 		if bd != null:
 			loadout["bot_def"] = bd
 	loadout["team_size"] = cfg.get_value("loadout", "team_size", 1)
 	loadout["sp_bots"] = cfg.get_value("loadout", "sp_bots", [])  # T251: [ally, enemy]; [] = fill to team_size
-	var squad_paths: Array = cfg.get_value("loadout", "squad", [])
+	var squad_paths: Array = _migrate_weapons(cfg.get_value("loadout", "squad", []))
 	loadout["squad"] = squad_paths
 	loadout["presets"] = _migrate_weapons(cfg.get_value("loadout", "presets", {}))
 	var map_path: String = cfg.get_value("loadout", "map_path", "")
@@ -321,7 +321,8 @@ func _load_loadout() -> void:
 
 # T194: the heavy rocket launcher was cut (rockets are light-only; AERIAL HV is the heavy
 # pick). Saved choices and presets from before load with the replacement.
-const _CUT_WEAPONS := {"res://scenes/weapons/RocketLauncherHeavy.tscn": "res://scenes/weapons/AerialStrikeHeavy.tscn"}
+const _CUT_WEAPONS := {"res://scenes/weapons/RocketLauncherHeavy.tscn": "res://scenes/weapons/AerialStrikeHeavy.tscn",
+	"res://resources/mechs/Etna.tres": "res://resources/mechs/Kanchenjunga.tres"}  # T481: renamed
 
 static func _migrate_weapons(v: Variant) -> Variant:
 	if v is String:
@@ -331,7 +332,7 @@ static func _migrate_weapons(v: Variant) -> Variant:
 	if v is Dictionary:
 		var out := {}
 		for k in v:
-			out[k] = _migrate_weapons(v[k])
+			out[_migrate_weapons(k)] = _migrate_weapons(v[k])  # T481: keys are mech paths too
 		return out
 	return v
 

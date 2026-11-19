@@ -10,19 +10,19 @@
 [sub_resource type="Resource" id="1"]
 script = ExtResource("3")
 slot_size = 1
-position = Vector3(-1.16, 1.8, -0.72)
+position = Vector3(1.16, 1.98, -0.72)
 weapon_scene = ExtResource("5")
 
 [sub_resource type="Resource" id="2"]
 script = ExtResource("3")
 slot_size = 1
-position = Vector3(1.16, 1.8, -0.72)
+position = Vector3(1.16, 1.34, -0.72)
 weapon_scene = ExtResource("5")
 
 [resource]
 script = ExtResource("1")
-display_name = "Etna"
-description = "Heavy, 950 HP, no shield, two heavy hardpoints. STOMP (SPACE): a shockwave through every enemy within 12 m -- up to 80 damage, half at the edge -- and for 10 s they walk at half speed and their guns hit 40% softer, then 18 s to recharge. Black rock cracked with orange fire: Etna was dug out of a caldera foundry, and close quarters is where it wants you."
+display_name = "Kanchenjunga"
+description = "Heavy, 950 HP, no shield, both heavy hardpoints on the left. STOMP (SPACE): it rears up on its right leg and slams it down -- a shockwave through every enemy within 12 m, up to 80 damage, half at the edge -- and for 10 s they walk at half speed and their guns hit 40% softer, then 18 s to recharge. Snow-white slabs, slate rock and gold lamps: named for the Five Treasures of Snow, it was built for the high passes, and it doesn't move aside."
 class_tag = "Heavy"
 max_health = 950.0
 walk_speed = 0.9

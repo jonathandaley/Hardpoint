@@ -36,7 +36,7 @@ const ROSTER: Array = [
 	"res://resources/mechs/Vesuvius.tres",
 	"res://resources/mechs/Taurus.tres",
 	"res://resources/mechs/Denali.tres",
-	"res://resources/mechs/Etna.tres",
+	"res://resources/mechs/Kanchenjunga.tres",
 ]
 
 # T391: the one weapon list (the hangar reads this too): `name` = short label (HUD, lobby, bot kits),
@@ -497,7 +497,7 @@ const BOT_WEAPON_WEIGHTS := {
 	"Vesuvius":   {"MG": 3, "MISSILE": 3, "AERIAL": 3, "PATIENCE": 2, "RIFLE": 2, "LASER": 2, "MORTAR": 3},
 	"Taurus":     {"SHOTGUN": 4, "MG": 3, "INFERNO": 2, "RIFLE": 2, "SNIPER": 0},  # T363: rams in, fights up close (T457 flamer)
 	"Denali":     {"RIFLE": 4, "LASER": 3, "MG": 2, "PATIENCE": 2, "MORTAR": 2},  # T430: plants (ANCHOR) and trades shots at range
-	"Etna":       {"SHOTGUN": 4, "MG": 4, "INFERNO": 3, "ARC": 2, "RIFLE": 1},  # T456: walks in and stomps (T457 flamer)
+	"Kanchenjunga": {"SHOTGUN": 4, "MG": 4, "INFERNO": 3, "ARC": 2, "RIFLE": 1},  # T456: walks in and stomps (T457 flamer)
 	"Heron":      {"RIFLE": 4, "LASER": 3, "MG": 2, "MISSILE": 2},  # T455: medic, stays with the squad at mid range
 	"Swift":      {"MG": 4, "SHOTGUN": 3, "RIFLE": 2, "ARC": 2, "INFERNO": 2},  # T454: dashes in close
 }

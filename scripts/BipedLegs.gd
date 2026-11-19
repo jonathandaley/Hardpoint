@@ -59,6 +59,9 @@ const LEAP_HIP_L  := 0.65   # rad forward: the lead leg tucked under
 const LEAP_KNEE_L := 1.0
 const LEAP_HIP_R  := -0.6   # rad back: the push-off leg trailing
 const LEAP_KNEE_R := 0.15
+const STOMP_HIP   := 0.95   # T480: rad forward of rest, the right leg reared up for the stomp
+const STOMP_KNEE  := 1.1    # rad extra knee flex up there
+var stomp_lift := 0.0       # 0..1, set by Mech each frame (Mech.stomp_lift)
 const POSE_EASE   := 5.0    # pose units / s back to rest when a ram cuts the lunge short
 
 var _torso: Node3D = null
@@ -120,6 +123,10 @@ func _animate_walk(velocity: Vector3, delta: float, walk_speed := 1.0) -> void:
 	var flex_l: float = lerpf(lerpf(lerpf(swing_l * KNEE_LIFT + stance_l, TUCK_KNEE, _air), CROUCH_KNEE, _pose.x), LEAP_KNEE_L, _pose.y)
 	var flex_r: float = lerpf(lerpf(lerpf(swing_r * KNEE_LIFT + stance_r, TUCK_KNEE, _air), CROUCH_KNEE, _pose.x), LEAP_KNEE_R, _pose.y)
 
+	# T480 (user: "Make it the right leg."): STOMP rears the right leg up and slams it down
+	if stomp_lift > 0.0:
+		right_hip.rotation.x = lerpf(right_hip.rotation.x, REST_HIP + STOMP_HIP, stomp_lift)
+		flex_r = lerpf(flex_r, STOMP_KNEE, stomp_lift)
 	left_knee1.rotation.x  = REST_KNEE1 - flex_l
 	right_knee1.rotation.x = REST_KNEE1 - flex_r
 	left_knee2.rotation.x  = REST_KNEE2 + flex_l * 0.5
