@@ -962,7 +962,9 @@ func _on_mp_match_ended(winner_team: int, stats: Array) -> void:
 	# T205/T206: the server froze every mech (_on_match_ended); a predicting client stops too
 	if not multiplayer.is_server() and is_instance_valid(player_mech):
 		player_mech.call("snap_to_server")  # T270: where the server froze it, not where we predicted
-		player_mech.set_deferred("process_mode", Node.PROCESS_MODE_DISABLED)
+		# T491 (dedicated_server: a client logged Jolt "ref_count <= 0" at match end, B145's error): the
+		# capture zones stop monitoring before our mech leaves the physics space -- as freeze_mechs does
+		freeze_mechs(get_tree(), [player_mech])
 	hud.hide_squad_picker_mp()
 	hud.show_result_mp(winner_team, stats)
 	print("[Arena] MP match over. Team %d wins." % winner_team)
