@@ -1,1 +1,1 @@
-
+# This file is for humans to list bugs or other issues where Claude can see them. Not all of these are fixable without discussion, but some of them should be able to be fixed autonomously. Fixed bugs should be deleted, the record can live in SPEC. Don't ask questions in this file; move the task, with your question, to NEEDS_HUMAN.md.
