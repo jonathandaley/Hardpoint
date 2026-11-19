@@ -290,6 +290,7 @@ T500|.|user 2026-11-19: "The blocker between the two pyramids in Giza in the mid
 T501|.|user 2026-11-19: "Change beacon rush spawning: you can spawn into a beacon even if it becomes contested after you click (don't do the \"spawn at home\", that's very annoying. If there's a fatal error, return to the picker)." -- a beacon open when the spawn was picked stays the spawn; only a real failure (beacon gone / lost outright?) reopens the picker, never a home spawn|T434
 T502|.|user 2026-11-19: "When all your robots are dead when you leave still get rewards. Presumably this can only apply to an online server" -- a player whose last mech is dead and who leaves before the match ends is still paid (the match result at the end, as if they stayed); only where the server keeps the account (dedicated / online), the reward credited to the account on the server|T364,T207
 T503|.|bot_combat flake "teammate 15 m away never heard who shot E" (3 of 247 archived runs; T480/T481 suite; 3/3 alone): find what the teammate's alert depends on (timing, LOS, the shot landing) and fix it there|T172,T489
+T504|.|bot_lock@bad flake (T476 sweep: lock_target "eligible 'Mech_1_1' != None for >=180 ticks from tick 330"; 3/3 alone): the client kept a stale eligible (red box) target 3 s on a lossy link -- check the reliable _sync_lock_state path (B150-class: a reliable RPC held behind a resend) and whether the eligible target belongs in the snapshot like health (T474)|T474,B150,V44
 
 ## §B BUGS
 
