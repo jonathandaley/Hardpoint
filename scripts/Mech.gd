@@ -716,6 +716,16 @@ func receive_snapshot(entry: Dictionary, local_t: float = -1.0) -> void:
 		# T474: the health rides every snapshot (newest wins, nothing waits on a resend); a death still
 		# comes reliable (_sync_death)
 		health = float(entry["hp"])
+	# T504 (bot_lock@bad: a client kept a stale red box 3 s -- the reliable _sync_lock_state held behind a
+	# resend, B150): the lock state rides every snapshot too; absent = none
+	var lk = entry.get("lk")
+	if lk is Array and (lk as Array).size() == 2 and lk[0] is String and lk[1] is String:
+		locked_target = _find_mech(lk[0])
+		lock_eligible_target = _find_mech(lk[1])
+	else:
+		locked_target = null
+		lock_eligible_target = null
+	lock_eligible = lock_eligible_target != null
 	if _predicting():
 		_reconcile(entry)  # T205: own mech predicts; the snapshot corrects it
 		return
