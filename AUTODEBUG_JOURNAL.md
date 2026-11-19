@@ -1,2 +1,2 @@
 
-2026-11-19|T507|DONE|(this commit)|MP bot counts per side (Bot Fill off -> BOTS A / B); one roster bot loop with slot setup; lobby_teams red->green; render checked (prefix clipped first, fixed)
+2026-11-19|T499|DONE|(this commit)|Taurus charge v2: steer by facing, turn costs boost via _charge_v0 shift (sync paths unchanged), slip, speed self-burn; charge probe + charge_net mid-charge turns lan/wifi/bad green

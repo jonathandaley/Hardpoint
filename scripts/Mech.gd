@@ -712,6 +712,8 @@ func receive_snapshot(entry: Dictionary, local_t: float = -1.0) -> void:
 	# so the global_transform defaults below must only run inside the tree.)
 	if not is_inside_tree():
 		return
+	if _charge and lunging and entry.has("lv") and not _predicting():  # T499: turn losses -> glow / crouch here
+		_charge_v0 = float(entry["lv"])
 	if entry.has("hp") and not is_dead:
 		# T474: the health rides every snapshot (newest wins, nothing waits on a resend); a death still
 		# comes reliable (_sync_death)
@@ -1894,6 +1896,23 @@ const CHARGE_HIT_S := 0.3    # s it stands in an impact
 const CHARGE_CROUCH := 0.35  # leg pose crouch at the top speed: head down, horns first
 const CHARGE_AURA_R := 2.2   # m: the aura around the body (its centre CHARGE_AURA_Y up)
 const CHARGE_AURA_Y := 1.3
+# T499 (user 2026-11-19: "Reenable steering, but make steering decelerate based on how much you turn
+# (momentum simulation)" / "90 deg turn means fully killed speed boost ... Goal is to be very strong but
+# hard to control"): while it charges it runs along its facing (the aim). Each tick the turn past a
+# small free rate costs boost in proportion -- (CHARGE_TOP - walking) per 90 deg, so a 90 deg turn from
+# the top, flicked or swept, is back at walking pace -- taken off the curve's set-off speed
+# (_charge_v0), so the speed stays a function of the clock and every sync path (rewrites, catch-up,
+# pull-up, ram, glow, the snapshot's "lv") carries the loss as it is. The lost speed slides on along
+# the old heading (_charge_slip) and bleeds off at CHARGE_SLIP_DECEL: it drifts wide out of a hard
+# turn. Server and owner both run it from the same aim inputs.
+const CHARGE_TURN_FREE := deg_to_rad(8.0)  # rad/s of turn that costs nothing (aim noise) -- calibration knob
+const CHARGE_SLIP_DECEL := 10.0  # m/s per s the slide bleeds off -- calibration knob
+# T499 ("Add a small damage-over-time effect corresponding to high speed" / "Taurus takes its own
+# damage (overclock-adjacent)"): above CHARGE_DOT_FROM it burns itself, up to CHARGE_DOT HP/s at the
+# top (server; never below 1 HP -- the charge can't kill its own Taurus)
+const CHARGE_DOT_FROM := 9.0  # m/s -- calibration knob
+const CHARGE_DOT := 6.0       # HP/s at CHARGE_TOP (390 HP Taurus: ~15 s flat out = 45 HP) -- calibration knob
+var _charge_slip := Vector3.ZERO
 const RAM_FLOOR := 60.0      # ~1/3 of a light mech -- calibration knob
 const RAM_K := 9.0           # damage per m/s of closing speed -- calibration knob (135 at the top)
 const LUNGE_GLOW_K := 2.5    # extra glow at full speed (x the palette's energy)
@@ -2005,6 +2024,7 @@ func _lunge_begin(dir: Vector3, t0 := 0.0, v0 := 0.0) -> void:
 	_lunge_hit = false
 	_charge_v0 = v0
 	_charge_end_t = INF
+	_charge_slip = Vector3.ZERO
 
 func _lunge_end() -> void:
 	lunging = false
@@ -2018,9 +2038,15 @@ func _lunge_step(delta: float) -> bool:
 	if lunge_t >= _ltotal():
 		_lunge_end()
 		return false
+	if _charge and not _lunge_hit and lunge_t < _charge_end_t:
+		_charge_steer(delta)  # T499
 	var sp := 0.0 if _lunge_hit else _curve_speed(lunge_t)
 	velocity.x = _lunge_dir.x * sp
 	velocity.z = _lunge_dir.z * sp
+	if _charge and _charge_slip != Vector3.ZERO:  # T499: the slide out of a turn
+		_charge_slip = _charge_slip.move_toward(Vector3.ZERO, CHARGE_SLIP_DECEL * delta)
+		velocity.x += _charge_slip.x
+		velocity.z += _charge_slip.z
 	if _charge and not _lunge_hit and lunge_t >= _charge_end_t:
 		# T473: pulled up -- it steers and walks again while the boost bleeds off
 		var d2: Vector2 = _input_source.get_move_direction() if _input_source != null else Vector2.ZERO
@@ -2032,6 +2058,22 @@ func _lunge_step(delta: float) -> bool:
 			velocity.z += _desired_move_dir.z * walk_speed
 	_set_lunge_glow(sp / (DASH_PEAK if _dash else CHARGE_TOP))
 	return true
+
+## T499: the heading follows the facing; a turn past the free rate costs boost (off the set-off speed,
+## so the clock curve carries it) and the lost speed slides on along the old heading. The speed burn.
+func _charge_steer(delta: float) -> void:
+	var h := _lunge_facing()
+	var paid := maxf(0.0, absf(_lunge_dir.signed_angle_to(h, Vector3.UP)) - CHARGE_TURN_FREE * delta)
+	var s := _charge_speed(lunge_t)
+	if paid > 0.0:
+		var lost := minf(maxf(0.0, s - walk_speed), (CHARGE_TOP - walk_speed) * paid / (PI * 0.5))
+		if lost > 0.0:
+			_charge_slip += _lunge_dir * lost
+			_charge_v0 = s - lost - CHARGE_ACCEL * lunge_t
+			s -= lost
+	_lunge_dir = h
+	if s > CHARGE_DOT_FROM and health > 1.0 and not invincible and (not multiplayer.has_multiplayer_peer() or multiplayer.is_server()):
+		health = maxf(1.0, health - CHARGE_DOT * (s - CHARGE_DOT_FROM) / (CHARGE_TOP - CHARGE_DOT_FROM) * delta)
 
 ## Other peers: the clock for the pose and glow only.
 func _lunge_visual_tick(delta: float) -> void:
@@ -2073,6 +2115,7 @@ func _lunge_contacts() -> void:
 func _lunge_impact() -> void:
 	velocity.x = 0.0
 	velocity.z = 0.0
+	_charge_slip = Vector3.ZERO  # T499: stops dead
 	_lunge_hit = true
 	_lunge_hit_t = lunge_t
 	if _charge:

@@ -230,8 +230,66 @@ func _ready() -> void:
 		bad.append("the Hard bot never charged a target 15 m straight ahead")
 	elif b_starts > 3:
 		bad.append("the bot set off %d times in 6 s (flicking the toggle)" % b_starts)
+	# T499 (user: "Reenable steering, but make steering decelerate based on how much you turn (momentum
+	# simulation)" / "90 deg turn means fully killed speed boost" / "Taurus takes its own damage"): three
+	# fresh runs at the top speed, 70 m clear of everyone --
+	#  W flicks its facing 90 deg: back at walking pace along the new heading, the lost speed sliding on
+	#    along the old one and gone within ~1.5 s;
+	#  F sweeps 90 deg over 1 s: the boost mostly gone too (only the free 8 deg/s keeps any);
+	#  R runs straight with a small aim jitter (under the free rate): stays at the top and burns
+	#    CHARGE_DOT HP/s; from 1.5 HP it stops at 1 HP (it can't kill itself)
+	var tw := Mech.CHARGE_TOP - pw
+	for row in [[w, 300.0], [f, 600.0], [r, 0.0]]:
+		_place(row[0], Vector3(row[1], DECK_Y + 0.5, -80))
+	await get_tree().physics_frame
+	for m in [w, f, r]:
+		if m.get("lunging"):
+			m.call("_lunge_stop")
+		m.call("_charge_press")
+		m.set("_charge_v0", Mech.CHARGE_TOP)  # at the top at once (the build takes ~15 s)
+	r.set("invincible", false)
+	r.set("max_health", 390.0)
+	r.set("health", 300.0)
+	for k in int(0.3 * wf):
+		await get_tree().physics_frame
+	var w_old: Vector3 = w.get("_lunge_dir")
+	(w.get("torso") as Node3D).rotation.y += deg_to_rad(90.0)
+	await get_tree().physics_frame
+	var w_new: Vector3 = w.get("_lunge_dir")
+	var wv: Vector3 = w.get("velocity")
+	var w_fwd := wv.x * w_new.x + wv.z * w_new.z
+	var w_slide := wv.x * w_old.x + wv.z * w_old.z
+	if absf(w_fwd - pw) > 0.5 or w_slide < 0.8 * tw:
+		bad.append("W's 90 deg flick at the top: %.1f m/s ahead (want ~walking %.1f), %.1f sliding on (want ~%.1f)" % [w_fwd, pw, w_slide, tw])
+	var h0: float = r.get("health")
+	var sweep := deg_to_rad(90.0) / wf
+	for k in int(1.5 * wf):
+		await get_tree().physics_frame
+		if k < int(wf):
+			(f.get("torso") as Node3D).rotation.y += sweep
+		(r.get("torso") as Node3D).rotation.y += deg_to_rad(0.05) * (1.0 if k % 2 == 0 else -1.0)
+	var f_after := float(f.call("_charge_speed", f.get("lunge_t")))
+	var f_cap := pw + tw * rad_to_deg(Mech.CHARGE_TURN_FREE) / 90.0 + Mech.CHARGE_ACCEL * 1.5 + 0.3  # the free turn + 1.5 s of build
+	if f_after > f_cap:
+		bad.append("F's 90 deg sweep over 1 s left %.1f m/s (want <= %.1f: the boost gone but the free turn)" % [f_after, f_cap])
+	var wv2: Vector3 = w.get("velocity")
+	if absf(wv2.x * w_old.x + wv2.z * w_old.z) > 1.0:
+		bad.append("W still slides %.1f m/s along the old heading 1.5 s after the flick" % (wv2.x * w_old.x + wv2.z * w_old.z))
+	var r_v := _flat(r.get("velocity"))
+	var burnt: float = h0 - float(r.get("health"))
+	if r_v < Mech.CHARGE_TOP - 0.2:
+		bad.append("R lost speed to a small aim jitter: %.1f m/s (want the top %.1f)" % [r_v, Mech.CHARGE_TOP])
+	if absf(burnt - Mech.CHARGE_DOT * 1.5) > 1.5:
+		bad.append("R burnt %.1f HP in 1.5 s at the top (want ~%.1f)" % [burnt, Mech.CHARGE_DOT * 1.5])
+	r.set("health", 1.5)
+	for k in int(0.5 * wf):
+		await get_tree().physics_frame
+	if float(r.get("health")) < 1.0 or float(r.get("health")) > 1.01:
+		bad.append("R from 1.5 HP after 0.5 s at the top: %.2f (want it to stop at 1)" % float(r.get("health")))
+	for m in [w, f, r]:
+		m.call("_lunge_stop")
 	if not bad.is_empty():
 		_fail("; ".join(bad))
 		return
-	print("[probe] charge done (ram %.0f at %.2f s, wall stop %.1f m, open %.1f m / %.1f, top in %.1f s, Slip ahead %.1f s, re-press %.1f m/s, bot %d)" % [hits[0], r_hit_at, wd, fd, want, to_top, even, p_v0, b_starts])
+	print("[probe] charge done (flick %.1f ahead / %.1f slide, sweep %.1f, burn %.1f HP; ram %.0f at %.2f s, wall stop %.1f m, open %.1f m / %.1f, top in %.1f s, Slip ahead %.1f s, re-press %.1f m/s, bot %d)" % [w_fwd, w_slide, f_after, burnt, hits[0], r_hit_at, wd, fd, want, to_top, even, p_v0, b_starts])
 	_quit(0)

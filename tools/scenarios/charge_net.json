@@ -24,7 +24,7 @@
   "thresholds": {
     "pred_snap_frac": 0.01
   },
-  "_comment": "T473 (was T342's lunge_net): both peers fly Taurus and toggle CHARGE while walking and turning -- set off, pull up, set off again out of the pull-up (the boost it kept), pull up, then a later charge (server 150/300/320/450/600/760, client 180/330/352/480/640/800; a charge that meets a wall first ends there, so the next press sets off instead). The server runs each press on its input tick and tells the owner where (_rpc_lunge / _rpc_charge_end); the owner rewrites the ticks it ran past that record, so prediction_recon stays in its usual bounds (a set-off or pull-up a round trip late is ~2-4 m off at charge speed = a snap); the server's copy and the client's view must agree (transform_desync); any ram damage must replicate (health_desync). Own link: 160 ms each way (320 ms round trip). Snaps capped at 1%; B131: on a lossy link (sweep @bad) a late RPC is covered by the snapshot's clock (lt / ld / lv / le / lh).",
+  "_comment": "T473 (was T342's lunge_net): both peers fly Taurus and toggle CHARGE while walking and turning -- set off, pull up, set off again out of the pull-up (the boost it kept), pull up, then a later charge (server 150/300/320/450/600/760, client 180/330/352/480/640/800; a charge that meets a wall first ends there, so the next press sets off instead). The server runs each press on its input tick and tells the owner where (_rpc_lunge / _rpc_charge_end); the owner rewrites the ticks it ran past that record, so prediction_recon stays in its usual bounds (a set-off or pull-up a round trip late is ~2-4 m off at charge speed = a snap); the server's copy and the client's view must agree (transform_desync); any ram damage must replicate (health_desync). Own link: 160 ms each way (320 ms round trip). Snaps capped at 1%; B131: on a lossy link (sweep @bad) a late RPC is covered by the snapshot's clock (lt / ld / lv / le / lh). T499: each peer turns ~30 deg mid-charge (server 650-660, its last charge; client 400-410, its second -- its last one meets a wall at once): steering costs boost and slides (Mech._charge_steer); server and owner run it from the same aim inputs, so prediction_recon / transform_desync hold through a steered charge.",
   "peers": {
     "server": {
       "input": {
@@ -63,6 +63,20 @@
           },
           {
             "tick": 510,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 650,
+            "look": [
+              15.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 660,
             "look": [
               0.0,
               0.0
@@ -120,6 +134,20 @@
           },
           {
             "tick": 110,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 400,
+            "look": [
+              15.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 410,
             "look": [
               0.0,
               0.0
