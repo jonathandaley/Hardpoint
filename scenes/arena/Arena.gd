@@ -221,6 +221,11 @@ func _spawn_one_mech(mech_def, team: int, idx: int, count: int, weapon_paths: Ar
 		spawn := 0) -> CharacterBody3D:
 	var base: Vector3 = spawn_points(team)[spawn]
 	var facing_y: float = _spawn_facing(base)
+	if spawn >= _map.spawn_points(team).size():
+		# T496 (HUMAN_FOUND 2026-11-19: "On spawning at a beacon should face toward enemy side"): a
+		# beacon pad can sit on or past the centre -- face the enemy's base instead
+		var foe: Vector3 = _map.spawn_points(1 - team)[0]
+		facing_y = rad_to_deg(atan2(-(foe.x - base.x), -(foe.z - base.z)))
 	var at := spawn_position(team, idx, count, spawn)
 	var sx: float = at.x
 	var sz: float = at.z

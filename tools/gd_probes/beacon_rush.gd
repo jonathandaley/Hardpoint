@@ -58,6 +58,12 @@ func _flow(arena: Node) -> void:  # on the first map
 	var d := Vector2(m.global_position.x - b.global_position.x, m.global_position.z - b.global_position.z).length()
 	if m.is_dead or d > arena.RUSH_SPAWN_R + 1.0 or absf(m.global_position.y - b.global_position.y) > 2.0 or not m.is_on_floor():
 		_fail("respawn at held beacon: %.1f m from it, dy %.1f, on floor %s" % [d, m.global_position.y - b.global_position.y, m.is_on_floor()])
+	# T496: a mech on a beacon pad faces the enemy's side
+	var foe: Vector3 = arena.spawn_points(1)[0]
+	var fwd: Vector3 = -(m as Node3D).global_transform.basis.z
+	var to_foe := Vector2(foe.x - m.global_position.x, foe.z - m.global_position.z).normalized()
+	if Vector2(fwd.x, fwd.z).normalized().dot(to_foe) < 0.9:
+		_fail("respawned at a beacon facing %.0f deg off the enemy's side" % rad_to_deg(acos(clampf(Vector2(fwd.x, fwd.z).normalized().dot(to_foe), -1.0, 1.0))))
 	# lost while picking -> home
 	b.set("owner_team", 1)
 	b.set("state", 2)  # TEAM_B
