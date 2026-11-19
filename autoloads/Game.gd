@@ -452,7 +452,7 @@ const HELLO_MAX_BYTES := 256
 ## shapes, content (mechs, weapons, maps, modes, skills), server-decided numbers, a Godot
 ## upgrade. tools/oracles/net_security.py hashes the @rpc signatures and fails the suite
 ## until this is bumped with them.
-const NET_VERSION := 4  # 4: new mechs / weapons / maps (T454-T460) + snapshots on their own channel (T465) + Taurus CHARGE (T473) + health in snapshots (T474), local branch surprise until a release; 3: 0.5.0 -- Jolt physics (T429), Denali (T430), lunge v2 (T404), beacon rush (T434); 2: lobby carries idle_wait / sitting_out (T400)
+const NET_VERSION := 4  # 4: new mechs / weapons / maps (T454-T460) + snapshots on their own channel (T465) + Taurus CHARGE (T473) + health in snapshots (T474) + team choice (T476) until a release; 3: 0.5.0 -- Jolt physics (T429), Denali (T430), lunge v2 (T404), beacon rush (T434); 2: lobby carries idle_wait / sitting_out (T400)
 const HELLO_TIMEOUT_S := 4.0
 const MAX_PENDING_PER_ADDR := 3   # connections still in the handshake, per address
 const MAX_PEERS_PER_ADDR := 8     # calibration knob: players behind one router (LAN party)
@@ -967,6 +967,24 @@ func _apply_ready(peer_id: int, ready: bool) -> void:
 	if ready:
 		mp_lobby["peers"][peer_id].erase("sitting_out")  # T400: back in
 	broadcast_lobby()
+
+# T476 (HUMAN_FOUND 2026-11-18/19: "Team selection" / "Multiplayer should allow picking teams"): a
+# player's team wish -- -1 AUTO, 0 A, 1 B -- kept in its lobby entry; the roster honours it while the
+# team has room (Lobby._build_roster). Client input: clamped, rate-limited, lobby members only.
+func _apply_team(peer_id: int, pref: int) -> void:
+	if not mp_lobby["peers"].has(peer_id):
+		net_refuse(peer_id, "team: not in the lobby")
+		return
+	mp_lobby["peers"][peer_id]["team_pref"] = clampi(pref, -1, 1)
+	broadcast_lobby()
+
+@rpc("any_peer", "call_remote", "reliable")
+func _rpc_set_team(pref: int) -> void:
+	if not multiplayer.is_server():
+		return
+	var sender := multiplayer.get_remote_sender_id()
+	if net_rate_ok(sender, "team", 4):
+		_apply_team(sender, pref)
 
 # Client -> server: toggle ready state (V39, V41).
 @rpc("any_peer", "call_remote", "reliable")

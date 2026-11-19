@@ -249,12 +249,18 @@ func _lobby_attacks() -> void:
 	Game._rpc_set_squad.rpc_id(1, [{"mech": 5, "weapons": "x"}, {}, {}, {}, {}])
 	Game._rpc_send_meta.rpc_id(1, {"elo": {"a": 1}, "level": [1], "skills": "x", "pilot_name": {"x": 1}})
 	Game.rpc_id(1, &"_rpc_set_ready", "yes")
+	Game.rpc_id(1, &"_rpc_set_team", "A")  # T476: wrong type
+	Game.rpc_id(1, &"_rpc_set_team")
+	Game._rpc_set_team.rpc_id(1, 99)  # out of range: the server clamps it
 	Game.rpc_id(1, &"_rpc_set_ready")
 	Game.rpc_id(1, &"_rpc_set_squad", 1, 2, 3)
 	for i in 200:  # lobby churn: each one makes the server rebroadcast to everyone
 		Game._rpc_set_ready.rpc_id(1, i % 2 == 0)
 	await _wait(1.5)
 	_say("lobby_bad_types", "" if multiplayer.get_peers().has(1) else "the server dropped us / died on malformed lobby RPCs")
+	var my_pref = Game.mp_lobby.get("peers", {}).get(_me(), {}).get("team_pref", -1)
+	_say("team_pref_bounded", "" if typeof(my_pref) == TYPE_INT and int(my_pref) >= -1 and int(my_pref) <= 1
+		else "the server kept a team wish outside -1..1: %s" % str(my_pref))
 
 func _match_attacks() -> void:
 	var mine: Node = null

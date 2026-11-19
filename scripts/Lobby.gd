@@ -117,6 +117,7 @@ func _ready() -> void:
 		Game._rpc_set_squad.rpc_id(1, _build_squad_data())
 
 	_build_hangar_pick()  # T477
+	_build_team_pick()  # T476
 	_update_host_controls_visibility()
 	_rebuild_peer_list()
 	_sync_host_controls_to_lobby()
@@ -141,9 +142,131 @@ func _build_hangar_pick() -> void:
 		_hangar_opt.set_item_metadata(_hangar_opt.item_count - 1, n)
 	_hangar_opt.disabled = names.is_empty()
 	_hangar_opt.position = Vector2(275.0, 183.0)
-	_hangar_opt.size = Vector2(255.0, 27.0)
+	_hangar_opt.size = Vector2(160.0, 27.0)  # T476: TEAM takes the rest of the row
 	_hangar_opt.item_selected.connect(_on_hangar_picked)
 	add_child(_hangar_opt)
+
+# T476 (HUMAN_FOUND 2026-11-18/19: "Team selection" / "Multiplayer should allow picking teams. Also named
+# Elite bots, as well as specific difficulty for each slot."): a TEAM menu (AUTO / A / B) for every
+# player; the host gets BOT SLOTS -- a difficulty per bot slot of each side and, on Elite, a named
+# Elite (BotNames.ELITE_KIT) -- kept in Game.mp_lobby["bot_setup"] for _build_roster.
+const _DIFFS := ["DEFAULT", "EASY", "NORMAL", "MEDIUM", "HARD", "ELITE"]  # index - 1 = difficulty (-1 = setting)
+var _team_opt: OptionButton = null
+var _bots_panel: PanelContainer = null
+
+func _build_team_pick() -> void:
+	_team_opt = OptionButton.new()
+	_team_opt.name = "TeamPick"
+	_team_opt.add_theme_font_size_override("font_size", 13)
+	for t in ["TEAM: AUTO", "TEAM: A", "TEAM: B"]:
+		_team_opt.add_item(t)
+	var mine: Dictionary = Game.mp_lobby.get("peers", {}).get(multiplayer.get_unique_id(), {})
+	_team_opt.select(clampi(int(mine.get("team_pref", -1)), -1, 1) + 1)
+	_team_opt.position = Vector2(440.0, 183.0)
+	_team_opt.size = Vector2(90.0, 27.0)
+	_team_opt.item_selected.connect(_on_team_picked)
+	add_child(_team_opt)
+	if multiplayer.is_server():
+		var b := Button.new()
+		b.name = "BotSlotsBtn"
+		b.text = "BOT SLOTS"
+		b.add_theme_font_size_override("font_size", 12)
+		$HostControls/TeamSizeRow.add_child(b)
+		$HostControls/TeamSizeRow.move_child(b, 1)
+		b.pressed.connect(_open_bot_slots)
+
+func _on_team_picked(i: int) -> void:
+	SoundManager.play_sfx_2d("ui_click")
+	if multiplayer.is_server():
+		Game._apply_team(multiplayer.get_unique_id(), i - 1)
+		_rebuild_peer_list()
+	else:
+		Game._rpc_set_team.rpc_id(1, i - 1)
+
+func _bot_setup() -> Array:
+	var s = Game.mp_lobby.get("bot_setup")
+	if not (s is Array and (s as Array).size() == 2):
+		s = [[], []]
+		Game.mp_lobby["bot_setup"] = s
+	return s
+
+func _open_bot_slots() -> void:
+	SoundManager.play_sfx_2d("ui_click")
+	if _bots_panel != null:
+		_bots_panel.queue_free()
+	_bots_panel = PanelContainer.new()
+	_bots_panel.name = "BotSlotsPanel"
+	_bots_panel.position = Vector2(110, 40)
+	_bots_panel.size = Vector2(420, 270)
+	var bg := StyleBoxFlat.new()  # opaque: the lobby mustn't show through the rows
+	bg.bg_color = Color(0.07, 0.08, 0.09, 1.0)
+	bg.border_color = Color(0.45, 0.5, 0.55, 1.0)
+	bg.set_border_width_all(1)
+	bg.set_content_margin_all(6)
+	_bots_panel.add_theme_stylebox_override("panel", bg)
+	var box := VBoxContainer.new()
+	_bots_panel.add_child(box)
+	var head := Label.new()
+	head.text = "BOT SLOTS (filled after the players, per side)"
+	head.add_theme_font_size_override("font_size", 13)
+	box.add_child(head)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(400, 200)
+	box.add_child(scroll)
+	var grid := GridContainer.new()
+	grid.columns = 3
+	scroll.add_child(grid)
+	var setup := _bot_setup()
+	var ts: int = clampi(int(Game.mp_lobby.get("team_size", 1)), 1, 6)
+	var elites: Array = BotNames.ELITE_KIT.keys()
+	elites.sort()
+	for team in 2:
+		while (setup[team] as Array).size() < ts:
+			(setup[team] as Array).append({"d": -1, "e": ""})
+		for k in ts:
+			_bot_slot_row(grid, setup[team][k], team, k, elites)
+	var close := Button.new()
+	close.text = "DONE"
+	close.pressed.connect(func() -> void:
+		_bots_panel.queue_free()
+		_bots_panel = null)
+	box.add_child(close)
+	add_child(_bots_panel)
+
+func _bot_slot_row(grid: GridContainer, slot: Dictionary, team: int, k: int, elites: Array) -> void:
+	var lbl := Label.new()
+	lbl.text = "%s%d" % ["AB"[team], k + 1]
+	lbl.add_theme_font_size_override("font_size", 12)
+	grid.add_child(lbl)
+	var dopt := OptionButton.new()
+	dopt.name = "Diff_%d_%d" % [team, k]
+	dopt.add_theme_font_size_override("font_size", 12)
+	for d in _DIFFS:
+		dopt.add_item(d)
+	dopt.select(clampi(int(slot.get("d", -1)), -1, 4) + 1)
+	grid.add_child(dopt)
+	var eopt := OptionButton.new()
+	eopt.name = "Elite_%d_%d" % [team, k]
+	eopt.add_theme_font_size_override("font_size", 12)
+	eopt.add_item("ANY PILOT")
+	for n in elites:
+		eopt.add_item(String(n).to_upper())
+		eopt.set_item_metadata(eopt.item_count - 1, n)
+		if slot.get("e") is String and n == slot["e"]:
+			eopt.select(eopt.item_count - 1)
+	eopt.disabled = int(slot.get("d", -1)) != 4
+	grid.add_child(eopt)
+	dopt.item_selected.connect(func(i: int) -> void:
+		slot["d"] = i - 1
+		eopt.disabled = i - 1 != 4
+		if i - 1 != 4:
+			slot["e"] = ""
+			eopt.select(0)
+		Game.broadcast_lobby())
+	eopt.item_selected.connect(func(i: int) -> void:
+		var n = eopt.get_item_metadata(i)
+		slot["e"] = n if n is String else ""
+		Game.broadcast_lobby())
 
 func _on_hangar_picked(i: int) -> void:
 	var pname = _hangar_opt.get_item_metadata(i)
@@ -262,6 +385,9 @@ func _rebuild_peer_list() -> void:
 
 		var ready_lbl := Label.new()
 		ready_lbl.text = "[RDY]" if entry.get("ready", false) else "[   ]"
+		var pref: int = int(entry.get("team_pref", -1)) if typeof(entry.get("team_pref", -1)) == TYPE_INT else -1
+		if pref >= 0:  # T476: the player's team wish
+			name_lbl.text += "  [%s]" % "AB"[pref]
 		ready_lbl.custom_minimum_size.x = 45
 		ready_lbl.add_theme_font_size_override("font_size", 13)
 
@@ -363,9 +489,26 @@ static func _build_roster() -> Array:
 	peer_ids.sort()
 
 	var team_counts := [0, 0]
+	# T476: a player's team wish (team_pref 0 / 1) holds while that team has room; AUTO (-1) and the
+	# overflow fill whichever side is smaller (ties alternate, as the old i % 2 did)
+	var teams := {}
+	for pid in peer_ids:
+		var pref: int = clampi(int(Game.mp_lobby["peers"][pid].get("team_pref", -1)), -1, 1)
+		if pref >= 0 and team_counts[pref] < team_size:
+			teams[pid] = pref
+			team_counts[pref] += 1
+	var alt := 0
+	for pid in peer_ids:
+		if teams.has(pid):
+			continue
+		var t: int = 0 if team_counts[0] < team_counts[1] else (1 if team_counts[1] < team_counts[0] else alt)
+		alt = 1 - alt
+		teams[pid] = t
+		team_counts[t] += 1
+	team_counts = [0, 0]
 	for i in peer_ids.size():
 		var pid: int = peer_ids[i]
-		var team: int = i % 2
+		var team: int = teams[pid]
 		var entry: Dictionary = Game.mp_lobby["peers"][pid]
 		var sq: Array = entry.get("squad", [])
 		roster.append({
@@ -396,15 +539,27 @@ static func _build_roster() -> Array:
 				bot_id += 1
 	# Bot fill: pad each team to team_size (V29: bot_id used for RNG seed).
 	elif Game.mp_lobby.get("bot_fill", true):
+		var setup: Array = Game.mp_lobby.get("bot_setup", [[], []]) if Game.mp_lobby.get("bot_setup") is Array else [[], []]
 		for team in range(2):
+			var k := 0
 			while team_counts[team] < team_size:
-				roster.append({
+				var e := {
 					"slot_idx": slot_idx,
 					"peer_id":  0,
 					"team":     team,
 					"squad":    _default_bot_squad(bot_id),
 					"bot_id":   bot_id,
-				})
+				}
+				# T476 ("named Elite bots, as well as specific difficulty for each slot"): the host's setup
+				var ts: Array = setup[team] if team < setup.size() and setup[team] is Array else []
+				if k < ts.size() and ts[k] is Dictionary:
+					var d: int = Game.clean_int(ts[k].get("d", -1), -1, 4, -1)
+					if d >= 0:
+						e["difficulty"] = d
+					if ts[k].get("e") is String and BotNames.ELITE_KIT.has(ts[k]["e"]):
+						e["elite"] = ts[k]["e"]
+				roster.append(e)
+				k += 1
 				slot_idx += 1
 				team_counts[team] += 1
 				bot_id += 1
@@ -412,23 +567,32 @@ static func _build_roster() -> Array:
 	# T325: callsigns ride the roster to every peer -- players keep theirs, bots draw from the deck.
 	# T332: so do pilot skills -- players' (sanitized), ELITE bots' named builds (T335), others none.
 	var taken: Array = []
-	var elite: bool = int(Game.settings.get("bot_difficulty", 1)) >= 4
 	for e in roster:
 		if int(e["peer_id"]) != 0:
 			var meta: Dictionary = Game.mp_lobby["peers"].get(e["peer_id"], {})
 			e["name"] = str(meta.get("pilot_name", "Pilot"))
 			e["skills"] = Game.sanitize_skills(meta.get("skills", {}), int(meta.get("level", 1)))
 			taken.append(e["name"])
+	for e in roster:  # T476: the host's named Elites first, so the deck can't hand their names out
+		if int(e["peer_id"]) == 0 and e.has("elite") and not e["elite"] in taken:
+			taken.append(e["elite"])
 	for e in roster:
 		if int(e["peer_id"]) == 0:
-			e["name"] = BotNames.next_name(taken, elite)
+			var e_elite: bool = int(e.get("difficulty", Game.settings.get("bot_difficulty", 1))) >= 4
+			if e.has("elite"):
+				e["name"] = e["elite"]
+				e["difficulty"] = 4  # a named Elite flies as an Elite
+				e_elite = true
+			else:
+				e["name"] = BotNames.next_name(taken, e_elite)
 			e["skills"] = (BotNames.ELITE.get(e["name"], {}) as Dictionary).duplicate()
-			if elite and BotNames.ELITE_KIT.has(e["name"]):  # T350: the pilot's own hangar and style
+			if e_elite and BotNames.ELITE_KIT.has(e["name"]):  # T350: the pilot's own hangar and style
 				var kit: Dictionary = BotNames.ELITE_KIT[e["name"]]  # T377/T434: a hangar per mode
 				var key: String = {"deathmatch": "squad_dm", "rush": "squad_rush"}.get(Game.mp_lobby.get("mode", "beacons"), "squad")
 				e["squad"] = kit_squad(kit.get(key, kit["squad"]))
 				e["personality"] = (BotNames.ELITE_KIT[e["name"]]["personality"] as Dictionary).duplicate()
-			taken.append(e["name"])
+			if not e["name"] in taken:
+				taken.append(e["name"])
 	return roster
 
 ## T354 (HUMAN_FOUND 2026-11-08: "remove Cesh from bot rosters at lower difficulties"): Cesh's

@@ -529,6 +529,8 @@ func _spawn_bot_player(mech: CharacterBody3D, team: int, idx: int) -> Node:
 	var ri: int = int(mech.get("roster_idx"))
 	if ri >= 0 and ri < roster.size():
 		ai_input.set("personality", (roster[ri].get("personality", {}) as Dictionary).duplicate())
+		if int(roster[ri].get("difficulty", -1)) >= 0:  # T476: the host set this slot's difficulty
+			ai_input.set("difficulty", int(roster[ri]["difficulty"]))
 	p.add_child(ai_input)
 	p.set("input_source", ai_input)
 	p.call("possess", mech)

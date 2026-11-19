@@ -39,6 +39,7 @@ GAME_DIRS = ("autoloads", "scripts", "scenes", "shaders")
 # Client-callable RPCs. Each one is attacked by tools/security/attacker.gd.
 ANY_PEER_OK = {
     "_rpc_send_meta", "_rpc_transition_ack", "_rpc_set_squad", "_rpc_set_ready", "_rpc_ready_for_next",  # Game
+    "_rpc_set_team",                                                                                      # Game (T476)
     "_rpc_self_destruct", "_rpc_pick_next_mech", "_rpc_keep_first", "_rpc_start_pick",                    # Arena
     "_rpc_input",                                                                                         # Mech
 }
@@ -57,7 +58,7 @@ BANNED = {
 VAR_OK = {("autoloads/Game.gd", "_on_mp_auth")}       # client decoding the server's late-join state
 TLS_UNSAFE_OK = {("autoloads/Game.gd", "_account_tls")}  # unofficial servers only; the official host is pinned (T401)
 
-NET_SIG = (4, "456ede700bdc5ab8")  # (Game.NET_VERSION, rpc_hash()) -- change both together, never the hash alone
+NET_SIG = (4, "544b81f3bf47ec2e")  # (Game.NET_VERSION, rpc_hash()) -- change both together, never the hash alone
 
 _SIG = re.compile(r'@rpc\(([^)]*)\)\s*\n\s*func\s+(\w+)\s*\(([^)]*)\)')
 _FUNC = re.compile(r'^(?:static\s+)?func\s+(\w+)\s*\(', re.M)

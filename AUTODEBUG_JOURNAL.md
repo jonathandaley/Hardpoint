@@ -1,2 +1,2 @@
 
-2026-11-19|T480+T481 suite|219/220 + stomp_net lan/wifi/bad 3/3|-|bot_combat "never heard who shot E" = an old rare flake (3/247 archived, 3/3 alone) -> T503; pushed with tag taurus-charge-v1
+2026-11-19|T476|DONE|(this commit)|team choice in the MP lobby (new RPC _rpc_set_team, bounded + attacked) + host BOT SLOTS (difficulty per slot, named Elites); probe lobby_teams
