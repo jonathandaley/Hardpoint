@@ -174,6 +174,21 @@ func _build_team_pick() -> void:
 		$HostControls/TeamSizeRow.add_child(b)
 		$HostControls/TeamSizeRow.move_child(b, 1)
 		b.pressed.connect(_open_bot_slots)
+		# T507 (user: "Should be able to pick different numbers of bots per side in multiplayer."): with
+		# Bot Fill off, the host sets each side's bot count (as the SP picker's ALLY / ENEMY BOTS, T251)
+		for t in 2:
+			var sp := SpinBox.new()
+			sp.name = "BotsSpin%s" % "AB"[t]
+			sp.prefix = "BOTS %s" % "AB"[t]
+			sp.min_value = 0
+			sp.max_value = 5
+			sp.get_line_edit().add_theme_font_size_override("font_size", 13)
+			sp.get_line_edit().expand_to_text_length = true
+			sp.value_changed.connect(func(_v: float) -> void: _on_bot_counts_changed())
+			$HostControls/BotFillRow.add_child(sp)
+			$HostControls/BotFillRow.move_child(sp, 2 + t)
+			_bots_spin.append(sp)
+		_sync_host_controls_to_lobby()
 
 func _on_team_picked(i: int) -> void:
 	SoundManager.play_sfx_2d("ui_click")
@@ -182,6 +197,13 @@ func _on_team_picked(i: int) -> void:
 		_rebuild_peer_list()
 	else:
 		Game._rpc_set_team.rpc_id(1, i - 1)
+
+var _bots_spin: Array = []  # T507: [BOTS A, BOTS B], host only, shown while Bot Fill is off
+
+func _on_bot_counts_changed() -> void:
+	Game.mp_lobby["bot_counts"] = [int(_bots_spin[0].value), int(_bots_spin[1].value)]
+	Game.broadcast_lobby()
+	_update_start_button()
 
 func _bot_setup() -> Array:
 	var s = Game.mp_lobby.get("bot_setup")
@@ -218,12 +240,15 @@ func _open_bot_slots() -> void:
 	scroll.add_child(grid)
 	var setup := _bot_setup()
 	var ts: int = clampi(int(Game.mp_lobby.get("team_size", 1)), 1, 6)
+	var counts = Game.mp_lobby.get("bot_counts")  # T507: a row per bot the side will actually get
+	var rows: Array = [ts, ts] if not (counts is Array and (counts as Array).size() == 2) \
+		else [clampi(int(counts[0]), 0, 5), clampi(int(counts[1]), 0, 5)]
 	var elites: Array = BotNames.ELITE_KIT.keys()
 	elites.sort()
 	for team in 2:
-		while (setup[team] as Array).size() < ts:
+		while (setup[team] as Array).size() < rows[team]:
 			(setup[team] as Array).append({"d": -1, "e": ""})
-		for k in ts:
+		for k in rows[team]:
 			_bot_slot_row(grid, setup[team][k], team, k, elites)
 	var close := Button.new()
 	close.text = "DONE"
@@ -412,6 +437,10 @@ func _sync_host_controls_to_lobby() -> void:
 	if not multiplayer.is_server():
 		return
 	_bot_fill_check.set_pressed_no_signal(Game.mp_lobby.get("bot_fill", true))
+	var counts = Game.mp_lobby.get("bot_counts")
+	for t in _bots_spin.size():
+		_bots_spin[t].visible = not Game.mp_lobby.get("bot_fill", true)
+		_bots_spin[t].set_value_no_signal(int(counts[t]) if counts is Array and (counts as Array).size() == 2 else 0)
 	_mode_option.select(mode_index(Game.mp_lobby.get("mode", "beacons")))
 	_team_size_spin.set_value_no_signal(Game.mp_lobby.get("team_size", 1))
 	var map_path: String = Game.mp_lobby.get("map_path", "")
@@ -425,7 +454,8 @@ func _update_start_button() -> void:
 		return
 	var bot_fill: bool = Game.mp_lobby.get("bot_fill", true)
 	var peers: Dictionary = Game.mp_lobby.get("peers", {})
-	if bot_fill:
+	var counts = Game.mp_lobby.get("bot_counts")  # T507: bots set per side = someone to play against
+	if bot_fill or (counts is Array and (counts as Array).size() == 2 and int(counts[0]) + int(counts[1]) > 0):
 		_start_button.disabled = peers.is_empty()
 	else:
 		var all_ready := peers.size() >= 2
@@ -437,6 +467,12 @@ func _update_start_button() -> void:
 
 func _on_bot_fill_toggled(pressed: bool) -> void:
 	Game.mp_lobby["bot_fill"] = pressed
+	if pressed:  # T507: fill to team size; off = the BOTS A / B counts (0 / 0 = players only, as before)
+		Game.mp_lobby.erase("bot_counts")
+	for sp in _bots_spin:
+		sp.visible = not pressed
+	if not pressed and not _bots_spin.is_empty():
+		Game.mp_lobby["bot_counts"] = [int(_bots_spin[0].value), int(_bots_spin[1].value)]
 	Game.broadcast_lobby()
 	_update_start_button()
 
@@ -521,28 +557,17 @@ static func _build_roster() -> Array:
 		slot_idx += 1
 		team_counts[team] += 1
 
-	# T251: singleplayer sets exact bot counts per team ([ally, enemy]; 0 = none) instead
+	# T251 (SP) / T507 (MP, Bot Fill off): exact bot counts per side ([A, B]; 0 = none), at most 6 a
+	# side; else Bot Fill pads each side to team_size (V29: bot_id used for RNG seed). Either way the
+	# host's per-slot setup (T476) applies.
 	var counts = Game.mp_lobby.get("bot_counts", null)
-	if counts is Array and counts.size() == 2:
-		for team in range(2):
-			var target: int = team_counts[team] + clampi(int(counts[team]), 0, 5)
-			while team_counts[team] < target:
-				roster.append({
-					"slot_idx": slot_idx,
-					"peer_id":  0,
-					"team":     team,
-					"squad":    _default_bot_squad(bot_id),
-					"bot_id":   bot_id,
-				})
-				slot_idx += 1
-				team_counts[team] += 1
-				bot_id += 1
-	# Bot fill: pad each team to team_size (V29: bot_id used for RNG seed).
-	elif Game.mp_lobby.get("bot_fill", true):
+	var exact: bool = counts is Array and counts.size() == 2
+	if exact or Game.mp_lobby.get("bot_fill", true):
 		var setup: Array = Game.mp_lobby.get("bot_setup", [[], []]) if Game.mp_lobby.get("bot_setup") is Array else [[], []]
 		for team in range(2):
 			var k := 0
-			while team_counts[team] < team_size:
+			var target: int = mini(team_counts[team] + clampi(int(counts[team]), 0, 5), 6) if exact else team_size
+			while team_counts[team] < target:
 				var e := {
 					"slot_idx": slot_idx,
 					"peer_id":  0,

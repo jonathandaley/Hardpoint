@@ -20,6 +20,12 @@ func _teams(roster: Array) -> Dictionary:
 			out[int(e["peer_id"])] = int(e["team"])
 	return out
 
+func _build_side_counts(roster: Array) -> Array:
+	var n := [0, 0]
+	for e in roster:
+		n[int(e["team"])] += 1
+	return n
+
 func _ready() -> void:
 	var bad: Array = []
 	Game.mp_lobby = {"peers": {11: _peer(1), 12: _peer(1), 13: _peer(-1), 14: _peer(0)}, "team_size": 2, "bot_fill": true, "mode": "beacons"}
@@ -44,6 +50,27 @@ func _ready() -> void:
 		bad.append("team A's bot slots came out %s" % str(a_bots.map(func(e): return [e.get("name"), e.get("difficulty", -1)])))
 	if b_bots.size() != 3 or int(b_bots[0].get("difficulty", -1)) != 3 or b_bots[1].has("difficulty") or int(b_bots[2].get("difficulty", -1)) != 4 or b_bots[2].has("elite"):
 		bad.append("team B's slots (3, junk, 99 + unknown name) came out %s" % str(b_bots.map(func(e): return [e.get("name"), e.get("difficulty", -1)])))
+	# T507 (user: "Should be able to pick different numbers of bots per side in multiplayer."): Bot Fill
+	# off + BOTS A 1 / B 4 -> exactly those bots beside the players, the slot setup still applying; a
+	# side never passes 6
+	Game.mp_lobby = {"peers": {11: _peer(0), 12: _peer(1)}, "team_size": 2, "bot_fill": false, "mode": "beacons",
+		"bot_counts": [1, 4], "bot_setup": [[{"d": 4, "e": ""}], []]}
+	r = Lobby._build_roster()
+	var per := [0, 0]
+	for e in r:
+		if int(e["peer_id"]) == 0:
+			per[int(e["team"])] += 1
+	if per != [1, 4] or int(r.filter(func(e): return int(e["peer_id"]) == 0 and int(e["team"]) == 0)[0].get("difficulty", -1)) != 4:
+		bad.append("BOTS A 1 / B 4 with a player each side gave bots %s" % str(per))
+	Game.mp_lobby = {"peers": {11: _peer(0), 12: _peer(0)}, "team_size": 3, "bot_fill": false, "mode": "beacons", "bot_counts": [5, 9]}
+	per = [0, 0]
+	per = _build_side_counts(Lobby._build_roster())
+	if per != [6, 5]:
+		bad.append("2 players on A + BOTS 5 / 9 gave sides %s (want 6 / 5: a side caps at 6, a count at 5)" % str(per))
+	Game.mp_lobby = {"peers": {11: _peer(0), 12: _peer(1)}, "team_size": 2, "bot_fill": false, "mode": "beacons"}
+	per = _build_side_counts(Lobby._build_roster())
+	if per != [1, 1]:
+		bad.append("Bot Fill off and no counts gave sides %s (want players only, as before)" % str(per))
 	# the lobby: TEAM menu sets the host's wish (a fresh host session: no peers yet)
 	Game.mp_lobby = {"peers": {}}
 	var l: Node = load("res://scenes/ui/Lobby.tscn").instantiate()
@@ -63,6 +90,21 @@ func _ready() -> void:
 		await get_tree().process_frame
 		if l.find_child("Diff_1_0", true, false) == null:
 			bad.append("BOT SLOTS shows no slot rows")
+		# T507: untick Bot Fill -> the BOTS A / B spinners show and set the counts; tick it -> fill again
+		var sa := l.find_child("BotsSpinA", true, false) as SpinBox
+		var sb := l.find_child("BotsSpinB", true, false) as SpinBox
+		var fill := l.find_child("BotFillCheck", true, false) as CheckBox
+		if sa == null or sb == null or sa.visible:
+			bad.append("BOTS A / B spinners missing or shown while Bot Fill is on (%s)" % sa)
+		else:
+			fill.button_pressed = false
+			sa.value = 2
+			sb.value = 3
+			if not sa.visible or Game.mp_lobby.get("bot_counts") != [2, 3]:
+				bad.append("Bot Fill off + BOTS 2 / 3: shown %s, counts %s" % [sa.visible, Game.mp_lobby.get("bot_counts")])
+			fill.button_pressed = true
+			if sa.visible or Game.mp_lobby.has("bot_counts"):
+				bad.append("Bot Fill back on kept the counts %s" % Game.mp_lobby.get("bot_counts"))
 	if not bad.is_empty():
 		_fail("; ".join(bad))
 		return

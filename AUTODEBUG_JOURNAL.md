@@ -1,2 +1,2 @@
 
-2026-11-19|T506|suite 221/222|0e589c0|only difficulty_steps (Normal->Medium step 24 < 40): pre-existing noise, same spread pre-T493 (6 v 6 measure runs) -> queued T510; T506 pushed
+2026-11-19|T507|DONE|(this commit)|MP bot counts per side (Bot Fill off -> BOTS A / B); one roster bot loop with slot setup; lobby_teams red->green; render checked (prefix clipped first, fixed)
