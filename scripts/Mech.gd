@@ -848,6 +848,8 @@ func refill_ammo() -> void:
 			w.set("ammo", w.get("max_ammo"))
 		w.set("_reloading", false)
 		w.set("_reload_timer", 0.0)
+		if "max_charge_time" in w:  # T495 (HUMAN_FOUND 2026-11-18: "Ammo powerup should fully charge Patience.")
+			w.set("_charge_time", float(w.get("max_charge_time")))
 
 ## T374: below this a mech has left the world (every map's floor is far above): the server
 ## destroys it, so a match never hangs on a mech falling forever.
