@@ -1,2 +1,2 @@
 
-2026-11-19|T506|DONE|(this commit)|own side blue on every peer: Game.team_color from Game.local_team for beacons / dots / score bars; beacon_look red->green
+2026-11-19|T506|suite 221/222|0e589c0|only difficulty_steps (Normal->Medium step 24 < 40): pre-existing noise, same spread pre-T493 (6 v 6 measure runs) -> queued T510; T506 pushed
