@@ -36,6 +36,10 @@ func _init() -> void:
 	center = Vector2.ZERO
 	minimap_half = HX + 4.0
 	spawn_spacing = 5.0  # T358
+	# T488 (HUMAN_FOUND 2026-11-18: "Navmesh in Corvette needs work, some bots are trying to walk through
+	# pillars."): bots crossing the corridor grid cut the wall-block corners on the 0.75 m margin (a big
+	# mech's capsule is ~0.8 m): 2 cells keep paths clear of them
+	nav_agent_radius = 1.5
 
 func clamp_spawn(p: Vector3) -> Vector3:
 	var side := signf(p.x) if p.x != 0.0 else 1.0

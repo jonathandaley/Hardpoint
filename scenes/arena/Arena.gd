@@ -1710,6 +1710,8 @@ func _create_nav_region() -> void:
 	# Agent dimensions: mechs are ~3m tall and 2m wide; keep radius snug so
 	# bots fit through Penrose wall gaps.
 	nav_mesh.agent_radius     = 0.75  # whole cells: Godot ceils to cell_size (0.8 -> 1.5 m)
+	if _map != null and _map.get("nav_agent_radius") != null:  # T488: per map (Corvette's corners)
+		nav_mesh.agent_radius = float(_map.get("nav_agent_radius"))
 	nav_mesh.agent_height     = 3.9   # 13 x cell_height
 	# B67: a mech steps up at most Mech._MAX_STEP (0.37 m); the old 2.2 m climb let paths
 	# run up ledges no mech can climb. 0.6 m (2 cells) still reaches every beacon by stairs.

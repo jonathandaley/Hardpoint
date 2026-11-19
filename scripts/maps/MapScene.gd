@@ -8,6 +8,7 @@ extends Node3D
 var center := Vector2.ZERO   # world XZ: spawns face it, minimap centre
 var minimap_half := 100.0    # metres from center to the minimap edge
 var spawn_spacing := 8.0     # T358: metres between mechs in a team's spawn line
+var nav_agent_radius := 0.75 # T488: the navmesh's wall margin (Arena bake); a map of tight corners can ask for more
 
 func build() -> void:
 	pass
