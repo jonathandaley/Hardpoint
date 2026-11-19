@@ -1742,6 +1742,34 @@ func _set_field_repair(on: bool) -> void:
 # seeing while it's active is fine."): the pilot of a Heron always sees its reach -- dim while the
 # ability is off; everyone else sees the ring only while it runs. Checked every frame (_process).
 const FIELD_RING_IDLE_A := 0.35
+const FIELD_RING_SEGS := 48
+const FIELD_RING_REFIT_M := 0.5
+const FIELD_RING_W := 0.35   # m, the ribbon's width
+const FIELD_RING_UP := 0.12  # m above the ground
+var _ring_fit_at := Vector3(INF, 0, 0)
+
+## T492: the ring's ribbon on the ground round us, FIELD_R out.
+func _fit_field_ring() -> void:
+	_ring_fit_at = global_position
+	var space := get_world_3d().direct_space_state
+	var ex: Array = get_exclude_rids()
+	var im := _field_ring.mesh as ImmediateMesh
+	im.clear_surfaces()
+	im.surface_begin(Mesh.PRIMITIVE_TRIANGLE_STRIP)
+	for i in FIELD_RING_SEGS + 1:
+		var a := TAU * float(i) / float(FIELD_RING_SEGS)
+		var d := Vector3(cos(a), 0.0, sin(a))
+		var y := global_position.y + 0.25
+		var top := global_position + d * FIELD_R + Vector3.UP * 8.0
+		var q := PhysicsRayQueryParameters3D.create(top, top + Vector3.DOWN * 24.0)
+		q.exclude = ex
+		var hit := space.intersect_ray(q)
+		if not hit.is_empty():
+			y = float(hit.position.y) + FIELD_RING_UP
+		for r in [FIELD_R - FIELD_RING_W, FIELD_R]:
+			var p: Vector3 = global_position + d * r
+			im.surface_add_vertex(Vector3(p.x, y, p.z))
+	im.surface_end()
 var _has_field_repair := false  # configure_abilities
 
 func _update_field_ring() -> void:
@@ -1751,22 +1779,23 @@ func _update_field_ring() -> void:
 			_field_ring.visible = false
 		return
 	if _field_ring == null:
+		# T492 (HUMAN_FOUND 2026-11-18: "Heron's beam is not visible into a hill. If it's easy, make it
+		# track the ground"): a ribbon draped on the ground (FIELD_RING_SEGS raycasts, refit when the
+		# Heron moves FIELD_RING_REFIT_M), not a flat torus at its feet that a slope swallowed. One draw.
 		_field_ring = MeshInstance3D.new()
-		var tm := TorusMesh.new()
-		tm.inner_radius = FIELD_R - 0.3
-		tm.outer_radius = FIELD_R
-		tm.rings = 64
-		tm.ring_segments = 4
-		_field_ring.mesh = tm
+		_field_ring.mesh = ImmediateMesh.new()
+		_field_ring.top_level = true  # world space: the ground doesn't turn with the Heron
 		var m := StandardMaterial3D.new()
 		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
 		m.albedo_color = FIELD_COLOR
 		_field_ring.material_override = m
 		_field_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(_field_ring)
-		_field_ring.scale = Vector3.ONE / maxf(0.01, scale.x)  # the reach in metres, whatever the body_scale
-		_field_ring.position = Vector3(0, 0.25 / maxf(0.01, scale.x), 0)
+		_ring_fit_at = Vector3(INF, 0, 0)
+	if global_position.distance_to(_ring_fit_at) > FIELD_RING_REFIT_M:
+		_fit_field_ring()
 	var c := FIELD_COLOR
 	c.a = 1.0 if field_repair else FIELD_RING_IDLE_A
 	(_field_ring.material_override as StandardMaterial3D).albedo_color = c

@@ -111,6 +111,26 @@ func _ready() -> void:
 	var mine: MeshInstance3D = me.get("_field_ring")
 	if mine == null or not mine.is_visible_in_tree() or absf((mine.material_override as StandardMaterial3D).albedo_color.a - Mech.FIELD_RING_IDLE_A) > 0.01:
 		bad.append("our own Heron doesn't show its reach while FIELD REPAIR is off")
+	# T492: the ring drapes on the ground -- a ramp under one side lifts that side of it
+	var ramp := StaticBody3D.new()
+	var rcs := CollisionShape3D.new()
+	var rbox := BoxShape3D.new()
+	rbox.size = Vector3(10, 1, 10)
+	rcs.shape = rbox
+	ramp.add_child(rcs)
+	arena.add_child(ramp)
+	ramp.global_position = (me as Node3D).global_position + Vector3(Mech.FIELD_R, 2.0, 0)
+	ramp.rotation_degrees = Vector3(0, 0, 20)
+	await get_tree().physics_frame
+	me.set("_ring_fit_at", Vector3(INF, 0, 0))
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var ring_mesh: Mesh = (me.get("_field_ring") as MeshInstance3D).mesh
+	var top := -INF
+	for v in ring_mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]:
+		top = maxf(top, (v as Vector3).y)
+	if top < (me as Node3D).global_position.y + 1.0:
+		bad.append("the ring didn't climb a ramp at its edge (highest point %.2f, mech at %.2f)" % [top, (me as Node3D).global_position.y])
 	if h.get("field_repair"):
 		bad.append("H still repairing after the duration")
 	# bot: a hurt ally walks into reach
