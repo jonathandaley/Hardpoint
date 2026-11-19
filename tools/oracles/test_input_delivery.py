@@ -29,6 +29,11 @@ def main():
     assert v["verdict"] == base.FAIL, ("wrong slot must fail", v)
     late = presses + [_ev(560, "input_press", "ability")]
     assert input_delivery.run(_ctx(late, applied))["verdict"] == base.PASS, "press in tail window is ignored"
+    # T505: a tail press the server already applied is fine; applied twice is still a double apply
+    assert input_delivery.run(_ctx(late, applied + [_ev(565, "input_applied", "ability")]))["verdict"] == base.PASS, \
+        "a tail press already applied must pass"
+    v = input_delivery.run(_ctx(late, applied + [_ev(565, "input_applied", "ability"), _ev(570, "input_applied", "ability")]))
+    assert v["verdict"] == base.FAIL, ("a tail press applied twice must fail", v)
     bot = applied + [_ev(200, "input_applied", "reload", mech="Bot_9")]
     assert input_delivery.run(_ctx(presses, bot))["verdict"] == base.PASS, "mechs without presses are ignored"
     assert input_delivery.run(_ctx([], applied))["verdict"] == base.SKIP

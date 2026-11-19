@@ -27,20 +27,26 @@ def run(ctx):
     if "server" not in primary:
         return base.verdict(NAME, base.SKIP, note="no server stream")
     th = {**DEFAULTS, **ctx.get("thresholds", {})}
-    pressed, applied = Counter(), Counter()
+    pressed, applied, tail = Counter(), Counter(), Counter()
     for role, log in primary.items():
         # run end = last snapshot tick; events stop whenever nothing happens
         end = max(log.ticks[-1] if log.ticks else 0, max((e["tick"] for e in log.events), default=0))
         for e in log.events:
-            if e.get("type") == "input_press" and e["tick"] <= end - int(th["press_tail_ticks"]):
-                pressed[_key(e)] += 1
+            if e.get("type") == "input_press":
+                if e["tick"] <= end - int(th["press_tail_ticks"]):
+                    pressed[_key(e)] += 1
+                else:
+                    tail[_key(e)] += 1  # T505: may still be in flight -- or already applied
     if not pressed:
         return base.verdict(NAME, base.SKIP, note="no scripted presses in run")
     mechs = {k[0] for k in pressed}
     for e in primary["server"].events:
         if e.get("type") == "input_applied" and e["mech_id"] in mechs:
             applied[_key(e)] += 1
-    bad = sorted(k for k in set(pressed) | set(applied) if pressed[k] != applied[k])
+    # T505 (two_matches@bad: "pressed 0 applied 1"): a tail press is skipped, but the server may already
+    # have applied it -- an application is fine up to the counted presses plus the tail ones; more is a
+    # double apply, fewer a lost press
+    bad = sorted(k for k in set(pressed) | set(applied) if not (pressed[k] <= applied[k] <= pressed[k] + tail[k]))
     if bad:
         detail = ", ".join("%s %s%s pressed %d applied %d" % (m, a, "" if s < 0 else str(s), pressed[(m, a, s)],
                                                                applied[(m, a, s)]) for m, a, s in bad)
