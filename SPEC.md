@@ -289,6 +289,7 @@ T499|.|Taurus charge v2 (user 2026-11-19: "Taurus: save a copy of its current ch
 T500|.|user 2026-11-19: "The blocker between the two pyramids in Giza in the middle: bots are not pathfinding correctly around it." -- the centre blocker on Giza: find why the navmesh / bot paths fail around it (map_stuck, bot_stuck_watch) and fix the source|T224,T488
 T501|.|user 2026-11-19: "Change beacon rush spawning: you can spawn into a beacon even if it becomes contested after you click (don't do the \"spawn at home\", that's very annoying. If there's a fatal error, return to the picker)." -- a beacon open when the spawn was picked stays the spawn; only a real failure (beacon gone / lost outright?) reopens the picker, never a home spawn|T434
 T502|.|user 2026-11-19: "When all your robots are dead when you leave still get rewards. Presumably this can only apply to an online server" -- a player whose last mech is dead and who leaves before the match ends is still paid (the match result at the end, as if they stayed); only where the server keeps the account (dedicated / online), the reward credited to the account on the server|T364,T207
+T503|.|bot_combat flake "teammate 15 m away never heard who shot E" (3 of 247 archived runs; T480/T481 suite; 3/3 alone): find what the teammate's alert depends on (timing, LOS, the shot landing) and fix it there|T172,T489
 
 ## §B BUGS
 
