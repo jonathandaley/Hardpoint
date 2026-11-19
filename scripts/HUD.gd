@@ -170,12 +170,14 @@ func show_spawn_picker(points: Array) -> void:
 				spawn_selected.emit(i))
 		minimap.add_child(b)
 		_spawn_ui.append(b)
+	_pointer_screens_changed()  # T497
 
 func hide_spawn_picker() -> void:
 	for n in _spawn_ui:
 		if is_instance_valid(n):
 			n.queue_free()
 	_spawn_ui.clear()
+	_pointer_screens_changed()
 	if minimap != null:
 		minimap.bg_alpha = 0.55
 		_minimap_corner()
@@ -397,6 +399,8 @@ func stop_spectating() -> void:
 	weapon_hud.visible = true
 
 func show_result_mp(winner_team: int, stats: Array) -> void:
+	_results_up = true  # T497 / T498: the pointer stays free until the scene changes
+	_pointer_screens_changed()
 	result_label.visible = false
 	crosshair.visible = false
 	_build_stats_panel_mp(winner_team, stats)
@@ -517,8 +521,25 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 		btn.pressed.connect(func(): Game._confirm_ready_for_next_local())
 	else:
 		btn.pressed.connect(func(): Game._rpc_ready_for_next.rpc_id(1))
+	if not (Game.multiplayer.multiplayer_peer is OfflineMultiplayerPeer):
+		# T498: everyone goes back together (all pressed, or 30 s): say so instead of looking dead
+		btn.pressed.connect(func():
+			btn.disabled = true
+			btn.text = "WAITING FOR THE OTHERS...")
 	vbox.add_child(btn)
 	btn.grab_focus.call_deferred()
+
+# T497 / T498: which pointer screens are up -> Game.ui_needs_pointer (and the mouse freed)
+var _results_up := false
+
+func _pointer_screens_changed() -> void:
+	var picker: bool = _squad_picker != null and is_instance_valid(_squad_picker) and not _squad_picker.is_queued_for_deletion()
+	Game.ui_needs_pointer = _results_up or picker or not _spawn_ui.is_empty()
+	if Game.ui_needs_pointer:
+		Game.set_mouse_captured(false)
+
+func _exit_tree() -> void:
+	Game.ui_needs_pointer = false
 
 func show_squad_picker_mp(squad: Array, slot_used: Array, heading := "SELECT NEXT MECH") -> void:
 	hide_squad_picker_mp()
@@ -530,6 +551,7 @@ func show_squad_picker_mp(squad: Array, slot_used: Array, heading := "SELECT NEX
 	backdrop.z_index = 10  # T323: over the name tags / kill feed made after it
 	add_child(backdrop)
 	_squad_picker = backdrop
+	_pointer_screens_changed()  # T497
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	backdrop.add_child(center)
@@ -641,6 +663,7 @@ func hide_squad_picker_mp() -> void:
 	if _squad_picker != null and is_instance_valid(_squad_picker):
 		_squad_picker.queue_free()
 	_squad_picker = null
+	_pointer_screens_changed()
 
 func switch_player_mech(new_mech: Node) -> void:
 	_player_mech = new_mech

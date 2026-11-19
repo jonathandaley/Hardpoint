@@ -1166,7 +1166,15 @@ func _check_mouse_lock() -> void:  # web only, every frame (Game's own _process 
 		mouse_lock_lost.emit()
 	_had_lock = _had_lock or locked
 
+## T497 / T498 (HUMAN_FOUND 2026-11-19: "In multiplayer, mouse is not freed to pick spawnpoints or exit the
+## results screen. Sometimes." / "Back to lobby doesn't work."): while a screen that needs the pointer is
+## up (HUD: results, mech picker, spawn picker) nothing captures the mouse -- a possess landing then
+## (a respawned mech, a late spawn) took it from under the picker, and the results screen never freed it.
+var ui_needs_pointer := false
+
 func set_mouse_captured(on: bool) -> void:
+	if on and ui_needs_pointer:
+		on = false
 	_want_captured = on
 	_had_lock = false
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if on else Input.MOUSE_MODE_VISIBLE
