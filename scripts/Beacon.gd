@@ -239,9 +239,9 @@ func _update_visuals() -> void:
 		State.NEUTRAL:
 			col = Color(0.55, 0.55, 0.55)
 		State.TEAM_A:
-			col = Color(0.2, 0.5, 1.0)
+			col = Game.team_color(0)  # T506: own side blue on every peer
 		State.TEAM_B:
-			col = Color(1.0, 0.3, 0.2)
+			col = Game.team_color(1)
 		State.CONTESTED:
 			col = Color(1.0, 0.85, 0.0)
 	_cap_mat.albedo_color = col

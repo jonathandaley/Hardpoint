@@ -283,7 +283,7 @@ func setup_beacon_bars(beacons: Array) -> void:
 		_beacon_dots.append(dot)
 
 	# Team score bars flanking the dot strip
-	var colors: Array = [Color(0.2, 0.5, 1.0), Color(1.0, 0.3, 0.2)]
+	var colors: Array = [Game.team_color(0), Game.team_color(1)]  # T506: own side blue
 	for t in 2:
 		var bar_left: float
 		var bar_right: float
@@ -328,7 +328,7 @@ func setup_beacon_bars(beacons: Array) -> void:
 		if is_instance_valid(entry):
 			entry.queue_free()
 	_team_count_labels.clear()
-	var count_colors: Array = [Color(0.45, 0.75, 1.0), Color(1.0, 0.5, 0.4)]
+	var count_colors: Array = [Game.team_color(0).lightened(0.3), Game.team_color(1).lightened(0.3)]  # T506
 	for t in 2:
 		var bar: Dictionary = _score_bars[t]
 		var lbl := Label.new()

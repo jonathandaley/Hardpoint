@@ -32,6 +32,25 @@ func _ready() -> void:
 		if seen.size() != 4:
 			bad += 1
 			_fail("the lamp shows %d colours over the 4 states, want 4" % seen.size())
+		# T506 (user: "All players should see their own side, beacon colors, etc as blue."): from team 1's
+		# screen a team-1 beacon is blue and a team-0 one red -- and the top-strip dot agrees
+		var lamp_col := func(st: int) -> Color:
+			b.set("state", st)
+			b.call("_update_visuals")
+			return (lamp.get_surface_override_material(0) as StandardMaterial3D).albedo_color
+		Game.local_team = 1
+		var own: Color = lamp_col.call(2)
+		var foe: Color = lamp_col.call(1)
+		if not (own.b > own.r and foe.r > foe.b):
+			bad += 1
+			_fail("viewer on team 1: its own beacon %s, the enemy's %s -- want blue / red" % [own, foe])
+		if Game.team_color(1) != Color(0.2, 0.5, 1.0) or Game.team_color(0) != Color(1.0, 0.3, 0.2):
+			bad += 1
+			_fail("Game.team_color from team 1: own %s, other %s" % [Game.team_color(1), Game.team_color(0)])
+		Game.local_team = 0
+		if lamp_col.call(1).b <= lamp_col.call(1).r:
+			bad += 1
+			_fail("viewer on team 0: its own beacon isn't blue")
 	b.queue_free()  # and let it go before the arena's HUD lists the beacons group
 	for i in 3:
 		await get_tree().process_frame

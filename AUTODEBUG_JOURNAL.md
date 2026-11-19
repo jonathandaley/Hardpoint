@@ -1,2 +1,2 @@
 
-2026-11-19|T505|DONE|(this commit)|input_delivery counted applications of tail presses it had skipped (oracle asymmetry); archived failing run red -> green; unit test cases added
+2026-11-19|T506|DONE|(this commit)|own side blue on every peer: Game.team_color from Game.local_team for beacons / dots / score bars; beacon_look red->green

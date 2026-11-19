@@ -88,6 +88,11 @@ const LOBBY_COUNTDOWN_S := 5.0
 var lobby_idle_s := 180.0  # server option --lobby-idle=<seconds> (30 or more)
 var _waiting_since: Dictionary = {}  # server: peer id -> ticks ms since the ready players began waiting on it
 var dedicated := false
+var local_team := 0  # T506: the side this screen plays / watches -- drawn blue on every peer (team_color)
+
+## T506: own side blue, the other red, whichever team index that is.
+func team_color(t: int) -> Color:
+	return Color(0.2, 0.5, 1.0) if t == local_team else Color(1.0, 0.3, 0.2)
 var _min_players := 1
 var _countdown_id := 0  # bumps on every lobby change; a stale countdown does nothing
 

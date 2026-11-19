@@ -468,6 +468,9 @@ func team_counts(team: int) -> Vector2i:
 # HUD bars, beacons and minimap from `team`'s side, following `mech` (own or spectated).
 func _setup_hud(team: int, mech: Node) -> void:
 	_local_team = team
+	Game.local_team = team  # T506: beacons / dots / score bars colour from this side
+	for b in get_tree().get_nodes_in_group("beacons"):
+		b.call("_update_visuals")
 	hud.arena = self  # T217: team counts
 	hud.setup(match_node, mech, team)
 	var ally_mechs: Array = []
