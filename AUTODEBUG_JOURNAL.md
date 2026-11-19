@@ -1,2 +1,2 @@
 
-2026-11-19|T495|DONE|(this commit)|the ammo pickup fully charges Patience; probe patience_refill
+2026-11-19|T494|DONE|(this commit)|mortar gets the sniper's grey between-shots overlay; probe mortar_ready

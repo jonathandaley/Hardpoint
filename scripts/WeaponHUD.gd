@@ -196,9 +196,10 @@ func _process(_delta: float) -> void:
 			entry["charge_fg"].color = Color(0.85, 0.3, 1.0, 0.85) if cp >= 1.0 \
 					else Color(UIColors.CAUTION, 0.72)
 
-		# Cooldown overlay (Sniper only)
+		# Cooldown overlay (Sniper; T494, HUMAN_FOUND 2026-11-18: "Mortar should have a grey overlay like
+		# sniper to show when another shot is available.")
 		var wpath: String = entry["weapon"].get_script().resource_path
-		if "Sniper" in wpath and entry["weapon"].has_method("get_cooldown_fraction"):
+		if ("Sniper" in wpath or "Mortar" in wpath) and entry["weapon"].has_method("get_cooldown_fraction"):
 			var cf: float = entry["weapon"].get_cooldown_fraction()
 			entry["cooldown_fg"].offset_right = entry["bar_left"] + SLOT_W * cf
 
