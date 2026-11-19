@@ -10,10 +10,12 @@ var _escape_total := 0
 ## T500 (user: "a bump the wall, reset, shift, bump again, and eventually get free"): that's the AI's
 ## stuck-escape cycle, not a stall -- count every escape trigger (_stuck_count going up) by place,
 ## with what the bot was touching then.
-func _watch_escapes(me: Node) -> void:
+func _watch_escapes(me: Node, arena: Node) -> void:
 	var last := {}
 	while true:
 		await get_tree().physics_frame
+		if arena.get("_match_over"):  # frozen mechs read as stuck: count the match only
+			return
 		for m in get_tree().get_nodes_in_group("mechs"):
 			if m == me or not is_instance_valid(m) or m.get("is_dead"):
 				continue
@@ -74,10 +76,14 @@ func _ready() -> void:
 	me.set("invincible", true)
 	me.global_position += Vector3(0, 300, 0)  # the human sits it out, far above
 	var hist := {}  # mech -> [positions per second]
-	_watch_escapes(me)
+	_watch_escapes(me, arena)
+	var played := 0
 	var spots := {}
 	for s in secs:
 		await get_tree().create_timer(1.0, false).timeout
+		if arena.get("_match_over"):
+			break
+		played = s + 1
 		for m in get_tree().get_nodes_in_group("mechs"):
 			if m == me or m.get("is_dead") or not is_instance_valid(m):
 				continue
@@ -108,7 +114,7 @@ func _ready() -> void:
 		rows.append([spots[k], k])
 	rows.sort()
 	rows.reverse()
-	print("[stuck_watch] %s %d s: %d stuck spots; top: %s" % [args[0] if args.size() > 0 else "Swamp", secs, rows.size(), rows.slice(0, 12)])
+	print("[stuck_watch] %s %d s (match over at %d s): %d stuck spots; top: %s" % [args[0] if args.size() > 0 else "Swamp", secs, played, rows.size(), rows.slice(0, 12)])
 	var er: Array = []
 	for k in _escapes:
 		er.append([_escapes[k][0], k, _escapes[k][1]])

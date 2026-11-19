@@ -1,2 +1,2 @@
 
-2026-11-19|T499|suite 222/222, sweep 73/74|3453d3a|only two_matches@bad crash_scan "Node not found: Arena": server's 5 s ack fallback streamed into a client whose match start was still stuck behind resends -- pre-existing (1/498), not the charge -> T511; T499 pushed
+2026-11-19|T500|parked|(this commit)|escape triggers per match: Giza 21/192/21/50 vs MathTemple 118/262, Swamp 171/35; no sphinx / middle hotspot; tool now stops at match end
