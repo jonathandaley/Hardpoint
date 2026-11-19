@@ -727,6 +727,13 @@ func _on_mp_peer_disconnected(id: int) -> void:
 	if mp_active_match["roster"].is_empty() and mp_lobby["peers"].has(id):
 		mp_lobby["peers"].erase(id)
 		broadcast_lobby()
+	# T502 (user 2026-11-19: "When all your robots are dead when you leave still get rewards. Presumably
+	# this can only apply to an online server"): a signed-in player who leaves with the whole squad spent
+	# is still paid at match end -- the account is kept aside (server-private, V61) for it
+	if not mp_active_match["roster"].is_empty() and _peer_accounts.has(id):
+		var arena := get_tree().current_scene
+		if arena != null and arena.has_method("squad_spent") and arena.call("squad_spent", id):
+			_departed_accounts[id] = _peer_accounts[id]
 	_forget_peer.call_deferred(id)  # after every handler of this signal (Arena reads peer_token)
 
 func _on_mp_connection_failed() -> void:
@@ -1022,17 +1029,22 @@ func _rpc_match_end(winner_team: int, stats: Array) -> void:
 		_update_account_profiles(winner_team, stats)
 
 # T207: server -- each signed-in player's result goes to its account, then back to it.
+# T502: and the accounts of players who left with their squad spent (no one to send it back to).
+var _departed_accounts := {}  # server-private: peer id -> account email
+
 func _update_account_profiles(winner_team: int, stats: Array) -> void:
 	for entry in mp_active_match["roster"]:
 		var pid: int = int(entry.get("peer_id", 0))
-		var email: String = _peer_accounts.get(pid, "")
+		var email: String = _peer_accounts.get(pid, _departed_accounts.get(pid, ""))
 		if pid < 2 or email == "":
 			continue
 		var before: Dictionary = account_server.profile(email)
 		var after := _apply_match_to(before, int(entry.get("team", -1)), winner_team, stats, pid)
 		account_server.save_profile(email, after)
 		print("[Server] account %s: elo %d -> %d" % [email, int(before.get("elo", 0)), int(after.get("elo", 0))])
-		_rpc_account_profile.rpc_id(pid, after)
+		if not _departed_accounts.has(pid):
+			_rpc_account_profile.rpc_id(pid, after)
+	_departed_accounts.clear()
 
 signal account_profile_updated
 

@@ -1,2 +1,2 @@
 
-2026-11-19|T501 suite/sweep|220/221, 74/74|-|map_stuck Corvette no nav path once (3/3 alone) -> folded into T488; pushed
+2026-11-19|T502|DONE|(this commit)|leaving with the squad spent still pays the account at match end (online servers); probe departed_rewards

@@ -999,6 +999,16 @@ func _check_input_silence() -> void:
 			print("[Arena] peer %d silent for %d ms: bot takes over" % [pid, now - last])
 			_on_peer_disconnected_in_match(pid)
 
+## T502: server -- has peer `pid` nothing left to fight with (every squad slot used, no live mech)?
+func squad_spent(pid: int) -> bool:
+	if not _peer_slot_used.has(pid) or (_peer_slot_used[pid] as Array).has(false):
+		return false
+	for t in 2:
+		for m in _team_mechs[t]:
+			if is_instance_valid(m) and int(m.owner_peer_id) == pid and not m.is_dead:
+				return false
+	return true
+
 ## T501: the server refused a pick at a beacon lost meanwhile -- pick again.
 @rpc("authority", "reliable")
 func _rpc_repick() -> void:
