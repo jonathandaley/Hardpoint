@@ -1,2 +1,2 @@
 
-2026-11-19|T492|DONE|(this commit)|Heron reach ring drapes on the ground (ribbon, 48 raycasts, refit per 0.5 m); field_repair ramp check
+2026-11-19|T493|DONE|(this commit)|bots stop re-picking a target hidden behind a wall (4 s score penalty after the LOS drop); probe bot_retarget red before

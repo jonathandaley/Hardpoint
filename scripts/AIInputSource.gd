@@ -218,6 +218,17 @@ func _hp_pct(m: Node) -> float:
 # closest. Full HP difference (12) now buys ~40 m, not 120 m.
 const DIST_WEIGHT := 0.3
 
+# T493 (HUMAN_FOUND 2026-11-18: "Bots do not switch targets if their chosen target is behind an obstacle
+# and there are other valid targets nearby. They shouldn't switch constantly, but keeping their target
+# behind a wall should not render them all impotent."): _check_los already dropped a target out of sight
+# for 1 s (3 s with tactics) -- and the re-pick chose it straight back (the score barely weighs sight).
+# The dropped one now scores HIDDEN_PENALTY less for HIDDEN_HOLD_S: someone in view wins; nobody else,
+# and it's still the pick.
+const HIDDEN_PENALTY := 25.0
+const HIDDEN_HOLD_S := 4.0
+var _hidden_drop: Node3D = null
+var _hidden_drop_t := 0.0
+
 func _score(from: Node3D, em: Node3D) -> float:
 	var d := from.global_position.distance_to(em.global_position)
 	var score := (1.0 - _hp_pct(em)) * 12.0 - d * DIST_WEIGHT
@@ -225,6 +236,8 @@ func _score(from: Node3D, em: Node3D) -> float:
 		score += CLOSE_BONUS * (1.0 - d / CLOSE_RANGE)
 	if em == _threat and _threat_timer > 0.0:
 		score += THREAT_BONUS
+	if em == _hidden_drop and _hidden_drop_t > 0.0:
+		score -= HIDDEN_PENALTY  # T493
 	if _preset()["team"]:
 		if _los_to(from, em):
 			score += VISIBLE_BONUS
@@ -365,6 +378,8 @@ func _check_los(bot_mech: Node3D) -> void:
 		_los_blocked_time += LOS_INTERVAL
 		# T172 tactics: hold the target 3 s (we chase it) instead of 1 s
 		if _los_blocked_time >= (3.0 if _preset()["tactics"] else 1.0):
+			_hidden_drop = _target  # T493: the re-pick looks elsewhere first
+			_hidden_drop_t = HIDDEN_HOLD_S
 			_target = null
 			_target_refresh = 0.0
 			_los_blocked_time = 0.0
@@ -512,6 +527,7 @@ func _physics_process_impl(delta: float) -> void:
 	if _los_timer <= 0.0:
 		_los_timer = LOS_INTERVAL
 		_check_los(bot_mech)
+	_hidden_drop_t = maxf(0.0, _hidden_drop_t - delta)  # T493
 
 	var has_target: bool = _target != null and is_instance_valid(_target) and _target.visible and _sees(_target)
 	if not has_target:
