@@ -4,6 +4,36 @@ extends Node
 # spots where a live bot moved < 1.5 m over 8 s (stuck), with how often. Not a suite probe (minutes).
 #   ~/bin/godot --headless --path . res://tools/maps/bot_stuck_watch.tscn -- <Map> [seconds] [difficulty]
 var _traced := false
+var _escapes := {}  # T500: "x,z" (6 m cells) -> [escape triggers, {what it touched: n}]
+var _escape_total := 0
+
+## T500 (user: "a bump the wall, reset, shift, bump again, and eventually get free"): that's the AI's
+## stuck-escape cycle, not a stall -- count every escape trigger (_stuck_count going up) by place,
+## with what the bot was touching then.
+func _watch_escapes(me: Node) -> void:
+	var last := {}
+	while true:
+		await get_tree().physics_frame
+		for m in get_tree().get_nodes_in_group("mechs"):
+			if m == me or not is_instance_valid(m) or m.get("is_dead"):
+				continue
+			var ai: Node = m.get("_input_source")
+			if ai == null or ai.get("_stuck_count") == null:
+				continue
+			var c := int(ai.get("_stuck_count"))
+			if c > int(last.get(m, 0)):
+				var p := (m as Node3D).global_position
+				var key := "%d,%d" % [roundi(p.x / 6.0) * 6, roundi(p.z / 6.0) * 6]
+				var row: Array = _escapes.get(key, [0, {}])
+				row[0] += 1
+				var cb := m as CharacterBody3D
+				for k in cb.get_slide_collision_count():
+					var col := cb.get_slide_collision(k).get_collider() as Node
+					if col != null and not col.is_in_group("mechs") and absf(cb.get_slide_collision(k).get_normal().y) < 0.7:
+						row[1][col.name] = int(row[1].get(col.name, 0)) + 1
+				_escapes[key] = row
+				_escape_total += 1
+			last[m] = c
 
 ## One stalled bot, tick by tick for a second: where it is, its velocity, its move input, its aim yaw.
 func _trace(m: Node3D) -> void:
@@ -44,6 +74,7 @@ func _ready() -> void:
 	me.set("invincible", true)
 	me.global_position += Vector3(0, 300, 0)  # the human sits it out, far above
 	var hist := {}  # mech -> [positions per second]
+	_watch_escapes(me)
 	var spots := {}
 	for s in secs:
 		await get_tree().create_timer(1.0, false).timeout
@@ -78,4 +109,9 @@ func _ready() -> void:
 	rows.sort()
 	rows.reverse()
 	print("[stuck_watch] %s %d s: %d stuck spots; top: %s" % [args[0] if args.size() > 0 else "Swamp", secs, rows.size(), rows.slice(0, 12)])
+	var er: Array = []
+	for k in _escapes:
+		er.append([_escapes[k][0], k, _escapes[k][1]])
+	er.sort_custom(func(a, b): return a[0] > b[0])
+	print("[stuck_watch] %d escape triggers; top cells (6 m): %s" % [_escape_total, er.slice(0, 10)])
 	get_tree().quit(0)
