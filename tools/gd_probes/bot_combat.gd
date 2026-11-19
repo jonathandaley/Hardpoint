@@ -152,9 +152,15 @@ func _ready() -> void:
 	e.invincible = false
 	(f as Node3D).global_position = (e as Node3D).global_position + Vector3(0, 0, 15)
 	(b as Node3D).global_position = (e as Node3D).global_position + Vector3(20, 0, 0)
+	# T503 (3 of 247 suites): squads are random (T365) -- an Elite Cesh B may have just cloaked, and a
+	# stealthed shooter is rightly not "heard". The help call is the test, not stealth: B shows itself.
+	if b.get("is_stealthy"):
+		b.set("is_stealthy", false)
 	e.take_damage(0.5, b.get_weapons()[0])
 	if fai.get("_threat") != b:
-		_fail("teammate 15 m away never heard who shot E")
+		_fail("teammate 15 m away never heard who shot E (B %s stealthy %s visible %s dead %s; F team %s, E team %s; E's last attacker %s)" % [
+			String(b.get_meta("spawn", ["?"])[0]).get_file(), b.get("is_stealthy"), (b as Node3D).visible, b.get("is_dead"),
+			fai.get("_own_team"), e.get("team"), e.get("last_attacker")])
 	print("[probe] bot_combat done (weapons seen: %d, locked: %s, roles: %s, nav polys: %d)" % [paths.size(), locked, roles, polys])
 	get_tree().quit(0)
 

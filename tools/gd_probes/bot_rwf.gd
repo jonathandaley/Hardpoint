@@ -71,8 +71,15 @@ func _ready() -> void:
 		t.global_position = base + Vector3(0, 0, 40.0)
 	await get_tree().physics_frame
 	var series: Array = [[], [], []]  # per tick: [ammo fraction, distance]
+	var c_state := []  # T489: C's AI state each second -- a failure (3 of 88 suites) shows why it held still
 	for k in 60 * 14:
 		await get_tree().physics_frame
+		if k % 60 == 59:
+			var ai: Node = shooters[2].get("_input_source")
+			var cm := shooters[2] as CharacterBody3D
+			c_state.append("t%d mv%s v%.1f tgt%s clear%s hold%s cover%s esc%.1f floor%s" % [(k + 1) / 60, (ai.get("_move_dir") as Vector2).snapped(Vector2.ONE * 0.1),
+				Vector2(cm.velocity.x, cm.velocity.z).length(), ai.get("_target") != null, ai.get("_has_clear_shot"), ai.get("rwf_hold"), ai.get("rwf_cover"),
+				float(ai.get("_escape_timer")), cm.is_on_floor()])
 		for i in 3:
 			var w: Node = shooters[i].get_weapons()[0]
 			series[i].append([float(w.get("ammo")) / float(w.get("max_ammo")), (shooters[i] as Node3D).global_position.distance_to(targets[i].global_position)])
@@ -110,7 +117,7 @@ func _ready() -> void:
 	if c_low < 0 or c_low + 180 >= c.size():
 		bad.append("C never reached its hold (min ammo %.2f)" % c.reduce(func(m, x): return minf(m, x[0]), 1.0))
 	elif c_far < c[c_low][1] + 1.0:
-		bad.append("C stayed within %.1f -> %.1f m of a sniper while refilling (want it backing off)" % [c[c_low][1], c_far])
+		bad.append("C stayed within %.1f -> %.1f m of a sniper while refilling (want it backing off); C each second: %s" % [c[c_low][1], c_far, " | ".join(c_state)])
 	if not bad.is_empty():
 		_fail("; ".join(bad))
 		return
