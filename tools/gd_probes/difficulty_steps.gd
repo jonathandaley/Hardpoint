@@ -86,8 +86,33 @@ func _ready() -> void:
 		e.global_position = base
 		t.global_position = base + Vector3(0, 0, 40.0)
 		dmg0.append(float(t.get("damage_taken_total")))
-	var dmg: Array = [0.0, 0.0, 0.0, 0.0]  # mean per difficulty, per 30 s
+	var dmg: Array = [0.0, 0.0, 0.0, 0.0]  # sum per difficulty, per 30 s
 	var n: Array = [0, 0, 0, 0]
+	# T510 (a step check in the noise: Normal -> Medium steps 24..137 over 12 runs, the 40 floor in the
+	# tail): a borderline result measures the rounds once more and judges the pooled samples (10 a level,
+	# not 5); a passing run costs nothing extra, a real regression still fails on twice the data
+	var line := ""
+	var bad: Array = []
+	for attempt in 2:
+		await _measure(shooters, targets, dmg0, dmg, n)
+		var mean: Array = range(4).map(func(i): return dmg[i] / float(n[i]))
+		line = ", ".join(range(4).map(func(i): return "%s %.0f" % [NAMES[i], mean[i]]))
+		if measure:
+			print("[probe] difficulty_steps done (measure: %s)" % line)
+			get_tree().quit(0)
+			return
+		bad = _check(mean, line)
+		if bad.is_empty():
+			break
+		if attempt == 0:
+			print("[probe] difficulty_steps: borderline (%s) -- measuring once more" % "; ".join(bad))
+	if not bad.is_empty():
+		_fail("; ".join(bad))
+		return
+	print("[probe] difficulty_steps done (%s)" % line)
+	get_tree().quit(0)
+
+func _measure(shooters: Array, targets: Array, dmg0: Array, dmg: Array, n: Array) -> void:
 	for round in ROUNDS:
 		for i in DUELS:
 			shooters[i].get("_input_source").set("difficulty", round[i])
@@ -97,13 +122,8 @@ func _ready() -> void:
 		for i in DUELS:
 			dmg[round[i]] += float(targets[i].get("damage_taken_total")) - float(dmg0[i])
 			n[round[i]] += 1
-	for d in 4:
-		dmg[d] /= float(n[d])
-	var line := ", ".join(range(4).map(func(i): return "%s %.0f" % [NAMES[i], dmg[i]]))
-	if measure:
-		print("[probe] difficulty_steps done (measure: %s)" % line)
-		get_tree().quit(0)
-		return
+
+func _check(dmg: Array, line: String) -> Array:
 	# Easy -> Normal -> Medium climb in clear, similar steps; Normal can hit a dodging player (the old
 	# Normal landed 35-55 here, Medium ~200); Hard's edge over Medium is play (moves, jukes, picks
 	# its shots), not raw damage on a strafer -- it must not fall far behind.
@@ -118,8 +138,4 @@ func _ready() -> void:
 		bad.append("uneven steps %.0f / %.0f (%s)" % [s1, s2, line])
 	if dmg[3] < 0.7 * dmg[2]:  # T397: 0.8 was inside the noise (Hard 220 v Medium 300 measured on unchanged bots)
 		bad.append("Hard well under Medium (%s)" % line)
-	if not bad.is_empty():
-		_fail("; ".join(bad))
-		return
-	print("[probe] difficulty_steps done (%s)" % line)
-	get_tree().quit(0)
+	return bad

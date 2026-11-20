@@ -41,7 +41,7 @@ const DIFFICULTY_PRESETS: Array = [
 	# all play (Hard moves, jukes, picks its shots). Normal aims better; Medium plays Hard's tactics
 	# with a little drift and slower reactions. Measured in tools/gd_probes/difficulty_steps.gd.
 	{"aim_jitter": 0.025, "turn_scale": 1.40, "lead": 0.8, "reaction": 0.33, "pause": 0.7,  "tactics": false, "team": false},  # Normal
-	{"aim_jitter": 0.012, "turn_scale": 2.20, "lead": 0.9, "reaction": 0.22, "pause": 0.35, "tactics": true,  "team": true},   # Medium
+	{"aim_jitter": 0.006, "turn_scale": 2.20, "lead": 0.9, "reaction": 0.22, "pause": 0.35, "tactics": true,  "team": true},   # Medium
 	# T282 (user 2026-11-05: "Hard will have no intentional bad strategy/aiming errors, elite will be
 	# that plus upgrades"; "elite bots don't miss, and in fact shoot ahead of moving targets"): Hard
 	# now plays exactly like Elite did -- no aim drift, full lead, no burst pauses, jukes; ELITE is
