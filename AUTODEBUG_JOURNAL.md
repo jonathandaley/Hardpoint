@@ -11,3 +11,4 @@
 2026-11-20|T512|DONE|(this commit)|reload time left rides snapshots (B150 class, as T474 / T504)
 2026-11-20|T520a|DONE|(this commit)|Elite beacons squads: >= 3 fast mechs each (5 kits changed); elite_kits checks it
 2026-11-20|T520c|DONE|(this commit)|no beacon-run cloak without an enemy within 70 m (the start-of-match cloak); stealth_ai red->green
+2026-11-20|T520b|DONE|(this commit)|Pegasus hops toward a far beacon when idle + healthy; bot_jump_travel probe

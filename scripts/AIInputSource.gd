@@ -842,7 +842,8 @@ func _use_abilities(bot_mech: Node3D, fighting: bool, own_hp_pct: float, has_tar
 			continue
 		match key:
 			"jump_heal":
-				_ability_press = bot_mech.health <= bot_mech.max_health - Mech.JUMP_HEAL or (fighting and own_hp_pct < 0.6)
+				_ability_press = bot_mech.health <= bot_mech.max_health - Mech.JUMP_HEAL or (fighting and own_hp_pct < 0.6) \
+					or jump_travel_wanted(bot_mech, has_target, own_hp_pct)  # T520(b)
 			"stealth":
 				_ability_press = stealth_wanted(bot_mech, has_target, dist, fire_range, own_hp_pct)
 			"charge":
@@ -890,6 +891,19 @@ const CHARGE_AIM_RAD := 0.12
 const CHARGE_QUIT_RAD := 0.6
 const CHARGE_GAP_TICKS := 60
 var _last_charge_frame := -100000
+
+## T520(b) (user: Elites "Should be using jump to get to beacons faster" -- "ignore ledges"): a
+## Pegasus with nothing to fight, healthy, heading to a beacon 35 m+ off hops toward it (the jump
+## carries the move direction at ~3.75x walking: ~20 m a hop vs ~6 walking). Open ground only.
+const JUMP_TRAVEL_M := 35.0
+const JUMP_TRAVEL_HP := 0.7
+
+func jump_travel_wanted(bot_mech: Node3D, has_target: bool, own_hp_pct: float) -> bool:
+	if has_target or own_hp_pct < JUMP_TRAVEL_HP or _move_dir.length() < 0.5 or not is_instance_valid(_claimed_beacon):
+		return false
+	if not (bot_mech as CharacterBody3D).is_on_floor():
+		return false
+	return bot_mech.global_position.distance_to((_claimed_beacon as Node3D).global_position) > JUMP_TRAVEL_M
 
 func charge_wanted(bot_mech: Node3D, has_target: bool, dist: float) -> bool:
 	if Engine.get_physics_frames() - _last_charge_frame < CHARGE_GAP_TICKS:
