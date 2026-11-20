@@ -36,4 +36,4 @@ Not tasks yet: nothing here is built until the user moves it to HUMAN_FOUND_ISSU
 
 - **Death match kill score on the HUD** (T411 follow-up; user 2026-11-16: "Don't do the Deathmatch score for now, I think it makes more sense not to know who's winning.").
 - **Capture the flag** (user 2026-11-16: "defer ctf"; beacon rush is T434, free-for-all dropped: "forget about ffa"): medium -- a replicated flag (carry / drop / return), scoring + HUD, and the big part, bot roles (fetch / escort / defend); slots into the T434 mode menu (Lobby.MODES); NET_VERSION bump.
-
+- **Fog-free aiming** (user 2026-11-20: "If it would not be expensive, make it so that fog doesn't show within the crosshair, to make aiming easier without detracting from ambiance." / on the options: "1-3 all don't sound good. Into Maybe-add, leave for now."). An exact crosshair mask is expensive here (Environment fog is in every material's shader: a second scene render for the crosshair area, ~double the draw work, or custom shaders on every material). Rejected cheap variants: mechs / enemies / near mechs ignore fog (BaseMaterial3D.disable_fog).
