@@ -792,7 +792,8 @@ func _physics_process_impl(delta: float) -> void:
 			_firing = ready and _shot_worth_taking(bot_mech, weapon, aim_p) and not rwf_hold  # T359
 		else:
 			# Fire when aimed closely enough, in range, in burst window, and LOS is clear.
-			_firing = ready and abs(angle_h) < AIM_THRESHOLD
+			_firing = ready and abs(angle_h) < AIM_THRESHOLD and (lob or weapon == null or weapon.requires_lock \
+				or _muzzle_line_clear(bot_mech, weapon, aim_p))  # T524
 	if tactics:
 		_use_abilities(bot_mech, has_target and dist < fire_range, own_hp_pct, has_target, dist, fire_range)
 		if not has_target:
@@ -911,9 +912,13 @@ func _tactical_move(bot_mech: Node3D, has_target: bool, dist: float, fire_range:
 				return _to_move(bot_mech, to_b.normalized() + side * 0.6) if to_b.length() > 2.0 else _to_move(bot_mech, side)
 		var pref := _pref_range(weapon)
 		var radial := 0.0
+		if not _muzzle_clear:  # T524: the eye sees over the crest, the gun doesn't -- step up to it
+			radial = 1.0
 		var retreat := own_hp_pct < float(personality.get("retreat_hp", 0.3)) or ally != null or rwf_cover  # T189: outnumbered -> give ground too; T359
 		if retreat:
 			radial = -1.0
+		elif not _muzzle_clear:
+			pass  # T524: keep closing in (set above)
 		elif dist < pref * 0.7:
 			radial = -0.6
 		elif dist > pref * 1.15 and beacon == null:
@@ -947,6 +952,30 @@ func _tactical_move(bot_mech: Node3D, has_target: bool, dist: float, fire_range:
 
 ## T172 tactics: only pull the trigger when the shot can land -- aim within a body
 ## width of the (led) target, a lock for lock weapons, a full Patience charge.
+# T524 (user 2026-11-19: "I saw a bot shooting a laser into a shallow hill. If it was human, its crosshair
+# would probably have been clear, but its weapons are lower and were occluded. Make sure they're drawing
+# sight lines perfectly."): the eye line (_los_to, 2 m up) can clear a crest the gun can't. A shot also
+# needs the line from the weapon's muzzle to the aim point clear (the target / its shield don't count);
+# lobbed (mortar) and lock-on shots are exempt. Cached MUZZLE_CHECK_TICKS; a blocked gun with a clear
+# eye line steps the bot toward the target (_tactical_move) to clear the crest.
+const MUZZLE_CHECK_TICKS := 4
+var _muzzle_clear := true
+var _muzzle_n := 0
+
+func _muzzle_line_clear(bot_mech: Node3D, w: Node, aim_p: Vector3) -> bool:
+	_muzzle_n -= 1
+	if _muzzle_n > 0:
+		return _muzzle_clear
+	_muzzle_n = MUZZLE_CHECK_TICKS
+	var mz = w.get("muzzle_local")
+	var from: Vector3 = (w as Node3D).to_global(mz) if mz is Vector3 else (w as Node3D).global_position
+	var q := PhysicsRayQueryParameters3D.create(from, aim_p)
+	q.exclude = bot_mech.get_exclude_rids()
+	var hit := bot_mech.get_world_3d().direct_space_state.intersect_ray(q)
+	var col = hit.get("collider")
+	_muzzle_clear = hit.is_empty() or (is_instance_valid(_target) and (col == _target or (col is Node and _target.is_ancestor_of(col))))
+	return _muzzle_clear
+
 func _shot_worth_taking(bot_mech: Node3D, w: Node, aim_p: Vector3) -> bool:
 	if w == null:
 		return false
@@ -955,6 +984,8 @@ func _shot_worth_taking(bot_mech: Node3D, w: Node, aim_p: Vector3) -> bool:
 		return lt != null and is_instance_valid(lt)
 	if w.has_method("get_charge_progress") and w.get_charge_progress() < 0.9:
 		return false
+	if w.get("lobs") != true and not _muzzle_line_clear(bot_mech, w, aim_p):
+		return false  # T524
 	var cam: Camera3D = bot_mech.get("camera")
 	if cam == null:
 		return true
