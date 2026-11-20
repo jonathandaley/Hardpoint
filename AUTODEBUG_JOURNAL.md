@@ -22,3 +22,4 @@
 2026-11-20|T522|suite 225/228|5ec70a3|bot_lock_weapons (12 s duel < lock + 10 s strike -> long window) + rpc_tree_guard (_rpc_mark touched multiplayer before is_inside_tree) fixed; sweep stopped -- OrbitalStrike.gd edited mid-sweep AGAIN (rule broken twice today: edit only after the background run is done, check before editing)
 2026-11-20|T522|suite 227/228, sweep 74/76|5e9f3f3|only menu_flow (lan/wifi/bad): its hangar script still picked AERIAL HV -> ORBITAL HV; 3/3 green; pushed
 2026-11-20|T521|DONE|(this commit)|Swarm: aerial homing salvo + 10% split into 2 at other enemies within 40 m; probe swarm
+2026-11-20|T521|suite 227/229|9d11947|net_security T462: Swarm.gd called the parent file's reliable _rpc_spawn_ghost.rpc directly (scanner sees no annotation there) -> AerialStrike._send_ghost helper; sweep stopped before any edit

@@ -67,5 +67,5 @@ func _spawn_split(from: Vector3, target: Node3D) -> void:
 	var up := from + Vector3.UP * 1.5
 	proj.global_transform = Transform3D(Basis(), up).looking_at(target.global_position)
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
-		_rpc_spawn_ghost.rpc(up, proj.global_transform.basis, proj.speed, proj.lifetime, proj.team,
+		_send_ghost(up, proj.global_transform.basis, proj.speed, proj.lifetime, proj.team,
 			0.0, 0.0, turn_rate * 1.5, Vector3.ZERO, target.get_path())

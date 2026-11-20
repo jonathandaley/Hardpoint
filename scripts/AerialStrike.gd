@@ -73,6 +73,11 @@ func _spawn_rocket(lock_target: Node3D) -> void:
 			proj.speed, proj.lifetime, proj.team, arc_time, arc_up_blend, turn_rate,
 			jitter, target_path)
 
+## T521: Swarm's split rockets send their ghosts through here (the RPC lives in this file).
+func _send_ghost(pos: Vector3, basis: Basis, speed: float, lifetime: float, team: int,
+		p_arc_time: float, p_arc_up: float, p_turn: float, p_jitter: Vector3, target_path: NodePath) -> void:
+	_rpc_spawn_ghost.rpc(pos, basis, speed, lifetime, team, p_arc_time, p_arc_up, p_turn, p_jitter, target_path)
+
 @rpc("authority", "reliable")
 func _rpc_spawn_ghost(pos: Vector3, basis: Basis, speed: float, lifetime: float, team: int,
 		p_arc_time: float, p_arc_up: float, p_turn: float, p_jitter: Vector3,
