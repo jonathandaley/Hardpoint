@@ -181,6 +181,7 @@ func _build_graphics_page() -> void:
 	_build_toggle_section(graphics_box, "AMBIENT EFFECTS", "map_effects", "MapFx")  # T446: Swamp's fireflies (not "MAP ...": probe sp_map_pick)
 	_build_toggle_section(graphics_box, "CAMERA SHAKE", "camera_shake", "Shake")  # T478: recoil + stomp
 	_build_toggle_section(graphics_box, "LONG-LASTING CASINGS", "casings_long", "Casings")  # T263: 1000 / 150
+	_build_toggle_section(graphics_box, "FANCY EFFECTS", "fancy_effects", "FancyFx")  # T523: sparks / smoke / tracers
 	# T428: lower = faster on a weak graphics card, blurrier 3D; the HUD stays sharp
 	_build_choice_section(graphics_box, "RESOLUTION (IN MATCH)", "render_scale", "Res",
 		[[1.0, "100%"], [0.75, "75%"], [0.5, "50%"]], 1.0)

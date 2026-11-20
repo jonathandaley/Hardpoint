@@ -82,7 +82,8 @@ var settings: Dictionary = {
 	"map_effects": true,  # T446: ambient map particles, e.g. Swamp's fireflies (GRAPHICS > AMBIENT EFFECTS)
 	"camera_shake": true,  # T478: recoil + stomp shake (GRAPHICS > CAMERA SHAKE)
 	"casings_long": true,  # T263: spent casings pool 1000 (ON) or 150 (GRAPHICS > LONG-LASTING CASINGS)
-	"bots_plus": false,  # T520(e): SMARTER ELITES (more CPU) -- off for the potato; a host's setting runs its bots
+	"bots_plus": false,
+	"fancy_effects": false,  # T523: GRAPHICS > FANCY EFFECTS -- off for the potato  # T520(e): SMARTER ELITES (more CPU) -- off for the potato; a host's setting runs its bots
 	"render_scale": 1.0,  # T428: the match's 3D view at 1.0 / 0.75 / 0.5 of the window (GRAPHICS > RESOLUTION)
 	"record_matches": false,  # T389: the T157 session recorder on a player's machine (Settings, for bug reports)
 }
@@ -288,6 +289,7 @@ func _load_settings() -> void:
 	settings["camera_shake"]      = cfg.get_value("settings", "camera_shake",      settings["camera_shake"])
 	settings["casings_long"]      = cfg.get_value("settings", "casings_long",      settings["casings_long"])
 	settings["bots_plus"]         = cfg.get_value("settings", "bots_plus",         settings["bots_plus"])
+	settings["fancy_effects"]     = cfg.get_value("settings", "fancy_effects",     settings["fancy_effects"])
 	settings["record_matches"]    = cfg.get_value("settings", "record_matches",    settings["record_matches"])
 	settings["render_scale"]      = clampf(float(cfg.get_value("settings", "render_scale", settings["render_scale"])), 0.5, 1.0)
 	shoulder = 0.0 if settings["view"] == "center" else 1.0  # T252
@@ -426,6 +428,7 @@ func save_settings() -> void:
 	cfg.set_value("settings", "camera_shake",      settings.get("camera_shake",      true))
 	cfg.set_value("settings", "casings_long",      settings.get("casings_long",      true))
 	cfg.set_value("settings", "bots_plus",         settings.get("bots_plus",         false))
+	cfg.set_value("settings", "fancy_effects",     settings.get("fancy_effects",     false))
 	cfg.set_value("settings", "record_matches",    settings.get("record_matches",    false))
 	cfg.set_value("settings", "render_scale",      settings.get("render_scale",      1.0))
 	cfg.save(_SETTINGS_PATH)

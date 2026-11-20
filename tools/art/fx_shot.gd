@@ -2,9 +2,10 @@ extends Node3D
 # T525: the VFX pieces (flash, sparks, tracer, death explosion) at 0.05 s and 0.2 s, side by side -- to
 # compare effect looks before / after a change. Deterministic with --fixed-fps 60:
 #   xvfb-run -a -s "-screen 0 800x450x24" ~/bin/godot --fixed-fps 60 --resolution 640x360 \
-#     --rendering-driver opengl3 --path . res://tools/art/fx_shot.tscn -- <out.png>
+#     --rendering-driver opengl3 --path . res://tools/art/fx_shot.tscn -- <out.png> [fancy]
 func _ready() -> void:
 	var out: String = OS.get_cmdline_user_args()[0]
+	Game.settings["fancy_effects"] = "fancy" in OS.get_cmdline_user_args()  # T523: -- <out.png> fancy
 	var cam := Camera3D.new()
 	add_child(cam)
 	cam.position = Vector3(0, 1.5, 5)

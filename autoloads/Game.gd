@@ -46,6 +46,8 @@ func _ready() -> void:
 	if OS.has_feature("web"):
 		flags = str(JavaScriptBridge.eval("location.search")).trim_prefix("?").split("&")
 		get_tree().process_frame.connect(_check_mouse_lock)
+	if "fancy" in flags:  # T523: the perf bench's FANCY EFFECTS switch (?fancy / -- fancy)
+		settings["fancy_effects"] = true
 	if "perf" in flags:
 		var overlay: Node = load("res://scripts/PerfOverlay.gd").new()
 		overlay.set("autopick", "sp" in flags)  # an unattended run must not sit (paused) in the picker

@@ -10,13 +10,15 @@ extends Node3D
 # Compatibility renderer, no glow: renders matched) -- the energies are kept for T523 effects. Cosmetic, local on every peer;
 # none on a dedicated server. Full -> the oldest piece is reused.
 
-const CAP := [1024, 256]  # spheres, boxes
-enum { SPHERE, BOX }
+const CAP := [1024, 256, 256]  # spheres, boxes, soft (see-through) spheres
+enum { SPHERE, BOX, SOFT }
+const LAYERS := 3
 
 var _mmi: Array[MultiMeshInstance3D] = []
-var _buf: Array[PackedFloat32Array] = [PackedFloat32Array(), PackedFloat32Array()]
-# per live piece, per layer: [t, dur, delay, p0, p1, basis (orientation, unit), s0, s1, col, e0, e1, a0, a1, quad_alpha]
-var _live: Array = [[], []]
+var _buf: Array[PackedFloat32Array] = [PackedFloat32Array(), PackedFloat32Array(), PackedFloat32Array()]
+# per live piece, per layer: [t, dur, delay, p0, p1, basis (orientation, unit), s0, s1, col, e0, e1, a0, a1,
+# quad_alpha, id, drop] -- drop: metres it falls by the end (a spark's arc), quadratic in time
+var _live: Array = [[], [], []]
 
 func _ready() -> void:
 	name = "FxPool"
@@ -27,13 +29,18 @@ func _ready() -> void:
 	sphere.rings = 4
 	var box := BoxMesh.new()
 	box.size = Vector3.ONE
-	for k in 2:
+	var soft := SphereMesh.new()  # T523: smoke -- its own mesh, see-through material
+	soft.radius = 1.0
+	soft.height = 2.0
+	soft.radial_segments = 8
+	soft.rings = 4
+	for k in LAYERS:
 		var mat := StandardMaterial3D.new()
 		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		mat.vertex_color_use_as_albedo = true
-		if k == BOX:
-			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA  # tracers fade out
-		var mesh: Mesh = sphere if k == SPHERE else box
+		if k != SPHERE:
+			mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA  # tracers / smoke fade out
+		var mesh: Mesh = sphere if k == SPHERE else (box if k == BOX else soft)
 		mesh.surface_set_material(0, mat)
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -50,8 +57,12 @@ func _ready() -> void:
 		_buf[k].resize(CAP[k] * 16)  # once: each frame fills the live front of it
 
 ## A sphere piece: radius r0 -> r1 (m), p0 -> p1, energy e0 -> e1, over dur s after delay s.
-func sphere(p0: Vector3, p1: Vector3, r0: float, r1: float, col: Color, e0: float, e1: float, dur: float, delay := 0.0) -> void:
-	_add(SPHERE, [0.0, dur, delay, p0, p1, Basis.IDENTITY, Vector3.ONE * r0, Vector3.ONE * r1, col, e0, e1, 1.0, 1.0, false, _next_id()])
+func sphere(p0: Vector3, p1: Vector3, r0: float, r1: float, col: Color, e0: float, e1: float, dur: float, delay := 0.0, drop := 0.0) -> void:
+	_add(SPHERE, [0.0, dur, delay, p0, p1, Basis.IDENTITY, Vector3.ONE * r0, Vector3.ONE * r1, col, e0, e1, 1.0, 1.0, false, _next_id(), drop])
+
+## T523: a see-through puff (smoke): radius r0 -> r1, alpha a0 -> a1, p0 -> p1.
+func puff(p0: Vector3, p1: Vector3, r0: float, r1: float, col: Color, a0: float, a1: float, dur: float, delay := 0.0) -> void:
+	_add(SOFT, [0.0, dur, delay, p0, p1, Basis.IDENTITY, Vector3.ONE * r0, Vector3.ONE * r1, col, 0.0, 0.0, a0, a1, false, _next_id(), 0.0])
 
 ## A tracer: a box from -> to, width w0 -> w1 across, energy e0 -> 0 and alpha 1 -> 0 (quadratic ease-in).
 func beam(from: Vector3, to: Vector3, w0: float, w1: float, col: Color, e0: float, dur: float) -> void:
@@ -60,7 +71,7 @@ func beam(from: Vector3, to: Vector3, w0: float, w1: float, col: Color, e0: floa
 	var b := Basis.looking_at(d, up)
 	var mid := (from + to) * 0.5
 	var l := d.length()
-	_add(BOX, [0.0, dur, 0.0, mid, mid, b, Vector3(w0, w0, l), Vector3(w1, w1, l), col, e0, 0.0, 1.0, 0.0, true, _next_id()])
+	_add(BOX, [0.0, dur, 0.0, mid, mid, b, Vector3(w0, w0, l), Vector3(w1, w1, l), col, e0, 0.0, 1.0, 0.0, true, _next_id(), 0.0])
 
 # Bullets in flight (Projectile with a plain sphere mesh): [node, radius, colour] -- drawn where the node
 # is each frame as part of the sphere set; a freed one drops out.
@@ -87,6 +98,9 @@ func beams() -> Array:
 			"alpha": lerpf(pc[11], pc[12], u * u)})
 	return out
 
+func puffs() -> int:
+	return _live[SOFT].size()
+
 func spheres() -> Array:
 	var out: Array = []
 	for pc in _live[SPHERE]:
@@ -109,7 +123,7 @@ func _process(delta: float) -> void:
 	Game.prof_add("fx", Time.get_ticks_usec() - t0)
 
 func _process_impl(delta: float) -> void:
-	for k in 2:
+	for k in LAYERS:
 		var live: Array = _live[k]
 		var mm := _mmi[k].multimesh
 		var i := 0
@@ -136,6 +150,8 @@ func _process_impl(delta: float) -> void:
 			var u: float = clampf((float(pc[0]) - float(pc[2])) / float(pc[1]), 0.0, 1.0)
 			var on: bool = float(pc[0]) >= float(pc[2])
 			var p: Vector3 = (pc[3] as Vector3).lerp(pc[4], u)
+			if float(pc[15]) != 0.0:
+				p.y -= float(pc[15]) * u * u  # T523: a spark's arc
 			var s: Vector3 = (pc[6] as Vector3).lerp(pc[7], u) if on else Vector3.ZERO
 			var bs: Basis = (pc[5] as Basis).scaled_local(s) if k == BOX else Basis.from_scale(s)
 			var a: float = lerpf(pc[11], pc[12], u * u if pc[13] else u)
