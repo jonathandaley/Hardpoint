@@ -38,4 +38,4 @@
 2026-11-20|T534|DONE|(this commit)|account_match@bad flake: a late-joining client quit before the match end arrived; duration 600 -> 900
 2026-11-20|T437|CLOSED|-|Swamp Elite 300 s watch: stuck 0.4-5.4% per bot, no frozen bot (was 56%); traced stall = combat strafe
 2026-11-20|T472|LOOKED|(this commit)|not turns (turn_pred: p95 0.03-0.05 m); Pegasus stops dead on the server beside a thin Math Temple pillar while prediction slides past -- server-only, cause open
-2026-11-20|T538|DONE|(this commit)|weapon tips print how each weapon really hits (damage_range / damage_text per weapon); shotgun showed an unused number
+2026-11-20|T538|DONE|d9e9292|suite 238/238; weapon tips print how each weapon really hits (damage_range / damage_text per weapon); shotgun showed an unused number
