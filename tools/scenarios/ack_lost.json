@@ -1,0 +1,141 @@
+{
+  "name": "ack_lost",
+  "seed": 6363,
+  "port": 8936,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Slip.tres",
+  "weapons": [
+    "res://scenes/weapons/MachineGunLight.tscn"
+  ],
+  "matches": 1,
+  "duration_ticks": 600,
+  "oracles": [
+    "ammo_desync",
+    "reload_desync",
+    "active_set_desync",
+    "input_delivery",
+    "aim_desync",
+    "transform_desync",
+    "spawn_join",
+    "team_assignment",
+    "crash_scan",
+    "log_flood",
+    "rpc_integrity"
+  ],
+  "thresholds": {
+    "ammo_settle_ticks": 120,
+    "ammo_persist_ticks": 10
+  },
+  "_comment": "T511: the client never acks its Arena (Game.test_skip_arena_ack) -- as when its reliable ack sits > 5 s behind resends. The server times out after 5 s and starts; the client must still get the match streams, from its first input on (Mech._rpc_input marks it), so every state oracle holds. With streams gated on the ack alone the client is blind all match.",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 60,
+            "fire_primary": true
+          },
+          {
+            "tick": 200,
+            "fire_primary": false,
+            "move": [
+              0,
+              0
+            ]
+          },
+          {
+            "tick": 260,
+            "look": [
+              1.5,
+              0.0
+            ]
+          },
+          {
+            "tick": 300,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "pulses": [
+          {
+            "tick": 220,
+            "action": "reload"
+          },
+          {
+            "tick": 400,
+            "action": "slot",
+            "slot": 0
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 60,
+            "fire_primary": true
+          },
+          {
+            "tick": 200,
+            "fire_primary": false,
+            "move": [
+              0,
+              0
+            ]
+          },
+          {
+            "tick": 260,
+            "look": [
+              -1.5,
+              0.0
+            ]
+          },
+          {
+            "tick": 300,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "pulses": [
+          {
+            "tick": 230,
+            "action": "reload"
+          },
+          {
+            "tick": 420,
+            "action": "slot",
+            "slot": 0
+          }
+        ]
+      }
+    }
+  },
+  "skip_ack_client": true
+}

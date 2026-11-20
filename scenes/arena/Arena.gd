@@ -105,7 +105,7 @@ func _ready() -> void:
 		pass  # SP: no clients to stream snapshots to
 	elif multiplayer.is_server():
 		_start_snapshot_timer()
-	elif late == null:
+	elif late == null and not Game.test_skip_arena_ack:  # T511 seam: ack_lost drops it
 		Game._rpc_transition_ack.rpc_id(1)  # T159: Arena loaded, server may stream
 	Game.match_ended_mp.connect(_on_mp_match_ended)
 	Game.mp_peer_disconnected.connect(_on_peer_disconnected_in_match)

@@ -84,6 +84,7 @@ func _ready() -> void:
 		return
 	_port = int(_scenario.get("port", 8910))
 	_matches = int(_scenario.get("matches", 1))
+	Game.test_skip_arena_ack = _role == "client" and bool(_scenario.get("skip_ack_client", false))  # T511
 	var peers: Dictionary = _scenario.get("peers", {})
 	_expected_clients = 0
 	for k in peers:

@@ -1232,6 +1232,7 @@ func _rpc_input(seq: int, payload: Dictionary) -> void:
 		Game.net_refuse(sender, "_rpc_input: not its mech")
 		return
 	last_input_ms = Time.get_ticks_msec()
+	Game._stream_peers[sender] = true  # T511: its input comes from this match's Arena -> stream to it
 	var sh = payload.get("shoulder", shoulder)
 	if typeof(sh) == TYPE_FLOAT and is_finite(sh):
 		shoulder = 0.0 if absf(sh) < 0.5 else signf(sh)  # V41: only ever -1 / 0 (center, T252) / +1

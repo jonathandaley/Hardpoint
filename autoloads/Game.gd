@@ -804,9 +804,11 @@ func _rpc_change_scene(path: String) -> void:
 var mp_live: bool = false
 # T511 (two_matches@bad: a client's reliable match start sat > 5 s behind resends; the await below
 # timed out, went live and streamed into a client with no Arena: "Node not found: Arena"): the
-# unreliable streams go only to clients that have this match's Arena (acked, or a late joiner's
-# AUTH_READY); the 5 s fallback still starts the match for the rest.
+# unreliable streams go only to clients that have this match's Arena (acked, sent an input to one of
+# its mechs -- an ack held > 5 s behind resends left a client blind; unreliable inputs don't queue --
+# or a late joiner's AUTH_READY); the 5 s fallback still starts the match for the rest.
 var _stream_peers := {}
+var test_skip_arena_ack := false  # T511 test seam: the harness (scenario "skip_ack_client") loses this client's Arena ack
 
 ## Server: the clients the match streams (snapshots, beacon progress, scores) go to.
 func stream_peers() -> Array:
@@ -968,6 +970,9 @@ func _rpc_match_start(map_path: String, roster: Array, match_seed: int, mode: St
 		mp_live = false
 		_stream_peers.clear()  # T511: each client streams from its own ack
 		server_await_clients(func() -> void: mp_live = true)
+	else:
+		server_heard = true  # T511: the server sent us this -- it has us connected (B101), so our input may
+		# flow before any snapshot (the snapshots now wait for that input or our ack: no deadlock)
 	_sync_next_match()
 	mp_active_match = {
 		"map_path":   map_path,
