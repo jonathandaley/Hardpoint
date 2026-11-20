@@ -33,6 +33,8 @@ const SKILL_TREE: Dictionary = {
 	"xp_bonus":         {"parents": ["ability_recharge"],           "any_parent": false, "label": "XP Bonus",          "per_level": 0.03},
 	"reload_speed":     {"parents": ["damage", "ability_recharge"], "any_parent": true,  "label": "Reload Speed",      "per_level": 0.04},
 	"lock_speed":       {"parents": ["damage", "ability_recharge"], "any_parent": true,  "label": "Lock Speed",        "per_level": 0.05},
+	# T531: max scope zoom over 1x (level 1: 1.5x ... level 12: 7x): lasers + weapons with range > 150 m
+	"scope_zoom":       {"parents": ["spread_reduction"],           "any_parent": false, "label": "Scope Zoom",        "per_level": 0.5},
 }
 
 # Cumulative XP required to reach each level (index 0 = XP to reach level 2, etc.)
@@ -254,6 +256,8 @@ static func skill_effect_text(key: String, level: int) -> String:
 			unit = " HP/s"
 		"contested_hold":
 			unit = " s"
+		"scope_zoom":  # T531: the max zoom itself
+			return "%sx" % (("%d" % roundi(1.0 + v)) if is_equal_approx(v, roundf(v)) else ("%.1f" % (1.0 + v)))
 		_:
 			v *= 100.0
 	var n := ("%d" % roundi(v)) if is_equal_approx(v, roundf(v)) else ("%.1f" % v)

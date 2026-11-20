@@ -1224,7 +1224,7 @@ const TREE_GRID := {  # skill -> [column, row]; a new skill needs a cell here (p
 	"damage": [1, 0], "health": [3, 0],
 	"projectile_speed": [0, 1], "move_speed": [1, 1], "ability_recharge": [2, 1], "repair_rate": [3, 1], "shield_capacity": [4, 1],
 	"spread_reduction": [0, 2], "beacon_capture": [1, 2], "reload_speed": [2, 2], "lock_speed": [3, 2], "powerup_duration": [4, 2],
-	"contested_hold": [1, 3], "coin_pickup": [2, 3], "xp_bonus": [3, 3],
+	"scope_zoom": [0, 3], "contested_hold": [1, 3], "coin_pickup": [2, 3], "xp_bonus": [3, 3],
 }
 const COST_SHORT := Color(1.0, 0.3, 0.25)
 

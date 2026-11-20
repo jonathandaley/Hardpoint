@@ -74,6 +74,11 @@ var _active_set: Array = []  # parallel bool array; true = included in right-cli
 ## T532: how far this pilot's mortar lobs (m; < 0 = Mortar.LOB_DEFAULT), stepped by the wheel / arrows.
 ## The owner sets it; it rides the input payload to the server (V41: clamped where it's used).
 var lob_range := -1.0
+## T531: the local camera's scope zoom (1 = none), up to 1 + skill("scope_zoom") with a scoped weapon mounted.
+## Camera only: aim stays the ray through the screen centre; mouse sensitivity scales down with it.
+var scope_zoom := 1.0
+var _base_fov := 0.0
+const SCOPE_RANGE_M := 150.0  # T531: weapons reaching past this scope (snipers, Patience, ...), plus lasers
 var _was_firing_primary: bool = false
 
 var locked_target: Node3D = null
@@ -777,6 +782,9 @@ func _die() -> void:
 
 func _die_impl() -> void:
 	is_dead = true
+	if _base_fov > 0.0 and camera != null:  # T531: the scope drops on death
+		scope_zoom = 1.0
+		camera.fov = _base_fov
 	# B128: every lock on us goes now -- the killing shot often lands after the shooter's own lock
 	# update in the same tick, which left the shooter locked on a corpse for a tick (lock_target
 	# oracle; a rocket fired then would home on the wreck)
@@ -1307,6 +1315,17 @@ func _handle_wheel() -> void:
 		if wpn is Mortar:
 			lob_range = (wpn as Mortar).step_range(lob_range, w)
 			return
+	var top := 1.0 + skill("scope_zoom")
+	if top <= 1.0 or camera == null:
+		return
+	for wpn in _weapons:
+		# user 2026-11-20: "It should work on laser, too, and any other weapon with a range over 150m."
+		if wpn is LaserCannon or float(wpn.get("range")) > SCOPE_RANGE_M:
+			if _base_fov <= 0.0:
+				_base_fov = camera.fov
+			scope_zoom = clampf(scope_zoom + w * 0.5, 1.0, top)
+			camera.fov = _base_fov / scope_zoom
+			return
 
 func _handle_look() -> void:
 	# V47 (B38): a remote client's aim arrives absolute; apply it as-is. Deltas over
@@ -1321,7 +1340,7 @@ func _handle_look() -> void:
 	var look: Vector2 = _input_source.get_look_delta()
 	if look == Vector2.ZERO:
 		return
-	var sens: float = Game.settings.get("mouse_sensitivity", 0.003)
+	var sens: float = Game.settings.get("mouse_sensitivity", 0.003) / scope_zoom  # T531
 	torso.rotate_y(-look.x * sens)
 	_camera_pitch = clamp(_camera_pitch - look.y * sens, -1.2, 0.4)
 	# camera_arm.rotation.x is owned by _process (shake + pitch combined)
