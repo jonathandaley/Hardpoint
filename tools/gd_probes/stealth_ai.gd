@@ -59,8 +59,17 @@ func _ready() -> void:
 			break
 	ai.set("_claimed_beacon", b)
 	bot_m.global_position = b.global_position + Vector3(50, 0, 0)
+	# T520(c) (user: Elites "stealth right from the start"): a run with no enemy within 70 m of the bot
+	# or the beacon is no reason to cloak; one 40 m from the beacon is
+	var enemies: Array = arena.get("_team_mechs")[1 - int(bot_m.get("team"))]
+	for en in enemies:
+		(en as Node3D).global_position = b.global_position + Vector3(0, 0, 400)
+	if ai.call("stealth_wanted", bot_m, false, INF, rng, 1.0):
+		_fail("cloaked for a 50 m beacon run with no enemy anywhere near (the start-of-match cloak)")
+		return
+	(enemies[0] as Node3D).global_position = b.global_position + Vector3(-40, 0, 0)
 	if not ai.call("stealth_wanted", bot_m, false, INF, rng, 1.0):
-		_fail("no cloak for a 50 m run to a beacon it doesn't hold")
+		_fail("no cloak for a 50 m run to a beacon it doesn't hold with an enemy 40 m from it")
 		return
 	bot_m.global_position = b.global_position + Vector3(8, 0, 0)
 	if ai.call("stealth_wanted", bot_m, false, INF, rng, 1.0):

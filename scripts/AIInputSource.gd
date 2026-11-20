@@ -919,6 +919,7 @@ func charge_wanted(bot_mech: Node3D, has_target: bool, dist: float) -> bool:
 const STEALTH_CLOSE_K := 2.5     # approach: target within this x weapon range, not yet in range
 const STEALTH_LOCK_PROGRESS := 0.4
 const STEALTH_BEACON_M := Vector2(25.0, 90.0)
+const STEALTH_WATCH_M := 70.0  # T520(c): an enemy this near the bot or the beacon makes the run worth a cloak
 
 func stealth_wanted(bot_mech: Node3D, has_target: bool, dist: float, fire_range: float,
 		own_hp_pct: float) -> bool:
@@ -935,7 +936,16 @@ func stealth_wanted(bot_mech: Node3D, has_target: bool, dist: float, fire_range:
 			return true
 	if not has_target and is_instance_valid(_claimed_beacon) and _claimed_beacon.get("owner_team") != _own_team:
 		var d := bot_mech.global_position.distance_to(_claimed_beacon.global_position)
-		return d > STEALTH_BEACON_M.x and d < STEALTH_BEACON_M.y
+		if d <= STEALTH_BEACON_M.x or d >= STEALTH_BEACON_M.y:
+			return false
+		# T520(c) (user: Elites "stealth right from the start"): every bot's first beacon run fired
+		# this -- a cloak spent on empty ground. Only with a live enemy within STEALTH_WATCH_M of the
+		# bot or the beacon (positions are known, like a player's tags + minimap: T520 rule)
+		var bp: Vector3 = (_claimed_beacon as Node3D).global_position
+		for m in get_tree().get_nodes_in_group("mechs"):
+			if m != bot_mech and _is_live_enemy(m) and (bot_mech.global_position.distance_to(m.global_position) < STEALTH_WATCH_M \
+					or bp.distance_to(m.global_position) < STEALTH_WATCH_M):
+				return true
 	return false
 
 ## T172 tactics: top up a fixed magazine below half while nothing is in sight.
