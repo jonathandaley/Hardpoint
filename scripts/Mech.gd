@@ -78,7 +78,7 @@ var lob_range := -1.0
 ## Camera only: aim stays the ray through the screen centre; mouse sensitivity scales down with it.
 var scope_zoom := 1.0
 var _base_fov := 0.0
-const SCOPE_RANGE_M := 150.0  # T531: weapons reaching past this scope (snipers, Patience, ...), plus lasers
+const SCOPE_RANGE_M := 150.0  # T531: weapons reaching past this scope (snipers, Patience), plus lasers; T535: not lock-on ones
 var _was_firing_primary: bool = false
 
 var locked_target: Node3D = null
@@ -1320,7 +1320,8 @@ func _handle_wheel() -> void:
 		return
 	for wpn in _weapons:
 		# user 2026-11-20: "It should work on laser, too, and any other weapon with a range over 150m."
-		if wpn is LaserCannon or float(wpn.get("range")) > SCOPE_RANGE_M:
+		# T535 (user: "Long-range nonlinear lock-on weapons don't need zoom, and it might be distracting.")
+		if wpn is LaserCannon or (float(wpn.get("range")) > SCOPE_RANGE_M and not wpn.get("requires_lock")):
 			if _base_fov <= 0.0:
 				_base_fov = camera.fov
 			scope_zoom = clampf(scope_zoom + w * 0.5, 1.0, top)

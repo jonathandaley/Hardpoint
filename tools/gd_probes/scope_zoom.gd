@@ -3,7 +3,7 @@ extends Node3D
 # + "It should work on laser, too, and any other weapon with a range over 150m."): skill scope_zoom gives a
 # max zoom of 1 + 0.5 x level; the wheel steps Mech.scope_zoom by 0.5 and the camera FOV follows, capped
 # there and floored at 1x. Scoped: Sniper LT, Laser LT (120 m, a laser), Patience; not Rifle LT; no skill =
-# no zoom; a mounted Mortar keeps the wheel for its range. The hangar text reads the max zoom ("3x").
+# no zoom; a mounted Mortar keeps the wheel for its range. T535: lock-on weapons (Rocket LT 180 m, Swarm HV) don't. The hangar text reads the max zoom ("3x").
 
 const SlotDef := preload("res://scripts/WeaponSlotDef.gd")
 const Replay := preload("res://scripts/ReplayInputSource.gd")
@@ -51,6 +51,7 @@ func _ready() -> void:
 		bad.append("zoomed back out: zoom %.2f fov %.1f (want 1x, %.1f)" % [m.get("scope_zoom"), cam.fov, fov0])
 	for c in [[["LaserCannonLight"], {"scope_zoom": 4}, true], [["PatienceHeavy"], {"scope_zoom": 4}, true],
 			[["RifleLight"], {"scope_zoom": 4}, false], [["SniperLight"], {}, false],
+			[["RocketLauncherLight"], {"scope_zoom": 4}, false], [["SwarmHeavy"], {"scope_zoom": 4}, false],  # T535: lock-on
 			[["MortarHeavy", "SniperLight"], {"scope_zoom": 4}, false]]:
 		var mm := _mech(c[0], c[1])
 		_wheel(mm, 2.0)

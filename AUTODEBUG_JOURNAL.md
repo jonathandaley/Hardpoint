@@ -34,3 +34,4 @@
 2026-11-20|T532|DONE|5b7a482|suite 235/235 + sweep 84/84; mortar: wheel / arrows set range (lob_range in the input payload), horizontal aim only, fog-free down arrow
 2026-11-20|T531|DONE|31877b5|suite 236/236; scope_zoom skill: wheel / arrows zoom on lasers + weapons over 150 m, max 1+0.5/lv
 2026-11-20|T529|DONE|f1b892b|suite 235/236 (squad_minibay looked for the old SubViewportContainer; fixed, green); hangar lineup / preview / HUD cards render at the window real pixels, nearest (were smoothed up 1.5-3x)
+2026-11-20|T535|DONE|(this commit)|scope skips lock-on weapons (Rocket LT, Orbital, Swarm)
