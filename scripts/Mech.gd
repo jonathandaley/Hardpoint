@@ -1919,6 +1919,11 @@ var _charge_slip := Vector3.ZERO
 const CHARGE_LEVEL_S := 15.0   # s to a full level -- calibration knob
 const CHARGE_LEVEL_TURN := 0.5  # level lost per 90 deg of paid turn -- calibration knob
 var _charge_l0 := 0.0
+# T517 (user 2026-11-19: "Vertical mouse movement should not change Taurus charge level"): pitch never
+# turns the torso, but a quick up / down flick carries some sideways drift -- on a tick the aim moved
+# mostly vertically (sideways < CHARGE_VERTICAL_K x the pitch change) that drift is free
+const CHARGE_VERTICAL_K := 0.35  # calibration knob
+var _charge_pitch_prev := 0.0
 const RAM_FLOOR := 60.0      # at a fresh charge -- calibration knob
 const RAM_MAX := 250.0       # at a full level -- calibration knob
 const LUNGE_GLOW_K := 2.5    # extra glow at full speed (x the palette's energy)
@@ -2043,6 +2048,7 @@ func _lunge_begin(dir: Vector3, t0 := 0.0, v0 := 0.0) -> void:
 	_charge_end_t = INF
 	_charge_slip = Vector3.ZERO
 	_charge_l0 = 0.0  # T513: every set-off builds from nothing
+	_charge_pitch_prev = _camera_pitch  # T517
 
 func _lunge_end() -> void:
 	lunging = false
@@ -2081,7 +2087,12 @@ func _lunge_step(delta: float) -> bool:
 ## so the clock curve carries it) and the lost speed slides on along the old heading; T513: and level.
 func _charge_steer(delta: float) -> void:
 	var h := _lunge_facing()
-	var paid := maxf(0.0, absf(_lunge_dir.signed_angle_to(h, Vector3.UP)) - CHARGE_TURN_FREE * delta)
+	var yaw := absf(_lunge_dir.signed_angle_to(h, Vector3.UP))
+	var dpitch := absf(_camera_pitch - _charge_pitch_prev)
+	_charge_pitch_prev = _camera_pitch
+	if yaw < CHARGE_VERTICAL_K * dpitch:
+		yaw = 0.0  # T517: a vertical mouse move's drift
+	var paid := maxf(0.0, yaw - CHARGE_TURN_FREE * delta)
 	var s := _charge_speed(lunge_t)
 	if paid > 0.0:
 		var lost := minf(maxf(0.0, s - walk_speed), (CHARGE_TOP - walk_speed) * paid / (PI * 0.5))

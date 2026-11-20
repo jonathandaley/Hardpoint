@@ -288,6 +288,19 @@ func _ready() -> void:
 		bad.append("R's level %.3f / glow %.3f after %.2f s straight (want %.3f both)" % [r_l, float(r.call("_charge_glow", r_t)), r_t, r_t / Mech.CHARGE_LEVEL_S])
 	if burnt > 0.01:
 		bad.append("R lost %.1f HP charging (the self-penalty is gone)" % burnt)
+	# T517 (user: "Vertical mouse movement should not change Taurus charge level"): fast up / down flicks
+	# with a little sideways drift (a fifth of the pitch change, well past the free 8 deg/s) cost R nothing
+	var r_l_before := float(r.call("charge_level", float(r.get("lunge_t"))))
+	var r_t_before := float(r.get("lunge_t"))
+	for k in 30:
+		var dp := deg_to_rad(3.0) * (1.0 if (k / 10) % 2 == 0 else -1.0)
+		r.set("_camera_pitch", clampf(float(r.get("_camera_pitch")) + dp, -1.2, 0.4))
+		(r.get("torso") as Node3D).rotation.y += absf(dp) * 0.2 * (1.0 if k % 2 == 0 else -1.0)
+		await get_tree().physics_frame
+	var r_l_after := float(r.call("charge_level", float(r.get("lunge_t"))))
+	var r_l_want := r_l_before + (float(r.get("lunge_t")) - r_t_before) / Mech.CHARGE_LEVEL_S
+	if absf(r_l_after - r_l_want) > 0.005:
+		bad.append("vertical flicks moved R's level %.3f -> %.3f (want %.3f: the clock only)" % [r_l_before, r_l_after, r_l_want])
 	r.set("_charge_l0", 1.0)
 	if absf(lerpf(Mech.RAM_FLOOR, Mech.RAM_MAX, float(r.call("charge_level", r_t))) - Mech.RAM_MAX) > 0.01:
 		bad.append("a full level doesn't ram for RAM_MAX")
