@@ -1105,6 +1105,14 @@ func _check_step_dir(dir: Vector3, space: PhysicsDirectSpaceState3D, ex: Array, 
 	return true
 
 func _update_legs(delta: float) -> void:
+	if not Game.prof_on:  # T165 profiling shim (T525: legs inside "mech")
+		_update_legs_impl(delta)
+		return
+	var t0 := Time.get_ticks_usec()
+	_update_legs_impl(delta)
+	Game.prof_add("legs", Time.get_ticks_usec() - t0)
+
+func _update_legs_impl(delta: float) -> void:
 	# T174: airborne legs tuck. Simulating peers ask physics; an MP client runs no physics
 	# for any mech (snapshot interp, V38), so it probes for ground under the feet.
 	var airborne: bool

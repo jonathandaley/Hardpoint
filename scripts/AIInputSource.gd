@@ -100,6 +100,7 @@ func _ready() -> void:
 	# determinism. The real per-bot seed arrives via set_mp_seed() in
 	# Match._apply_bot_seeds(); bot_id makes each bot's stream distinct.
 	_rng.seed = bot_id
+	_think_n = THINK_EVERY - 1 - posmod(bot_id, THINK_EVERY)  # T525: deterministic phase, bots alternate
 	add_to_group("ai_input_sources")
 	call_deferred("_find_targets")
 
@@ -483,6 +484,9 @@ func _aim_point(bot_mech: Node3D, w: Node, lead: float) -> Vector3:
 		p = c + v * (muzzle.distance_to(p) / spd) * lead
 	return p
 
+const THINK_EVERY := 2  # T525: ticks between movement decisions -- calibration knob (1 = every tick)
+var _think_n := 0  # T525: phase set from bot_id in _ready
+
 func _physics_process_impl(delta: float) -> void:
 	# T40: bots run server-only; clients receive mech state via replication, not AI.
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
@@ -579,15 +583,22 @@ func _physics_process_impl(delta: float) -> void:
 
 	var own_max_hp: float = maxf(bot_mech.get("max_health") if bot_mech.get("max_health") != null else 1.0, 1.0)
 	var own_hp_pct: float = clampf(bot_mech.health / own_max_hp, 0.0, 1.0)
-	if tactics:
-		_update_rwf(weapon)  # T359: hold / press on / back off with a reload-while-firing gun
-	var pickup := wanted_pickup(bot_mech, has_target, dist, fire_range, own_hp_pct, tactics)
-	if pickup != null:
-		_move_dir = _steer_to(bot_mech, pickup.global_position)  # T352
-	elif tactics:
-		_move_dir = _tactical_move(bot_mech, has_target, dist, fire_range, weapon, own_hp_pct, delta)
-	else:
-		_move_dir = _legacy_move(bot_mech, has_target, dist, own_hp_pct, delta)
+	# T525 (browser / potato: the bots' tick was ~1.5 ms of a 4.4 ms tick on the T3500): where to go is
+	# decided every THINK_EVERY ticks per bot (bots on alternate phases); aim, fire, abilities, noticing
+	# and the stuck check still run every tick
+	_think_n += 1
+	if _think_n >= THINK_EVERY:
+		_think_n = 0
+		if tactics:
+			_update_rwf(weapon)  # T359: hold / press on / back off with a reload-while-firing gun
+		var pickup := wanted_pickup(bot_mech, has_target, dist, fire_range, own_hp_pct, tactics)
+		var think_dt := delta * THINK_EVERY
+		if pickup != null:
+			_move_dir = _steer_to(bot_mech, pickup.global_position)  # T352
+		elif tactics:
+			_move_dir = _tactical_move(bot_mech, has_target, dist, fire_range, weapon, own_hp_pct, think_dt)
+		else:
+			_move_dir = _legacy_move(bot_mech, has_target, dist, own_hp_pct, think_dt)
 
 	# Decay stuck-zone avoidance cooldown.
 	if _avoid_timer > 0.0:
