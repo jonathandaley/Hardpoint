@@ -46,7 +46,8 @@ const DIFFICULTY_PRESETS: Array = [
 	# that plus upgrades"; "elite bots don't miss, and in fact shoot ahead of moving targets"): Hard
 	# now plays exactly like Elite did -- no aim drift, full lead, no burst pauses, jukes; ELITE is
 	# Hard + pilot upgrades ("upgrades": the named elite pilots of T325).
-	{"aim_jitter": 0.0,   "turn_scale": 4.00, "lead": 1.0, "reaction": 0.08, "pause": 0.0,  "tactics": true,  "team": true, "juke": true},   # Hard
+	# T520(e): Hard shares Elite's 12x turn (T282: Hard = Elite minus pilot upgrades; the 4x cap was an aiming limit)
+	{"aim_jitter": 0.0,   "turn_scale": 12.0, "lead": 1.0, "reaction": 0.08, "pause": 0.0,  "tactics": true,  "team": true, "juke": true},   # Hard
 	# T520(e) (user: Elites "should be able to do anything a human could theoretically do"): no turn-rate
 	# cap a human doesn't have -- 12 x 0.9 = ~620 deg/s (a mouse flick), still half the gap per tick
 	{"aim_jitter": 0.0,   "turn_scale": 12.0, "lead": 1.0, "reaction": 0.08, "pause": 0.0,  "tactics": true,  "team": true, "juke": true, "upgrades": true},  # Elite
@@ -727,8 +728,13 @@ func _physics_process_impl(delta: float) -> void:
 		# T172: a third of the distance this mech should cover; the flat 0.5 m read every
 		# mech under 1 m/s (Warhog 0.9, Everest 0.75) as permanently stuck.
 		var stuck_dist: float = minf(STUCK_DIST, float(bot_mech.get("walk_speed")) * STUCK_CHECK * 0.35)
+		# T489 (bot_rwf, caught with positions: a strafe that flips direction nets ~0 m in 0.5 s at full
+		# speed, read as stuck, and the escape overrode the retreat): stuck = little net progress AND
+		# little real (post-slide) speed -- shuffling isn't stuck, pushing into a wall is
+		var real_v: Vector3 = (bot_mech as CharacterBody3D).get_real_velocity()
 		if _move_dir != Vector2.ZERO and \
-				bot_mech.global_position.distance_to(_last_pos) < stuck_dist:
+				bot_mech.global_position.distance_to(_last_pos) < stuck_dist and \
+				Vector2(real_v.x, real_v.z).length() < float(bot_mech.get("walk_speed")) * 0.35:
 			_stuck_count += 1
 			_escape_timer = minf(ESCAPE_TIME * _stuck_count, ESCAPE_TIME_MAX)
 			var side := 1.0 if _rng.randf() > 0.5 else -1.0

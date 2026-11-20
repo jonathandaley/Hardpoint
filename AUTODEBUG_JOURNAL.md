@@ -14,3 +14,5 @@
 2026-11-20|T520b|DONE|(this commit)|Pegasus hops toward a far beacon when idle + healthy; bot_jump_travel probe
 2026-11-20|T520d|DONE|(this commit)|hurt bots keep to a Heron, Heron keeps to its team; bot_heron_team probe
 2026-11-20|T520e|DONE|(this commit)|Elite turn 12x; Bots+ setting (focus x2, beacon judgement, dodge explosive shots, faster re-path); bot_plus probe; +0.6 ms ai native
+2026-11-20|T489|ROOT CAUSE|(this commit)|stuck check misread a direction-flipping strafe as stuck; now needs low real speed too; bot_rwf 6/6
+2026-11-20|T520e|follow-up|(this commit)|Hard turn 12x too (T282 parity); sweep b26 stopped -- AIInputSource edited mid-sweep (rule broken), rerun
