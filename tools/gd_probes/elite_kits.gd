@@ -105,6 +105,16 @@ func _ready() -> void:
 			bad.append("a Hard bot (%s) got an Elite personality" % e["name"])
 	if named == 0:
 		bad.append("no named Elite bots in an Elite match")
+	# T520(a) (user: "Beacon hangars should focus more on fast mechs than holders."): every named Elite's
+	# beacons squad has at least 3 fast mechs (walk >= 2.0 m/s)
+	for n in BotNames.ELITE_KIT:
+		var fast := 0
+		for sq in BotNames.ELITE_KIT[n]["squad"]:
+			var md: Resource = load("res://resources/mechs/%s.tres" % sq[0])
+			if md != null and float(md.walk_speed) >= 2.0:
+				fast += 1
+		if fast < 3:
+			bad.append("%s's beacons squad has %d fast mechs (want >= 3)" % [n, fast])
 	if not bad.is_empty():
 		_fail("; ".join(bad))
 		return

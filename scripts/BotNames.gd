@@ -66,7 +66,7 @@ const ELITE := {
 # want another new set of hangars for every mode"): "squad_rush" for BEACON RUSH -- held beacons are
 # spawn points, so beacons are taken and held: Denali (ANCHOR) holders, fast capturers. Same personality.
 const ELITE_KIT := {
-	"Inexorable": {"squad": [["Hippogriff", "MG"], ["Everest", "MG"], ["Hornet", "SHOTGUN"], ["Vesuvius", "MG"], ["Hippogriff", "SHOTGUN"]],
+	"Inexorable": {"squad": [["Hornet", "MG"], ["Pegasus", "SHOTGUN"], ["Hornet", "SHOTGUN"], ["Everest", "MG"], ["Hippogriff", "MG"]],
 		"squad_dm": [["Taurus", "SHOTGUN"], ["Everest", "MG"], ["Taurus", "INFERNO"], ["Kanchenjunga", "SHOTGUN"], ["Hippogriff", "SHOTGUN"]],
 		"squad_rush": [["Denali", "MG"], ["Taurus", "SHOTGUN"], ["Everest", "MG"], ["Hippogriff", "SHOTGUN"], ["Vesuvius", "MG"]],
 		"personality": {"role": "attacker", "range_k": 0.7, "retreat_hp": 0.12}},   # health + speed + capture: rushes beacons
@@ -78,11 +78,11 @@ const ELITE_KIT := {
 		"squad_dm": [["Cesh", "ROCKET"], ["Pegasus", "ARC"], ["Cesh", "MISSILE"], ["Hornet", "ROCKET"], ["Pegasus", "MISSILE"]],
 		"squad_rush": [["Cesh", "ROCKET"], ["Pegasus", "ARC"], ["Cesh", "ARC"], ["Pegasus", "ROCKET"], ["Hornet", "ROCKET"]],
 		"personality": {"role": "flanker", "range_k": 1.2, "retreat_hp": 0.3}},     # abilities + lock speed: locks from the side
-	"Deadlock":   {"squad": [["Vesuvius", "AERIAL"], ["Hippogriff", "MISSILE"], ["Everest", "AERIAL"], ["Kestrel", "ARC"], ["Seeker", "AERIAL"]],
+	"Deadlock":   {"squad": [["Seeker", "AERIAL"], ["Hornet", "MISSILE"], ["Pegasus", "MISSILE"], ["Hippogriff", "MISSILE"], ["Vesuvius", "AERIAL"]],
 		"squad_dm": [["Hippogriff", "MISSILE"], ["Vesuvius", "MORTAR"], ["Kestrel", "MISSILE"], ["Everest", "AERIAL"], ["Hornet", "MISSILE"]],
 		"squad_rush": [["Vesuvius", "AERIAL"], ["Hippogriff", "MISSILE"], ["Everest", "AERIAL"], ["Denali", "MISSILE"], ["Seeker", "AERIAL"]],
 		"personality": {"role": "attacker", "range_k": 1.3, "retreat_hp": 0.3}},    # lock weapons
-	"Bastion":    {"squad": [["Kestrel", "LASER"], ["Everest", "LASER"], ["Kestrel", "RIFLE"], ["Everest", "MG"], ["Kestrel", "LASER"]],
+	"Bastion":    {"squad": [["Hornet", "LASER"], ["Pegasus", "LASER"], ["Swift", "LASER"], ["Heron", "RIFLE"], ["Kestrel", "LASER"]],
 		"squad_dm": [["Kestrel", "LASER"], ["Everest", "LASER"], ["Kestrel", "MG"], ["Vesuvius", "LASER"], ["Kestrel", "RIFLE"]],
 		"squad_rush": [["Denali", "LASER"], ["Kestrel", "LASER"], ["Everest", "LASER"], ["Denali", "RIFLE"], ["Heron", "LASER"]],
 		"personality": {"role": "defender", "range_k": 1.0, "retreat_hp": 0.15}},   # shields + repair: holds what it has
@@ -98,7 +98,7 @@ const ELITE_KIT := {
 		"squad_dm": [["Seeker", "SNIPER"], ["Slip", "SNIPER"], ["Cesh", "SNIPER"], ["Seeker", "SNIPER"], ["Hornet", "SNIPER"]],
 		"squad_rush": [["Seeker", "SNIPER"], ["Slip", "RIFLE"], ["Seeker", "SNIPER"], ["Slip", "SNIPER"], ["Hornet", "RIFLE"]],
 		"personality": {"role": "flanker", "range_k": 1.6, "retreat_hp": 0.35}},    # a sniper on the flank
-	"Paragon":    {"squad": [["Pegasus", "RIFLE"], ["Hippogriff", "MISSILE"], ["Hornet", "MG"], ["Kestrel", "LASER"], ["Vesuvius", "RIFLE"]],
+	"Paragon":    {"squad": [["Pegasus", "RIFLE"], ["Hornet", "MG"], ["Swift", "RIFLE"], ["Kestrel", "LASER"], ["Hippogriff", "MISSILE"]],
 		"squad_dm": [["Pegasus", "RIFLE"], ["Hippogriff", "MISSILE"], ["Taurus", "SHOTGUN"], ["Kestrel", "LASER"], ["Vesuvius", "RIFLE"]],
 		"squad_rush": [["Pegasus", "RIFLE"], ["Denali", "RIFLE"], ["Hornet", "MG"], ["Kestrel", "LASER"], ["Hippogriff", "MISSILE"]],
 		"personality": {"role": "attacker", "range_k": 1.0, "retreat_hp": 0.3}},    # all-rounder
@@ -106,7 +106,7 @@ const ELITE_KIT := {
 		"squad_dm": [["Slip", "MG"], ["Seeker", "MG"], ["Slip", "RIFLE"], ["Hornet", "MG"], ["Swift", "MG"]],
 		"squad_rush": [["Slip", "MG"], ["Hornet", "MG"], ["Slip", "RIFLE"], ["Hornet", "RIFLE"], ["Slip", "MG"]],
 		"personality": {"role": "flanker", "range_k": 0.9, "retreat_hp": 0.3}},     # fast, fast shots
-	"Obsidian":   {"squad": [["Everest", "PATIENCE"], ["Vesuvius", "MG"], ["Everest", "MG"], ["Vesuvius", "PATIENCE"], ["Kestrel", "MG"]],
+	"Obsidian":   {"squad": [["Hornet", "MG"], ["Pegasus", "MG"], ["Swift", "MG"], ["Everest", "PATIENCE"], ["Vesuvius", "MG"]],
 		"squad_dm": [["Everest", "PATIENCE"], ["Vesuvius", "MG"], ["Kanchenjunga", "MG"], ["Vesuvius", "PATIENCE"], ["Everest", "MG"]],
 		"squad_rush": [["Denali", "RIFLE"], ["Everest", "PATIENCE"], ["Denali", "MG"], ["Vesuvius", "PATIENCE"], ["Everest", "MG"]],
 		"personality": {"role": "defender", "range_k": 1.1, "retreat_hp": 0.12}},   # a wall that hits hard
