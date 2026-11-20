@@ -297,6 +297,59 @@ func _fallback_ally(bot_mech: Node3D) -> Node3D:
 			foes += 1
 	return nearest if foes >= friends + 2 else null
 
+# T520(d) (user: bots "do a good job of targeting healers, but not of staying close to their own"): a
+# hurt bot pulls toward a friendly Heron's repair ring, and a Heron keeps to the middle of its team.
+const HEAL_SEEK_HP := 0.6     # under this share of health a bot seeks a Heron
+const HEAL_SEEK_M := 60.0     # ... within this distance
+const HEALER_GROUP_M := 80.0  # a Heron's "team" = living allies within this distance
+const HEAL_PULL := 1.2        # weight of that pull in a fight (strafing is 0.9)
+
+func _has_ability(m: Node, key: String) -> bool:
+	var abs_ = m.get("_abilities")
+	if not (abs_ is Array):
+		return false
+	for a in abs_:
+		if a != null and a.get("effect_key") == key:
+			return true
+	return false
+
+func _nearest_healer(bot_mech: Node3D) -> Node3D:
+	var best: Node3D = null
+	var bd := HEAL_SEEK_M
+	for m in get_tree().get_nodes_in_group("mechs"):
+		if m == bot_mech or m.get("team") != _own_team or m.get("is_dead") or not (m as Node3D).visible:
+			continue
+		var d := bot_mech.global_position.distance_to((m as Node3D).global_position)
+		if d < bd and _has_ability(m, "field_repair"):
+			best = m
+			bd = d
+	return best
+
+## The middle of our living mechs within HEALER_GROUP_M; x = INF when there are none.
+func _allies_middle(bot_mech: Node3D) -> Vector3:
+	var sum := Vector3.ZERO
+	var n := 0
+	for m in get_tree().get_nodes_in_group("mechs"):
+		if m == bot_mech or m.get("team") != _own_team or m.get("is_dead") or not (m as Node3D).visible:
+			continue
+		var p := (m as Node3D).global_position
+		if bot_mech.global_position.distance_to(p) < HEALER_GROUP_M:
+			sum += p
+			n += 1
+	return sum / n if n > 0 else Vector3(INF, 0.0, INF)
+
+## T520(d): where this bot should keep close to -- a Heron if it's hurt, its team if it is a Heron.
+func _heal_anchor(bot_mech: Node3D, own_hp_pct: float) -> Vector3:
+	if not _preset()["team"]:
+		return Vector3(INF, 0.0, INF)
+	if _has_ability(bot_mech, "field_repair"):
+		return _allies_middle(bot_mech)
+	if own_hp_pct < HEAL_SEEK_HP:
+		var h := _nearest_healer(bot_mech)
+		if h != null:
+			return h.global_position
+	return Vector3(INF, 0.0, INF)
+
 func _pick_target_beacon(bot_mech: Node3D) -> Node:
 	var best: Node = null
 	var best_score := -INF
@@ -768,6 +821,8 @@ func _tactical_move(bot_mech: Node3D, has_target: bool, dist: float, fire_range:
 	_claim_beacon(beacon)
 	var pos := bot_mech.global_position
 	var ally: Node3D = _fallback_ally(bot_mech) if _preset()["team"] else null
+	var anchor := _heal_anchor(bot_mech, own_hp_pct)  # T520(d)
+	var far_from_anchor: bool = anchor.x != INF and pos.distance_to(anchor) > Mech.FIELD_R * 0.7
 	if has_target and _has_clear_shot and dist < fire_range * 1.1:
 		_strafe_timer -= delta
 		if _strafe_timer <= 0.0:
@@ -799,6 +854,10 @@ func _tactical_move(bot_mech: Node3D, has_target: bool, dist: float, fire_range:
 			var to_obj: Vector3 = (nxt if nxt != Vector3.ZERO else beacon.global_position) - pos
 			to_obj.y = 0.0
 			move += to_obj.normalized()
+		if far_from_anchor:  # T520(d): into the Heron's ring / back to the team
+			var to_a := anchor - pos
+			to_a.y = 0.0
+			move += to_a.normalized() * HEAL_PULL
 		return _to_move(bot_mech, move)
 	if has_target and not _has_clear_shot and dist < CHASE_DIST:
 		return _steer_to(bot_mech, _target.global_position)
@@ -810,6 +869,8 @@ func _tactical_move(bot_mech: Node3D, has_target: bool, dist: float, fire_range:
 		goal = near.global_position
 	if ally != null and pos.distance_to(ally.global_position) > 15.0:
 		return _steer_to(bot_mech, ally.global_position)  # T189: regroup only when outnumbered
+	if far_from_anchor:
+		return _steer_to(bot_mech, anchor)  # T520(d)
 	return _steer_to(bot_mech, goal)
 
 ## T172 tactics: only pull the trigger when the shot can land -- aim within a body
