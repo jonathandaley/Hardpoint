@@ -13,6 +13,7 @@ import argparse
 import glob
 import json
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -22,6 +23,18 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 
 def sh(args, **kw):
     return subprocess.run([sys.executable] + args, **kw).returncode
+
+
+KEEP_RUNS = 150  # 2026-11-20: 813 archived runs filled the 234 GB root disk (81 GB) mid-sweep
+
+
+def prune_runs(root):
+    """Keep the newest KEEP_RUNS timestamped run folders (YYYYMMDD_HHMMSS); named ones are kept."""
+    if not os.path.isdir(root):
+        return
+    runs = sorted(d for d in os.listdir(root) if len(d) == 15 and d[8] == "_" and d.replace("_", "").isdigit())
+    for d in runs[:-KEEP_RUNS] if len(runs) > KEEP_RUNS else []:
+        shutil.rmtree(os.path.join(root, d), ignore_errors=True)
 
 
 def main():
@@ -43,6 +56,7 @@ def main():
     build = os.path.join(HERE, "..", "build")
     os.makedirs(build, exist_ok=True)
     open(os.path.join(build, ".gdignore"), "a").close()
+    prune_runs(os.path.join(build, "suite_runs"))
 
     scenarios = sorted(glob.glob(os.path.join(HERE, "scenarios", "*.json")))
     results = []
