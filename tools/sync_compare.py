@@ -21,7 +21,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from oracles import (  # noqa: E402
     base, determinism, transform_desync, health_desync, lock_target, team_assignment,
-    crash_scan, rpc_integrity, event_sidefx, ammo_desync, beacon_desync, spawn_join, ability_desync,
+    crash_scan, rpc_integrity, event_sidefx, ammo_desync, beacon_desync, spawn_join, ability_desync, client_fire,
     friendly_fire, prediction_recon, hit_confirm, active_set_desync, reload_desync,
     aim_desync, input_delivery, beam_aim, log_flood, peer_closed, scene_routes, lobby_roster,
     hud_layout, world_invariants, interp_smoothness, latency_recovery, rpc_modes, fair_start, soak, menu_flow, bot_takeover, peer_drop, profile_parity, loop_audio,
@@ -40,6 +40,7 @@ ORACLES = {
     event_sidefx.NAME: event_sidefx,
     ammo_desync.NAME: ammo_desync,
     ability_desync.NAME: ability_desync,  # T468
+    client_fire.NAME: client_fire,  # T519
     beacon_desync.NAME: beacon_desync,
     spawn_join.NAME: spawn_join,
     friendly_fire.NAME: friendly_fire,

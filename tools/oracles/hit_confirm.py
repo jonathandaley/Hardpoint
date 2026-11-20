@@ -72,6 +72,10 @@ def run(ctx):
                                 note="hit by %s at tick %d never confirmed on owning peer %s within [-%d, +%d] ticks"
                                      % (src, t, role, skew, delay))
         pool.pop(match)
+    need = int(th.get("min_client_hits", 0))  # T519: a scenario that MUST see a client's shots land
+    if checked < need:
+        return base.verdict(NAME, base.FAIL, magnitude=need - checked,
+                            note="only %d client-owned hits on the server (want >= %d): the client's fire never landed" % (checked, need))
     if checked == 0:
         return base.verdict(NAME, base.SKIP,
                             note="no client-owned attributed hits; scenario did not exercise confirm RPC")

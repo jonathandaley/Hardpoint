@@ -894,7 +894,15 @@ func _physics_process_impl(delta: float) -> void:
 		if _predicting():
 			_handle_look()
 			_maybe_forward_input()
-			if _pred_live:
+			if _pred_live and get_meta("staged", false):
+				# T519 (user: a client's first mech "could still move and look" but not shoot or use its
+				# ability; start_pick_timeout: it fell out of the world): a mech staged for its pilot's start
+				# pick used to have its collision off -- the owner's prediction fell through the floor while
+				# the server held it in the air (T374). Now both let it settle on the floor and nothing else
+				# (Arena._stage keeps its mask), recording where it is.
+				_staged_settle(delta)
+				_pred_record()
+			elif _pred_live:
 				if not is_on_floor() and _step_up_remaining <= 0.0:
 					velocity += get_gravity() * delta
 				_handle_movement(delta)
@@ -917,7 +925,7 @@ func _physics_process_impl(delta: float) -> void:
 	# server doesn't pause for the pick, so gravity sank it through the floor -- into FALL_KILL_Y on
 	# a slow pick. It waits where it stands.
 	if get_meta("staged", false):
-		velocity = Vector3.ZERO
+		_staged_settle(delta)  # T519: stands on the floor, nothing else
 		return
 
 	if not is_on_floor() and _step_up_remaining <= 0.0:
@@ -1114,6 +1122,13 @@ func _check_step_dir(dir: Vector3, space: PhysicsDirectSpaceState3D, ex: Array, 
 	_step_up_remaining = _MAX_STEP
 	velocity.y = 0.0
 	return true
+
+## T519: a staged mech (start pick) only settles onto the floor: no input, no horizontal motion.
+func _staged_settle(delta: float) -> void:
+	velocity.x = 0.0
+	velocity.z = 0.0
+	velocity.y = 0.0 if is_on_floor() else velocity.y + get_gravity().y * delta
+	move_and_slide()
 
 func _update_legs(delta: float) -> void:
 	if not Game.prof_on:  # T165 profiling shim (T525: legs inside "mech")

@@ -85,6 +85,7 @@ func _ready() -> void:
 	_port = int(_scenario.get("port", 8910))
 	_matches = int(_scenario.get("matches", 1))
 	Game.test_skip_arena_ack = _role == "client" and bool(_scenario.get("skip_ack_client", false))  # T511
+	Game.harness_start_pick = bool(_scenario.get("start_pick", false))  # T519: run the real start pick
 	var peers: Dictionary = _scenario.get("peers", {})
 	_expected_clients = 0
 	for k in peers:
@@ -602,6 +603,26 @@ func _try_override_input() -> void:
 	mine.set_input_source(replay)
 	_finish_override(key, mine)
 
+# T519: after a start pick, the replay input goes onto the mech this peer now owns (a swap spawns a
+# new one a round trip later) and logs under its name (input_delivery keys presses by mech).
+func _rebind_after_pick() -> void:
+	# the arena's own possess (a swap's new mech, a round trip later -- seconds on a lossy link) replaces
+	# the replay input: follow Arena.player_mech for 10 s and re-bind whenever it changes
+	var replay := get_node_or_null("ReplayInput")
+	var bound: Node = null
+	for i in 600:
+		await get_tree().physics_frame
+		var arena := get_tree().current_scene
+		var pm = arena.get("player_mech") if arena != null else null
+		if replay == null or not (pm is Node) or not is_instance_valid(pm) or pm.get("is_dead"):
+			continue
+		if pm != bound or pm.get("_input_source") != replay:
+			replay.set("mech_id", pm.name)
+			pm.set_input_source(replay)
+			_mine = pm
+			print("[Harness] start_pick (%s): replay input on %s" % [_role, pm.name])
+			bound = pm
+
 # T204: a dedicated server has no mech to bind; its clock (actions, deadline) starts
 # when each match goes live. _mine = the Arena, freed on the way back to the lobby,
 # which re-arms this for the next match (the _process match-2 check).
@@ -692,6 +713,20 @@ func _run_action(a: Dictionary) -> void:
 					for m in get_tree().get_nodes_in_group("mechs"):
 						if int(m.get("owner_peer_id")) == pid and not m.get("is_dead"):
 							m.take_damage(float(a.get("amount", float(m.get("health")) + 1000.0)))
+		"start_pick":
+			# T519: this peer makes its start pick through the HUD signals (slot, spawn), as a player
+			# would; closing the pick re-possesses with the player's input, so the replay input is
+			# re-bound to whichever mech this peer owns once the pick has resolved
+			var arena := get_tree().current_scene
+			if arena == null or not arena.get("_start_pick_open"):
+				print("[Harness] start_pick (%s): no pick open" % _role)
+				return
+			arena.get("hud").squad_slot_selected.emit(int(a.get("slot", 0)))
+			arena.get("hud").spawn_selected.emit(int(a.get("spawn", 0)))
+			print("[Harness] start_pick (%s): slot %d spawn %d" % [_role, int(a.get("slot", 0)), int(a.get("spawn", 0))])
+			_rebind_after_pick()
+		"rebind_input":  # T519: the replay input onto this peer's current mech (after a pick timed out)
+			_rebind_after_pick()
 		"place_mech":
 			# T456: server moves the mech of roster slot "slot" next to the one of "near" (+ "offset"),
 			# for abilities with a reach (STOMP). Move a mech the client doesn't predict (the server's).

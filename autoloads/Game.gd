@@ -812,6 +812,7 @@ var mp_live: bool = false
 # its mechs -- an ack held > 5 s behind resends left a client blind; unreliable inputs don't queue --
 # or a late joiner's AUTH_READY); the 5 s fallback still starts the match for the rest.
 var _stream_peers := {}
+var harness_start_pick := false  # T519 test seam: scripted runs normally skip the start pick; the start_pick scenario runs it
 var test_skip_arena_ack := false  # T511 test seam: the harness (scenario "skip_ack_client") loses this client's Arena ack
 
 ## Server: the clients the match streams (snapshots, beacon progress, scores) go to.

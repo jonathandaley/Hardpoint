@@ -1262,7 +1262,7 @@ func _my_squad() -> Array:
 
 func _open_start_pick() -> void:
 	var my_id := multiplayer.get_unique_id()
-	if _player == null or player_mech == null or not _peer_slot_used.has(my_id) or Game.has_node("MPHarness"):
+	if _player == null or player_mech == null or not _peer_slot_used.has(my_id) or (Game.has_node("MPHarness") and not Game.harness_start_pick):
 		return  # scripted runs drive slot 0 from tick 0 and check the HUD
 	var squad := _my_squad()
 	if squad.filter(func(sq) -> bool: return sq.get("mech", "") != "").size() < 2:
@@ -1363,12 +1363,20 @@ func _process_start_pick(sender: int, slot: int, spawn: int) -> void:
 # peer -- unseen, no collision, not a target -- until the pick resolves: a swap retires it unseen,
 # keeping it (or a refused / timed-out pick) reveals it everywhere via the server.
 func _picks_at_start(squad: Array) -> bool:  # the same test _open_start_pick makes, on every peer
-	return not Game.has_node("MPHarness") and squad.filter(func(sq) -> bool: return sq.get("mech", "") != "").size() >= 2
+	return (not Game.has_node("MPHarness") or Game.harness_start_pick) and squad.filter(func(sq) -> bool: return sq.get("mech", "") != "").size() >= 2
 
 func _stage(m: Node, on: bool) -> void:
 	m.visible = not on
 	m.set("is_stealthy", on)  # targeting, locks and the enemy minimap skip it
-	(m.get_node("CollisionShape3D") as CollisionShape3D).set_deferred("disabled", on)
+	# T519: nothing detects it (layer 0) but it still lands on the world (mask kept) -- with the shape
+	# off it floated (server, T374) or fell through the floor (the owner's prediction); standing on the
+	# floor on both, revealing it moves nothing
+	if on:
+		if not m.has_meta("unstaged_layer"):
+			m.set_meta("unstaged_layer", (m as CollisionObject3D).collision_layer)
+		m.set_deferred("collision_layer", 0)
+	else:
+		m.set_deferred("collision_layer", int(m.get_meta("unstaged_layer", 1)))
 	m.set_meta("staged", on)
 
 func _reveal_first(pid: int) -> void:  # server

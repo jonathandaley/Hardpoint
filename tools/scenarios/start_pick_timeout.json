@@ -1,0 +1,100 @@
+{
+  "name": "start_pick_timeout",
+  "seed": 5190,
+  "port": 8940,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Heron.tres",
+  "weapons": [
+    "res://scenes/weapons/MachineGunLight.tscn",
+    "res://scenes/weapons/MachineGunLight.tscn"
+  ],
+  "start_pick": true,
+  "duration_ticks": 1100,
+  "oracles": [
+    "client_fire",
+    "input_delivery",
+    "health_desync",
+    "spawn_join",
+    "team_assignment",
+    "crash_scan",
+    "log_flood",
+    "rpc_integrity"
+  ],
+  "thresholds": {
+    "min_client_shots": 20
+  },
+  "actions": [
+    {
+      "tick": 20,
+      "peer": "server",
+      "action": "start_pick",
+      "slot": 0,
+      "spawn": 0
+    },
+    {
+      "tick": 620,
+      "peer": "client_1",
+      "action": "rebind_input"
+    },
+    {
+      "tick": 700,
+      "peer": "server",
+      "action": "place_mech",
+      "slot": "server",
+      "near": "client_1",
+      "ahead": 10
+    }
+  ],
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "pulses": []
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 760,
+            "fire_primary": true
+          },
+          {
+            "tick": 1000,
+            "fire_primary": false
+          }
+        ],
+        "pulses": [
+          {
+            "tick": 820,
+            "action": "ability"
+          }
+        ]
+      }
+    }
+  },
+  "_comment": "T519 variant of start_pick: timeout. T519 (user 2026-11-20: a client's first mech sometimes can't shoot or use its ability, could still move and look; only self-destructing fixed it): scripted runs used to SKIP the start pick, so a client's real pick was never covered. Here both peers make it through the HUD (server keeps slot 0; client SWAPS to slot 1), the harness re-binds the replay input to the mech each now owns, the server's mech is placed 10 m in front of the client, and the client fires + presses its ability. client_fire needs >= 20 shots fired on the server for the client's mech, input_delivery the ability press applied."
+}
