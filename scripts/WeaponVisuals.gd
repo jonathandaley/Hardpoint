@@ -28,6 +28,8 @@ static var _meshes := {}  # "Rifle@0.5" -> [[ArrayMesh, Material], ...]
 static func kit_name(scene_path: String) -> String:
 	var base := scene_path.get_file().get_basename()
 	var fam := base.trim_suffix("Light").trim_suffix("Heavy")
+	if fam == "Swarm":
+		return "AerialStrike"  # T521: the swarm pod is the old strike pod
 	if fam == "MissileLauncher":
 		return "MissileH" if base.ends_with("Heavy") else "MissileL"
 	return fam

@@ -61,6 +61,7 @@ const WEAPON_CATALOG: Array = [
 	{"name": "MORTAR HV",     "path": "res://scenes/weapons/MortarHeavy.tscn",         "long": "MORTAR HEAVY", "slot_size": 1},  # T458
 	{"name": "INFERNO HV",    "path": "res://scenes/weapons/FlamerHeavy.tscn",         "long": "INFERNO HEAVY", "slot_size": 1},  # T457
 	{"name": "ORBITAL HV",    "path": "res://scenes/weapons/OrbitalStrikeHeavy.tscn",  "long": "ORBITAL STRIKE HV", "slot_size": 1},  # T522: replaced AERIAL HV
+	{"name": "SWARM HV",      "path": "res://scenes/weapons/SwarmHeavy.tscn",          "long": "SWARM HV",          "slot_size": 1},  # T521
 	{"name": "PATIENCE HV",   "path": "res://scenes/weapons/PatienceHeavy.tscn",        "long": "PATIENCE HV", "slot_size": 1},
 ]
 
@@ -682,8 +683,8 @@ const BOT_WEAPON_WEIGHTS := {
 	"Hippogriff": {"MISSILE": 4, "MG": 3, "RIFLE": 2, "LASER": 2},
 	"Kestrel":    {"LASER": 4, "RIFLE": 3, "ARC": 2, "MG": 2},
 	"Pegasus":    {"RIFLE": 4, "SHOTGUN": 3, "LASER": 2, "MG": 2},
-	"Everest":    {"MG": 4, "LASER": 3, "ORBITAL": 2, "PATIENCE": 2, "RIFLE": 2, "MORTAR": 2},
-	"Vesuvius":   {"MG": 3, "MISSILE": 3, "ORBITAL": 3, "PATIENCE": 2, "RIFLE": 2, "LASER": 2, "MORTAR": 3},
+	"Everest":    {"MG": 4, "LASER": 3, "ORBITAL": 2, "SWARM": 2, "PATIENCE": 2, "RIFLE": 2, "MORTAR": 2},
+	"Vesuvius":   {"MG": 3, "MISSILE": 3, "ORBITAL": 3, "SWARM": 3, "PATIENCE": 2, "RIFLE": 2, "LASER": 2, "MORTAR": 3},
 	"Taurus":     {"SHOTGUN": 4, "MG": 3, "INFERNO": 2, "RIFLE": 2, "SNIPER": 0},  # T363: rams in, fights up close (T457 flamer)
 	"Denali":     {"RIFLE": 4, "LASER": 3, "MG": 2, "PATIENCE": 2, "MORTAR": 2},  # T430: plants (ANCHOR) and trades shots at range
 	"Kanchenjunga": {"SHOTGUN": 4, "MG": 4, "INFERNO": 3, "ARC": 2, "RIFLE": 1},  # T456: walks in and stomps (T457 flamer)

@@ -8,6 +8,7 @@
 | ORBITAL STRIKE HV | H | 350 | 0.12 | 42 | 13 | 200 | 1 / 18.0s reload | lock | one strike 350 at the centre -> 120 at the rim (r 10 m), lands 10 s after the mark; needs a lock |
 | SNIPER HEAVY | H | 60 | 0.45 | 27 | 12 | 200 | 5 / 14.0s reload |  |  |
 | PATIENCE HV | H | 160 | 0.083 | 13 | 10 | 300 | 1 / 3.5s reload |  | charge: 8 -> 160 over 12.0 s (DPS at full charge) |
+| SWARM HV | H | 216 | 0.12 | 26 | 9 | 200 | 1 / 16.0s reload | lock | salvo of 20 (each 7 + splash 3.6, r 8 m) if all land |
 | ARC WEAPON HV | H | 2 | 8 | 13 | 5 | 90 | 56 / 10.0s reload | lock | x2.5 within 10 m, x1 from 54 m |
 | LASER CANNON HV | H | 2 | 8 | 17 | 5 | 150 | 30 / +2.5 per s |  |  |
 | RIFLE HEAVY | H | 10 | 2.7 | 27 | 5 | 100 | 12 / +0.5 per s |  |  |

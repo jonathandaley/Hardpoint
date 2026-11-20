@@ -14,6 +14,8 @@ const HOMING_SCENE := preload("res://scenes/weapons/HomingProjectile.tscn")
 @export var burst_interval: float = 0.06
 @export var jitter_radius: float = 5.0
 
+var _last_rocket: Node3D = null
+
 func fire() -> void:
 	if owner_mech == null or owner_mech.get("locked_target") == null:
 		return
@@ -60,6 +62,7 @@ func _spawn_rocket(lock_target: Node3D) -> void:
 	proj.on_hit = func(body, pos): _emit_hit_if_visible(body, pos, true)
 
 	get_tree().current_scene.add_child(proj)
+	_last_rocket = proj  # T521: Swarm arms its split on it
 	var fwd_point := global_position - global_transform.basis.z
 	proj.global_transform = Transform3D(Basis(), global_position).looking_at(fwd_point)
 	# Audit #20: rockets were invisible to clients (same family as #15); ghost

@@ -635,6 +635,7 @@ const WEAPON_DESC := {
 	"ARC": "Needs a lock, then throws lightning at the target -- no travel time, no miss once locked. Bred from a mining cutter.",
 	"MORTAR": "Lobs a shell high over anything in the way onto where you aim -- a ring shows where it will land. Slow to fire, slow to reload, hits everything near the landing. Siege crews swear by it.",  # T458
 	"INFERNO": "A cone of fire for close work: everything in front of it burns, and keeps burning for 2 s after. The tank refills while you're not firing. Foundry crews never put theirs down.",  # T457
+	"SWARM": "Needs a lock. A salvo of homing rockets; a rocket that misses loops back for another pass, and a hit sometimes splits into two that chase someone else nearby.",
 	"ORBITAL": "Needs a lock. Marks where the target stands; 10 s later a strike from orbit hits everything in the ring. Whoever walks out in time is safe.",
 	"PATIENCE": "Charges while you hold it -- up to 12 s for the full hit, 300 m reach. Named for what it takes.",
 }

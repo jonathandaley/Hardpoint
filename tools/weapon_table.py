@@ -77,7 +77,7 @@ for name, path, long_, slot in cat:
     elif cls == 'OrbitalStrike':  # T522: one marked strike, 10 s later
         per_shot = dmg
         note = 'one strike %.0f at the centre -> %.0f at the rim (r %.0f m), lands 10 s after the mark; needs a lock' % (dmg, f(d, 'edge_damage', 120.0), f(d, 'strike_radius', 10.0))
-    elif cls == 'AerialStrike':
+    elif cls in ('AerialStrike', 'Swarm'):
         bc = int(f(d, 'burst_count', 20))
         per_shot = bc * (dmg + f(d, 'splash_damage', 1.6))
         note = 'salvo of %d (each %.0f + splash %.1f, r %.0f m) if all land' % (bc, dmg, f(d, 'splash_damage', 1.6), f(d, 'splash_radius', 8.0))
