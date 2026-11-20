@@ -29,3 +29,4 @@
 2026-11-20|T510|sweep died|460346d|root disk full (build/suite_runs 81 GB, 813 runs): removed runs before 11-16 (-51 GB), run_suite now keeps the newest 150; sweep rerun
 2026-11-20|T528|reverted|(this commit)|skinned mechs identical (mech_shot diff) but no browser gain: draws -90, sync +0.7 ms, skinning cost ~= savings; reverted, tool + multi-surface walks kept
 2026-11-20|T519|DONE|(this commit)|staged first mech fell through the floor in the client's prediction (collision off): layer 0 + mask kept + settle on both; start_pick scenarios x4 + client_fire oracle
+2026-11-20|T519|PUSHED|ba0b6df|suite 233/234 (difficulty_steps: one Jolt shape leak at exit, 2 reruns clean) + sweep 83/84 (account_match@bad: T534 flake, 3 reruns green)
