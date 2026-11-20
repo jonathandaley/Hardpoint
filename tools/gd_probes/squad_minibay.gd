@@ -64,7 +64,7 @@ func _ready() -> void:
 		return
 	# T344: clicking a card's picture picks that slot too
 	picked[0] = -1
-	var pic := cards[0].find_children("*", "SubViewportContainer", true, false)[0] as Control
+	var pic := cards[0].find_children("*", "SubViewport", true, false)[0].get_parent() as Control  # T529: a TextureRect now
 	for down in [true, false]:
 		var ev := InputEventMouseButton.new()
 		ev.button_index = MOUSE_BUTTON_LEFT
