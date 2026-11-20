@@ -57,6 +57,8 @@ func _ready() -> void:
 				loadout["map_def"] = load("res://resources/maps/%s.tres" % kv[1])
 			elif kv.size() == 2 and kv[0] == "bots" and kv[1].split(",").size() == 2:
 				loadout["sp_bots"] = [clampi(kv[1].split(",")[0].to_int(), 0, 5), clampi(kv[1].split(",")[1].to_int(), 0, 5)]
+			elif kv.size() == 2 and kv[0] == "weapons" and safe_res("res://scenes/weapons/%s.tscn" % kv[1], "res://scenes/weapons/", ".tscn"):
+				_perf_bot_weapon = "res://scenes/weapons/%s.tscn" % kv[1]  # T525: worst-case benches (every bot, every slot)
 		start_sp_match.call_deferred()
 
 # M0.4: spin up the autodebug harness driver, isolated from the normal UI path.
@@ -944,6 +946,8 @@ var mp_active_match: Dictionary = {
 ## through the same roster / Arena / match-end path as MP, on the OfflineMultiplayerPeer
 ## (no socket: a web build can't host ENet; V56). Fills mp_lobby + mp_active_match only;
 ## start_sp_match() also loads the Arena. Tools/probes call this and edit the roster.
+var _perf_bot_weapon := ""  # T525: set only by the perf URL / command-line flag weapons=<scene>
+
 func setup_sp_match() -> void:
 	var lobby := load("res://scripts/Lobby.gd")
 	var md: Resource = loadout.get("map_def")
@@ -953,7 +957,13 @@ func setup_sp_match() -> void:
 		"mode": loadout.get("mode", "beacons")}
 	if loadout.get("sp_bots") is Array and (loadout["sp_bots"] as Array).size() == 2:  # T251: the SP picker's exact ally / enemy counts
 		mp_lobby["bot_counts"] = loadout["sp_bots"]
-	mp_active_match = {"map_path": map_path, "roster": lobby._build_roster(), "match_seed": 0,
+	var roster: Array = lobby._build_roster()
+	if _perf_bot_weapon != "":  # T525: the perf flag weapons=<scene> arms every bot slot with it
+		for e in roster:
+			if int(e.get("peer_id", 0)) == 0:
+				for sq in e.get("squad", []):
+					sq["weapons"] = (sq.get("weapons", []) as Array).map(func(_w): return _perf_bot_weapon)
+	mp_active_match = {"map_path": map_path, "roster": roster, "match_seed": 0,
 		"mode": mp_lobby["mode"]}
 	loadout["map_def"] = load(map_path)
 
