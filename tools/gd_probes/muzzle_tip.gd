@@ -31,14 +31,15 @@ func _ready() -> void:
 			else:
 				if mult == 1.0 and wname.ends_with("Heavy"):
 					report.append("%s %.2f m / %.2f" % [wname.trim_suffix("Heavy"), -(mz as Vector3).z, float(bw)])
-				var before := get_children().size()
+				var fx: Node = VFX._fx()  # T525: flashes are FxPool spheres now
+				var before: Array = fx.spheres().map(func(s): return s["id"])
 				w.call("_muzzle_flash", false)
-				var flash: Array = get_children().slice(before)
+				var flash: Array = fx.spheres().filter(func(s): return not before.has(s["id"]))
 				var want: Vector3 = w.to_global(mz)
-				if flash.is_empty() or (flash[0] as Node3D).global_position.distance_to(want) > 0.01:
+				if flash.is_empty() or (flash[0]["pos"] as Vector3).distance_to(want) > 0.01:
 					bad.append("%s x%.1f: no flash at the muzzle" % [wname, mult])
-				elif absf((flash[0] as Node3D).scale.x * 0.14 - float(bw) * 1.2) > 0.01:
-					bad.append("%s x%.1f: flash radius %.3f, barrel %.3f" % [wname, mult, (flash[0] as Node3D).scale.x * 0.14, float(bw)])
+				elif absf(float(flash[0]["radius"]) - float(bw) * 1.2) > 0.01:
+					bad.append("%s x%.1f: flash radius %.3f, barrel %.3f" % [wname, mult, float(flash[0]["radius"]), float(bw)])
 			w.free()
 	if not bad.is_empty():
 		push_error("[probe] muzzle_tip FAIL: " + "; ".join(bad.slice(0, 6)))

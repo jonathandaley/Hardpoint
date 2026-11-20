@@ -51,7 +51,7 @@ func _ready() -> void:
 
 ## A sphere piece: radius r0 -> r1 (m), p0 -> p1, energy e0 -> e1, over dur s after delay s.
 func sphere(p0: Vector3, p1: Vector3, r0: float, r1: float, col: Color, e0: float, e1: float, dur: float, delay := 0.0) -> void:
-	_add(SPHERE, [0.0, dur, delay, p0, p1, Basis.IDENTITY, Vector3.ONE * r0, Vector3.ONE * r1, col, e0, e1, 1.0, 1.0, false])
+	_add(SPHERE, [0.0, dur, delay, p0, p1, Basis.IDENTITY, Vector3.ONE * r0, Vector3.ONE * r1, col, e0, e1, 1.0, 1.0, false, _next_id()])
 
 ## A tracer: a box from -> to, width w0 -> w1 across, energy e0 -> 0 and alpha 1 -> 0 (quadratic ease-in).
 func beam(from: Vector3, to: Vector3, w0: float, w1: float, col: Color, e0: float, dur: float) -> void:
@@ -60,7 +60,7 @@ func beam(from: Vector3, to: Vector3, w0: float, w1: float, col: Color, e0: floa
 	var b := Basis.looking_at(d, up)
 	var mid := (from + to) * 0.5
 	var l := d.length()
-	_add(BOX, [0.0, dur, 0.0, mid, mid, b, Vector3(w0, w0, l), Vector3(w1, w1, l), col, e0, 0.0, 1.0, 0.0, true])
+	_add(BOX, [0.0, dur, 0.0, mid, mid, b, Vector3(w0, w0, l), Vector3(w1, w1, l), col, e0, 0.0, 1.0, 0.0, true, _next_id()])
 
 # Bullets in flight (Projectile with a plain sphere mesh): [node, radius, colour] -- drawn where the node
 # is each frame as part of the sphere set; a freed one drops out.
@@ -68,6 +68,31 @@ var _follow: Array = []
 
 func follow(n: Node3D, radius: float, col: Color) -> void:
 	_follow.append([n, radius, col])
+
+var _ids := 0
+
+func _next_id() -> int:
+	_ids += 1
+	return _ids
+
+## For probes (read-only): the live tracers as {id, from, to, width, alpha}; the live spheres (not the
+## bullets) as {id, pos, radius} -- each piece's state now.
+func beams() -> Array:
+	var out: Array = []
+	for pc in _live[BOX]:
+		var u: float = clampf(float(pc[0]) / float(pc[1]), 0.0, 1.0)
+		var s: Vector3 = (pc[6] as Vector3).lerp(pc[7], u)
+		var half: Vector3 = (pc[5] as Basis).z * s.z * 0.5
+		out.append({"id": pc[14], "from": (pc[3] as Vector3) + half, "to": (pc[3] as Vector3) - half, "width": s.x,
+			"alpha": lerpf(pc[11], pc[12], u * u)})
+	return out
+
+func spheres() -> Array:
+	var out: Array = []
+	for pc in _live[SPHERE]:
+		var u: float = clampf((float(pc[0]) - float(pc[2])) / float(pc[1]), 0.0, 1.0)
+		out.append({"id": pc[14], "pos": (pc[3] as Vector3).lerp(pc[4], u), "radius": (pc[6] as Vector3).lerp(pc[7], u).x})
+	return out
 
 func _add(k: int, piece: Array) -> void:
 	var live: Array = _live[k]

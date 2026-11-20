@@ -80,15 +80,15 @@ func _ready() -> void:
 	w.set("_charge_time", w.get("max_charge_time"))
 	var full: float = w.get("max_damage")
 	var h0: float = enemy.get("health")
-	var before := _beams(arena)
+	var before: Array = _beams(arena).map(func(b): return b["id"])
 	var shots_before := arena.get_children().filter(func(n): return n is Projectile).size()
 	src.prim = true
-	var beam: MeshInstance3D = null
+	var beam = null  # T525: a tracer in the FxPool
 	var dealt_at_beam := -1.0
 	for i in 30:
 		await get_tree().physics_frame
 		for b in _beams(arena):
-			if not before.has(b) and beam == null:
+			if not before.has(b["id"]) and beam == null:
 				beam = b
 				dealt_at_beam = h0 - float(enemy.get("health"))
 		if beam != null:
@@ -100,7 +100,7 @@ func _ready() -> void:
 	if absf(dealt_at_beam - full) > 1.0:
 		_fail("when the beam appeared the enemy had taken %.1f, want the full %.1f at once" % [dealt_at_beam, full])
 		get_tree().quit(1); return
-	var end: Vector3 = beam.global_position - beam.global_transform.basis.z * (beam.mesh as BoxMesh).size.z * 0.5
+	var end: Vector3 = beam["to"]
 	if end.distance_to(hit.position) > 0.2:
 		_fail("beam ends at %s, the shot hit %s" % [end, hit.position])
 		get_tree().quit(1); return
@@ -116,5 +116,6 @@ func _ready() -> void:
 	print("[probe] patience_hitscan done (%.1f dmg the tick it fired, beam end %.2f m from the hit)" % [dealt_at_beam, end.distance_to(hit.position)])
 	get_tree().quit(0)
 
-func _beams(arena: Node) -> Array:
-	return arena.get_children().filter(func(n): return n is MeshInstance3D and n.mesh is BoxMesh and (n.mesh as BoxMesh).size.z > 5.0)
+func _beams(_arena: Node) -> Array:  # T525: tracers live in the FxPool now
+	var fx: Node = VFX._fx()
+	return [] if fx == null else fx.beams().filter(func(b): return (b["to"] as Vector3).distance_to(b["from"]) > 5.0)

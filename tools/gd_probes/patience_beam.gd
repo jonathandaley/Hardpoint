@@ -63,36 +63,37 @@ func _ready() -> void:
 		await get_tree().physics_frame
 	w.set("_charge_time", w.get("max_charge_time"))  # full charge takes 12 s; don't sit it out
 	var t0 := Time.get_ticks_msec()
-	var before := _beams(arena)
+	var before: Array = _beams(arena).map(func(b): return b["id"])
 	src.prim = true
-	var beam: MeshInstance3D = null
+	var beam = null  # T525: a tracer in the FxPool, {id, from, to, width, alpha}
 	t0 = Time.get_ticks_msec()
 	while beam == null and Time.get_ticks_msec() - t0 < 4000:  # T465: wait-until deadlines generous (exit on the event; a loaded machine runs fewer ticks a second)
 		await get_tree().physics_frame
 		for b in _beams(arena):
-			if not before.has(b):
+			if not before.has(b["id"]):
 				beam = b
 	src.prim = false
 	if beam == null:
 		_fail("no beam after a charged shot")
 		get_tree().quit(1); return
-	var thick: float = (beam.mesh as BoxMesh).size.x
+	var thick: float = beam["width"]
 	if thick < 0.3:
 		_fail("beam %.2f m thick, want >= 0.3" % thick)
 		get_tree().quit(1); return
 	var fired := Time.get_ticks_msec()
 	while Time.get_ticks_msec() - fired < 1000:
 		await get_tree().process_frame
-	if not is_instance_valid(beam):
+	var now = _find(arena, beam["id"])
+	if now == null:
 		_fail("beam gone before 1 s")
 		get_tree().quit(1); return
-	var a: float = (beam.material_override as StandardMaterial3D).albedo_color.a if beam.material_override else 1.0
+	var a: float = now["alpha"]
 	if a >= 0.99:
 		_fail("beam not fading at 1 s (alpha %.2f)" % a)
 		get_tree().quit(1); return
-	while Time.get_ticks_msec() - fired < 2500 and is_instance_valid(beam):
+	while Time.get_ticks_msec() - fired < 2500 and _find(arena, beam["id"]) != null:
 		await get_tree().process_frame
-	if is_instance_valid(beam):
+	if _find(arena, beam["id"]) != null:
 		_fail("beam still there at 2.5 s")
 		get_tree().quit(1); return
 	var src_code: String = (load("res://scripts/Patience.gd") as Script).source_code
@@ -102,5 +103,12 @@ func _ready() -> void:
 	print("[probe] patience_beam done (%.2f m thick, alpha %.2f at 1 s)" % [thick, a])
 	get_tree().quit(0)
 
-func _beams(arena: Node) -> Array:
-	return arena.get_children().filter(func(n): return n is MeshInstance3D and n.mesh is BoxMesh and (n.mesh as BoxMesh).size.z > 5.0)
+func _beams(_arena: Node) -> Array:  # T525: tracers live in the FxPool now
+	var fx: Node = VFX._fx()
+	return [] if fx == null else fx.beams().filter(func(b): return (b["to"] as Vector3).distance_to(b["from"]) > 5.0)
+
+func _find(arena: Node, id: int):
+	for b in _beams(arena):
+		if b["id"] == id:
+			return b
+	return null
