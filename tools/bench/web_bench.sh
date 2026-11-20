@@ -23,7 +23,7 @@ user_pref("browser.startup.homepage_override.mstone", "ignore");
 user_pref("datareporting.policy.dataSubmissionEnabled", false);
 user_pref("toolkit.telemetry.reportingpolicy.firstRun", false);
 EOF
-python3 -m http.server $PORT --bind 127.0.0.1 --directory "$ROOT/build/web" >/dev/null 2>&1 &
+python3 -m http.server $PORT --bind 127.0.0.1 --directory "${WEB_DIR:-$ROOT/build/web}" >/dev/null 2>&1 &
 SRV=$!
 sleep 1
 DISPLAY=:0 firefox --no-remote --profile "$SCR/profile" --width 1280 --height 720 \
