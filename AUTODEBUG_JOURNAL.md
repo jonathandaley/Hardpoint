@@ -35,3 +35,4 @@
 2026-11-20|T531|DONE|31877b5|suite 236/236; scope_zoom skill: wheel / arrows zoom on lasers + weapons over 150 m, max 1+0.5/lv
 2026-11-20|T529|DONE|f1b892b|suite 235/236 (squad_minibay looked for the old SubViewportContainer; fixed, green); hangar lineup / preview / HUD cards render at the window real pixels, nearest (were smoothed up 1.5-3x)
 2026-11-20|T535|DONE|e6429b5|suite 236/236; scope skips lock-on weapons (Rocket LT, Orbital, Swarm)
+2026-11-20|T534|DONE|(this commit)|account_match@bad flake: a late-joining client quit before the match end arrived; duration 600 -> 900

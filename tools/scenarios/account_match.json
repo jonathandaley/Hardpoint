@@ -5,20 +5,75 @@
   "seed": 0,
   "port": 8949,
   "map_path": "res://resources/maps/MathTemple.tres",
-  "duration_ticks": 600,
-  "server_opts": {"team_size": 2, "min_players": 2},
-  "actions": [{"tick": 240, "peer": "server", "action": "end_match", "winner": 0}],
-  "oracles": ["accounts", "dedicated", "menu_flow", "spawn_join", "team_assignment", "crash_scan", "log_flood", "rpc_integrity"],
-  "_comment": "T207: both clients sign up on the dedicated server's TLS account endpoint (port + 1) the way the Account screen does, then join through the real menus signed in (session token in the auth handshake). The server ends the match at tick 240: accounts checks each account's result was applied on the server, sent back to the player (client profile = server's), and not written to the client's local profile.cfg.",
+  "duration_ticks": 900,
+  "server_opts": {
+    "team_size": 2,
+    "min_players": 2
+  },
+  "actions": [
+    {
+      "tick": 240,
+      "peer": "server",
+      "action": "end_match",
+      "winner": 0
+    }
+  ],
+  "oracles": [
+    "accounts",
+    "dedicated",
+    "menu_flow",
+    "spawn_join",
+    "team_assignment",
+    "crash_scan",
+    "log_flood",
+    "rpc_integrity"
+  ],
+  "_comment": "T207: both clients sign up on the dedicated server's TLS account endpoint (port + 1) the way the Account screen does, then join through the real menus signed in (session token in the auth handshake). The server ends the match at tick 240: accounts checks each account's result was applied on the server, sent back to the player (client profile = server's), and not written to the client's local profile.cfg. T534: duration 600 -> 900 -- on the bad link a client that joins late through the menus could reach its own 600 ticks (counted from its start) before the match end + profile arrived (client_2 quit at arena tick 254, the end came at ~276).",
   "peers": {
     "server": {},
     "client_1": {
-      "account": {"email": "ace@example.com", "password": "correct-horse-1", "callsign": "Ace"},
-      "input": {"keyframes": [{"tick": 0, "move": [0, -1], "look": [0.0, 0.0]}]}
+      "account": {
+        "email": "ace@example.com",
+        "password": "correct-horse-1",
+        "callsign": "Ace"
+      },
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
     },
     "client_2": {
-      "account": {"email": "bee@example.com", "password": "correct-horse-2", "callsign": "Bee"},
-      "input": {"keyframes": [{"tick": 0, "move": [0, -1], "look": [0.0, 0.0]}]}
+      "account": {
+        "email": "bee@example.com",
+        "password": "correct-horse-2",
+        "callsign": "Bee"
+      },
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
     }
   }
 }
