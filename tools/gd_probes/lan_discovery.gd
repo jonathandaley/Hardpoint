@@ -54,8 +54,10 @@ func _ready() -> void:
 		bad.append("the listener heard %s (want Mesa Ace / Badlands / 3 / v%d)" % [str(rx.games), Game.NET_VERSION])
 	tx.queue_free()
 	await get_tree().create_timer(LanDiscovery.FORGET_S + 0.6).timeout
-	if not rx.games.is_empty():
-		bad.append("a host that stopped broadcasting is still listed after %.1f s" % LanDiscovery.FORGET_S)
+	# its own entry only: a game hosted by another test on this machine meanwhile broadcasts on the same
+	# port and is (rightly) listed (suite 2026-11-19: "still listed" with nothing of ours left)
+	if rx.games.has("127.0.0.1:9123"):
+		bad.append("a host that stopped broadcasting is still listed after %.1f s (%s)" % [LanDiscovery.FORGET_S, str(rx.games.keys())])
 	rx.queue_free()
 	await get_tree().process_frame
 	# the Join tab lists a found game as a button that fills the address

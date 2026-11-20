@@ -77,7 +77,12 @@ func _ready() -> void:
 		if k % 60 == 59:
 			var ai: Node = shooters[2].get("_input_source")
 			var cm := shooters[2] as CharacterBody3D
-			c_state.append("t%d mv%s v%.1f tgt%s clear%s hold%s cover%s esc%.1f floor%s" % [(k + 1) / 60, (ai.get("_move_dir") as Vector2).snapped(Vector2.ONE * 0.1),
+			var hit := ""  # what it slid against, if anything
+			for ci in cm.get_slide_collision_count():
+				var col := cm.get_slide_collision(ci).get_collider() as Node
+				if col != null and absf(cm.get_slide_collision(ci).get_normal().y) < 0.7:
+					hit += String(col.name) + " "
+			c_state.append("pos%s hit[%s] " % [Vector2(cm.global_position.x, cm.global_position.z).snapped(Vector2.ONE * 0.1), hit] + "t%d mv%s v%.1f tgt%s clear%s hold%s cover%s esc%.1f floor%s" % [(k + 1) / 60, (ai.get("_move_dir") as Vector2).snapped(Vector2.ONE * 0.1),
 				Vector2(cm.velocity.x, cm.velocity.z).length(), ai.get("_target") != null, ai.get("_has_clear_shot"), ai.get("rwf_hold"), ai.get("rwf_cover"),
 				float(ai.get("_escape_timer")), cm.is_on_floor()])
 		for i in 3:
