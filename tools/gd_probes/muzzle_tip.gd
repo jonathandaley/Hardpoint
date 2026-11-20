@@ -7,7 +7,7 @@ extends Node3D
 const WeaponVisuals := preload("res://scripts/WeaponVisuals.gd")
 const WEAPONS := ["RifleLight", "RifleHeavy", "SniperLight", "SniperHeavy", "MachineGunLight", "MachineGunHeavy",
 	"ShotgunLight", "ShotgunHeavy", "MissileLauncherLight", "MissileLauncherHeavy", "LaserCannonLight",
-	"LaserCannonHeavy", "ArcWeaponLight", "ArcWeaponHeavy", "RocketLauncherLight", "AerialStrikeHeavy", "PatienceHeavy"]
+	"LaserCannonHeavy", "ArcWeaponLight", "ArcWeaponHeavy", "RocketLauncherLight", "OrbitalStrikeHeavy", "PatienceHeavy"]
 
 func _ready() -> void:
 	await get_tree().process_frame

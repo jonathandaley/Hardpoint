@@ -17,8 +17,8 @@ func _size(scene: String, mult: float) -> Vector3:
 
 func _ready() -> void:
 	var cap: float = (load("res://scripts/WeaponVisuals.gd") as Script).get_script_constant_map().get("MULT_CAP", {}).get("AerialStrike", 99.0)  # (red runs on code without it)
-	var big := _size("res://scenes/weapons/AerialStrikeHeavy.tscn", 2.0)
-	var capped := _size("res://scenes/weapons/AerialStrikeHeavy.tscn", minf(cap, 1.2))
+	var big := _size("res://scenes/weapons/OrbitalStrikeHeavy.tscn", 2.0)
+	var capped := _size("res://scenes/weapons/OrbitalStrikeHeavy.tscn", minf(cap, 1.2))
 	if big.is_zero_approx() or not big.is_equal_approx(capped):
 		push_error("[probe] strike_size_cap: strike pod at x2.0 is %s, at the cap %s (want equal)" % [big, capped])
 	var rifle2 := _size("res://scenes/weapons/RifleHeavy.tscn", 2.0)

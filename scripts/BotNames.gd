@@ -78,9 +78,9 @@ const ELITE_KIT := {
 		"squad_dm": [["Cesh", "ROCKET"], ["Pegasus", "ARC"], ["Cesh", "MISSILE"], ["Hornet", "ROCKET"], ["Pegasus", "MISSILE"]],
 		"squad_rush": [["Cesh", "ROCKET"], ["Pegasus", "ARC"], ["Cesh", "ARC"], ["Pegasus", "ROCKET"], ["Hornet", "ROCKET"]],
 		"personality": {"role": "flanker", "range_k": 1.2, "retreat_hp": 0.3}},     # abilities + lock speed: locks from the side
-	"Deadlock":   {"squad": [["Seeker", "AERIAL"], ["Hornet", "MISSILE"], ["Pegasus", "MISSILE"], ["Hippogriff", "MISSILE"], ["Vesuvius", "AERIAL"]],
-		"squad_dm": [["Hippogriff", "MISSILE"], ["Vesuvius", "MORTAR"], ["Kestrel", "MISSILE"], ["Everest", "AERIAL"], ["Hornet", "MISSILE"]],
-		"squad_rush": [["Vesuvius", "AERIAL"], ["Hippogriff", "MISSILE"], ["Everest", "AERIAL"], ["Denali", "MISSILE"], ["Seeker", "AERIAL"]],
+	"Deadlock":   {"squad": [["Seeker", "ORBITAL"], ["Hornet", "MISSILE"], ["Pegasus", "MISSILE"], ["Hippogriff", "MISSILE"], ["Vesuvius", "ORBITAL"]],
+		"squad_dm": [["Hippogriff", "MISSILE"], ["Vesuvius", "MORTAR"], ["Kestrel", "MISSILE"], ["Everest", "ORBITAL"], ["Hornet", "MISSILE"]],
+		"squad_rush": [["Vesuvius", "ORBITAL"], ["Hippogriff", "MISSILE"], ["Everest", "ORBITAL"], ["Denali", "MISSILE"], ["Seeker", "ORBITAL"]],
 		"personality": {"role": "attacker", "range_k": 1.3, "retreat_hp": 0.3}},    # lock weapons
 	"Bastion":    {"squad": [["Hornet", "LASER"], ["Pegasus", "LASER"], ["Swift", "LASER"], ["Heron", "RIFLE"], ["Kestrel", "LASER"]],
 		"squad_dm": [["Kestrel", "LASER"], ["Everest", "LASER"], ["Kestrel", "MG"], ["Vesuvius", "LASER"], ["Kestrel", "RIFLE"]],

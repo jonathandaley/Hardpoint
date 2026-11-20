@@ -312,10 +312,27 @@
     [-1, 1].forEach(s => M.box(0.06, 0.22, 0.40, s * 0.24, -0.20, 0.14, D));  // saddle cheeks
   }
 
+  // T522 Orbital Strike (user: "Just a transponder."): the strike pod's shoulder saddle under a squat
+  // transponder box, a mast with a dish tilted at the sky, a whip antenna with a red beacon tell.
+  const C_ORBITAL = 0xff4030;
+  function OrbitalStrike(M) {
+    const A = M.armor, D = M.detail, MI = M.mid, K = M.dark;
+    M.box(0.62, 0.18, 0.56, 0, -0.34, 0.00, A);            // saddle
+    M.box(0.44, 0.10, 0.44, 0, -0.22, 0.00, M.socket);
+    M.box(0.46, 0.30, 0.40, 0, -0.04, 0.02, A);            // transponder box
+    M.box(0.36, 0.05, 0.30, 0, 0.135, 0.02, K);            // vent plate
+    M.box(0.30, 0.04, 0.04, 0, -0.02, -0.19, D);           // front seam strip
+    M.box(0.06, 0.62, 0.06, 0.10, 0.42, 0.06, MI);         // mast
+    M.box(0.44, 0.04, 0.44, 0.10, 0.78, 0.12, D, -0.55, 0, 0);  // dish, tilted back at the sky
+    M.box(0.06, 0.14, 0.06, 0.10, 0.84, 0.04, K, -0.55, 0, 0);  // feed horn
+    M.box(0.025, 0.52, 0.025, -0.15, 0.36, 0.10, K);       // whip antenna
+    M.glow(C_ORBITAL, -0.15, 0.64, 0.10, 0.10, 0.4);        // beacon tell
+  }
+
   window.WEAPONS = {
     Rifle, Sniper, MachineGun, Shotgun,
     MissileL, MissileH, RocketLauncher,
-    LaserCannon, ArcWeapon, Patience, AerialStrike, Flamer, Mortar,
-    _meta: { MISSILES_L, MISSILES_H, C_LASER, C_ARC, C_PATIENCE },
+    LaserCannon, ArcWeapon, Patience, AerialStrike, OrbitalStrike, Flamer, Mortar,
+    _meta: { MISSILES_L, MISSILES_H, C_LASER, C_ARC, C_PATIENCE, C_ORBITAL },
   };
 })();

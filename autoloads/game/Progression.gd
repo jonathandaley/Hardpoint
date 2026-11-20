@@ -321,9 +321,10 @@ func _load_loadout() -> void:
 			loadout["map_def"] = mpd
 	loadout["mode"] = cfg.get_value("loadout", "mode", "beacons")  # T285
 
-# T194: the heavy rocket launcher was cut (rockets are light-only; AERIAL HV is the heavy
+# T522: AERIAL HV became ORBITAL HV (its saves move there too). T194: the heavy rocket launcher was cut (rockets are light-only; ORBITAL HV is the heavy
 # pick). Saved choices and presets from before load with the replacement.
-const _CUT_WEAPONS := {"res://scenes/weapons/RocketLauncherHeavy.tscn": "res://scenes/weapons/AerialStrikeHeavy.tscn",
+const _CUT_WEAPONS := {"res://scenes/weapons/RocketLauncherHeavy.tscn": "res://scenes/weapons/OrbitalStrikeHeavy.tscn",
+	"res://scenes/weapons/AerialStrikeHeavy.tscn": "res://scenes/weapons/OrbitalStrikeHeavy.tscn",
 	"res://resources/mechs/Etna.tres": "res://resources/mechs/Kanchenjunga.tres"}  # T481: renamed
 
 static func _migrate_weapons(v: Variant) -> Variant:

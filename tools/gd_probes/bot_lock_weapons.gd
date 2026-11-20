@@ -14,7 +14,7 @@ extends Node
 
 const CASE_S := 12.0
 const LONG_CASE_S := 22.0
-const WEAPONS := ["RocketLauncherLight", "AerialStrikeHeavy", "ArcWeaponLight", "ArcWeaponHeavy"]
+const WEAPONS := ["RocketLauncherLight", "OrbitalStrikeHeavy", "ArcWeaponLight", "ArcWeaponHeavy"]
 const DIFF_NAMES := ["Easy", "Normal", "Medium", "Hard", "Elite"]
 const SlotDef := preload("res://scripts/WeaponSlotDef.gd")
 const InputSource := preload("res://scripts/InputSource.gd")
@@ -79,11 +79,11 @@ func _ready() -> void:
 			for d in [30.0, 60.0, snappedf(_range(wname) * 0.9, 1.0)]:
 				rounds.append(range(5).map(func(i): return [wname, i, d]))
 	else:
-		rounds.append([["RocketLauncherLight", ELITE, 50.0], ["AerialStrikeHeavy", ELITE, 50.0],
+		rounds.append([["RocketLauncherLight", ELITE, 50.0], ["OrbitalStrikeHeavy", ELITE, 50.0],
 			["ArcWeaponLight", ELITE, 50.0], ["ArcWeaponHeavy", HARD, 50.0], ["ArcWeaponLight", MEDIUM, 50.0]])
 		rounds.append([["RocketLauncherLight", ELITE, 0.9 * _range("RocketLauncherLight")],
-			["AerialStrikeHeavy", ELITE, 0.9 * _range("AerialStrikeHeavy")],
-			["AerialStrikeHeavy", HARD, 0.9 * _range("AerialStrikeHeavy")],
+			["OrbitalStrikeHeavy", ELITE, 0.9 * _range("OrbitalStrikeHeavy")],
+			["OrbitalStrikeHeavy", HARD, 0.9 * _range("OrbitalStrikeHeavy")],
 			["RocketLauncherLight", MEDIUM, 0.8 * _range("RocketLauncherLight")],
 			["ArcWeaponHeavy", MEDIUM, 0.8 * _range("ArcWeaponHeavy")]])
 	var rows: Array = []

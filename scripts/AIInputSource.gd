@@ -263,6 +263,25 @@ const DODGE_S := 0.4            # how long the sidestep lasts
 var _dodge_t := 0.0
 var _dodge_vec := Vector2.ZERO
 
+# T522: an enemy Orbital Strike's ring (OrbitalStrike.pending, every peer) -- Medium+ bots inside it walk
+# straight out from its centre (the counterplay a player has: the ring shows where it lands).
+const _Orbital := preload("res://scripts/OrbitalStrike.gd")
+const STRIKE_MARGIN_M := 2.0
+
+func _strike_escape(bot_mech: Node3D) -> Vector2:
+	for e in _Orbital.pending:
+		if int(e[3]) == _own_team:
+			continue
+		var c: Vector3 = e[0]
+		var away := bot_mech.global_position - c
+		away.y = 0.0
+		if away.length() > float(e[1]) + STRIKE_MARGIN_M:
+			continue
+		if away.length() < 0.1:
+			away = Vector3.RIGHT
+		return _to_move(bot_mech, away.normalized())
+	return Vector2.ZERO
+
 func _plus() -> bool:
 	var lvl: int = difficulty if difficulty >= 0 else int(Game.settings.get("bot_difficulty", 1))
 	return lvl >= 4 and bool(Game.settings.get("bots_plus", false))
@@ -761,6 +780,10 @@ func _physics_process_impl(delta: float) -> void:
 	if _escape_timer > 0.0:
 		_escape_timer -= delta
 		_move_dir = _escape_vec
+	if preset["tactics"]:  # T522: out of an enemy orbital strike's ring before it lands
+		var out := _strike_escape(bot_mech)
+		if out != Vector2.ZERO:
+			_move_dir = out
 	if _plus():  # T520(e): sidestep an incoming explosive shot
 		if _dodge_t <= 0.0:
 			_check_dodge(bot_mech)

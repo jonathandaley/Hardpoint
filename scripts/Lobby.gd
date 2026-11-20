@@ -60,7 +60,7 @@ const WEAPON_CATALOG: Array = [
 	{"name": "ARC HV",        "path": "res://scenes/weapons/ArcWeaponHeavy.tscn",      "long": "ARC WEAPON HV", "slot_size": 1},
 	{"name": "MORTAR HV",     "path": "res://scenes/weapons/MortarHeavy.tscn",         "long": "MORTAR HEAVY", "slot_size": 1},  # T458
 	{"name": "INFERNO HV",    "path": "res://scenes/weapons/FlamerHeavy.tscn",         "long": "INFERNO HEAVY", "slot_size": 1},  # T457
-	{"name": "AERIAL HV",     "path": "res://scenes/weapons/AerialStrikeHeavy.tscn",   "long": "AERIAL STRIKE HV", "slot_size": 1},
+	{"name": "ORBITAL HV",    "path": "res://scenes/weapons/OrbitalStrikeHeavy.tscn",  "long": "ORBITAL STRIKE HV", "slot_size": 1},  # T522: replaced AERIAL HV
 	{"name": "PATIENCE HV",   "path": "res://scenes/weapons/PatienceHeavy.tscn",        "long": "PATIENCE HV", "slot_size": 1},
 ]
 
@@ -677,13 +677,13 @@ static func _default_bot_squad(_bot_id: int) -> Array:
 const BOT_WEAPON_WEIGHTS := {
 	"Slip":       {"SNIPER": 4, "RIFLE": 3, "SHOTGUN": 2, "MG": 2},
 	"Cesh":       {"SHOTGUN": 4, "MG": 3, "ARC": 2, "ROCKET": 2, "SNIPER": 0},
-	"Seeker":     {"SNIPER": 4, "AERIAL": 3, "PATIENCE": 3, "RIFLE": 2, "SHOTGUN": 0},
+	"Seeker":     {"SNIPER": 4, "ORBITAL": 3, "PATIENCE": 3, "RIFLE": 2, "SHOTGUN": 0},
 	"Hornet":     {"MG": 3, "MISSILE": 3, "RIFLE": 2, "SHOTGUN": 2, "LASER": 2},
 	"Hippogriff": {"MISSILE": 4, "MG": 3, "RIFLE": 2, "LASER": 2},
 	"Kestrel":    {"LASER": 4, "RIFLE": 3, "ARC": 2, "MG": 2},
 	"Pegasus":    {"RIFLE": 4, "SHOTGUN": 3, "LASER": 2, "MG": 2},
-	"Everest":    {"MG": 4, "LASER": 3, "AERIAL": 2, "PATIENCE": 2, "RIFLE": 2, "MORTAR": 2},
-	"Vesuvius":   {"MG": 3, "MISSILE": 3, "AERIAL": 3, "PATIENCE": 2, "RIFLE": 2, "LASER": 2, "MORTAR": 3},
+	"Everest":    {"MG": 4, "LASER": 3, "ORBITAL": 2, "PATIENCE": 2, "RIFLE": 2, "MORTAR": 2},
+	"Vesuvius":   {"MG": 3, "MISSILE": 3, "ORBITAL": 3, "PATIENCE": 2, "RIFLE": 2, "LASER": 2, "MORTAR": 3},
 	"Taurus":     {"SHOTGUN": 4, "MG": 3, "INFERNO": 2, "RIFLE": 2, "SNIPER": 0},  # T363: rams in, fights up close (T457 flamer)
 	"Denali":     {"RIFLE": 4, "LASER": 3, "MG": 2, "PATIENCE": 2, "MORTAR": 2},  # T430: plants (ANCHOR) and trades shots at range
 	"Kanchenjunga": {"SHOTGUN": 4, "MG": 4, "INFERNO": 3, "ARC": 2, "RIFLE": 1},  # T456: walks in and stomps (T457 flamer)
@@ -693,7 +693,7 @@ const BOT_WEAPON_WEIGHTS := {
 
 ## T171: random bot loadout -- ONE weapon family (RIFLE, MG, ...) in every slot of
 ## `mech_def`, sized per slot; mixed loadouts fight worse (ranges, lead, lock all differ).
-## Only families that exist in every slot size the mech has (AERIAL/PATIENCE: heavy only).
+## Only families that exist in every slot size the mech has (ORBITAL/PATIENCE: heavy only).
 ## T365: the family is drawn by the mech's BOT_WEAPON_WEIGHTS, not uniformly.
 static func bot_weapon_paths(mech_def: Resource, rng: RandomNumberGenerator) -> Array:
 	var fams := {}  # "RIFLE" -> {slot_size: path}

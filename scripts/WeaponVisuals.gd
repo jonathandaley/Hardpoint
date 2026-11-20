@@ -34,7 +34,7 @@ static func kit_name(scene_path: String) -> String:
 
 ## T381 (HUMAN_FOUND 2026-11-09: aerial strike "too big on Seeker"): the strike pod is already a
 ## bulky box, so a mech's weapon_scale (Seeker 2.0, made for slim guns: T191) caps here.
-const MULT_CAP := {"AerialStrike": 1.2}
+const MULT_CAP := {"AerialStrike": 1.2, "OrbitalStrike": 1.2}
 
 static func apply(weapon: Node3D, mult := 1.0) -> void:
 	var key := kit_name(weapon.scene_file_path)

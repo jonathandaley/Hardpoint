@@ -74,6 +74,9 @@ for name, path, long_, slot in cat:
     elif cls == 'MissileLauncher':
         per_shot = dmg + f(d, 'splash_damage', 15.0)
         note = 'direct %.0f + splash %.0f (r %.0f m)' % (dmg, f(d, 'splash_damage', 15.0), f(d, 'splash_radius', 4.0))
+    elif cls == 'OrbitalStrike':  # T522: one marked strike, 10 s later
+        per_shot = dmg
+        note = 'one strike %.0f at the centre -> %.0f at the rim (r %.0f m), lands 10 s after the mark; needs a lock' % (dmg, f(d, 'edge_damage', 120.0), f(d, 'strike_radius', 10.0))
     elif cls == 'AerialStrike':
         bc = int(f(d, 'burst_count', 20))
         per_shot = bc * (dmg + f(d, 'splash_damage', 1.6))

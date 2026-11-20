@@ -18,3 +18,4 @@
 2026-11-20|T520e|follow-up|(this commit)|Hard turn 12x too (T282 parity); sweep b26 stopped -- AIInputSource edited mid-sweep (rule broken), rerun
 2026-11-20|T524|DONE|(this commit)|bots check the muzzle line before firing (not just the eye); bot_muzzle_los probe
 2026-11-20|T524|sweep 75/76|b6bc0af|only net_security: the uncommitted OrbitalStrike.gd (new @rpc) written into the tree mid-sweep -- not T524; pushed. Lesson: a NEW file with @rpc also changes a running sweep
+2026-11-20|T522|DONE|(this commit)|Orbital Strike replaces the aerial strike: mark + ring + 10 s + strike from above; bots leave enemy rings; probe orbital_strike

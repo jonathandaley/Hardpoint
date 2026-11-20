@@ -9,7 +9,7 @@ extends Node
 # arc's ray (which ends there) met nothing and homing missiles flew past it.
 
 const ROSTER := ["Everest", "Kestrel", "Pegasus", "Seeker", "Hornet", "Vesuvius", "Slip", "Hippogriff", "Cesh"]
-const FAMILIES := ["AerialStrike", "ArcWeapon", "LaserCannon", "MachineGun", "MissileLauncher", "Patience",
+const FAMILIES := ["OrbitalStrike", "ArcWeapon", "LaserCannon", "MachineGun", "MissileLauncher", "Patience",
 	"Rifle", "RocketLauncher", "Shotgun", "Sniper"]
 const USERS := {"res://scripts/HUD.gd": "eligible box", "res://scripts/HomingProjectile.gd": "rockets",
 	"res://scripts/ArcWeapon.gd": "arc", "res://scripts/AIInputSource.gd": "bot aim", "res://scripts/Mech.gd": "lock-on"}
