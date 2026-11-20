@@ -41,7 +41,7 @@ func _ready() -> void:
 			if not (box is StyleBoxFlat) or (box as StyleBoxFlat).bg_color.a < 1.0:
 				_fail("%s: the weapon info box isn't opaque (%s)" % [path.get_file(), box])
 				bad = true
-			elif (ib.get_child(0) as Label).text != tip or not ib.visible:
+			elif h.call("info_box_text") != tip or not ib.visible:  # T537: rows + bars, then the description
 				_fail("%s: weapon %s's info button doesn't open its info" % [path.get_file(), (lbl as Label).text])
 				bad = true
 			ib.visible = false

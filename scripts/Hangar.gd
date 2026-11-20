@@ -966,6 +966,23 @@ func _on_info_pressed(b: Button) -> void:
 	_info_box.global_position = Vector2(mech_name_label.global_position.x, b.get_global_rect().end.y + 4.0)
 	_info_box.visible = true
 
+## T537: the text the info box shows, as one string (the stat rows, a blank line, the description) --
+## what weapon_tip / a mech's description reads (probes hangar_weapon_info, mech_descriptions).
+func info_box_text() -> String:
+	if _info_box == null:
+		return ""
+	var rows: Array = []
+	var desc := ""
+	for c in _info_box.get_child(0).get_children():
+		if c is HBoxContainer:
+			for l in c.get_children():
+				if l is Label:
+					rows.append((l as Label).text)
+		elif c is Label:
+			desc = (c as Label).text
+	var out := "\n".join(rows)
+	return desc if out == "" else (out + ("\n\n" + desc if desc != "" else ""))
+
 ## T537: the weapon's stat lines, each with its bar against the weapons of its own slot size, and an "i"
 ## that opens the full table of every weapon.
 func _weapon_stat_rows(body: VBoxContainer, idx: int, stat_text: String) -> void:

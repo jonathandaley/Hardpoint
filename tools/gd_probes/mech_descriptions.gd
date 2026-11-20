@@ -47,7 +47,7 @@ func _ready() -> void:
 		btn.pressed.emit()
 		await get_tree().process_frame
 		var box: Control = h.get("_info_box")
-		if box == null or not box.is_visible_in_tree() or (box.get_child(0) as Label).text != String(md0.description):
+		if box == null or not box.is_visible_in_tree() or h.call("info_box_text") != String(md0.description):
 			bad.append("the info button doesn't open the description")
 		else:
 			var f := lbl.get_theme_font("font")
