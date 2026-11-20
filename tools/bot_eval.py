@@ -46,7 +46,7 @@ def main():
     ap.add_argument("--jobs", type=int, default=max(1, (os.cpu_count() or 2) // 2))
     ap.add_argument("--max-s", type=int, default=600)
     ap.add_argument("--keep", help="dir to keep per-match logs")
-    ap.add_argument("--wa", help="force side A's weapon family (RIFLE, SNIPER, MG, SHOTGUN, MISSILE, ROCKET, LASER, ARC, AERIAL, PATIENCE)")
+    ap.add_argument("--wa", help="force side A's weapon family (RIFLE, SNIPER, MG, SHOTGUN, MISSILE, ROCKET, LASER, ARC, ORBITAL, PATIENCE)")
     ap.add_argument("--wb", help="force side B's weapon family")
     a = ap.parse_args()
     if a.keep:

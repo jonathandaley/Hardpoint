@@ -20,3 +20,4 @@
 2026-11-20|T524|sweep 75/76|b6bc0af|only net_security: the uncommitted OrbitalStrike.gd (new @rpc) written into the tree mid-sweep -- not T524; pushed. Lesson: a NEW file with @rpc also changes a running sweep
 2026-11-20|T522|DONE|(this commit)|Orbital Strike replaces the aerial strike: mark + ring + 10 s + strike from above; bots leave enemy rings; probe orbital_strike
 2026-11-20|T522|suite 225/228|5ec70a3|bot_lock_weapons (12 s duel < lock + 10 s strike -> long window) + rpc_tree_guard (_rpc_mark touched multiplayer before is_inside_tree) fixed; sweep stopped -- OrbitalStrike.gd edited mid-sweep AGAIN (rule broken twice today: edit only after the background run is done, check before editing)
+2026-11-20|T522|suite 227/228, sweep 74/76|5e9f3f3|only menu_flow (lan/wifi/bad): its hangar script still picked AERIAL HV -> ORBITAL HV; 3/3 green; pushed
