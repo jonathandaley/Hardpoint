@@ -89,3 +89,9 @@ func _do_fire() -> void:
 	# T260 (HUMAN_FOUND_ISSUES 2026-11-05 "thick beam that fades slowly"): thicker with
 	# charge, lingers 1.6 s, and clients see it too (it was server-only).
 	VFX.tracer(global_position, hit_pos, Color(0.75, 0.5, 1.0), 1.6, true, lerpf(0.15, 0.4, t))
+
+func damage_range() -> Vector2:  # T538
+	return Vector2(min_damage, max_damage)
+
+func damage_text() -> String:
+	return "%s - %s  (charges over %s s)" % [num(min_damage), num(max_damage), num(max_charge_time)]

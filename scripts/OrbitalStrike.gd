@@ -117,3 +117,10 @@ func _make_ring(at: Vector3) -> Node3D:
 	get_tree().current_scene.add_child(root)
 	root.global_position = at + Vector3.UP * 0.15
 	return root
+
+func damage_range() -> Vector2:  # T538
+	return Vector2(edge_damage, damage)
+
+func damage_text() -> String:
+	return "%s at the centre -> %s at the rim (r %s m), %d s after the mark" % [num(damage), num(edge_damage),
+		num(strike_radius), roundi(DELAY_S)]

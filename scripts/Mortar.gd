@@ -158,3 +158,9 @@ func _process(_delta: float) -> void:
 		add_child(_marker)
 	_marker.visible = true
 	_marker.global_position = aim_point()
+
+func damage_range() -> Vector2:  # T538: splash alone .. direct + splash
+	return Vector2(splash_damage, damage + splash_damage)
+
+func damage_text() -> String:
+	return "%s direct + %s splash (r %s m)" % [num(damage), num(splash_damage), num(splash_radius)]

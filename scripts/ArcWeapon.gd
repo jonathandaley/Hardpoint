@@ -187,3 +187,10 @@ func _start_arc_loop() -> void:
 		(stream as AudioStreamOggVorbis).loop = true
 	_loop_player.stream = stream
 	_loop_player.play()
+
+func damage_range() -> Vector2:  # T538
+	return Vector2(damage, max_damage)
+
+func damage_text() -> String:
+	return "%s - %s a tick  (%s within %d m, %s from %d m)" % [num(damage), num(max_damage), num(max_damage),
+		roundi(CLOSE_M), num(damage), roundi(range * FAR_FRAC)]

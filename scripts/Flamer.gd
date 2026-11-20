@@ -138,3 +138,6 @@ func _rpc_flame_fx() -> void:
 	if not is_inside_tree() or multiplayer.is_server():  # V50 / B130
 		return
 	_show_flame()
+
+func damage_text() -> String:  # T538
+	return "%s a tick  + burn %s /s for %s s" % [num(damage), num(burn_dps), num(burn_s)]

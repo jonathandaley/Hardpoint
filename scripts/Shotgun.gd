@@ -81,3 +81,10 @@ func _rpc_pellet_ghosts(aim_points: Array) -> void:
 		ghost.lifetime = range / projectile_speed
 		get_tree().current_scene.add_child(ghost)
 		ghost.global_transform = Transform3D(Basis(), global_position).looking_at(ap)
+
+func damage_range() -> Vector2:  # T538: every pellet hits, far (max range) to point blank
+	return Vector2(damage_far, damage_close) * pellet_count
+
+func damage_text() -> String:
+	return "%s - %s  (%d pellets, %s - %s each, close -> far)" % [num(damage_close * pellet_count),
+		num(damage_far * pellet_count), pellet_count, num(damage_close), num(damage_far)]

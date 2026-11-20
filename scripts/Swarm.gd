@@ -69,3 +69,6 @@ func _spawn_split(from: Vector3, target: Node3D) -> void:
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		_send_ghost(up, proj.global_transform.basis, proj.speed, proj.lifetime, proj.team,
 			0.0, 0.0, turn_rate * 1.5, Vector3.ZERO, target.get_path())
+
+func damage_text() -> String:  # T538
+	return super.damage_text() + "; misses circle back, %d%% of hits split in two" % roundi(split_chance * 100.0)

@@ -40,3 +40,9 @@ func _do_fire() -> void:
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		rpc_fx(&"_rpc_spawn_ghost", [global_position, proj.global_transform.basis,
 			proj.speed, proj.lifetime, proj.team])  # T462
+
+func damage_range() -> Vector2:  # T538: splash alone (a near miss) .. direct + splash
+	return Vector2(splash_damage, damage + splash_damage)
+
+func damage_text() -> String:
+	return "%s direct + %s splash (r %s m)" % [num(damage), num(splash_damage), num(splash_radius)]

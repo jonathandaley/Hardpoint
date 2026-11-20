@@ -27,6 +27,21 @@ var muzzle_local := Vector3.ZERO  # T317: the kit model's barrel tip (WeaponVisu
 var barrel_w := 0.0               # T317: its barrel width (m), sizes the flash
 
 ## T317: the flash at the real barrel tip, sized to the barrel (falls back to the old spot / size).
+# ---- T538: what a hit does, for the hangar tips / stat bars / weapon table (Hangar.weapon_tip) ----
+# (user 2026-11-20: "A few weapons don't show their damage correctly; Patience, for example, should show
+# a range. Arc, too."): each weapon that deals damage its own way says so here.
+
+## Damage of one shot (trigger pull), lowest to highest case.
+func damage_range() -> Vector2:
+	return Vector2(damage, damage)
+
+## The tip's DAMAGE line.
+func damage_text() -> String:
+	return num(damage)
+
+static func num(v: float) -> String:
+	return ("%d" % roundi(v)) if absf(v - roundf(v)) < 0.05 or v >= 20.0 else ("%.1f" % v)
+
 func _muzzle_flash(bc: bool) -> void:
 	var pos := to_global(muzzle_local) if muzzle_local != Vector3.ZERO \
 		else global_position - global_transform.basis.z * 0.4 * visual_scale

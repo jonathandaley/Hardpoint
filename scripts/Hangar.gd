@@ -647,18 +647,14 @@ static func weapon_tip(cat_idx: int) -> String:
 	if not _tips.has(path):
 		var w: Node = (load(path) as PackedScene).instantiate()
 		var lines: Array = ["RANGE  %d m" % roundi(float(w.get("range")))]
-		var dmg: float = float(w.get("max_damage")) if "max_damage" in w else float(w.get("damage"))
-		if w.has_method("damage_at"):  # T412: the arc hits harder up close
-			lines.append("DAMAGE  %.1f - %.1f  (closer = more)" % [float(w.get("damage")), float(w.get("max_damage"))])
-		elif "pellet_count" in w:
-			lines.append("DAMAGE  %.0f x %d" % [dmg, int(w.get("pellet_count"))])
-		else:
-			lines.append("DAMAGE  %.0f" % dmg)
+		lines.append("DAMAGE  %s" % w.call("damage_text"))  # T538: each weapon says how it hits
 		if "max_charge_time" in w:
 			lines.append("CHARGE  %.0f s" % float(w.get("max_charge_time")))
 		else:
-			var rate: float = float(w.get("max_fire_rate")) if "max_fire_rate" in w else float(w.get("fire_rate"))
-			lines.append("FIRE RATE  %.1f /s" % rate)
+			if "base_fire_rate" in w:  # T538: the MG spins up
+				lines.append("FIRE RATE  %.0f -> %.0f /s  (spins up)" % [float(w.get("base_fire_rate")), float(w.get("max_fire_rate"))])
+			else:
+				lines.append("FIRE RATE  %.1f /s" % float(w.get("fire_rate")))
 		var mag: int = int(w.get("max_ammo"))
 		lines.append("MAGAZINE  %s" % ("-" if mag < 0 else str(mag)))
 		var desc: String = WEAPON_DESC.get(String(WEAPON_CATALOG[cat_idx]["name"]).get_slice(" ", 0), "")
