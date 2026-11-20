@@ -1,0 +1,298 @@
+{
+  "name": "turn_pred",
+  "seed": 4300,
+  "port": 8941,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Swift.tres",
+  "net": {
+    "latency_ms": 160,
+    "jitter_ms": 10,
+    "loss": 0.01
+  },
+  "duration_ticks": 1200,
+  "oracles": [
+    "prediction_recon",
+    "transform_desync",
+    "crash_scan",
+    "log_flood"
+  ],
+  "thresholds": {},
+  "_comment": "T472: the owner's prediction through HARD turns on a fast mech (Swift 1.9 m/s): the client walks forward and flicks its aim (look 40 = ~7 rad/s for 12 ticks, alternating, once a second); prediction_recon must stay in its usual bounds. Measured 2026-11-20: p95 0.03 m lan / 0.05 m wifi, no snaps -- turns don't break prediction.",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "pulses": []
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 100,
+            "look": [
+              -40.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 112,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 160,
+            "look": [
+              40.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 172,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 220,
+            "look": [
+              -40.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 232,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 280,
+            "look": [
+              40.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 292,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 340,
+            "look": [
+              -40.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 352,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 400,
+            "look": [
+              40.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 412,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 460,
+            "look": [
+              -40.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 472,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 520,
+            "look": [
+              40.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 532,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 580,
+            "look": [
+              -40.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 592,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 640,
+            "look": [
+              40.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 652,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 700,
+            "look": [
+              -40.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 712,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 760,
+            "look": [
+              40.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 772,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 820,
+            "look": [
+              -40.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 832,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 880,
+            "look": [
+              40.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 892,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 940,
+            "look": [
+              -40.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 952,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 1000,
+            "look": [
+              40.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 1012,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 1060,
+            "look": [
+              -40.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 1072,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "pulses": []
+      }
+    }
+  },
+  "actions": []
+}
