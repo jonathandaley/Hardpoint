@@ -3,7 +3,7 @@ extends Node
 # speed, cap is good. Stop on hit. Original feel."): a press sets it off along its facing, speeding
 # up linearly from walking pace to CHARGE_TOP; a second press pulls up -- the speed bleeds off at
 # CHARGE_DECEL; a press out of a pull-up sets off from what it still carries along the new heading
-# (T483: a Taurus needs >= 15 s to the top, so a running Slip stays ahead short of a long straight);
+# (T513: top 3.5 m/s, ~1.9 s to it -- a Slip outruns it);
 # ramming deals damage from the closing speed with a high floor, once, then stops it dead; walls
 # stop it with no damage; bots charge at a target straight ahead. On a deck high above the map, side
 # by side (300 m apart), all at once:
@@ -178,8 +178,9 @@ func _ready() -> void:
 	var bad: Array = []
 	if hits.size() != 1:
 		bad.append("R's target took %d ram hits %s (want exactly 1)" % [hits.size(), str(hits)])
-	elif hits[0] < Mech.RAM_FLOOR - 0.01 or hits[0] > Mech.RAM_K * Mech.CHARGE_TOP + 1.0:
-		bad.append("ram hit %.1f outside %.0f..%.0f" % [hits[0], Mech.RAM_FLOOR, Mech.RAM_K * Mech.CHARGE_TOP])
+	elif absf(hits[0] - lerpf(Mech.RAM_FLOOR, Mech.RAM_MAX, r_hit_at / Mech.CHARGE_LEVEL_S)) > 5.0:
+		# T513: by how long it has charged (RAM_FLOOR at the set-off, RAM_MAX after CHARGE_LEVEL_S)
+		bad.append("ram hit %.1f after %.2f s charging (want ~%.0f)" % [hits[0], r_hit_at, lerpf(Mech.RAM_FLOOR, Mech.RAM_MAX, r_hit_at / Mech.CHARGE_LEVEL_S)])
 	if r_over_at < 0.0 or r_over_at - r_hit_at > Mech.CHARGE_HIT_S + 0.1:
 		bad.append("R's charge didn't end CHARGE_HIT_S after the ram (hit %.2f, over %.2f)" % [r_hit_at, r_over_at])
 	if _flat(r.get("velocity")) > 0.5:
@@ -196,15 +197,11 @@ func _ready() -> void:
 		bad.append("F at %.1f m/s after 1 s (want %.1f: linear from walking pace)" % [f_v1, want_v1])
 	if f_vmax > Mech.CHARGE_TOP + 0.01:
 		bad.append("F went %.2f m/s, past the cap %.1f" % [f_vmax, Mech.CHARGE_TOP])
-	# T483 (user: "at least 15 seconds to get to the current top speed"; Slip outruns it short of a long line)
+	# T513 ("get rid of the 15s rule"): T483's checks are gone; a Slip still outruns the top speed
 	var taurus_walk: float = load("res://resources/mechs/Taurus.tres").walk_speed
-	var slip_walk: float = load("res://resources/mechs/Slip.tres").walk_speed
 	var to_top: float = (Mech.CHARGE_TOP - taurus_walk) / Mech.CHARGE_ACCEL
-	if to_top < 15.0:
-		bad.append("a Taurus reaches the top speed in %.1f s (want >= 15)" % to_top)
-	var even := 2.0 * (slip_walk - taurus_walk) / Mech.CHARGE_ACCEL  # Slip's lead is gone after this
-	if even < 5.0:
-		bad.append("a charging Taurus catches a running Slip after %.1f s (want Slip ahead >= 5 s)" % even)
+	if Mech.CHARGE_TOP >= float(load("res://resources/mechs/Slip.tres").walk_speed):
+		bad.append("a charging Taurus (%.1f m/s) keeps up with a walking Slip" % Mech.CHARGE_TOP)
 	f.set("_charge_v0", taurus_walk)
 	f.set("_charge_end_t", INF)
 	if absf(float(f.call("_charge_speed", 60.0)) - Mech.CHARGE_TOP) > 0.001:
@@ -224,7 +221,7 @@ func _ready() -> void:
 	if absf(fd - want) > 1.0:
 		bad.append("F covered %.1f m (curve says %.1f)" % [fd, want])
 	var p_want := maxf(pw, (p_pull_v - Mech.CHARGE_DECEL * 0.1) * cos(deg_to_rad(30.0)))
-	if absf(p_v0 - p_want) > 0.35 or p_v0 < pw + 0.5:
+	if absf(p_v0 - p_want) > 0.35 or p_v0 < pw + 0.2:
 		bad.append("P set off again at %.1f m/s 0.1 s after a pull-up at %.1f (want ~%.1f: the boost it kept along the new heading)" % [p_v0, p_pull_v, p_want])
 	if b_starts < 1:
 		bad.append("the Hard bot never charged a target 15 m straight ahead")
@@ -234,10 +231,10 @@ func _ready() -> void:
 	# simulation)" / "90 deg turn means fully killed speed boost" / "Taurus takes its own damage"): three
 	# fresh runs at the top speed, 70 m clear of everyone --
 	#  W flicks its facing 90 deg: back at walking pace along the new heading, the lost speed sliding on
-	#    along the old one and gone within ~1.5 s;
-	#  F sweeps 90 deg over 1 s: the boost mostly gone too (only the free 8 deg/s keeps any);
-	#  R runs straight with a small aim jitter (under the free rate): stays at the top and burns
-	#    CHARGE_DOT HP/s; from 1.5 HP it stops at 1 HP (it can't kill itself)
+	#    along the old one and gone soon after; T513: and half its charge level (0.8 -> ~0.3);
+	#  F sweeps 90 deg in 0.25 s: the boost mostly gone (the build only gives back 0.25 s worth);
+	#  R runs straight with a small aim jitter (under the free rate): stays at the top, its level and
+	#    glow climb with the clock (T513: no burn any more -- "Remove the self-penalty for now")
 	var tw := Mech.CHARGE_TOP - pw
 	for row in [[w, 300.0], [f, 600.0], [r, 0.0]]:
 		_place(row[0], Vector3(row[1], DECK_Y + 0.5, -80))
@@ -246,50 +243,58 @@ func _ready() -> void:
 		if m.get("lunging"):
 			m.call("_lunge_stop")
 		m.call("_charge_press")
-		m.set("_charge_v0", Mech.CHARGE_TOP)  # at the top at once (the build takes ~15 s)
+		m.set("_charge_v0", Mech.CHARGE_TOP)  # at the top at once
+	w.set("_charge_l0", 0.8)
 	r.set("invincible", false)
 	r.set("max_health", 390.0)
 	r.set("health", 300.0)
 	for k in int(0.3 * wf):
 		await get_tree().physics_frame
 	var w_old: Vector3 = w.get("_lunge_dir")
+	var w_l0 := float(w.call("charge_level", w.get("lunge_t")))
 	(w.get("torso") as Node3D).rotation.y += deg_to_rad(90.0)
 	await get_tree().physics_frame
 	var w_new: Vector3 = w.get("_lunge_dir")
 	var wv: Vector3 = w.get("velocity")
 	var w_fwd := wv.x * w_new.x + wv.z * w_new.z
 	var w_slide := wv.x * w_old.x + wv.z * w_old.z
+	var w_l1 := float(w.call("charge_level", w.get("lunge_t")))
 	if absf(w_fwd - pw) > 0.5 or w_slide < 0.8 * tw:
 		bad.append("W's 90 deg flick at the top: %.1f m/s ahead (want ~walking %.1f), %.1f sliding on (want ~%.1f)" % [w_fwd, pw, w_slide, tw])
-	var h0: float = r.get("health")
-	var sweep := deg_to_rad(90.0) / wf
+	if absf(w_l1 - (w_l0 - Mech.CHARGE_LEVEL_TURN)) > 0.03:
+		bad.append("W's 90 deg flick took its level %.2f -> %.2f (want ~%.2f: half the rate of the speed)" % [w_l0, w_l1, w_l0 - Mech.CHARGE_LEVEL_TURN])
+	var sweep := deg_to_rad(90.0) / (0.25 * wf)
+	var f_after := -1.0
 	for k in int(1.5 * wf):
 		await get_tree().physics_frame
-		if k < int(wf):
+		if k < int(0.25 * wf):
 			(f.get("torso") as Node3D).rotation.y += sweep
+		elif f_after < 0.0:
+			f_after = float(f.call("_charge_speed", f.get("lunge_t")))
 		(r.get("torso") as Node3D).rotation.y += deg_to_rad(0.05) * (1.0 if k % 2 == 0 else -1.0)
-	var f_after := float(f.call("_charge_speed", f.get("lunge_t")))
-	var f_cap := pw + tw * rad_to_deg(Mech.CHARGE_TURN_FREE) / 90.0 + Mech.CHARGE_ACCEL * 1.5 + 0.3  # the free turn + 1.5 s of build
+	var f_cap := pw + tw * 0.15 + Mech.CHARGE_ACCEL * 0.25 + 0.15  # the free turn's share + 0.25 s of build
 	if f_after > f_cap:
-		bad.append("F's 90 deg sweep over 1 s left %.1f m/s (want <= %.1f: the boost gone but the free turn)" % [f_after, f_cap])
+		bad.append("F's 90 deg sweep in 0.25 s left %.2f m/s (want <= %.2f: the boost gone)" % [f_after, f_cap])
 	var wv2: Vector3 = w.get("velocity")
-	if absf(wv2.x * w_old.x + wv2.z * w_old.z) > 1.0:
+	if absf(wv2.x * w_old.x + wv2.z * w_old.z) > 0.5:
 		bad.append("W still slides %.1f m/s along the old heading 1.5 s after the flick" % (wv2.x * w_old.x + wv2.z * w_old.z))
 	var r_v := _flat(r.get("velocity"))
-	var burnt: float = h0 - float(r.get("health"))
+	var r_t := float(r.get("lunge_t"))
+	var r_l := float(r.call("charge_level", r_t))
+	var burnt: float = 300.0 - float(r.get("health"))
 	if r_v < Mech.CHARGE_TOP - 0.2:
 		bad.append("R lost speed to a small aim jitter: %.1f m/s (want the top %.1f)" % [r_v, Mech.CHARGE_TOP])
-	if absf(burnt - Mech.CHARGE_DOT * 1.5) > 1.5:
-		bad.append("R burnt %.1f HP in 1.5 s at the top (want ~%.1f)" % [burnt, Mech.CHARGE_DOT * 1.5])
-	r.set("health", 1.5)
-	for k in int(0.5 * wf):
-		await get_tree().physics_frame
-	if float(r.get("health")) < 1.0 or float(r.get("health")) > 1.01:
-		bad.append("R from 1.5 HP after 0.5 s at the top: %.2f (want it to stop at 1)" % float(r.get("health")))
+	if absf(r_l - r_t / Mech.CHARGE_LEVEL_S) > 0.01 or absf(float(r.call("_charge_glow", r_t)) - r_l) > 0.001:
+		bad.append("R's level %.3f / glow %.3f after %.2f s straight (want %.3f both)" % [r_l, float(r.call("_charge_glow", r_t)), r_t, r_t / Mech.CHARGE_LEVEL_S])
+	if burnt > 0.01:
+		bad.append("R lost %.1f HP charging (the self-penalty is gone)" % burnt)
+	r.set("_charge_l0", 1.0)
+	if absf(lerpf(Mech.RAM_FLOOR, Mech.RAM_MAX, float(r.call("charge_level", r_t))) - Mech.RAM_MAX) > 0.01:
+		bad.append("a full level doesn't ram for RAM_MAX")
 	for m in [w, f, r]:
 		m.call("_lunge_stop")
 	if not bad.is_empty():
 		_fail("; ".join(bad))
 		return
-	print("[probe] charge done (flick %.1f ahead / %.1f slide, sweep %.1f, burn %.1f HP; ram %.0f at %.2f s, wall stop %.1f m, open %.1f m / %.1f, top in %.1f s, Slip ahead %.1f s, re-press %.1f m/s, bot %d)" % [w_fwd, w_slide, f_after, burnt, hits[0], r_hit_at, wd, fd, want, to_top, even, p_v0, b_starts])
+	print("[probe] charge done (flick %.1f ahead / %.1f slide, level %.2f -> %.2f, sweep %.2f; ram %.0f at %.2f s, wall stop %.1f m, open %.1f m / %.1f, top in %.1f s, re-press %.1f m/s, bot %d)" % [w_fwd, w_slide, w_l0, w_l1, f_after, hits[0], r_hit_at, wd, fd, want, to_top, p_v0, b_starts])
 	_quit(0)

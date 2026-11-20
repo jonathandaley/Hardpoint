@@ -1840,6 +1840,7 @@ func _snapshot_tick() -> void:
 				e["lk"] = [String(lk_t.name) if is_instance_valid(lk_t) else "", String(lk_e.name) if is_instance_valid(lk_e) else ""]
 			if m.get("lunging") and m.get("_charge"):  # T499: the set-off speed carries turn losses -> glow / pose
 				e["lv"] = m.get("_charge_v0")
+				e["ll"] = m.get("_charge_l0")  # T513: the charge level (ram / glow)
 			if m.owner_peer_id > 1:  # T205: a client's mech -> its prediction's reference
 				e["ack"] = m.input_ack
 				e["ackt"] = m.input_ack_ticks

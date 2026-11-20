@@ -714,6 +714,7 @@ func receive_snapshot(entry: Dictionary, local_t: float = -1.0) -> void:
 		return
 	if _charge and lunging and entry.has("lv") and not _predicting():  # T499: turn losses -> glow / crouch here
 		_charge_v0 = float(entry["lv"])
+		_charge_l0 = float(entry.get("ll", _charge_l0))  # T513: the level (glow)
 	if entry.has("hp") and not is_dead:
 		# T474: the health rides every snapshot (newest wins, nothing waits on a resend); a death still
 		# comes reliable (_sync_death)
@@ -1880,19 +1881,19 @@ var _anchor_pose := 0.0
 # good"); the next press pulls up: the boost bleeds off at CHARGE_DECEL ("quickly, not instant") while
 # steering and walking are back at once, so a quick turn and a press keep a little of it (the new
 # charge sets off at the speed it still carries along the new heading). No recharge. While it
-# charges, an enemy mech (or its front shield) in the way takes max(RAM_FLOOR, RAM_K x closing speed)
+# charges, an enemy mech (or its front shield) in the way takes RAM_FLOOR..RAM_MAX by charge level (T513)
 # and the charge stops dead ("Stop on hit"); a wall met face-on stops it with no damage; it stands
 # CHARGE_HIT_S in either impact. Its glow parts and a red aura around the whole body brighten with
 # speed. Netcode as the T342 lunge it replaces: the server runs a press on its input tick and tells
 # the owner where (_rpc_lunge sets off, _rpc_charge_end pulls up / hits); the owner rewrites the
 # ticks it already ran past that record (T205); snapshots carry the clock (lt / ld / lv / le / lh)
 # for an RPC that comes late (B131). Other peers run the clock INTERP_DELAY late for pose and glow.
-const CHARGE_TOP := 15.0     # m/s -- calibration knob (the lunge peaked at 12; Taurus walks 0.9)
-# T483 (HUMAN_FOUND 2026-11-18: "Taurus accelerates much too quickly. It should take at least 15 seconds to
-# get to the current top speed. Slip and Swift should outrun it under most circumstances that aren't just
-# a straight very long line."): walking pace -> CHARGE_TOP in ~15.7 s; Slip (3.75) stays ahead ~6 s / 24 m
-const CHARGE_ACCEL := 0.9    # m/s per s from walking pace (was 5: ~2.8 s to the top) -- calibration knob
-const CHARGE_DECEL := 30.0   # m/s per s once it pulls up: ~0.5 s from the top -- calibration knob
+# T513 (user 2026-11-19: "Taurus is too good at getting beacons and not good at brawling." / "Top speed of
+# 3.5, ramp it 50% faster than it does now (and get rid of the 15s rule)"): ~1.9 s to the top; a Slip
+# (3.75) outruns it. v1 / v2 live at the tags taurus-charge-v1 / -v2.
+const CHARGE_TOP := 3.5      # m/s -- calibration knob (Taurus walks 0.9)
+const CHARGE_ACCEL := 1.35   # m/s per s from walking pace (v2: 0.9) -- calibration knob
+const CHARGE_DECEL := 7.0    # m/s per s once it pulls up: ~0.5 s from the top ("quickly, not instant"; v2: 30 from 15) -- calibration knob
 const CHARGE_HIT_S := 0.3    # s it stands in an impact
 const CHARGE_CROUCH := 0.35  # leg pose crouch at the top speed: head down, horns first
 const CHARGE_AURA_R := 2.2   # m: the aura around the body (its centre CHARGE_AURA_Y up)
@@ -1908,14 +1909,18 @@ const CHARGE_AURA_Y := 1.3
 # turn. Server and owner both run it from the same aim inputs.
 const CHARGE_TURN_FREE := deg_to_rad(8.0)  # rad/s of turn that costs nothing (aim noise) -- calibration knob
 const CHARGE_SLIP_DECEL := 10.0  # m/s per s the slide bleeds off -- calibration knob
-# T499 ("Add a small damage-over-time effect corresponding to high speed" / "Taurus takes its own
-# damage (overclock-adjacent)"): above CHARGE_DOT_FROM it burns itself, up to CHARGE_DOT HP/s at the
-# top (server; never below 1 HP -- the charge can't kill its own Taurus)
-const CHARGE_DOT_FROM := 9.0  # m/s -- calibration knob
-const CHARGE_DOT := 6.0       # HP/s at CHARGE_TOP (390 HP Taurus: ~15 s flat out = 45 HP) -- calibration knob
 var _charge_slip := Vector3.ZERO
-const RAM_FLOOR := 60.0      # ~1/3 of a light mech -- calibration knob
-const RAM_K := 9.0           # damage per m/s of closing speed -- calibration knob (135 at the top)
+# T513 ("Make the damage scale with how long it's been charging, to a pretty high cap, 250?, that takes
+# 15s to reach. Glow builds with charge level, not with speed, and is only reduced by turning at 50% the
+# rate that the speed is." -- the T499 speed burn is gone, "Remove the self-penalty for now"): a charge
+# level 0..1 over CHARGE_LEVEL_S, kept like the speed as an offset on the clock (_charge_l0) so every
+# sync path carries it; a turn takes CHARGE_LEVEL_TURN of it per 90 deg (the speed loses all its boost).
+# The ram deals RAM_FLOOR..RAM_MAX by level; the glow / aura show the level.
+const CHARGE_LEVEL_S := 15.0   # s to a full level -- calibration knob
+const CHARGE_LEVEL_TURN := 0.5  # level lost per 90 deg of paid turn -- calibration knob
+var _charge_l0 := 0.0
+const RAM_FLOOR := 60.0      # at a fresh charge -- calibration knob
+const RAM_MAX := 250.0       # at a full level -- calibration knob
 const LUNGE_GLOW_K := 2.5    # extra glow at full speed (x the palette's energy)
 var lunging := false  # the charge / dash clock runs
 var bounty := 0  # T364 (server): coins this mech is worth on top of its base -- half of what it killed this life
@@ -1938,6 +1943,17 @@ func _charge_speed(t: float) -> float:
 	if _lunge_hit:
 		return 0.0
 	return maxf(0.0, minf(CHARGE_TOP, _charge_v0 + CHARGE_ACCEL * _charge_end_t) - CHARGE_DECEL * (t - _charge_end_t))
+
+## T513: the charge level at clock t (frozen at the pull-up / impact).
+func charge_level(t: float) -> float:
+	return clampf(_charge_l0 + minf(t, _charge_end_t) / CHARGE_LEVEL_S, 0.0, 1.0)
+
+## T513: the glow -- the level while it charges, fading with the speed through the pull-up.
+func _charge_glow(t: float) -> float:
+	if t < _charge_end_t:
+		return charge_level(t)
+	var s_end := _charge_speed(_charge_end_t - 0.0001)
+	return 0.0 if _lunge_hit or s_end <= 0.0 else charge_level(t) * _charge_speed(t) / s_end
 
 ## This mech's curve at clock t: the dash's or the charge's.
 func _curve_speed(t: float) -> float:
@@ -2026,6 +2042,7 @@ func _lunge_begin(dir: Vector3, t0 := 0.0, v0 := 0.0) -> void:
 	_charge_v0 = v0
 	_charge_end_t = INF
 	_charge_slip = Vector3.ZERO
+	_charge_l0 = 0.0  # T513: every set-off builds from nothing
 
 func _lunge_end() -> void:
 	lunging = false
@@ -2057,11 +2074,11 @@ func _lunge_step(delta: float) -> bool:
 			_desired_move_dir = (aim.x * d2.x + (-aim.z) * -d2.y).normalized()
 			velocity.x += _desired_move_dir.x * walk_speed
 			velocity.z += _desired_move_dir.z * walk_speed
-	_set_lunge_glow(sp / (DASH_PEAK if _dash else CHARGE_TOP))
+	_set_lunge_glow(sp / DASH_PEAK if _dash else _charge_glow(lunge_t))  # T513
 	return true
 
 ## T499: the heading follows the facing; a turn past the free rate costs boost (off the set-off speed,
-## so the clock curve carries it) and the lost speed slides on along the old heading. The speed burn.
+## so the clock curve carries it) and the lost speed slides on along the old heading; T513: and level.
 func _charge_steer(delta: float) -> void:
 	var h := _lunge_facing()
 	var paid := maxf(0.0, absf(_lunge_dir.signed_angle_to(h, Vector3.UP)) - CHARGE_TURN_FREE * delta)
@@ -2071,10 +2088,9 @@ func _charge_steer(delta: float) -> void:
 		if lost > 0.0:
 			_charge_slip += _lunge_dir * lost
 			_charge_v0 = s - lost - CHARGE_ACCEL * lunge_t
-			s -= lost
+		var lv := charge_level(lunge_t)  # T513: the level pays half the rate
+		_charge_l0 = maxf(0.0, lv - CHARGE_LEVEL_TURN * paid / (PI * 0.5)) - lunge_t / CHARGE_LEVEL_S
 	_lunge_dir = h
-	if s > CHARGE_DOT_FROM and health > 1.0 and not invincible and (not multiplayer.has_multiplayer_peer() or multiplayer.is_server()):
-		health = maxf(1.0, health - CHARGE_DOT * (s - CHARGE_DOT_FROM) / (CHARGE_TOP - CHARGE_DOT_FROM) * delta)
 
 ## Other peers: the clock for the pose and glow only.
 func _lunge_visual_tick(delta: float) -> void:
@@ -2084,7 +2100,7 @@ func _lunge_visual_tick(delta: float) -> void:
 	if lunge_t >= _ltotal():
 		_lunge_end()
 	else:
-		_set_lunge_glow(_curve_speed(lunge_t) / (DASH_PEAK if _dash else CHARGE_TOP))
+		_set_lunge_glow(_curve_speed(lunge_t) / DASH_PEAK if _dash else _charge_glow(lunge_t))  # T513
 
 ## After each move: a mech (or its shield) or a wall in the way ends the run; the server deals the
 ## ram. The owner's prediction stops the same way at walls; a mech is the server's call.
@@ -2103,9 +2119,7 @@ func _lunge_contacts() -> void:
 				# is the server's call -- its _rpc_charge_end (or the snapshot's clock) tells us
 				continue
 			if m.get("team") != team and c.has_method("take_damage") and not _dash:  # T454: a dash doesn't ram
-				var mv: Vector3 = m.get("velocity") if m.get("velocity") != null else Vector3.ZERO
-				var closing := _curve_speed(lunge_t) - mv.dot(_lunge_dir)
-				c.call("take_damage", maxf(RAM_FLOOR, RAM_K * closing), self)
+				c.call("take_damage", lerpf(RAM_FLOOR, RAM_MAX, charge_level(lunge_t)), self)  # T513: by level
 			_lunge_impact()
 			return
 		if col.get_normal().dot(-_lunge_dir) > 0.6 and _step_up_remaining <= 0.0:  # a step lifts it instead
@@ -2252,6 +2266,7 @@ func _charge_sync(entry: Dictionary, ahead: int) -> void:
 			return  # B147: ours stood in an impact the server's copy hadn't reached in that snapshot
 		var missed := Time.get_ticks_msec() - _lunge_begin_ms > int((want + 0.5) * 1000.0)
 		_lunge_begin(sd, want, sv)
+		_charge_l0 = float(entry.get("ll", 0.0))  # T513
 		_charge_end_t = se if se >= 0.0 else INF
 		_lunge_hit = sh and se >= 0.0
 		_lunge_hit_t = se
@@ -2262,6 +2277,7 @@ func _charge_sync(entry: Dictionary, ahead: int) -> void:
 	if se < 0.0 and not is_inf(_charge_end_t) and not _lunge_hit and absf(lunge_t - want) > 6.0 * dt:
 		# a new charge the server set off out of our pull-up (its _rpc_lunge is late): take it up
 		_lunge_begin(sd, want, sv)
+		_charge_l0 = float(entry.get("ll", 0.0))  # T513
 		_lunge_snap_start_ms = Time.get_ticks_msec()
 		return
 	if se >= 0.0 and is_inf(_charge_end_t):

@@ -1,2 +1,2 @@
 
-2026-11-19|T511|follow-up|(this commit)|ack-only gating left a client with a lost ack blind (sweep m2 desyncs); first input also marks it; match start sets server_heard (else deadlock); ack_lost scenario red->green
+2026-11-19|T513|DONE|(this commit)|Taurus charge v3: top 3.5 / accel 1.35, no burn, ram 60-250 by 15 s charge level (turns take half), glow = level, decel 7; probe + charge_net green
