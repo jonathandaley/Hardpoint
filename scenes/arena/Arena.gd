@@ -1862,6 +1862,13 @@ func _snapshot_tick() -> void:
 			var lk_e = m.get("lock_eligible_target")
 			if is_instance_valid(lk_t) or is_instance_valid(lk_e):
 				e["lk"] = [String(lk_t.name) if is_instance_valid(lk_t) else "", String(lk_e.name) if is_instance_valid(lk_e) else ""]
+			var rl := {}  # T512: each reloading slot's time left
+			var ws: Array = m.get_weapons()
+			for wi in ws.size():
+				if is_instance_valid(ws[wi]) and ws[wi].has_method("is_reloading") and ws[wi].is_reloading():
+					rl[wi] = float(ws[wi].get("_reload_timer"))
+			if not rl.is_empty():
+				e["rl"] = rl
 			if m.get("lunging") and m.get("_charge"):  # T499: the set-off speed carries turn losses -> glow / pose
 				e["lv"] = m.get("_charge_v0")
 				e["ll"] = m.get("_charge_l0")  # T513: the charge level (ram / glow)

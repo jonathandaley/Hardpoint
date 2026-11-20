@@ -8,3 +8,4 @@
 2026-11-20|T503|ROOT CAUSE|(prev commit)|server range check dropped the 0.5 hit from a random short gun 20 m off; hit from B itself; 8/8
 2026-11-20|T525|step 3|(this commit)|bots decide movement every 2nd tick: ai 1.45 -> 1.1 ms native; legs key (0.37 ms, not the lever)
 2026-11-20|T525|step 4|(this commit)|fast web template +3-5% for +46% wasm: not adopted; mechs ~35 draws each = the remaining draw cost -> skinned mechs proposed
+2026-11-20|T512|DONE|(this commit)|reload time left rides snapshots (B150 class, as T474 / T504)

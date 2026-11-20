@@ -689,8 +689,8 @@ func _sync_hit_confirmed(slot: int) -> void:
 @rpc("authority", "reliable")
 func _sync_reload_started(slot: int) -> void:
 	if slot >= 0 and slot < _weapons.size() and is_instance_valid(_weapons[slot]) \
-			and _weapons[slot].has_method("start_reload_cosmetic"):
-		_weapons[slot].start_reload_cosmetic()
+			and _weapons[slot].has_method("start_reload_cosmetic") and not _weapons[slot].is_reloading():
+		_weapons[slot].start_reload_cosmetic()  # T512: a snapshot may have started it already
 
 @rpc("authority", "reliable")
 func _sync_ammo(slot: int, a: int) -> void:
@@ -719,6 +719,17 @@ func receive_snapshot(entry: Dictionary, local_t: float = -1.0) -> void:
 		# T474: the health rides every snapshot (newest wins, nothing waits on a resend); a death still
 		# comes reliable (_sync_death)
 		health = float(entry["hp"])
+	# T512 (two_matches@bad reload_desync: the reliable _sync_reload_started held behind a resend, so a
+	# client's reload bar started seconds late): each reloading slot's time left rides the snapshot; a
+	# slot not reloading here starts (or a running one re-times) from it. Ends stay local (the timer).
+	var rl = entry.get("rl")
+	if rl is Dictionary:
+		for k in rl:
+			if typeof(k) == TYPE_INT and k >= 0 and k < _weapons.size() and is_instance_valid(_weapons[k]) \
+					and typeof(rl[k]) == TYPE_FLOAT and is_finite(rl[k]) and _weapons[k].has_method("start_reload_cosmetic"):
+				if not _weapons[k].is_reloading():
+					_weapons[k].start_reload_cosmetic()
+				_weapons[k].set("_reload_timer", clampf(float(rl[k]), 0.0, float(_weapons[k].get("reload_time"))))
 	# T504 (bot_lock@bad: a client kept a stale red box 3 s -- the reliable _sync_lock_state held behind a
 	# resend, B150): the lock state rides every snapshot too; absent = none
 	var lk = entry.get("lk")
