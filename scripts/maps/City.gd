@@ -133,7 +133,9 @@ func build() -> void:
 	_infill(rng, facades)
 	# central avenue median + plaza paving at the beacons
 	for b in BEACONS:
-		_solid(Vector3(22, 0.12, 22), Vector3(b.x, 0.06, b.y), _mat(PAVE), 0.0, false)
+		# T514 (HUMAN_FOUND 2026-11-19: "There's a race between the pad under beacons and the sidewalk on
+		# Sydney."): the T449 pavement is 0.12 m too -- the tops z-fought where they overlap; 1 cm up
+		_solid(Vector3(22, 0.13, 22), Vector3(b.x, 0.065, b.y), _mat(PAVE), 0.0, false)
 	_streets()
 
 # T231 (HUMAN_FOUND_ISSUES 2026-11-04: "Sydney feels too open"): the beacon / spawn
