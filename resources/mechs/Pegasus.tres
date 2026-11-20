@@ -9,13 +9,13 @@
 [sub_resource type="Resource" id="1"]
 script = ExtResource("3")
 slot_size = 0
-position = Vector3(-0.66, 1.56, -0.3)
+position = Vector3(-0.662, 1.5625, -0.3)
 weapon_scene = ExtResource("4")
 
 [sub_resource type="Resource" id="2"]
 script = ExtResource("3")
 slot_size = 0
-position = Vector3(0.66, 1.56, -0.3)
+position = Vector3(0.658, 1.5625, -0.3)
 weapon_scene = ExtResource("4")
 
 [resource]
