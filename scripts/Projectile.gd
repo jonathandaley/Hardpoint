@@ -49,6 +49,10 @@ static func _init_smoke() -> void:
 
 
 func _spawn_smoke() -> void:
+	var fx: Node = VFX._fx()
+	if fx != null:  # T525: one pooled instance, not a node + draw call per puff
+		fx.sphere(global_position, global_position, 0.08, 0.0, Color(0.44, 0.44, 0.44), 0.0, 0.0, _SMOKE_LIFETIME)
+		return
 	_init_smoke()
 	var mi := MeshInstance3D.new()
 	mi.mesh = _smoke_mesh
@@ -60,6 +64,19 @@ func _spawn_smoke() -> void:
 	tw.tween_property(mi, "scale", Vector3.ZERO, _SMOKE_LIFETIME)
 	tw.tween_callback(mi.queue_free)
 
+
+# T525: a plain-sphere bullet (ProjectileGrey) is drawn by the arena's FxPool -- one draw for all of
+# them -- and hides its own mesh; other projectile looks (missiles) keep theirs.
+func _ready() -> void:
+	var mi := get_node_or_null("Mesh") as MeshInstance3D
+	if mi == null or not (mi.mesh is SphereMesh):
+		return
+	var fx: Node = VFX._fx()
+	if fx == null:
+		return
+	var mat := mi.get_surface_override_material(0) as StandardMaterial3D
+	fx.follow(self, (mi.mesh as SphereMesh).radius, mat.albedo_color if mat != null else Color(0.58, 0.58, 0.6))
+	mi.visible = false
 
 func _physics_process(delta: float) -> void:
 	if not Game.prof_on:  # T165 profiling shim

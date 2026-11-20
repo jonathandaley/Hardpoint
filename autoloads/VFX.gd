@@ -2,17 +2,26 @@ extends Node
 
 # --- public API ---
 
+# T525: every piece below is an instance in the arena's FxPool (two MultiMeshes: 2 draw calls in all)
+# -- same shapes, sizes, colours and timings as the node-per-piece effects it replaced.
+var _fx_pool: Node = null
+
+func _fx() -> Node:
+	var scene := get_tree().current_scene
+	if scene == null or Game.dedicated:
+		return null
+	if not is_instance_valid(_fx_pool) or _fx_pool.get_parent() != scene:
+		_fx_pool = load("res://scripts/FxPool.gd").new()
+		scene.add_child(_fx_pool)
+	return _fx_pool
+
 # T317: radius (m) -- WeaponBase sizes it to the barrel; 0.26 was the old one-size flash.
 func muzzle_flash(pos: Vector3, color: Color = Color(1.0, 0.80, 0.30), broadcast: bool = false, radius: float = 0.26) -> void:
 	if broadcast and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		_rpc_muzzle_flash.rpc(pos, color, radius)
-	var mi := _sphere(0.14, color, 6.0, true)
-	mi.scale = Vector3.ONE * (radius / 0.14)
-	get_tree().current_scene.add_child(mi)
-	mi.global_position = pos
-	var tw := mi.create_tween()
-	tw.tween_property(mi, "scale", Vector3.ZERO, 0.12).set_ease(Tween.EASE_OUT)
-	tw.tween_callback(mi.queue_free)
+	var fx := _fx()
+	if fx != null:
+		fx.sphere(pos, pos, radius, 0.0, color, 6.0, 6.0, 0.12)  # shrinks away
 
 @rpc("authority", "unreliable")
 func _rpc_muzzle_flash(pos: Vector3, color: Color, radius: float) -> void:
@@ -22,33 +31,13 @@ func _rpc_muzzle_flash(pos: Vector3, color: Color, radius: float) -> void:
 
 # T260: width (m) for thick beams; the beam holds, then fades out (alpha) and thins.
 func tracer(from: Vector3, to: Vector3, color: Color = Color(0.75, 0.5, 1.0), duration: float = 0.35, broadcast: bool = false, width: float = 0.04) -> void:
-	var dist := from.distance_to(to)
-	if dist < 0.01:
+	if from.distance_to(to) < 0.01:
 		return
 	if broadcast and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		_rpc_tracer.rpc(from, to, color, duration, width)
-	var mi := MeshInstance3D.new()
-	var box := BoxMesh.new()
-	box.size = Vector3(width, width, dist)
-	mi.mesh = box
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.emission_enabled = true
-	mat.emission = color
-	mat.emission_energy_multiplier = 4.0
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mi.material_override = mat
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	get_tree().current_scene.add_child(mi)
-	mi.global_position = (from + to) * 0.5
-	var up := Vector3.UP if abs((to - from).normalized().dot(Vector3.UP)) < 0.99 else Vector3.RIGHT
-	mi.look_at(to, up)
-	var tw := mi.create_tween().set_parallel()
-	tw.tween_method(func(v: float) -> void: mat.emission_energy_multiplier = v, 4.0, 0.0, duration)
-	tw.tween_property(mat, "albedo_color:a", 0.0, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	tw.tween_property(mi, "scale", Vector3(0.3, 0.3, 1.0), duration)
-	tw.chain().tween_callback(mi.queue_free)
+	var fx := _fx()
+	if fx != null:
+		fx.beam(from, to, width, width * 0.3, color, 4.0, duration)
 
 @rpc("authority", "unreliable")
 func _rpc_tracer(from: Vector3, to: Vector3, color: Color, duration: float, width: float) -> void:
@@ -59,17 +48,12 @@ func _rpc_tracer(from: Vector3, to: Vector3, color: Color, duration: float, widt
 func hit_sparks(pos: Vector3, color: Color = Color(1.0, 0.55, 0.15), broadcast: bool = false) -> void:
 	if broadcast and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		_rpc_hit_sparks.rpc(pos, color)
+	var fx := _fx()
+	if fx == null:
+		return
 	for i in 6:
-		var mi := _sphere(0.055, color, 3.5, true)
-		get_tree().current_scene.add_child(mi)
-		mi.global_position = pos
 		var dir := Vector3(randf_range(-1.0, 1.0), randf_range(0.2, 1.0), randf_range(-1.0, 1.0)).normalized()  # cosmetic
-		var end_pos := pos + dir * randf_range(0.3, 0.8)
-		var dur := randf_range(0.14, 0.24)
-		var tw := mi.create_tween().set_parallel(true)
-		tw.tween_property(mi, "global_position", end_pos, dur).set_ease(Tween.EASE_OUT)
-		tw.tween_property(mi, "scale", Vector3.ZERO, dur).set_ease(Tween.EASE_IN)
-		tw.finished.connect(mi.queue_free)
+		fx.sphere(pos, pos + dir * randf_range(0.3, 0.8), 0.055, 0.0, color, 3.5, 3.5, randf_range(0.14, 0.24))
 
 @rpc("authority", "unreliable")
 func _rpc_hit_sparks(pos: Vector3, color: Color) -> void:
@@ -80,14 +64,30 @@ func _rpc_hit_sparks(pos: Vector3, color: Color) -> void:
 func death_explosion(pos: Vector3, broadcast: bool = false) -> void:
 	if broadcast and multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		_rpc_death_explosion.rpc(pos)
-	# Instant white-orange core flash - brief, not dominant
-	_explode_sphere(pos, 0.35, Color(1.0, 0.95, 0.82), 14.0, 2.8, 0.05, 0.09, 1.0)
+	var fx := _fx()
+	if fx == null:
+		return
+	# Instant white-orange core flash - brief, not dominant: grows to 2.8x in 0.05 s, then fades in 0.09 s
+	var core := Color(1.0, 0.95, 0.82)
+	fx.sphere(pos, pos, 0.0, 0.35 * 2.8, core, 14.0, 14.0, 0.05)
+	fx.sphere(pos, pos, 0.35 * 2.8, 0.35 * 2.8, core, 14.0, 0.0, 0.09, 0.05)
 	# 12 medium chunks replace the solid sphere - fragmented from frame 1
 	for _i in 12:
-		_explosion_chunk(pos)
-	# 26 fine debris particles
+		var hot := randf()  # cosmetic
+		var col := Color(1.0, lerpf(0.30, 0.72, hot), lerpf(0.0, 0.12, hot))
+		var emit := randf_range(4.5, 7.5)
+		var r := randf_range(0.18, 0.42) * randf_range(0.6, 1.2)
+		var at := pos + Vector3(randf_range(-0.25, 0.25), randf_range(-0.1, 0.25), randf_range(-0.25, 0.25))
+		var dir := Vector3(randf_range(-1.0, 1.0), randf_range(-0.1, 1.3), randf_range(-1.0, 1.0)).normalized()
+		fx.sphere(at, pos + dir * randf_range(1.2, 2.8), r, 0.0, col, emit, 0.0, randf_range(0.22, 0.48))
+	# 26 fine debris particles (each gone at 85% of its flight, as before)
 	for _i in 26:
-		_death_particle(pos)
+		var hot := randf()  # cosmetic
+		var col := Color(1.0, lerpf(0.25, 0.80, hot), lerpf(0.0, 0.18, hot))
+		var dir := Vector3(randf_range(-1.0, 1.0), randf_range(-0.15, 1.4), randf_range(-1.0, 1.0)).normalized()
+		var end := pos + dir * randf_range(1.0, 3.8) * 0.85
+		var e := randf_range(3.0, 5.5)
+		fx.sphere(pos, end, randf_range(0.05, 0.11), 0.0, col, e, e, randf_range(0.38, 0.75) * 0.85)
 
 @rpc("authority", "unreliable")
 func _rpc_death_explosion(pos: Vector3) -> void:
@@ -95,78 +95,6 @@ func _rpc_death_explosion(pos: Vector3) -> void:
 		return
 	death_explosion(pos)
 
-func _explosion_chunk(pos: Vector3) -> void:
-	var hot := randf()  # cosmetic
-	var col := Color(1.0, lerpf(0.30, 0.72, hot), lerpf(0.0, 0.12, hot))
-	var emit := randf_range(4.5, 7.5)
-	var mi := _sphere(randf_range(0.18, 0.42), col, emit)
-	var mat := mi.get_surface_override_material(0) as StandardMaterial3D
-	mi.scale = Vector3.ONE * randf_range(0.6, 1.2)
-	get_tree().current_scene.add_child(mi)
-	mi.global_position = pos + Vector3(randf_range(-0.25, 0.25), randf_range(-0.1, 0.25), randf_range(-0.25, 0.25))
-	var dir := Vector3(randf_range(-1.0, 1.0), randf_range(-0.1, 1.3), randf_range(-1.0, 1.0)).normalized()
-	var end_pos := pos + dir * randf_range(1.2, 2.8)
-	var dur := randf_range(0.22, 0.48)
-	var tw := mi.create_tween().set_parallel(true)
-	tw.tween_property(mi, "global_position", end_pos, dur).set_ease(Tween.EASE_OUT)
-	tw.tween_property(mi, "scale", Vector3.ZERO, dur).set_ease(Tween.EASE_IN)
-	tw.tween_method(func(v: float) -> void: mat.emission_energy_multiplier = v, emit, 0.0, dur)
-	tw.finished.connect(mi.queue_free)
-
-func _death_particle(pos: Vector3) -> void:
-	var hot := randf()  # cosmetic
-	var col := Color(1.0, lerpf(0.25, 0.80, hot), lerpf(0.0, 0.18, hot))
-	var mi := _sphere(randf_range(0.05, 0.11), col, randf_range(3.0, 5.5))
-	get_tree().current_scene.add_child(mi)
-	mi.global_position = pos
-	var dir := Vector3(randf_range(-1.0, 1.0), randf_range(-0.15, 1.4), randf_range(-1.0, 1.0)).normalized()
-	var end_pos := pos + dir * randf_range(1.0, 3.8)
-	var dur := randf_range(0.38, 0.75)
-	var tw := mi.create_tween().set_parallel(true)
-	tw.tween_property(mi, "global_position", end_pos, dur).set_ease(Tween.EASE_OUT)
-	tw.tween_property(mi, "scale", Vector3.ZERO, dur * 0.85).set_ease(Tween.EASE_IN)
-	tw.finished.connect(mi.queue_free)
-
-# --- helpers ---
-
-func _explode_sphere(pos: Vector3, radius: float, color: Color, emission: float,
-		peak_scale: float, rise: float, fade: float, expand: float = 1.0) -> void:
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.emission_enabled = true
-	mat.emission = color
-	mat.emission_energy_multiplier = emission
-
-	var mesh := SphereMesh.new()
-	mesh.radius = radius
-	mesh.height = radius * 2.0
-	mesh.radial_segments = 8
-	mesh.rings = 4
-
-	var mi := MeshInstance3D.new()
-	mi.mesh = mesh
-	mi.set_surface_override_material(0, mat)
-	mi.scale = Vector3.ZERO
-
-	get_tree().current_scene.add_child(mi)
-	mi.global_position = pos
-
-	# Rise: scale 0 → peak
-	var tw_rise := mi.create_tween()
-	tw_rise.tween_property(mi, "scale", Vector3.ONE * peak_scale, rise).set_ease(Tween.EASE_OUT)
-	# Fade: scale continues expanding AND emission fades simultaneously
-	tw_rise.finished.connect(func() -> void:
-		var tw_fade := mi.create_tween().set_parallel(true)
-		tw_fade.tween_property(mi, "scale", Vector3.ONE * peak_scale * expand, fade).set_ease(Tween.EASE_IN)
-		tw_fade.tween_method(func(v: float) -> void: mat.emission_energy_multiplier = v, emission, 0.0, fade)
-		tw_fade.finished.connect(mi.queue_free)
-	)
-
-# T166 (B53): hit sparks / muzzle flashes ran on every hit and shot, and each sphere
-# built a new SphereMesh + StandardMaterial3D (~0.6 ms per hit_sparks call).
-# shared=true reuses one mesh + material per (radius, color, emission); only for
-# callers that never modify the material (explosion chunks tween emission -> unique).
 # T263: spent casings -- one shared pool per arena (scripts/Casings.gd), made on first use;
 # cosmetic, local on every peer; none on a dedicated server (nothing renders there).
 var _casings: Node = null
@@ -180,32 +108,3 @@ func casing(weapon: Node3D, shell := false) -> void:
 		_casings.cap = 1000 if bool(Game.settings.get("casings_long", true)) else 150
 		scene.add_child(_casings)
 	_casings.eject(weapon, shell)
-
-var _shared_sphere: Dictionary = {}
-
-func _sphere(radius: float, color: Color, emission: float, shared: bool = false) -> MeshInstance3D:
-	if shared:
-		var key := "%s|%s|%s" % [radius, color, emission]
-		if not _shared_sphere.has(key):
-			var proto := _sphere(radius, color, emission)
-			_shared_sphere[key] = [proto.mesh, proto.get_surface_override_material(0)]
-			proto.free()
-		var smi := MeshInstance3D.new()
-		smi.mesh = _shared_sphere[key][0]
-		smi.set_surface_override_material(0, _shared_sphere[key][1])
-		return smi
-	var mi := MeshInstance3D.new()
-	var mesh := SphereMesh.new()
-	mesh.radius = radius
-	mesh.height = radius * 2.0
-	mesh.radial_segments = 8
-	mesh.rings = 4
-	mi.mesh = mesh
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = color
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.emission_enabled = true
-	mat.emission = color
-	mat.emission_energy_multiplier = emission
-	mi.set_surface_override_material(0, mat)
-	return mi
