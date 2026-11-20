@@ -553,10 +553,31 @@ func _spawn_bot_player(mech: CharacterBody3D, team: int, idx: int) -> Node:
 func _on_spectated_mech_died() -> void:
 	if _match_over:
 		return
+	var m := _live_mate(_spectated_mech)
+	if m != null:
+		_switch_spectator(m)
+
+## T516 (user 2026-11-19: "sometimes when you spectate and it dies you just stare at empty space where
+## the mech died. Tab doesn't change anything."): a teammate worth watching -- in play and not dead
+## (`visible` alone let the camera hop onto one still in its death fall); null if none.
+func _live_mate(skip: Node = null) -> Node:
 	for m in _team_mechs[_local_team]:
-		if is_instance_valid(m) and m.visible and m != _spectated_mech:
-			_switch_spectator(m)
-			return
+		if is_instance_valid(m) and m.visible and not m.get("is_dead") and m != skip:
+			return m
+	return null
+
+## T516: while we have no live mech of our own, a dead / gone spectated mech is swapped for a live
+## teammate as soon as there is one (the death signal fires once; a mate may only respawn later).
+func _spectate_fallback() -> void:
+	if _match_over or _spec_pivot == null:
+		return
+	if is_instance_valid(player_mech) and not player_mech.get("is_dead"):
+		return
+	if is_instance_valid(_spectated_mech) and not _spectated_mech.get("is_dead"):
+		return
+	var m := _live_mate()
+	if m != null:
+		_switch_spectator(m)
 
 func _create_spectator_camera() -> void:
 	_spec_pivot = Node3D.new()
@@ -587,11 +608,13 @@ func _switch_spectator(m: Node) -> void:
 func _cycle_spectator() -> void:
 	var alive: Array = []
 	for m in _team_mechs[_local_team]:
-		if is_instance_valid(m) and m.visible:
+		if is_instance_valid(m) and m.visible and not m.get("is_dead"):  # T516: never onto a dead one
 			alive.append(m)
-	if alive.size() <= 1:
+	if alive.is_empty():
 		return
-	var idx: int = alive.find(_spectated_mech)
+	var idx: int = alive.find(_spectated_mech)  # -1 (watching a dead one) -> the first live mate
+	if idx >= 0 and alive.size() == 1:
+		return
 	_switch_spectator(alive[(idx + 1) % alive.size()])
 
 func _process(_delta: float) -> void:
@@ -599,6 +622,7 @@ func _process(_delta: float) -> void:
 	if is_instance_valid(_ride_cam) and not _ride_cam.current:  # T267: the next mech took over
 		_ride_cam.queue_free()
 		_ride_cam = null
+	_spectate_fallback()  # T516
 	if _spec_pivot == null or _spectated_mech == null or not is_instance_valid(_spectated_mech):
 		return
 	# Position pivot at the mech's camera-arm world position for a stable anchor.

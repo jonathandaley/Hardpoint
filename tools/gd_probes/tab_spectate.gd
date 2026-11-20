@@ -49,6 +49,29 @@ func _ready() -> void:
 			await get_tree().process_frame
 		if arena.get("_spectated_mech") == first:
 			_fail("TAB doesn't cycle while spectating")
+		# T516 (user: "sometimes when you spectate and it dies you just stare at empty space where the
+		# mech died. Tab doesn't change anything."): kill every teammate -- the camera stays on the last
+		# body; a mate back in play (as a respawn) -> the camera moves to it by itself, no TAB; and with
+		# the camera on a dead mate, TAB goes to the live one even when it's the only one
+		var mates: Array = (arena.get("_team_mechs")[arena.get("_local_team")] as Array).filter(func(m): return m != me)
+		for m in mates:
+			m.invincible = false
+			m.call("_apply_damage", 1e9)
+		for i in 30:
+			await get_tree().physics_frame
+		var back: Node = mates[0]
+		back.set("is_dead", false)  # as a respawned mate: in play again
+		back.visible = true
+		for i in 3:
+			await get_tree().process_frame
+		if arena.get("_spectated_mech") != back:
+			_fail("a teammate back in play -- the camera still watches %s (dead %s)" % [arena.get("_spectated_mech"), arena.get("_spectated_mech").get("is_dead") if is_instance_valid(arena.get("_spectated_mech")) else "gone"])
+		arena.call("_switch_spectator", mates[1])  # onto a dead mate by hand
+		_tab()
+		for i in 3:
+			await get_tree().process_frame
+		if arena.get("_spectated_mech") != back:
+			_fail("TAB on a dead mate with one live mate left: still on %s" % arena.get("_spectated_mech"))
 	arena.get("hud").squad_slot_selected.emit(1)  # back in, in the next squad mech
 	arena.get("hud").spawn_selected.emit(0)
 	for i in 30:
