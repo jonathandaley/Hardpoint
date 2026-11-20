@@ -1543,12 +1543,17 @@ func _apply_stealth_visual(active: bool) -> void:
 			# them); a surface override on an empty MeshInstance is an engine error. B111: so is
 			# one on a mesh with no surfaces yet (T259's arc bolt before its first draw).
 			if mesh is MeshInstance3D and mesh.mesh != null and mesh.mesh.get_surface_count() > 0:
-				_stealth_saved_mats[mesh] = mesh.get_surface_override_material(0)
-				mesh.set_surface_override_material(0, mat)
+				var saved: Array = []  # T528: every surface (the skinned kit body has one per material)
+				for s in mesh.mesh.get_surface_count():
+					saved.append(mesh.get_surface_override_material(s))
+					mesh.set_surface_override_material(s, mat)
+				_stealth_saved_mats[mesh] = saved
 	else:
 		for mesh in all_meshes:
 			if mesh is MeshInstance3D and _stealth_saved_mats.has(mesh):
-				mesh.set_surface_override_material(0, _stealth_saved_mats[mesh])
+				var saved: Array = _stealth_saved_mats[mesh]
+				for s in mini(saved.size(), mesh.mesh.get_surface_count() if mesh.mesh != null else 0):
+					mesh.set_surface_override_material(s, saved[s])
 		_stealth_saved_mats.clear()
 
 const JUMP_HEAL := 40.0  # T372 (user 2026-11-09: keep the 16 s cooldown, halve the heal; was 80)
@@ -2380,11 +2385,12 @@ func _set_lunge_glow(k: float) -> void:
 			var n := mi as MeshInstance3D
 			if n.mesh == null or n.mesh.get_surface_count() == 0:  # B75 / B111: no surface, no override
 				continue
-			var mat := n.get_surface_override_material(0) as StandardMaterial3D
-			if mat != null and mat.emission_enabled and n.get_parent() != null and not n.get_parent().name.begins_with("Hardpoint"):
-				var own := mat.duplicate() as StandardMaterial3D
-				n.set_surface_override_material(0, own)
-				_lunge_glow.append([own, own.emission_energy_multiplier])
+			for s in n.mesh.get_surface_count():  # T528: the skinned kit body carries every material as a surface
+				var mat := n.get_surface_override_material(s) as StandardMaterial3D
+				if mat != null and mat.emission_enabled and n.get_parent() != null and not n.get_parent().name.begins_with("Hardpoint"):
+					var own := mat.duplicate() as StandardMaterial3D
+					n.set_surface_override_material(s, own)
+					_lunge_glow.append([own, own.emission_energy_multiplier])
 	for g in _lunge_glow:
 		(g[0] as StandardMaterial3D).emission_energy_multiplier = float(g[1]) * (1.0 + LUNGE_GLOW_K * k)
 

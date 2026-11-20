@@ -27,3 +27,4 @@
 2026-11-20|T523|suite 229/230|8708305|only difficulty_steps (T510 noise: Normal->Medium 29); pushed
 2026-11-20|T510|DONE|(this commit)|Medium had sunk toward Normal (step ~50-70): Medium aim drift 0.012 -> 0.006 (~273, even steps again); probe re-measures once on a borderline result
 2026-11-20|T510|sweep died|460346d|root disk full (build/suite_runs 81 GB, 813 runs): removed runs before 11-16 (-51 GB), run_suite now keeps the newest 150; sweep rerun
+2026-11-20|T528|reverted|(this commit)|skinned mechs identical (mech_shot diff) but no browser gain: draws -90, sync +0.7 ms, skinning cost ~= savings; reverted, tool + multi-surface walks kept
