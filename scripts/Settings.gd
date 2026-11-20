@@ -32,6 +32,7 @@ func _ready() -> void:
 	_build_view_section()
 	_build_controls_section()
 	_build_toggle_section($Scroll/Content, "RECORD MATCHES (FOR BUG REPORTS)", "record_matches", "Record")  # T389
+	_build_toggle_section($Scroll/Content, "SMARTER ELITES (MORE CPU)", "bots_plus", "BotsPlus")  # T520(e)
 	_build_graphics_page()  # T253: SHADOWS (and the later graphics toggles) live there
 	_build_audio_page()  # T433
 

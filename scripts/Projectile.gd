@@ -68,6 +68,8 @@ func _spawn_smoke() -> void:
 # T525: a plain-sphere bullet (ProjectileGrey) is drawn by the arena's FxPool -- one draw for all of
 # them -- and hides its own mesh; other projectile looks (missiles) keep theirs.
 func _ready() -> void:
+	if explode:
+		add_to_group("explosive_shots")  # T520(e): what Bots+ Elites sidestep (missiles, rockets, shells)
 	var mi := get_node_or_null("Mesh") as MeshInstance3D
 	if mi == null or not (mi.mesh is SphereMesh):
 		return

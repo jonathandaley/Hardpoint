@@ -244,8 +244,59 @@ func _score(from: Node3D, em: Node3D) -> float:
 	if _preset()["team"]:
 		if _los_to(from, em):
 			score += VISIBLE_BONUS
-		score += FOCUS_BONUS * mini(_mates_on(em), 3)
+		score += FOCUS_BONUS * mini(_mates_on(em), 3) * (2.0 if _plus() else 1.0)  # T520(e): Bots+ focus harder
 	return score
+
+# ---- T520(e) BOTS+ (user 2026-11-19: "A non-potato target bots+ mode could be interesting" / "8 good. Include
+# everything that would make a significant difference, and if that uses too much CPU, we can tune it" / "simple
+# solutions when they are sufficient"): Settings SMARTER ELITES (more CPU), Elite bots only, off by default.
+# Uses what a player sees (tags + minimap: every unstealthed enemy's position). Pieces: harder focus fire,
+# beacon judgement (no lone walk into an outnumbered beacon, defend an owned one under threat), sidestepping
+# incoming explosive shots, re-pathing twice as often.
+const PLUS_OUTNUMBERED := 8.0   # beacon score off when more enemies than our bots near it
+const PLUS_DEFEND := 12.0       # beacon score on: ours, enemies near, none of ours headed there
+const PLUS_NEAR_M := 30.0       # "near a beacon"
+const DODGE_LOOK_S := 1.2       # how far ahead an incoming shot is checked
+const DODGE_MISS_M := 3.0       # passing closer than this = dodge
+const DODGE_S := 0.4            # how long the sidestep lasts
+var _dodge_t := 0.0
+var _dodge_vec := Vector2.ZERO
+
+func _plus() -> bool:
+	var lvl: int = difficulty if difficulty >= 0 else int(Game.settings.get("bot_difficulty", 1))
+	return lvl >= 4 and bool(Game.settings.get("bots_plus", false))
+
+## Bots+: known enemies within PLUS_NEAR_M of a beacon.
+func _enemies_near(p: Vector3) -> int:
+	var n := 0
+	for m in get_tree().get_nodes_in_group("mechs"):
+		if _is_live_enemy(m) and p.distance_to((m as Node3D).global_position) < PLUS_NEAR_M:
+			n += 1
+	return n
+
+## Bots+: an incoming explosive shot that will pass within DODGE_MISS_M in the next DODGE_LOOK_S ->
+## a sidestep (move input, local) across its path for DODGE_S. Server: the real shots.
+func _check_dodge(bot_mech: Node3D) -> void:
+	var p := bot_mech.global_position + Vector3.UP
+	for s in get_tree().get_nodes_in_group("explosive_shots"):
+		if not is_instance_valid(s) or int(s.get("team")) == _own_team:
+			continue
+		var v: Vector3 = s.get("_vel") if s.get("_vel") != Vector3.ZERO else -(s as Node3D).global_transform.basis.z * float(s.get("speed"))
+		var rel := p - (s as Node3D).global_position
+		var vv := v.length_squared()
+		if vv < 1.0:
+			continue
+		var t := rel.dot(v) / vv  # time of closest approach
+		if t < 0.0 or t > DODGE_LOOK_S:
+			continue
+		if (rel - v * t).length() > DODGE_MISS_M:
+			continue
+		var side := Vector3(-v.z, 0.0, v.x).normalized()
+		if side.dot(rel) < 0.0:
+			side = -side  # step out the way it's already off-centre
+		_dodge_vec = _to_move(bot_mech, side)
+		_dodge_t = DODGE_S
+		return
 
 var _close_check := 0.0
 var _close_seen: Node3D = null
@@ -392,6 +443,12 @@ func _pick_target_beacon(bot_mech: Node3D) -> Node:
 		var others: int = Game.ai_director_intent_count(b, _own_team) - int(b == _claimed_beacon)
 		var crowd_penalty := maxf(0.0, float(others - 1)) * 5.0
 		var score: float = priority - dist * 0.05 - crowd_penalty + (CLAIM_STICKY if b == _claimed_beacon else 0.0)
+		if _plus():  # T520(e) beacon judgement
+			var foes := _enemies_near(b.global_position)
+			if foes > others + 1:
+				score -= PLUS_OUTNUMBERED
+			if owner == _own_team and foes > 0 and others <= 0:
+				score += PLUS_DEFEND
 		if score > best_score:
 			best_score = score
 			best = b
@@ -452,7 +509,8 @@ func _nav_next(bot_mech: Node3D, goal_pos: Vector3) -> Vector3:
 	# each bot re-planned 60x a second (4 of the AI's 5.3 ms a tick on Badlands, T3500). Re-plan
 	# when the goal has moved NAV_REPLAN_M or the old path is done; steering still aims at the
 	# live goal once near it (_steer_to).
-	if nav_agent.target_position.distance_squared_to(goal_pos) > NAV_REPLAN_M * NAV_REPLAN_M \
+	var replan := NAV_REPLAN_M * (0.5 if _plus() else 1.0)  # T520(e): Bots+ re-paths twice as often
+	if nav_agent.target_position.distance_squared_to(goal_pos) > replan * replan \
 			or nav_agent.is_navigation_finished():
 		nav_agent.target_position = goal_pos
 	var next := nav_agent.get_next_path_position()
@@ -697,6 +755,12 @@ func _physics_process_impl(delta: float) -> void:
 	if _escape_timer > 0.0:
 		_escape_timer -= delta
 		_move_dir = _escape_vec
+	if _plus():  # T520(e): sidestep an incoming explosive shot
+		if _dodge_t <= 0.0:
+			_check_dodge(bot_mech)
+		if _dodge_t > 0.0:
+			_dodge_t -= delta
+			_move_dir = _dodge_vec
 
 	_ability_press = false
 	_reload_press = false
