@@ -47,7 +47,9 @@ const DIFFICULTY_PRESETS: Array = [
 	# now plays exactly like Elite did -- no aim drift, full lead, no burst pauses, jukes; ELITE is
 	# Hard + pilot upgrades ("upgrades": the named elite pilots of T325).
 	{"aim_jitter": 0.0,   "turn_scale": 4.00, "lead": 1.0, "reaction": 0.08, "pause": 0.0,  "tactics": true,  "team": true, "juke": true},   # Hard
-	{"aim_jitter": 0.0,   "turn_scale": 4.00, "lead": 1.0, "reaction": 0.08, "pause": 0.0,  "tactics": true,  "team": true, "juke": true, "upgrades": true},  # Elite
+	# T520(e) (user: Elites "should be able to do anything a human could theoretically do"): no turn-rate
+	# cap a human doesn't have -- 12 x 0.9 = ~620 deg/s (a mouse flick), still half the gap per tick
+	{"aim_jitter": 0.0,   "turn_scale": 12.0, "lead": 1.0, "reaction": 0.08, "pause": 0.0,  "tactics": true,  "team": true, "juke": true, "upgrades": true},  # Elite
 ]
 # T172: roles by team slot (Arena: bot_id = 1 + team*100 + slot), not RNG: a random
 # 2:1:1 roll could make a whole team defenders. Team presets drop the idle defender.
