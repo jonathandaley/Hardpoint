@@ -6,6 +6,9 @@ extends Node
 #    (direct or splash, within damage + splash); the burst lands within 2 m of the aim point;
 #  launch_velocity lands on its point for 20, 60 and 120 m (the arc maths, no physics);
 #  B is a Hard bot with a mortar and a target behind a wall (no clear shot): it fires anyway.
+# T532 (range by wheel / arrows, direction by horizontal aim): step_range's default / steps / clamps; F's
+# aim point lies lob_range out along its facing, on the deck, the same at any camera pitch; held wheel
+# input (ReplayInputSource "wheel") steps F's lob_range; the landing arrow's material ignores fog.
 
 const SlotDef := preload("res://scripts/WeaponSlotDef.gd")
 const InputSource := preload("res://scripts/InputSource.gd")
@@ -148,6 +151,35 @@ func _ready() -> void:
 			break
 	if not fired:
 		bad.append("the bot never lobbed at a target behind a wall")
+	# T532: range by the wheel, direction by horizontal aim
+	var mg := gun as Mortar
+	for c in [[-1.0, 0.0, Mortar.LOB_DEFAULT], [-1.0, 3.0, Mortar.LOB_DEFAULT + 3.0 * Mortar.LOB_STEP],
+			[-1.0, -100.0, Mortar.LOB_MIN], [-1.0, 100.0, mg.range], [60.0, -1.0, 60.0 - Mortar.LOB_STEP]]:
+		if absf(mg.step_range(c[0], c[1]) - c[2]) > 0.01:
+			bad.append("step_range(%s, %s) = %.1f, want %.1f" % [c[0], c[1], mg.step_range(c[0], c[1]), c[2]])
+	f.set("lob_range", 30.0)
+	var pts: Array = []
+	for pitch in [-1.0, 0.0, 0.4]:
+		f.set("_camera_pitch", pitch)
+		pts.append(mg.aim_point())
+	var flat_d := Vector2(pts[0].x - mg.global_position.x, pts[0].z - mg.global_position.z).length()
+	if absf(flat_d - 30.0) > 0.2 or absf(pts[0].y - DECK_Y) > 0.6:
+		bad.append("lob_range 30: the aim point is %.1f m out at y %.1f (want 30 m, on the deck)" % [flat_d, pts[0].y])
+	if pts[0].distance_to(pts[1]) > 0.01 or pts[0].distance_to(pts[2]) > 0.01:
+		bad.append("the aim point moves with camera pitch (%s / %s / %s)" % pts)
+	var rep_src := preload("res://scripts/ReplayInputSource.gd").new()
+	add_child(rep_src)
+	rep_src.load_spec({"keyframes": [{"tick": 0, "wheel": 1.0}, {"tick": 3, "wheel": 0.0}]})
+	f.call("set_input_source", rep_src)
+	for k in 6:
+		await get_tree().physics_frame
+	var lr: float = f.get("lob_range")
+	if lr < 30.0 + 2.0 * Mortar.LOB_STEP - 0.01:
+		bad.append("held wheel input left lob_range at %.1f (from 30)" % lr)
+	var arrow := Mortar._arrow()
+	if not ((arrow.get_child(0) as MeshInstance3D).material_override as BaseMaterial3D).disable_fog:
+		bad.append("the landing arrow's material doesn't ignore fog")
+	arrow.free()
 	if not bad.is_empty():
 		_fail("; ".join(bad))
 		return

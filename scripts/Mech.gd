@@ -71,6 +71,9 @@ var _stealth_saved_mats: Dictionary = {}  # MeshInstance3D -> original material
 var _weapons: Array = []
 var _ammo_synced: Array = []   # last ammo value broadcast per slot (server, MP only)
 var _active_set: Array = []  # parallel bool array; true = included in right-click subset
+## T532: how far this pilot's mortar lobs (m; < 0 = Mortar.LOB_DEFAULT), stepped by the wheel / arrows.
+## The owner sets it; it rides the input payload to the server (V41: clamped where it's used).
+var lob_range := -1.0
 var _was_firing_primary: bool = false
 
 var locked_target: Node3D = null
@@ -893,6 +896,7 @@ func _physics_process_impl(delta: float) -> void:
 		_tick_ability_timers_client(delta)  # T468
 		if _predicting():
 			_handle_look()
+			_handle_wheel()
 			_maybe_forward_input()
 			if _pred_live and get_meta("staged", false):
 				# T519 (user: a client's first mech "could still move and look" but not shoot or use its
@@ -914,6 +918,7 @@ func _physics_process_impl(delta: float) -> void:
 		_lunge_visual_tick(delta)  # T342 / T473: pose + glow only
 		if _input_source != null and owner_peer_id == multiplayer.get_unique_id():
 			_handle_look()   # camera still tracks local mouse
+			_handle_wheel()
 			_maybe_forward_input()
 		_update_legs(delta)
 		return
@@ -933,6 +938,7 @@ func _physics_process_impl(delta: float) -> void:
 
 	if _input_source != null:
 		_handle_look()
+		_handle_wheel()
 		_handle_movement(delta)
 		_handle_slot_toggle()
 		_handle_reload()
@@ -1249,6 +1255,7 @@ func _maybe_forward_input() -> void:
 		"fire_prim": _input_source.is_firing_primary(),
 		"fire_sec": _input_source.is_firing_secondary(),
 		"presses": _press_counts.duplicate(),
+		"lob": lob_range,  # T532
 	}
 	if not multiplayer.get_peers().has(1) or not Game.server_heard:
 		return  # T206: a late joiner's Arena runs a few ticks before its handshake completes; B101: and
@@ -1271,6 +1278,9 @@ func _rpc_input(seq: int, payload: Dictionary) -> void:
 	var sh = payload.get("shoulder", shoulder)
 	if typeof(sh) == TYPE_FLOAT and is_finite(sh):
 		shoulder = 0.0 if absf(sh) < 0.5 else signf(sh)  # V41: only ever -1 / 0 (center, T252) / +1
+	var lb = payload.get("lob")
+	if typeof(lb) == TYPE_FLOAT and is_finite(lb):
+		lob_range = clampf(lb, -1.0, 1000.0)  # T532 / V41: Mortar clamps it to its own range again
 	var now := Time.get_ticks_msec() / 1000.0
 	while not _rpc_rate_times.is_empty() and now - float(_rpc_rate_times[0]) > 1.0:
 		_rpc_rate_times.pop_front()
@@ -1287,6 +1297,16 @@ func _rpc_input(seq: int, payload: Dictionary) -> void:
 		input_ack = seq
 		input_ack_ticks = 0
 	_input_source.push_input(payload)
+
+## T532: the wheel / up-down arrows step the mortar's range (only while a mortar is mounted).
+func _handle_wheel() -> void:
+	var w: float = _input_source.get_wheel() if _input_source.has_method("get_wheel") else 0.0
+	if w == 0.0:
+		return
+	for wpn in _weapons:
+		if wpn is Mortar:
+			lob_range = (wpn as Mortar).step_range(lob_range, w)
+			return
 
 func _handle_look() -> void:
 	# V47 (B38): a remote client's aim arrives absolute; apply it as-is. Deltas over

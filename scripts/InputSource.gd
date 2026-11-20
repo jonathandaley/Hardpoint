@@ -24,6 +24,10 @@ func is_reload_pressed() -> bool:
 func is_ability_pressed() -> bool:
 	return false
 
+## T532: range / zoom steps this tick (mouse wheel notches, + the up / down arrows held: a fraction per tick).
+func get_wheel() -> float:
+	return 0.0
+
 
 
 func is_human_input() -> bool:

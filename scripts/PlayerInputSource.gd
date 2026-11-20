@@ -2,10 +2,24 @@ class_name PlayerInputSource
 extends "res://scripts/InputSource.gd"
 
 var _look_delta: Vector2 = Vector2.ZERO
+var _wheel := 0.0
+const ARROW_STEPS_S := 6.0  # T532: the up / down arrows held = 6 wheel notches a second (no-mouse players)
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_look_delta += event.relative
+	elif event is InputEventMouseButton and event.pressed and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_wheel += 1.0
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_wheel -= 1.0
+
+func get_wheel() -> float:
+	var w := _wheel
+	_wheel = 0.0
+	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
+		return 0.0
+	return w + Input.get_axis("ui_down", "ui_up") * ARROW_STEPS_S / Engine.physics_ticks_per_second
 
 func get_move_direction() -> Vector2:
 	return Vector2(

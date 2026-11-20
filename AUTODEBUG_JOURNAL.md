@@ -31,3 +31,4 @@
 2026-11-20|T519|DONE|(this commit)|staged first mech fell through the floor in the client's prediction (collision off): layer 0 + mask kept + settle on both; start_pick scenarios x4 + client_fire oracle
 2026-11-20|T519|PUSHED|ba0b6df|suite 233/234 (difficulty_steps: one Jolt shape leak at exit, 2 reruns clean) + sweep 83/84 (account_match@bad: T534 flake, 3 reruns green)
 2026-11-20|T533|DONE|a7528e4|suite 235/235; weapon_zfight probe (264 combos): 22 flush face pairs -> per-slot nudges (zfight_solve.py, 1.5 mm clear) on 23 slots; 1.5-5 mm pairs remain (range-only shimmer)
+2026-11-20|T532|DONE|(this commit)|mortar: wheel / arrows set range (lob_range in the input payload), horizontal aim only, fog-free down arrow

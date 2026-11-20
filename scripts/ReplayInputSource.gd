@@ -64,6 +64,8 @@ func _apply_due_keyframes() -> void:
 			_fire_primary = bool(kf["fire_primary"])
 		if kf.has("fire_secondary"):
 			_fire_secondary = bool(kf["fire_secondary"])
+		if kf.has("wheel"):  # T532: steps per tick, held until a keyframe changes it
+			_wheel = float(kf["wheel"])
 		_kf_idx += 1
 
 # Consume the pulse matching action on its own tick. T158: like
@@ -103,6 +105,10 @@ func is_reload_pressed() -> bool:
 
 func is_ability_pressed() -> bool:
 	return not _take_pulse("ability").is_empty()
+
+var _wheel := 0.0
+func get_wheel() -> float:
+	return _wheel
 
 
 func is_human_input() -> bool:

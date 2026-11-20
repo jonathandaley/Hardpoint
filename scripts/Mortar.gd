@@ -4,9 +4,11 @@ extends "res://scripts/WeaponBase.gd"
 # shell on a high ballistic arc onto the aim point (out to `range`): over walls, onto targets with
 # no line of sight. The server solves the launch velocity for a flight time that grows with the
 # distance (always a high arc), so the shell lands where it was aimed; it bursts there (direct hit
-# + splash, Projectile.explode). Bots lob at their target itself (they may not see it); a player
-# lobs at what the crosshair is on, and sees a ring where the shell will land (only on their own
-# screen). Every peer sees the shell fly (reliable: one every few seconds, worth seeing).
+# + splash, Projectile.explode). Bots lob at their target itself (they may not see it). T532 (user
+# 2026-11-20): a player's range is a setting -- the mouse wheel / up-down arrows step it (Mech.lob_range,
+# sent with their input) -- and the direction is their horizontal aim only (looking up or down changes
+# nothing); a glowing down arrow that fog doesn't hide marks the landing spot, on their screen only.
+# Every peer sees the shell fly (reliable: one every few seconds, worth seeing).
 
 const PROJECTILE_SCENE := preload("res://scenes/weapons/ProjectileGrey.tscn")
 const G := 20.0  # m/s^2 on the shell (Projectile.gravity_y)
@@ -19,6 +21,16 @@ static func _shell_look(p: Node) -> void:
 @export var splash_radius: float = 5.0
 @export var splash_damage: float = 50.0
 var lobs := true  # AIInputSource: fire without a clear line (T458)
+const LOB_MIN := 8.0       # m (T532)
+const LOB_DEFAULT := 40.0  # m: a fresh mech's range
+const LOB_STEP := 4.0      # m per wheel notch
+
+## T532: `cur` (Mech.lob_range, < 0 = unset) moved by `steps` wheel notches, inside [LOB_MIN, range].
+func step_range(cur: float, steps: float) -> float:
+	return clampf(lob_distance(cur) + steps * LOB_STEP, LOB_MIN, range)
+
+func lob_distance(cur: float) -> float:
+	return clampf(cur if cur >= 0.0 else LOB_DEFAULT, LOB_MIN, range)
 
 static func flight_time(dist: float) -> float:
 	return 1.6 + dist / 60.0
@@ -32,27 +44,27 @@ static func launch_velocity(from: Vector3, to: Vector3) -> Vector3:
 func _muzzle() -> Vector3:
 	return to_global(muzzle_local) if muzzle_local != Vector3.ZERO else global_position
 
-## Where this mortar would land now: a bot's target, else what the camera ray hits; inside `range`.
+## Where this mortar would land now: a bot's target; else the pilot's range (Mech.lob_range) along their
+## horizontal aim, dropped onto whatever is below (ground or roof).
 func aim_point() -> Vector3:
 	var src: Node = owner_mech.get("_input_source") if owner_mech != null else null
 	var tgt = src.get("_target") if src != null and "_target" in src else null
-	var p: Vector3
 	if tgt is Node3D and is_instance_valid(tgt):
-		p = (tgt as Node3D).global_position
-	else:
-		var cam := owner_mech.get("camera") as Camera3D if owner_mech != null else null
-		if cam == null:
-			return global_position
-		var fwd := -cam.global_transform.basis.z
-		var q := PhysicsRayQueryParameters3D.create(cam.global_position, cam.global_position + fwd * (range + 40.0))
-		q.exclude = owner_mech.get_exclude_rids()
-		var hit := get_world_3d().direct_space_state.intersect_ray(q)
-		p = hit.position if not hit.is_empty() else cam.global_position + fwd * (range + 40.0)
-	var d := Vector2(p.x - global_position.x, p.z - global_position.z)
-	if d.length() > range:
-		var c := Vector2(global_position.x, global_position.z) + d.normalized() * range
-		p = Vector3(c.x, p.y, c.y)
-	return p
+		var p := (tgt as Node3D).global_position
+		var d := Vector2(p.x - global_position.x, p.z - global_position.z)
+		if d.length() > range:
+			var c := Vector2(global_position.x, global_position.z) + d.normalized() * range
+			p = Vector3(c.x, p.y, c.y)
+		return p
+	if owner_mech == null:
+		return global_position
+	var fwd := -(owner_mech.get("torso") as Node3D).global_transform.basis.z
+	var flat := Vector3(fwd.x, 0.0, fwd.z).normalized()
+	var at := global_position + flat * lob_distance(float(owner_mech.get("lob_range")))
+	var q := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 80.0, at + Vector3.DOWN * 150.0)
+	q.exclude = owner_mech.get_exclude_rids()
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	return hit.position if not hit.is_empty() else Vector3(at.x, owner_mech.global_position.y, at.z)
 
 func _do_fire() -> void:
 	if owner_mech == null:
@@ -104,33 +116,45 @@ func _rpc_shell(from: Vector3, v: Vector3, lifetime: float, team_i: int) -> void
 	get_tree().current_scene.add_child(ghost)
 	ghost.global_transform = Transform3D(Projectile.basis_along(v), from)
 
-# ---- the landing ring: the local player's own mortar only ----
-var _ring: MeshInstance3D
+# ---- the landing marker (T532): the local player's own mortar only ----
+var _marker: Node3D
+
+static func _arrow() -> Node3D:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED  # full-bright: reads as glowing
+	m.albedo_color = Color(1.0, 0.6, 0.15)
+	m.disable_fog = true   # the user: "ignores fog"
+	m.no_depth_test = true  # seen over the wall it lobs past
+	m.render_priority = 10
+	var root := Node3D.new()
+	var head := CylinderMesh.new()  # a cone, point down, tip on the spot
+	head.top_radius = 0.9
+	head.bottom_radius = 0.0
+	head.height = 1.2
+	head.radial_segments = 4  # chunky
+	head.rings = 1
+	var shaft := BoxMesh.new()
+	shaft.size = Vector3(0.4, 1.4, 0.4)
+	for part in [[head, 0.6], [shaft, 1.9]]:
+		var mi := MeshInstance3D.new()
+		mi.mesh = part[0]
+		mi.material_override = m
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.position.y = part[1]
+		root.add_child(mi)
+	return root
 
 func _process(_delta: float) -> void:
 	var src: Node = owner_mech.get("_input_source") if owner_mech != null else null
 	var mine: bool = src != null and src.has_method("is_human_input") and src.is_human_input() \
 			and not owner_mech.get("is_dead") and is_visible_in_tree()
 	if not mine:
-		if _ring != null:
-			_ring.visible = false
+		if _marker != null:
+			_marker.visible = false
 		return
-	if _ring == null:
-		_ring = MeshInstance3D.new()
-		var tm := TorusMesh.new()
-		tm.inner_radius = splash_radius - 0.25
-		tm.outer_radius = splash_radius
-		tm.rings = 32
-		tm.ring_segments = 4
-		_ring.mesh = tm
-		var m := StandardMaterial3D.new()
-		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		m.albedo_color = Color(1.0, 0.55, 0.15, 0.7)
-		m.no_depth_test = true
-		_ring.material_override = m
-		_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		_ring.top_level = true
-		add_child(_ring)
-	_ring.visible = true
-	_ring.global_position = aim_point() + Vector3(0, 0.15, 0)
+	if _marker == null:
+		_marker = _arrow()
+		_marker.top_level = true
+		add_child(_marker)
+	_marker.visible = true
+	_marker.global_position = aim_point()

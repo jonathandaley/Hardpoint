@@ -24,7 +24,7 @@
   "thresholds": {
     "pred_snap_frac": 0.01
   },
-  "_comment": "T458: both peers fly Vesuvius with three MORTAR HV. The server's mech is put 8 m in front of the client's, facing it (place_mech ahead), and both hold the trigger (ticks 200-560): shells arc onto what each camera ray hits (the replay camera looks ~0.3 rad down: the ground ~7 m ahead, by the other mech); the server's shells burst on or by the client's mech (health_desync: hits and splash reach the client), every peer sees every shell fly (_rpc_shell, reliable) and burst (crash_scan / rpc_integrity), ammo runs down and reloads (ammo sync).",
+  "_comment": "T458: both peers fly Vesuvius with three MORTAR HV. The server's mech is put 8 m in front of the client's, facing it (place_mech ahead), and both hold the trigger (ticks 200-560): T532: both first wheel the range down to its 8 m minimum (ticks 100-110, -5 steps a tick; the client's lob_range rides its input payload) and shells land 8 m along each one's horizontal aim, by the other mech; the server's shells burst on or by the client's mech (health_desync: hits and splash reach the client), every peer sees every shell fly (_rpc_shell, reliable) and burst (crash_scan / rpc_integrity), ammo runs down and reloads (ammo sync).",
   "peers": {
     "server": {
       "input": {
@@ -39,6 +39,14 @@
               0.0,
               0.0
             ]
+          },
+          {
+            "tick": 100,
+            "wheel": -5.0
+          },
+          {
+            "tick": 110,
+            "wheel": 0.0
           },
           {
             "tick": 200,
@@ -65,6 +73,14 @@
               0.0,
               0.0
             ]
+          },
+          {
+            "tick": 100,
+            "wheel": -5.0
+          },
+          {
+            "tick": 110,
+            "wheel": 0.0
           },
           {
             "tick": 200,
