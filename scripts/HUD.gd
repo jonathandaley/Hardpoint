@@ -613,16 +613,21 @@ const _Lobby := preload("res://scripts/Lobby.gd")
 
 ## A card's 3D view; returns the short names of the weapons the mech carries.
 func _mini_bay(card: Node, md: Resource, weapon_paths: Array) -> Array:
-	var box := SubViewportContainer.new()
+	# T529: rendered at the window's real pixels (was a fixed 2x: smoothed up past a 1280x720 window), shown
+	# by a nearest-filtered TextureRect (a VBoxContainer card ignores a container's scale)
+	var box := TextureRect.new()
 	box.custom_minimum_size = Vector2(CARD_PX)
-	box.stretch = true
-	box.stretch_shrink = 2  # viewport at 2x, shown at HUD scale: weapons stay crisp
+	box.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	box.stretch_mode = TextureRect.STRETCH_SCALE
+	box.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var vp := SubViewport.new()
 	vp.own_world_3d = true
-	vp.size = CARD_PX * 2
+	vp.render_target_update_mode = SubViewport.UPDATE_WHEN_PARENT_VISIBLE
 	box.add_child(vp)
 	card.add_child(box)  # in the tree first: the mech's _ready (torso, hardpoints) runs on add
+	vp.size = Vector2i((Vector2(CARD_PX) * MechVisuals.ui_px_scale(box)).round())
+	box.texture = vp.get_texture()
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
 	env.background_color = Color("#1c212b")  # a touch lighter than the hangar: dark guns read

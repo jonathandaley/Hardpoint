@@ -109,6 +109,25 @@ static func arm_display(m: Node, md: Resource, paths: Array) -> void:
 		if c.name.begins_with("Hardpoint"):
 			c.process_mode = Node.PROCESS_MODE_DISABLED
 
+# ---- T529: 3D previews at the window's real pixels ----
+# (user 2026-11-20: "increased resolution in mech preview and hangar ... chunky is good and blurry is to be
+# avoided"): the UI is laid out on a 640x360 canvas stretched to the window (canvas_items), so a SubViewport
+# sized in UI units was rendered small and smoothed up (the hangar preview: 214x236 shown at 2x on a 1280x720
+# window, 3x at 1080p). These render at the window's pixels and show 1:1, nearest-filtered.
+
+## Window pixels per UI unit (1280x720 window over the 640x360 base = 2).
+static func ui_px_scale(n: Node) -> float:
+	var root := n.get_tree().root
+	return maxf(1.0, float(root.size.y) / root.get_visible_rect().size.y)
+
+## `vp` renders at the window's pixels for a `ui_size` (UI units) box, shown 1:1 by `box` (a SubViewportContainer
+## placed by offsets, stretch off) -- call again when the window size changes.
+static func fit_pixels(box: Control, vp: SubViewport, ui_size: Vector2) -> void:
+	vp.size = Vector2i((ui_size * ui_px_scale(box)).round())
+	box.size = Vector2(vp.size)
+	box.scale = ui_size / Vector2(vp.size)
+	box.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
 # ---- accessory factories (added as Torso or Legs children) ----
 
 static func _add_box(parent: Node3D, pos: Vector3, sz: Vector3) -> MeshInstance3D:

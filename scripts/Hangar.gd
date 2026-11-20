@@ -139,22 +139,22 @@ func _build_back_btn() -> void:
 	_back_btn.visible = false
 
 var _bay: Node3D = null  # T208
+const LINEUP_UI := Vector2(640, 210)  # T529: UI units the lineup / preview take
+const DIORAMA_UI := Vector2(214, 236)
 const LINEUP_YAW := 215.0  # T220 3/4 view; T227: forward is -Z and the camera is at +Z, so 180 + 35 (35 alone was 3/4 AWAY)
 
 func _setup_lineup_viewport() -> void:
 	_lineup_container = SubViewportContainer.new()
-	# T220: render the 3D lineup at the window's pixel size (1280x420), shown at half scale
-	# in the 640x210 UI area -- stretched from 640x210 the light weapons blurred into the hull
+	# T220: render the 3D lineup at the window's pixel size, shown 1:1 in the 640x210 UI area -- stretched
+	# from 640x210 the light weapons blurred into the hull. T529: at the window's REAL size (was 1280x420
+	# fixed: blurred again on a 1080p window), MechVisuals.fit_pixels
 	_lineup_container.offset_left   = 0.0
 	_lineup_container.offset_top    = 0.0
-	_lineup_container.offset_right  = 1280.0
-	_lineup_container.offset_bottom = 420.0
-	_lineup_container.scale = Vector2(0.5, 0.5)
 	_lineup_container.stretch = false
 	mech_panel.add_child(_lineup_container)
 
 	_lineup_viewport = SubViewport.new()
-	_lineup_viewport.size              = Vector2i(1280, 420)
+	MechVisuals.fit_pixels(_lineup_container, _lineup_viewport, LINEUP_UI)
 	_lineup_viewport.own_world_3d      = true
 	_lineup_viewport.transparent_bg    = false
 	_lineup_viewport.handle_input_locally = false
@@ -728,13 +728,12 @@ func _setup_diorama() -> void:
 	_diorama_container = SubViewportContainer.new()
 	_diorama_container.offset_left   = 420.0
 	_diorama_container.offset_top    = 8.0
-	_diorama_container.offset_right  = 634.0
-	_diorama_container.offset_bottom = 244.0
-	_diorama_container.stretch = true
+	_diorama_container.stretch = false  # T529: was stretch = true -- rendered at 214x236 UI units, smoothed up
 	mech_panel.add_child(_diorama_container)
 
 	_diorama_viewport = SubViewport.new()
-	_diorama_viewport.size              = Vector2i(428, 472)
+	MechVisuals.fit_pixels(_diorama_container, _diorama_viewport, DIORAMA_UI)
+	get_tree().root.size_changed.connect(_refit_previews)
 	_diorama_viewport.own_world_3d      = true
 	_diorama_viewport.transparent_bg    = false
 	_diorama_viewport.handle_input_locally = false
@@ -812,11 +811,18 @@ func _turn_preview(dir: int) -> void:
 	_preview_tween.set_meta("to", to)
 	_preview_tween.tween_property(_diorama_spin, "rotation:y", to, 0.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
+func _refit_previews() -> void:  # T529: a resized window keeps the previews at its real pixels
+	if is_instance_valid(_lineup_viewport):
+		MechVisuals.fit_pixels(_lineup_container, _lineup_viewport, LINEUP_UI)
+	if is_instance_valid(_diorama_viewport):
+		MechVisuals.fit_pixels(_diorama_container, _diorama_viewport, DIORAMA_UI)
+
 func _on_preview_input(ev: InputEvent) -> void:
 	if ev is InputEventMouseMotion and (ev as InputEventMouseMotion).button_mask & MOUSE_BUTTON_MASK_LEFT:
 		if _preview_tween != null and _preview_tween.is_valid():
 			_preview_tween.kill()
-		_diorama_spin.rotation.y += (ev as InputEventMouseMotion).relative.x * 0.01
+		# T529: relative is in the (scaled-down) container's own pixels: back to UI units
+		_diorama_spin.rotation.y += (ev as InputEventMouseMotion).relative.x * 0.01 * _diorama_container.scale.x
 
 func _refresh_diorama_mech() -> void:
 	if not is_instance_valid(_diorama_spin):

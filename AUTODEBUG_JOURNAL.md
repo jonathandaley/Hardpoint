@@ -33,3 +33,4 @@
 2026-11-20|T533|DONE|a7528e4|suite 235/235; weapon_zfight probe (264 combos): 22 flush face pairs -> per-slot nudges (zfight_solve.py, 1.5 mm clear) on 23 slots; 1.5-5 mm pairs remain (range-only shimmer)
 2026-11-20|T532|DONE|5b7a482|suite 235/235 + sweep 84/84; mortar: wheel / arrows set range (lob_range in the input payload), horizontal aim only, fog-free down arrow
 2026-11-20|T531|DONE|31877b5|suite 236/236; scope_zoom skill: wheel / arrows zoom on lasers + weapons over 150 m, max 1+0.5/lv
+2026-11-20|T529|DONE|(this commit)|hangar lineup / preview / HUD cards render at the window real pixels, nearest (were smoothed up 1.5-3x)
