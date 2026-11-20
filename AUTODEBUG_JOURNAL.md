@@ -24,3 +24,4 @@
 2026-11-20|T521|DONE|(this commit)|Swarm: aerial homing salvo + 10% split into 2 at other enemies within 40 m; probe swarm
 2026-11-20|T521|suite 227/229|9d11947|net_security T462: Swarm.gd called the parent file's reliable _rpc_spawn_ghost.rpc directly (scanner sees no annotation there) -> AerialStrike._send_ghost helper; sweep stopped before any edit
 2026-11-20|T523|DONE|(this commit)|FANCY EFFECTS setting: arcing sparks, smoke puffs + column, tracer cores, muzzle flecks; +1 MultiMesh; fx_fancy probe; ~+0.4 ms fx in an MG fight
+2026-11-20|T523|suite 229/230|8708305|only difficulty_steps (T510 noise: Normal->Medium 29); pushed
