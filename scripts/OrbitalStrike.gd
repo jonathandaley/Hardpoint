@@ -36,7 +36,7 @@ func _do_fire() -> void:
 
 @rpc("authority", "reliable")
 func _rpc_mark(at: Vector3, team: int) -> void:
-	if multiplayer.is_server():
+	if not is_inside_tree() or multiplayer.is_server():  # a straggler for a weapon already gone does nothing
 		return
 	_mark(at, team)
 

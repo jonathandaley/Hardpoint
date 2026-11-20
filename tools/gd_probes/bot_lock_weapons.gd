@@ -141,7 +141,7 @@ func _duels(shooters: Array, targets: Array, cases: Array) -> Array:
 		e.set("locked_target", null)
 		e.set("_lock_candidate", null)
 		e.set("_lock_timer", 0.0)
-		long = long or float(c[2]) > 60.0
+		long = long or float(c[2]) > 60.0 or c[0] == "OrbitalStrikeHeavy"  # T522: it lands 10 s after the shot
 		out.append({"lock": -1.0, "hit": -1.0, "dmg": 0.0, "dmg0": float(t.get("damage_taken_total"))})
 	for f in int((LONG_CASE_S if long else CASE_S) * 60.0):  # long shots fly for seconds
 		await get_tree().physics_frame
