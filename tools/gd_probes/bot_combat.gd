@@ -156,8 +156,22 @@ func _ready() -> void:
 	# stealthed shooter is rightly not "heard". The help call is the test, not stealth: B shows itself.
 	if b.get("is_stealthy"):
 		b.set("is_stealthy", false)
-	e.take_damage(0.5, b.get_weapons()[0])
+	# T503 (again 2026-11-20, a Pegasus B -- not stealth): a 0.5 hit is swallowed whole by E's energy shield
+	# when it has recharged, and a fully absorbed hit never emits `damaged` -- no help call. The help call
+	# is the test: E's shield is down for the hit
+	var e_es: Node = e.get("_energy_shield")
+	if e_es != null:
+		e_es.set("_active", false)
+	var e_h0: float = e.get("health")
+	# T503 ROOT CAUSE (2026-11-20, instrumented: E's health didn't move): B's first weapon is random (T365)
+	# and B stands 20 m off -- a short gun (inferno) is out of its own range there, so the server's damage
+	# check (request_damage: > 1.2 x range) drops the hit and nothing is heard. The hit comes from B itself
+	e.take_damage(0.5, b)
 	if fai.get("_threat") != b:
+		_fail("T503 state: E hp %.2f -> %.2f invincible %s dead %s diff %s team-play %s; E sees B live %s, F sees B live %s; F %.1f m from E, F dead %s, F diff %s, F threat %s" % [
+			e_h0, float(e.get("health")), e.get("invincible"), e.get("is_dead"), ai.get("difficulty"), ai.call("_preset")["team"],
+			ai.call("_is_live_enemy", b), fai.call("_is_live_enemy", b), (f as Node3D).global_position.distance_to((e as Node3D).global_position),
+			f.get("is_dead"), fai.get("difficulty"), fai.get("_threat")])
 		_fail("teammate 15 m away never heard who shot E (B %s stealthy %s visible %s dead %s; F team %s, E team %s; E's last attacker %s)" % [
 			String(b.get_meta("spawn", ["?"])[0]).get_file(), b.get("is_stealthy"), (b as Node3D).visible, b.get("is_dead"),
 			fai.get("_own_team"), e.get("team"), e.get("last_attacker")])
