@@ -537,7 +537,29 @@ func _update_mech_panel() -> void:
 			third = "ABILITY: %s%s" % [a.ability_name, " (SPACE)" if a.trigger == 0 else " (PASSIVE)"]
 			break
 	mech_stats_label.text = "SPEED: %.2f\nHEALTH: %.0f\n%s" % [md.walk_speed, md.max_health, third]
+	_mech_stat_bars(md)
 	_build_weapon_picker(md)
+
+## T537: bars beside SPEED and HEALTH, against the slowest / fastest and weakest / toughest mech.
+static var _mech_bounds := {}
+func _mech_stat_bars(md) -> void:
+	if _mech_bounds.is_empty():
+		for f in DirAccess.get_files_at("res://resources/mechs"):
+			if f.ends_with(".tres") and not f.begins_with("Debug"):
+				var m: Resource = load("res://resources/mechs/" + f)
+				for k in ["walk_speed", "max_health"]:
+					var v := float(m.get(k))
+					_mech_bounds[k] = [minf(_mech_bounds.get(k, [v, v])[0], v), maxf(_mech_bounds.get(k, [v, v])[1], v)]
+	for c in mech_stats_label.get_children():
+		if c is StatBar:
+			c.queue_free()
+	var line_h := 17.0
+	for i in 2:
+		var k: String = ["walk_speed", "max_health"][i]
+		var v := float(md.get(k))
+		var bar := StatBar.make(v, v, _mech_bounds[k][0], _mech_bounds[k][1])
+		mech_stats_label.add_child(bar)
+		bar.position = Vector2(118.0, roundf(line_h * i + (line_h - StatBar.H) * 0.5))
 
 func _build_weapon_picker(md) -> void:
 	var existing := mech_panel.get_node_or_null("WeaponPicker")
@@ -609,7 +631,7 @@ func _build_weapon_picker(md) -> void:
 		next_btn.add_theme_font_size_override("font_size", 13)
 		next_btn.pressed.connect(_on_weapon_cycle.bind(i, 1))
 		row.add_child(next_btn)
-		_info_button(row, weapon_tip(cat_idx))  # T283 numbers + T406 description, T466 "i"
+		_info_button(row, weapon_tip(cat_idx)).set_meta("weapon_idx", cat_idx)  # T283 numbers + T406 description, T466 "i"
 
 	# T308: from the picker's real height (rows are 26 px, not row_h: 3-slot mechs overlapped)
 	var stats_top: float = picker_top + maxf(slots.size() * row_h, picker.get_combined_minimum_size().y) + 8.0
@@ -640,12 +662,37 @@ const WEAPON_DESC := {
 	"PATIENCE": "Charges while you hold it -- up to 12 s for the full hit, 300 m reach. Named for what it takes.",
 }
 
+## T537: a weapon's bar stats {range, dmg (Vector2 low..high per shot), rate (shots/s), mag}, cached.
+static var _wstats := {}
+static func weapon_stats(cat_idx: int) -> Dictionary:
+	weapon_tip(cat_idx)
+	return _wstats[WEAPON_CATALOG[cat_idx]["path"]]
+
+## T537: per stat, [min, max] over the catalog weapons of `slot_size` (user: "compare each weapon only to
+## its own slot size"). Damage spans every weapon's low..high.
+static func weapon_bounds(slot_size: int) -> Dictionary:
+	var b := {}
+	for i in WEAPON_CATALOG.size():
+		if int(WEAPON_CATALOG[i]["slot_size"]) != slot_size:
+			continue
+		var s := weapon_stats(i)
+		for k in ["range", "rate", "mag"]:
+			var v := float(s[k])
+			b[k] = [minf(b.get(k, [v, v])[0], v), maxf(b.get(k, [v, v])[1], v)]
+		var d: Vector2 = s["dmg"]
+		b["dmg"] = [minf(b.get("dmg", [d.x, d.y])[0], d.x), maxf(b.get("dmg", [d.x, d.y])[1], d.y)]
+	return b
+
 static func weapon_tip(cat_idx: int) -> String:
 	if cat_idx < 0:
 		return ""
 	var path: String = WEAPON_CATALOG[cat_idx]["path"]
 	if not _tips.has(path):
 		var w: Node = (load(path) as PackedScene).instantiate()
+		var rate_v: float = 1.0 / maxf(float(w.get("max_charge_time")), 0.01) if "max_charge_time" in w \
+				else float(w.get("max_fire_rate")) if "max_fire_rate" in w else float(w.get("fire_rate"))
+		_wstats[path] = {"range": float(w.get("range")), "dmg": w.call("damage_range"), "rate": rate_v,
+			"mag": maxf(0.0, float(w.get("max_ammo"))), "lock": bool(w.get("requires_lock"))}
 		var lines: Array = ["RANGE  %d m" % roundi(float(w.get("range")))]
 		lines.append("DAMAGE  %s" % w.call("damage_text"))  # T538: each weapon says how it hits
 		if "max_charge_time" in w:
@@ -717,6 +764,7 @@ func _on_weapon_cycle(slot_idx: int, direction: int) -> void:
 	if slot_idx < _weapon_name_labels.size() and is_instance_valid(_weapon_name_labels[slot_idx]):
 		_weapon_name_labels[slot_idx].text = WEAPON_CATALOG[_weapon_indices[slot_idx]]["long"]
 		_weapon_name_labels[slot_idx].get_parent().get_node("Info").set_meta("info", weapon_tip(_weapon_indices[slot_idx]))
+		_weapon_name_labels[slot_idx].get_parent().get_node("Info").set_meta("weapon_idx", _weapon_indices[slot_idx])
 	_refresh_diorama_mech()  # T188: the shown mech carries the new pick
 	_refresh_lineup_mechs()
 
@@ -892,22 +940,118 @@ func _on_info_pressed(b: Button) -> void:
 		_info_box.name = "InfoBox"
 		_info_box.z_index = 10  # over the picker and stats drawn after the name
 		_info_box.add_theme_stylebox_override("panel", theme.get_stylebox("panel", "TooltipPanel"))
-		var l := Label.new()
-		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		l.custom_minimum_size.x = 418
-		l.add_theme_font_size_override("font_size", 12)
-		_info_box.add_child(l)
+		_info_box.add_child(VBoxContainer.new())  # T537: stat rows (+ bars), then the text
 		mech_name_label.add_child(_info_box)  # hides with the detail screen
 	elif _info_box.visible and _info_from == b:
 		_info_box.visible = false
 		return
 	_info_from = b
-	(_info_box.get_child(0) as Label).text = String(b.get_meta("info"))
+	var body := _info_box.get_child(0) as VBoxContainer
+	for c in body.get_children():
+		body.remove_child(c)
+		c.queue_free()
+	var text := String(b.get_meta("info"))
+	if b.has_meta("weapon_idx"):
+		var parts := text.split("\n\n", true, 1)
+		_weapon_stat_rows(body, int(b.get_meta("weapon_idx")), parts[0])
+		text = parts[1] if parts.size() > 1 else ""
+	if text != "":
+		var l := Label.new()
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.custom_minimum_size.x = 418
+		l.add_theme_font_size_override("font_size", 12)
+		l.text = text
+		body.add_child(l)
 	_info_box.size = Vector2.ZERO  # shrink to the new text
 	_info_box.global_position = Vector2(mech_name_label.global_position.x, b.get_global_rect().end.y + 4.0)
 	_info_box.visible = true
 
+## T537: the weapon's stat lines, each with its bar against the weapons of its own slot size, and an "i"
+## that opens the full table of every weapon.
+func _weapon_stat_rows(body: VBoxContainer, idx: int, stat_text: String) -> void:
+	var s := weapon_stats(idx)
+	var bounds := weapon_bounds(int(WEAPON_CATALOG[idx]["slot_size"]))
+	var key_of := {"RANGE": "range", "DAMAGE": "dmg", "FIRE RATE": "rate", "CHARGE": "rate", "MAGAZINE": "mag"}
+	for line in stat_text.split("\n"):
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		var key := ""
+		for k in key_of:
+			if line.begins_with(k + "  "):
+				key = key_of[k]
+		if key != "" and bounds.has(key):
+			var v = s[key]
+			var lo: float = (v as Vector2).x if v is Vector2 else float(v)
+			var hi: float = (v as Vector2).y if v is Vector2 else float(v)
+			row.add_child(StatBar.make(lo, hi, bounds[key][0], bounds[key][1]))
+		else:
+			var gap := Control.new()
+			gap.custom_minimum_size = Vector2(StatBar.W, 0)
+			row.add_child(gap)
+		var l := Label.new()
+		l.add_theme_font_size_override("font_size", 12)
+		l.text = line
+		row.add_child(l)
+		body.add_child(row)
+	var all := Button.new()
+	all.text = "i  ALL WEAPONS"
+	all.focus_mode = Control.FOCUS_NONE
+	all.add_theme_font_size_override("font_size", 12)
+	all.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	all.pressed.connect(_open_weapon_table)
+	body.add_child(all)
+
+# ---- T537 (user 2026-11-20: "Have another \"i\" icon (in the more info menu) that brings up a full table of
+# all weapons."): every catalog weapon, light then heavy, the tip's stats as columns. Esc / a click closes it.
+var _weapon_table: PanelContainer
+
+func _open_weapon_table() -> void:
+	SoundManager.play_sfx_2d("ui_click")
+	if _info_box != null:
+		_info_box.visible = false
+	if _weapon_table != null:
+		_weapon_table.queue_free()
+	_weapon_table = PanelContainer.new()
+	_weapon_table.name = "WeaponTable"
+	_weapon_table.z_index = 20
+	_weapon_table.add_theme_stylebox_override("panel", theme.get_stylebox("panel", "TooltipPanel"))
+	var grid := GridContainer.new()
+	grid.columns = 6
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 1)
+	_weapon_table.add_child(grid)
+	var cell := func(t: String, dim := false) -> void:
+		var l := Label.new()
+		l.text = t
+		l.add_theme_font_size_override("font_size", 10)
+		if dim:
+			l.modulate = Color(0.7, 0.75, 0.8)
+		grid.add_child(l)
+	for slot in [0, 1]:
+		for h in ["LIGHT" if slot == 0 else "HEAVY", "RANGE", "DAMAGE", "RATE /S", "MAG", "LOCK"]:
+			cell.call(h, true)
+		for i in WEAPON_CATALOG.size():
+			if int(WEAPON_CATALOG[i]["slot_size"]) != slot:
+				continue
+			var s := weapon_stats(i)
+			var d: Vector2 = s["dmg"]
+			cell.call(String(WEAPON_CATALOG[i]["name"]))
+			cell.call("%d m" % roundi(float(s["range"])))
+			cell.call(WeaponBase.num(d.x) if is_equal_approx(d.x, d.y) else "%s - %s" % [WeaponBase.num(d.x), WeaponBase.num(d.y)])
+			cell.call(WeaponBase.num(float(s["rate"])) if float(s["rate"]) >= 1.0 else "%.2f" % float(s["rate"]))
+			cell.call(str(int(s["mag"])))
+			cell.call("yes" if s["lock"] else "")
+	add_child(_weapon_table)
+	_weapon_table.reset_size()
+	_weapon_table.position = ((get_viewport_rect().size - _weapon_table.size) * 0.5).round()
+
 func _input(e: InputEvent) -> void:
+	if _weapon_table != null and is_instance_valid(_weapon_table) and _weapon_table.visible:
+		if (e is InputEventMouseButton and e.pressed) or e.is_action_pressed("ui_cancel"):
+			_weapon_table.queue_free()
+			_weapon_table = null
+			get_viewport().set_input_as_handled()
+		return
 	if _info_box == null or not _info_box.is_visible_in_tree():
 		return
 	if not (e is InputEventMouseButton and e.pressed):
