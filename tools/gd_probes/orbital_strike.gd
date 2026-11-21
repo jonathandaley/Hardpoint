@@ -116,8 +116,37 @@ func _ready() -> void:
 		bad.append("a mech 15 m off (outside the 10 m ring) took %.0f" % (5000.0 - float(off.get("health"))))
 	if not Orbital.pending.is_empty():
 		bad.append("the strike is still pending after it landed")
+	# T541: a PLAYER's orbital -- the trigger alone fires nothing; a pick far past the range is pulled in
+	# to 200 m and marked on the ground there; the shot is spent; the minimap maps clicks back to the ground
+	shooter.call("configure_weapons", [slot])
+	shooter.set("owner_peer_id", 1)
+	for i in 3:
+		await get_tree().physics_frame
+	var pw: Node = shooter.get_weapons()[0]
+	pw.call("fire")
+	if not Orbital.pending.is_empty():
+		bad.append("a player's orbital fired from the trigger alone")
+	pw.call("request_strike", Vector3(0, 0, -500))
+	if Orbital.pending.size() != 1:
+		bad.append("%d strikes pending after a player's pick (want 1)" % Orbital.pending.size())
+	else:
+		var pat: Vector3 = Orbital.pending[0][0]
+		var dd := Vector2(pat.x - shooter.global_position.x, pat.z - shooter.global_position.z).length()
+		if absf(dd - float(pw.get("range"))) > 1.0 or absf(pat.y - DECK_Y) > 0.6:
+			bad.append("a pick 560 m away marked %s (%.0f m off; want %.0f m, on the deck)" % [pat, dd, float(pw.get("range"))])
+	if int(pw.get("ammo")) != 0:
+		bad.append("the player's strike didn't spend its shot (ammo %d)" % int(pw.get("ammo")))
+	var mm: Control = load("res://scripts/Minimap.gd").new()
+	mm.size = Vector2(280, 280)
+	mm.set("center", Vector2(10, -20))
+	mm.set("half", 150.0)
+	var wp := Vector3(60, 0, -95)
+	var back: Vector3 = mm.call("from_map", mm.call("to_map", wp))
+	if back.distance_to(wp) > 0.01:
+		bad.append("minimap from_map(to_map(%s)) = %s" % [wp, back])
+	mm.free()
 	if not bad.is_empty():
 		_fail("; ".join(bad))
 		return
-	print("[probe] orbital_strike done (centre took %.0f, 15 m off 0)" % took)
+	print("[probe] orbital_strike done (centre took %.0f, 15 m off 0; player pick clamped to range)" % took)
 	get_tree().quit(0)

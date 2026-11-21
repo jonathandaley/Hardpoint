@@ -172,6 +172,36 @@ func show_spawn_picker(points: Array) -> void:
 		_spawn_ui.append(b)
 	_pointer_screens_changed()  # T497
 
+## T541: Orbital targeting -- the minimap at the spawn picker's size in the middle, with a banner.
+var _orbital_banner: Label = null
+func orbital_targeting_shown(on: bool, left: int) -> void:
+	if minimap == null:
+		return
+	if not on:
+		if is_instance_valid(_orbital_banner):
+			_orbital_banner.queue_free()
+		_orbital_banner = null
+		minimap.bg_alpha = 0.55
+		_minimap_corner()
+		return
+	minimap.set_anchors_preset(Control.PRESET_CENTER)
+	minimap.offset_left = -SPAWN_MAP_PX * 0.5
+	minimap.offset_right = SPAWN_MAP_PX * 0.5
+	minimap.offset_top = -SPAWN_MAP_PX * 0.5 + 20.0
+	minimap.offset_bottom = SPAWN_MAP_PX * 0.5 + 20.0
+	minimap.bg_alpha = 0.85
+	if not is_instance_valid(_orbital_banner):
+		_orbital_banner = Label.new()
+		_orbital_banner.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+		_orbital_banner.offset_top = 34.0
+		_orbital_banner.offset_bottom = 60.0
+		_orbital_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_orbital_banner.add_theme_font_size_override("font_size", 18)
+		_orbital_banner.modulate = Color(0.55, 0.9, 1.0)
+		add_child(_orbital_banner)
+	_orbital_banner.text = "ORBITAL STRIKE: CLICK A TARGET%s  -  ESC / RIGHT-CLICK CANCELS" % (
+		"" if left <= 1 else " (%d LEFT)" % left)
+
 func hide_spawn_picker() -> void:
 	for n in _spawn_ui:
 		if is_instance_valid(n):

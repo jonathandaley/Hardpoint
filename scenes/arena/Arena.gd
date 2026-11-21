@@ -45,6 +45,12 @@ func _ready() -> void:
 	# T161 (B46): Arena stays pausable. It used to be PROCESS_MODE_ALWAYS (so Esc
 	# could unpause), which every child inherited -- pausing froze nothing. Esc while
 	# paused is now handled by PauseMenu (PROCESS_MODE_ALWAYS).
+	if not Game.dedicated:  # T541: the local player's Orbital targeting
+		var ot: Node = preload("res://scripts/OrbitalTargeting.gd").new()
+		ot.name = "OrbitalTargeting"
+		ot.set("hud", hud)
+		ot.set("arena", self)
+		add_child(ot)
 	pause_menu.resume_requested.connect(_on_pause_resume)
 	pause_menu.quit_requested.connect(_on_pause_quit)
 	pause_menu.self_destruct_requested.connect(_on_pause_self_destruct)  # T278

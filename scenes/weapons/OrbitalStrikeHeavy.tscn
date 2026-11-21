@@ -12,7 +12,7 @@ shading_mode = 0
 [node name="OrbitalStrikeHeavy" type="Node3D"]
 script = ExtResource("1")
 slot_size = 1
-damage = 350.0
+damage = 250.0
 fire_rate = 0.12
 range = 200.0
 max_ammo = 1
@@ -20,9 +20,9 @@ magazine_type = 0
 reload_time = 18.0
 shake_magnitude = 0.0
 requires_lock = true
-fire_sound_key = "aerial_strike"
+fire_sound_key = "orbital_ping"
 strike_radius = 10.0
-edge_damage = 120.0
+edge_damage = 85.0
 
 [node name="Transponder" type="MeshInstance3D" parent="."]
 mesh = SubResource("2")

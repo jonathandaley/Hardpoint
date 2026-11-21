@@ -21,7 +21,11 @@ func get_wheel() -> float:
 		return 0.0
 	return w + Input.get_axis("ui_down", "ui_up") * ARROW_STEPS_S / Engine.physics_ticks_per_second
 
+var frozen := false  # T541: orbital targeting -- the mech stops completely
+
 func get_move_direction() -> Vector2:
+	if frozen:
+		return Vector2.ZERO
 	return Vector2(
 		Input.get_axis("move_left", "move_right"),
 		Input.get_axis("move_forward", "move_back")

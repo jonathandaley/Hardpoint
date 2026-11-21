@@ -87,9 +87,29 @@ func _ready() -> void:
 
 # T318 (HUMAN_FOUND 2026-11-05: "Minimap, both for picking spawnpoints and in the HUD, should be
 # rotated 90 degrees counterclockwise"): world +X is up, -Z is left (was +X right, -Z up).
+## T541: the world point (XZ; y 0) under a minimap position -- to_map backwards.
+func from_map(m: Vector2) -> Vector3:
+	var q := m - size * 0.5
+	var d := Vector2(-q.y, q.x) / (minf(size.x, size.y) * 0.5) * half
+	return Vector3(center.x + d.x, 0.0, center.y + d.y)
+
+## T541: Orbital targeting's circle (world x, z, radius, on > 0); redrawn at once when it moves.
+var strike_preview := Vector4.ZERO:
+	set(v):
+		strike_preview = v
+		queue_redraw()
+
 func to_map(p: Vector3) -> Vector2:
 	var d := (Vector2(p.x, p.z) - center) / half * (minf(size.x, size.y) * 0.5)
 	return size * 0.5 + Vector2(d.y, -d.x)
+
+func _draw_strike_preview() -> void:
+	if strike_preview.w <= 0.0:
+		return
+	var c := to_map(Vector3(strike_preview.x, 0.0, strike_preview.y))
+	var r := strike_preview.z / half * (minf(size.x, size.y) * 0.5)
+	draw_circle(c, r, Color(0.55, 0.9, 1.0, 0.25))
+	draw_arc(c, r, 0.0, TAU, 24, Color(0.55, 0.9, 1.0, 0.95), 2.0)
 
 func team_color(team: int) -> Color:
 	return ALLY if team == local_team else ENEMY
@@ -156,3 +176,4 @@ func _draw() -> void:
 		var s := Vector2(-f.y, f.x)
 		draw_colored_polygon(PackedVector2Array([c + f * 5.0 * k, c - f * 3.0 * k + s * 3.0 * k,
 			c - f * 3.0 * k - s * 3.0 * k]), Color(1, 1, 1))
+	_draw_strike_preview()  # T541: on top of everything

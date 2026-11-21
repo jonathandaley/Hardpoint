@@ -11,6 +11,7 @@ const _SFX_PATHS: Dictionary = {
 	"missile_launch":  "res://audio/sfx/weapons/missile_launch.wav",
 	"rocket_launch":   "res://audio/sfx/weapons/rocket_launch.wav",
 	"aerial_strike":   "res://audio/sfx/weapons/aerial_strike.wav",
+	"orbital_ping":    "res://audio/sfx/weapons/orbital_ping.wav",  # T540: a transponder chirp (synthesised)
 	"patience_shot":   "res://audio/sfx/weapons/patience_shot.wav",
 	"laser_loop":      "res://audio/sfx/weapons/laser_loop.ogg",
 	"arc_loop":        "res://audio/sfx/weapons/arc_loop.ogg",
