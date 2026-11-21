@@ -1,0 +1,115 @@
+{
+  "name": "pillar_pred",
+  "seed": 4300,
+  "port": 8943,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Pegasus.tres",
+  "net": {
+    "latency_ms": 160,
+    "jitter_ms": 10,
+    "loss": 0.01
+  },
+  "duration_ticks": 1600,
+  "oracles": [
+    "prediction_recon",
+    "transform_desync",
+    "crash_scan",
+    "log_flood"
+  ],
+  "thresholds": {},
+  "_comment": "T472: anchor_net's walk on PEGASUS (no ability presses): around tick 630 its path slides along a Math Temple wall into the pocket at the wall's end by a thin pillar, head-on (contact normal . desired = -0.99) -- the server's mech stops dead, while the owner's prediction (~1 cm off from easing) slid on around the pillar and drifted ~1 m before a snap. With Mech.PRED_HELD_M the client takes a stopped server's word at once (> 0.3 m): prediction_recon p95 0.43 -> 0.02 m.",
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 100,
+            "look": [
+              2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 110,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 500,
+            "look": [
+              -2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 510,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "pulses": []
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              -1
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 100,
+            "look": [
+              -2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 110,
+            "look": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 500,
+            "look": [
+              2.0,
+              0.0
+            ]
+          },
+          {
+            "tick": 510,
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "pulses": []
+      }
+    }
+  }
+}

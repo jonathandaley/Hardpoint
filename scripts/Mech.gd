@@ -990,6 +990,7 @@ func _slide(delta: float) -> void:
 const PRED_SNAP_M := 1.0      # calibration knob: snap instead of easing above this
 const PRED_BLEND := 0.2       # share of the error removed per snapshot (20 Hz)
 const PRED_DEADZONE := 0.02   # m: below this it's float noise, leave it
+const PRED_HELD_M := 0.3      # T472: a server that has the mech stopped and this far off -> snap (calibration knob)
 const _PRED_HIST_MAX := 120   # 2 s of ticks
 var _pred_live := false       # first snapshot seen (the server holds mechs until live)
 var _pred_synced := false     # first record matched: timelines aligned
@@ -1066,7 +1067,13 @@ func _reconcile(entry: Dictionary) -> void:
 			_pred_hist[k][2] = (_pred_hist[k][2] as Vector3) + shift
 		_pred_hist = _pred_hist.slice(i)
 		return
-	var snap := err.length() > PRED_SNAP_M
+	# T472: the server has the mech STOPPED (head-on into a wall-end / pillar pocket on Math Temple: contact
+	# normal . desired = -0.99) while this prediction, ~1 cm off, slid on around the obstacle: easing 20% a
+	# snapshot while still walking let the error grow for ~2 s to a 0.9 m snap-back. A stopped server and a
+	# real divergence (records are matched by input tick, so latency doesn't inflate err) -> take its word now.
+	var srv_v: Vector3 = entry.get("vel", Vector3.ONE)
+	var held := Vector2(srv_v.x, srv_v.z).length() < 0.05 and err.length() > PRED_HELD_M
+	var snap := err.length() > PRED_SNAP_M or held
 	var corr: Vector3 = err if snap else err * PRED_BLEND
 	if snap:
 		velocity = entry.get("vel", velocity)
