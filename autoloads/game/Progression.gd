@@ -38,10 +38,12 @@ const SKILL_TREE: Dictionary = {
 }
 
 # Cumulative XP required to reach each level (index 0 = XP to reach level 2, etc.)
-# Formula: _LEVEL_THRESHOLDS[n-1] = sum of (i*100) for i in 1..n
+# T536 (user 2026-11-20: "Maybe have xp-per-level increase by 10% per level."): level L -> L + 1 costs
+# 100 x 1.1^(L - 1) (100, 110, 121, ...); was (L x 100), so level 10 took 4,500 XP, now 1,358; level 20
+# 19,000 -> 5,116. A pilot's level is a function of its XP (level_for_xp), recomputed on load.
 const _LEVEL_THRESHOLDS: Array = [
-	100, 300, 600, 1000, 1500, 2100, 2800, 3600, 4500, 5500,
-	6600, 7800, 9100, 10500, 12000, 13600, 15300, 17100, 19000,
+	100, 210, 331, 464, 611, 772, 949, 1144, 1358, 1594,
+	1853, 2138, 2452, 2797, 3177, 3595, 4054, 4560, 5116,
 ]  # 19 entries for levels 2-20
 
 var profile: Dictionary = {
@@ -120,6 +122,7 @@ func _load_profile() -> void:
 	profile["level"]       = cfg.get_value("profile", "level",       1)
 	profile["coins"]       = cfg.get_value("profile", "coins",       0)
 	profile["skills"] = cfg.get_value("profile", "skills", {})
+	_check_level_up()  # T536: the level curve changed -- a save's level follows its XP
 
 func save_profile() -> void:
 	if not account.is_empty():
@@ -146,13 +149,15 @@ func get_bot_elo() -> int:
 func apply_coin_pickup_bonus(base: int) -> int:
 	return roundi(float(base) * (1.0 + get_skill_effect("coin_pickup")))
 
+static func level_for_xp(xp: int) -> int:
+	var lv := 1
+	while lv - 1 < _LEVEL_THRESHOLDS.size() and xp >= int(_LEVEL_THRESHOLDS[lv - 1]):
+		lv += 1
+	return lv
+
 func _check_level_up() -> void:
-	var cur_level: int = profile.get("level", 1)
-	var cur_xp: int    = profile.get("xp", 0)
-	# cur_level - 1 is the index into _LEVEL_THRESHOLDS (0-based)
-	while cur_level - 1 < _LEVEL_THRESHOLDS.size() and cur_xp >= _LEVEL_THRESHOLDS[cur_level - 1]:
-		cur_level += 1
-	profile["level"] = cur_level
+	# T536: from the XP alone (the curve changed: old saves recompute, never stuck on an old level)
+	profile["level"] = level_for_xp(int(profile.get("xp", 0)))
 
 ## XP remaining until the next level (0 if max level).
 func xp_to_next_level() -> int:

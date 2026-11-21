@@ -46,6 +46,7 @@ var _no_damage_timer: float = 0.0  # seconds since last damage hit; drives repai
 var _net_input_tick: int = 0       # increments every physics tick; used for 30Hz throttle
 var _net_input_seq: int = 0        # monotonic send counter
 var _press_counts: Array = [0, 0, 0, 0, 0, 0]  # T158/V47: cumulative presses [reload, ability, slot0..3]
+var healed_others_total := 0.0  # T536: server, HP this mech's field repair restored to teammates
 var last_input_ms: int = 0           # T167: server, wall ms of the owner's last _rpc_input (Arena silence check)
 var input_ack: int = 0               # T205: server, newest input seq applied (rides the snapshot)
 var input_ack_ticks: int = 0         # T205: server, physics ticks run on that input so far
@@ -1933,13 +1934,17 @@ func _field_repair_tick(delta: float) -> void:
 		return
 	for m in get_tree().get_nodes_in_group("mechs"):
 		if m.get("team") == team and m.global_position.distance_to(global_position) <= FIELD_R:
-			m.call("repair", FIELD_HPS * delta)
+			var got: float = m.call("repair", FIELD_HPS * delta)
+			if m != self:
+				healed_others_total += got  # T536: XP for healing teammates (not itself)
 
 ## Server: add health (not past max, not to the dead); clients see it in the snapshots (T474).
-func repair(amount: float) -> void:
+func repair(amount: float) -> float:
 	if health <= 0.0 or is_dead or health >= max_health:
-		return
+		return 0.0
+	var before := health
 	health = minf(health + amount, max_health)
+	return health - before  # T536: what it actually restored
 
 # ---- T430: Denali ANCHOR (ability effect_key "anchor", a duration ability) ----
 # Plants its feet for the ability's duration: no walking (it still turns and aims), half damage

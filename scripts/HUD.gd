@@ -507,6 +507,21 @@ func _build_stats_panel_mp(winner_team: int, stats: Array) -> void:
 			coins.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			coins.modulate = Color(1.0, 0.85, 0.3)
 			vbox.add_child(coins)
+			# T536: and the XP -- the result, plus what you did (before the XP Bonus skill)
+			var xp := Label.new()
+			xp.name = "XpBreakdown"
+			var my_elo: int = int(entry.get("pre_elo", 0)) if int(entry.get("pre_elo", 0)) > 0 else int(Game.profile.get("elo", 1000))
+			var opp: Array = Game.mp_opp_elos(int(entry.get("team", -1)), stats)
+			var avg := 0
+			for e in opp:
+				avg += int(e)
+			avg /= maxi(1, opp.size())
+			xp.text = "XP  %s %d  +  MATCH %d  (kills, captures, damage, healing)" % ["WIN" if won else "RESULT",
+				Game.result_xp(won, avg, my_elo), Game.match_xp(entry)]
+			xp.add_theme_font_size_override("font_size", 13)
+			xp.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			xp.modulate = Color(0.6, 0.85, 1.0)
+			vbox.add_child(xp)
 
 	var btn := Button.new()
 	btn.name = "BackToLobbyBtn"

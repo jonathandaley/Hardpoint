@@ -799,13 +799,17 @@ func _dump_hud(tick: int, tag: String = "") -> void:
 # T154: each peer's profile after it applied the match result (profile_parity oracle)
 func _on_match_ended_mp(_winner: int, _stats: Array) -> void:
 	await get_tree().process_frame  # Game._update_mp_profile runs right after the signal
+	var mxp := 0  # T536: this peer's in-match XP, from the server's stats (the oracle adds it)
+	for e in _stats:
+		if int(e.get("peer_id", 0)) == multiplayer.get_unique_id():
+			mxp = Game.match_xp(e)
 	var team := -1
 	for e in Game.mp_active_match.get("roster", []):
 		if int(e.get("peer_id", 0)) == multiplayer.get_unique_id():
 			team = int(e.get("team", -1))
 	var p: Dictionary = Game.profile
-	print("[Harness] profile_after match=%d team=%d elo=%d xp=%d coins=%d level=%d" % [_match_n, team,
-		int(p.get("elo", 0)), int(p.get("xp", 0)), int(p.get("coins", 0)), int(p.get("level", 0))])
+	print("[Harness] profile_after match=%d team=%d elo=%d xp=%d coins=%d level=%d mxp=%d" % [_match_n, team,
+		int(p.get("elo", 0)), int(p.get("xp", 0)), int(p.get("coins", 0)), int(p.get("level", 0)), mxp])
 	if _match_n < _matches:
 		# T465: more to play -> this match's deadline is void (the next match's start sets a fresh one).
 		# It ran on through the coordinated return to the lobby, which waits for client acks, and a lossy

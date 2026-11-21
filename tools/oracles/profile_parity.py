@@ -19,7 +19,8 @@ from . import base
 
 NAME = "profile_parity"
 _K, _BOT_ELO = 32, 1000
-_AFTER = re.compile(r"\[Harness\] profile_after match=(\d+) team=(-?\d+) elo=(-?\d+) xp=(-?\d+) coins=(-?\d+)")
+_AFTER = re.compile(r"\[Harness\] profile_after match=(\d+) team=(-?\d+) elo=(-?\d+) xp=(-?\d+) coins=(-?\d+)"
+                    r"(?: level=-?\d+ mxp=(-?\d+))?")
 _WIN = re.compile(r"\[Arena\] MP match over\. Team (\d+) wins\.")
 
 
@@ -27,15 +28,16 @@ def _gd_round(x):  # GDScript roundi: half away from zero
     return int(math.copysign(math.floor(abs(x) + 0.5), x))
 
 
-def expected(pre, opp_elos, won):
-    """(elo, xp, coins) after one match, as Game._update_mp_profile (no skills)."""
+def expected(pre, opp_elos, won, mxp=0):
+    """(elo, xp, coins) after one match, as Game._update_mp_profile (no skills). T536: + the in-match XP
+    (`mxp`, Game.match_xp of the server's stats entry, as the harness logged it)."""
     opp = opp_elos or [_BOT_ELO]
     r = 1.0 if won else 0.0
     d = sum(_K * (r - 1.0 / (1.0 + 10 ** ((o - pre["elo"]) / 400.0))) for o in opp) / len(opp)
     avg = int(sum(opp) / len(opp))
     ratio = avg / max(1, pre["elo"])
     xp = min(200, max(25, _gd_round(50 * ratio))) if won else min(50, max(5, _gd_round(15 * ratio)))
-    return {"elo": max(100, pre["elo"] + _gd_round(d)), "xp": pre["xp"] + xp, "coins": pre["coins"] + (75 if won else 20)}
+    return {"elo": max(100, pre["elo"] + _gd_round(d)), "xp": pre["xp"] + xp + mxp, "coins": pre["coins"] + (75 if won else 20)}
 
 
 def _cfg(path):
@@ -55,7 +57,8 @@ def run(ctx):
         role = os.path.basename(path)[: -len(".log")]
         if role in peers_cfg:
             logs[role] = open(path, errors="replace").read()
-    after = {r: {int(m.group(1)): (int(m.group(2)), {"elo": int(m.group(3)), "xp": int(m.group(4)), "coins": int(m.group(5))})
+    after = {r: {int(m.group(1)): (int(m.group(2)), {"elo": int(m.group(3)), "xp": int(m.group(4)), "coins": int(m.group(5))},
+                                   int(m.group(6) or 0))
                  for m in _AFTER.finditer(t)} for r, t in logs.items()}
     wins = {r: [int(w) for w in _WIN.findall(t)] for r, t in logs.items()}
     if not any(after.values()):
@@ -73,7 +76,7 @@ def run(ctx):
         team = {r: after[r][n][0] for r in logs}
         for r in logs:
             opp = [pre[o]["elo"] for o in logs if team[o] != team[r]]
-            want = expected(pre[r], opp, wins[r][n - 1] == team[r])
+            want = expected(pre[r], opp, wins[r][n - 1] == team[r], after[r][n][2])
             got = after[r][n][1]
             if got != want:
                 return base.verdict(NAME, base.FAIL, peer=r, field="profile",

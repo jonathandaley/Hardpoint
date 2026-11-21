@@ -764,10 +764,12 @@ func _build_mp_stats() -> Array:
 		# T168: whole squad's totals (dead mechs stay in _team_mechs, hidden).
 		var dealt := 0.0
 		var taken := 0.0
+		var healed := 0.0
 		for m in _team_mechs[t]:
 			if is_instance_valid(m) and m.roster_idx == ri:
 				dealt += m.damage_dealt_total
 				taken += m.damage_taken_total
+				healed += m.healed_others_total  # T536
 		var pre_elo: int = 0
 		if peer_id != 0 and Game.mp_lobby["peers"].has(peer_id):
 			pre_elo = Game.mp_lobby["peers"][peer_id].get("elo", 0)
@@ -779,6 +781,7 @@ func _build_mp_stats() -> Array:
 			"team":         t,
 			"dealt":        dealt,
 			"taken":        taken,
+			"healed":       healed,  # T536: HP restored to teammates (XP)
 			"captures":     int(_captures_by_ri.get(ri, 0)),  # T280: this pilot's, not the team's
 			"pre_elo":      pre_elo,
 			"disconnected": _disconnected_peers.has(peer_id),

@@ -723,7 +723,8 @@ func _rpc_send_meta(meta: Dictionary) -> void:
 	# V61: a guest's profile is its own claim -- shaped and bounded here, never trusted for more
 	entry["pilot_name"] = clean_name(meta.get("pilot_name"))
 	entry["elo"]        = clean_int(meta.get("elo"), 100, 4000, 1000)
-	entry["level"]      = clean_int(meta.get("level"), 1, _LEVEL_THRESHOLDS.size() + 1, 1)
+	entry["level"]      = level_for_xp(clean_int(meta.get("xp"), 0, 1 << 30, 0)) if email != "" \
+			else clean_int(meta.get("level"), 1, _LEVEL_THRESHOLDS.size() + 1, 1)  # T536: an account's from its XP
 	entry["skills"]     = sanitize_skills(meta.get("skills", {}), entry["level"])  # T332
 	if dedicated and email == "":
 		entry["skills"] = {}  # T399 (user 2026-11-12): a guest's skills are its own claim -- none on a dedicated server
@@ -1153,6 +1154,23 @@ func _apply_match_to(prof: Dictionary, my_team: int, winner_team: int, stats: Ar
 	profile = keep
 	return out
 
+## The result's XP: a win 50, a loss / draw 15, x opponents' ELO / own (clamped).
+static func result_xp(won: bool, avg_opp_elo: int, my_elo: int) -> int:
+	var k := float(avg_opp_elo) / float(maxi(1, my_elo))
+	return clampi(roundi(50.0 * k), 25, 200) if won else clampi(roundi(15.0 * k), 5, 50)
+
+## T536 (user 2026-11-20: "Xp during a match is good, have it count healing (of teammates) as well."): XP for
+## what a pilot did in the match, from the server's stats entry (V41: never a client's claim) -- a kill 5, a
+## beacon capture 5, 1 per 100 damage dealt, 1 per 50 HP healed on teammates (Heron's field repair). An
+## active match (4 kills, 3 captures, 2,000 dealt: 55) about doubles a win's 50. Calibration knobs.
+const XP_PER_KILL := 5.0
+const XP_PER_CAPTURE := 5.0
+const XP_PER_DEALT := 0.01
+const XP_PER_HEALED := 0.02
+static func match_xp(e: Dictionary) -> int:
+	return roundi(float(e.get("kills", 0)) * XP_PER_KILL + float(e.get("captures", 0)) * XP_PER_CAPTURE
+		+ float(e.get("dealt", 0.0)) * XP_PER_DEALT + float(e.get("healed", 0.0)) * XP_PER_HEALED)
+
 func _apply_match(my_team: int, winner_team: int, stats: Array, my_pid := 0) -> void:
 	var won: bool = winner_team == my_team
 	if winner_team >= 0:  # T285: a draw is neither (it pays like a loss)
@@ -1166,11 +1184,11 @@ func _apply_match(my_team: int, winner_team: int, stats: Array, my_pid := 0) -> 
 	for e in opp_elos:
 		avg_opp_elo += e
 	avg_opp_elo /= opp_elos.size()
-	var xp_gain: int
-	if won:
-		xp_gain = clampi(roundi(50.0 * float(avg_opp_elo) / float(maxi(1, my_elo))), 25, 200)
-	else:
-		xp_gain = clampi(roundi(15.0 * float(avg_opp_elo) / float(maxi(1, my_elo))), 5, 50)
+	var mine := {}
+	for e in stats:
+		if my_pid > 0 and int(e.get("peer_id", -1)) == my_pid:
+			mine = e
+	var xp_gain := result_xp(won, avg_opp_elo, my_elo) + match_xp(mine)  # T536
 	xp_gain = roundi(float(xp_gain) * (1.0 + get_skill_effect("xp_bonus")))
 	profile["xp"] = profile.get("xp", 0) + xp_gain
 	_check_level_up()
