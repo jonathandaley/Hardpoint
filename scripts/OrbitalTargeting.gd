@@ -63,11 +63,10 @@ func _set_frozen(on: bool) -> void:
 	if src != null and "frozen" in src:
 		src.set("frozen", on)
 
-## The ground point under the cursor (world XZ from the minimap), pulled inside the weapon's range.
-func _aim(m: Node) -> Vector3:
+## The ground point under a minimap position (world XZ), pulled inside `w`'s range.
+func _aim(m: Node, w: OrbitalStrike, local: Vector2) -> Vector3:
 	var mm: Control = hud.get("minimap")
-	var p: Vector3 = mm.call("from_map", mm.get_local_mouse_position())
-	var w: OrbitalStrike = _queue[0]
+	var p: Vector3 = mm.call("from_map", local)
 	var me := (m as Node3D).global_position
 	var d := Vector2(p.x - me.x, p.z - me.z)
 	if d.length() > w.range:
@@ -76,7 +75,7 @@ func _aim(m: Node) -> Vector3:
 
 func _preview(m: Node) -> void:
 	var mm: Node = hud.get("minimap")
-	var a := _aim(m)
+	var a := _aim(m, _queue[0], (mm as Control).get_local_mouse_position())
 	mm.set("strike_preview", Vector4(a.x, a.z, (_queue[0] as OrbitalStrike).strike_radius, 1.0))
 
 func _input(e: InputEvent) -> void:  # before the HUD controls: the minimap click is ours
@@ -91,10 +90,15 @@ func _input(e: InputEvent) -> void:  # before the HUD controls: the minimap clic
 		if not mm.get_global_rect().has_point(mm.get_global_mouse_position()):
 			return  # a click off the map does nothing (no shot wasted)
 		get_viewport().set_input_as_handled()
-		var m: Node = arena.get("player_mech")
-		var w: OrbitalStrike = _queue.pop_front()
-		w.request_strike(_aim(m))
-		if _queue.is_empty():
-			close()
-		else:
-			hud.call("orbital_targeting_shown", true, _queue.size())
+		_click(mm.get_local_mouse_position())
+
+## One click at minimap position `local`: the next orbital strikes there.
+## T543: aim BEFORE the pop -- reading _queue[0] after it sent the last orbital of every pull to (0,0,0).
+func _click(local: Vector2) -> void:
+	var w: OrbitalStrike = _queue[0]
+	w.request_strike(_aim(arena.get("player_mech"), w, local))
+	_queue.pop_front()
+	if _queue.is_empty():
+		close()
+	else:
+		hud.call("orbital_targeting_shown", true, _queue.size())

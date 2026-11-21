@@ -145,8 +145,33 @@ func _ready() -> void:
 	if back.distance_to(wp) > 0.01:
 		bad.append("minimap from_map(to_map(%s)) = %s" % [wp, back])
 	mm.free()
+	# T543 (user 2026-11-21: the third orbital hit the map centre): the click path -- three orbitals fired
+	# together, three clicks, each lands where it was clicked (the last one went to (0,0,0))
+	var pm: Node3D = arena.get("player_mech")
+	pm.call("configure_weapons", [slot, slot, slot])
+	pm.set("owner_peer_id", 1)
+	pm.global_position = Vector3(0, DECK_Y + 0.5, -40)
+	for i in 3:
+		await get_tree().physics_frame
+	var ot: Node = arena.get_node("OrbitalTargeting")
+	ot.call("_open_for", pm.get_weapons().duplicate())
+	var amm: Control = arena.get("hud").get("minimap")
+	var picks := [Vector3(30, 0, -70), Vector3(-50, 0, -20), Vector3(20, 0, 30)]
+	var n0 := Orbital.pending.size()
+	for pk in picks:
+		ot.call("_click", amm.call("to_map", pk))
+	if ot.get("_open"):
+		bad.append("targeting still open after the last click")
+	if Orbital.pending.size() - n0 != 3:
+		bad.append("%d strikes after 3 clicks (want 3)" % (Orbital.pending.size() - n0))
+	else:
+		for i in 3:
+			var got: Vector3 = Orbital.pending[n0 + i][0]
+			if Vector2(got.x - picks[i].x, got.z - picks[i].z).length() > 0.5:
+				bad.append("click %d at %s landed at %s" % [i + 1, picks[i], got])
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	if not bad.is_empty():
 		_fail("; ".join(bad))
 		return
-	print("[probe] orbital_strike done (centre took %.0f, 15 m off 0; player pick clamped to range)" % took)
+	print("[probe] orbital_strike done (centre took %.0f, 15 m off 0; player pick clamped to range; 3 clicks land at 3 picks)" % took)
 	get_tree().quit(0)
