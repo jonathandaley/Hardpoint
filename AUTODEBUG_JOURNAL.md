@@ -41,4 +41,4 @@
 2026-11-20|T538|DONE|d9e9292|suite 238/238; weapon tips print how each weapon really hits (damage_range / damage_text per weapon); shotgun showed an unused number
 2026-11-20|T537|DONE|de90e66|suite 236/238 (two probes read the info box as one Label; info_box_text, green); stat bars (weapon info per slot size, mech speed / health) + ALL WEAPONS table
 2026-11-20|T539|DONE|(this commit)|in-engine sustained DPS vs range (still / strafing), docs/WEAPON_DPS_RANGE.md
-2026-11-20|T536|DONE|(this commit)|in-match XP (kills / captures / damage / teammate healing) + level curve 100 x 1.1^L
+2026-11-20|T536|DONE|749dfd6|suite 239/239 + sweep 86/86; in-match XP (kills / captures / damage / teammate healing) + level curve 100 x 1.1^L
