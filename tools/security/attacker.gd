@@ -152,8 +152,12 @@ func _attacker() -> void:
 	await _until(func() -> bool: return Game.mp_lobby["peers"].size() >= 2, 15.0)
 	await _wait(1.0)
 	await _lobby_attacks()
-	# an honest squad again, then ready up -> the match starts
-	Game._rpc_set_squad.rpc_id(1, load("res://scripts/Lobby.gd")._build_squad_data())
+	# an honest squad again, then ready up -> the match starts. T541: the first mech a Denali with two
+	# ORBITAL HV (attacked below: their strike requests are client-callable)
+	var squad: Array = load("res://scripts/Lobby.gd")._build_squad_data()
+	squad[0] = {"mech": "res://resources/mechs/Denali.tres",
+		"weapons": ["res://scenes/weapons/OrbitalStrikeHeavy.tscn", "res://scenes/weapons/OrbitalStrikeHeavy.tscn"]}
+	Game._rpc_set_squad.rpc_id(1, squad)
 	Game._rpc_set_ready.rpc_id(1, true)
 	if not await _in_match():
 		_say("reach_match", "the attacker never reached a live match (lobby state: %s)" % str(Game.mp_lobby).left(300))
@@ -325,6 +329,8 @@ func _match_attacks() -> void:
 		# malformed payload shapes
 		mine.rpc_id(1, &"_rpc_input", 300000, {"move": "x", "aim": "y", "fire_prim": "z", "presses": "q", "shoulder": {}})
 		mine.rpc_id(1, &"_rpc_input", 300001, {"presses": [1.0e308, -1, 2, 3, 4, 5]})
+		mine.rpc_id(1, &"_rpc_input", 300002, {"lob": NAN, "presses": [0, 0, 0, 0, 0, 0]})  # T532
+		mine.rpc_id(1, &"_rpc_input", 300003, {"lob": "far", "presses": [0, 0, 0, 0, 0, 0]})
 		mine.rpc_id(1, &"_rpc_input", "seq", [])
 		mine.rpc_id(1, &"_rpc_input")
 
@@ -348,6 +354,30 @@ func _match_attacks() -> void:
 	if is_instance_valid(foes[0]):
 		foes[0].rpc_id(1, &"_sync_death")
 		foes[0].rpc_id(1, &"_sync_health", 1.0)
+	# 7. T541: our own ORBITAL HV's strike requests -- junk must mark nothing non-finite; a burst of 50 real
+	# ones fires each loaded orbital once (ammo 1, 18 s reload), never 50 strikes
+	if is_instance_valid(mine) and not mine.is_dead:
+		var orbs: Array = (mine.call("get_weapons") as Array).filter(func(w): return w is OrbitalStrike)
+		if orbs.is_empty():
+			_say("orbital_requests", "the attacker's mech carries no ORBITAL HV (squad refused?) -- nothing attacked")
+		else:
+			var n0: int = OrbitalStrike.pending.size()
+			for o in orbs:
+				o.rpc_id(1, &"_rpc_request_strike", Vector3(NAN, 0, INF))
+				o.rpc_id(1, &"_rpc_request_strike", "here")
+				o.rpc_id(1, &"_rpc_request_strike")
+			await _wait(1.0)
+			var junk := ""
+			for e in OrbitalStrike.pending:
+				if not (e[0] as Vector3).is_finite():
+					junk = "a junk request marked a strike at %s" % e[0]
+			var p: Vector3 = (mine as Node3D).global_position
+			for i in 50:
+				(orbs[i % orbs.size()] as Node).rpc_id(1, &"_rpc_request_strike", p + Vector3(5000, 0, 5000))
+			await _wait(1.5)
+			var marked: int = OrbitalStrike.pending.size() - n0
+			_say("orbital_requests", junk if junk != "" else ("" if marked <= orbs.size()
+				else "50 strike requests marked %d strikes from %d orbitals" % [marked, orbs.size()]))
 	await _wait(1.5)
 	_say("match_alive", "" if multiplayer.get_peers().has(1) and _arena() != null else "the match / connection did not survive the attack run")
 

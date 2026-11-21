@@ -42,6 +42,7 @@ ANY_PEER_OK = {
     "_rpc_set_team",                                                                                      # Game (T476)
     "_rpc_self_destruct", "_rpc_pick_next_mech", "_rpc_keep_first", "_rpc_start_pick",                    # Arena
     "_rpc_input",                                                                                         # Mech
+    "_rpc_request_strike",                                                                                # OrbitalStrike (T541)
 }
 
 BANNED = {
