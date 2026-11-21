@@ -918,7 +918,11 @@ func _physics_process_impl(delta: float) -> void:
 			elif _pred_live:
 				if not is_on_floor() and _step_up_remaining <= 0.0:
 					velocity += get_gravity() * delta
-				_handle_movement(delta)
+				if _pred_held:  # T472: stopped like the server, until it moves again
+					velocity.x = 0.0
+					velocity.z = 0.0
+				else:
+					_handle_movement(delta)
 				_slide(delta)
 				_pred_record()
 			_update_legs(delta)
@@ -990,7 +994,8 @@ func _slide(delta: float) -> void:
 const PRED_SNAP_M := 1.0      # calibration knob: snap instead of easing above this
 const PRED_BLEND := 0.2       # share of the error removed per snapshot (20 Hz)
 const PRED_DEADZONE := 0.02   # m: below this it's float noise, leave it
-const PRED_HELD_M := 0.3      # T472: a server that has the mech stopped and this far off -> snap (calibration knob)
+const PRED_HELD_M := 0.3      # T472: a server that has the mech stopped and this far off -> stop here too (calibration knob)
+var _pred_held := false       # T472: the server has us stopped where the prediction slid on
 const _PRED_HIST_MAX := 120   # 2 s of ticks
 var _pred_live := false       # first snapshot seen (the server holds mechs until live)
 var _pred_synced := false     # first record matched: timelines aligned
@@ -1069,11 +1074,16 @@ func _reconcile(entry: Dictionary) -> void:
 		return
 	# T472: the server has the mech STOPPED (head-on into a wall-end / pillar pocket on Math Temple: contact
 	# normal . desired = -0.99) while this prediction, ~1 cm off, slid on around the obstacle: easing 20% a
-	# snapshot while still walking let the error grow for ~2 s to a 0.9 m snap-back. A stopped server and a
-	# real divergence (records are matched by input tick, so latency doesn't inflate err) -> take its word now.
+	# snapshot while still walking let the error grow for ~2 s to a 0.9 m snap-back (and snapping each time
+	# only re-slid it: jitter). A stopped server and a real divergence (records are matched by input tick, so
+	# latency doesn't inflate err) -> stop walking here too until the server moves again; the error eases out.
 	var srv_v: Vector3 = entry.get("vel", Vector3.ONE)
-	var held := Vector2(srv_v.x, srv_v.z).length() < 0.05 and err.length() > PRED_HELD_M
-	var snap := err.length() > PRED_SNAP_M or held
+	var srv_still := Vector2(srv_v.x, srv_v.z).length() < 0.05
+	if srv_still and err.length() > PRED_HELD_M:
+		_pred_held = true
+	elif not srv_still:
+		_pred_held = false
+	var snap := err.length() > PRED_SNAP_M
 	var corr: Vector3 = err if snap else err * PRED_BLEND
 	if snap:
 		velocity = entry.get("vel", velocity)
