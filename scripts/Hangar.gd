@@ -938,14 +938,18 @@ func _info_button(parent: Control, text: String, bname := "Info") -> Button:
 
 func _on_info_pressed(b: Button) -> void:
 	SoundManager.play_sfx_2d("ui_click")
+	var host: Control = pilot_panel if b.has_meta("skill") else mech_name_label  # T550: skills, on the pilot tab
 	if _info_box == null:
 		_info_box = PanelContainer.new()
 		_info_box.name = "InfoBox"
 		_info_box.z_index = 10  # over the picker and stats drawn after the name
 		_info_box.add_theme_stylebox_override("panel", theme.get_stylebox("panel", "TooltipPanel"))
 		_info_box.add_child(VBoxContainer.new())  # T537: stat rows (+ bars), then the text
-		mech_name_label.add_child(_info_box)  # hides with the detail screen
-	elif _info_box.visible and _info_from == b:
+		host.add_child(_info_box)  # hides with its screen
+	elif _info_box.get_parent() != host:
+		_info_box.reparent(host, false)
+		_info_box.visible = false
+	if _info_box.visible and _info_from == b:
 		_info_box.visible = false
 		return
 	_info_from = b
@@ -968,6 +972,20 @@ func _on_info_pressed(b: Button) -> void:
 	_info_box.size = Vector2.ZERO  # shrink to the new text
 	_info_box.global_position = Vector2(mech_name_label.global_position.x, b.get_global_rect().end.y + 4.0)
 	_info_box.visible = true
+	_place_skill_box()
+
+## T550: a skill's box stays on screen -- under its node, or above it near the bottom. Again on every
+## resize: the wrapped text's height settles a layout pass or two after it opens.
+func _place_skill_box() -> void:
+	if _info_box == null or not is_instance_valid(_info_from) or not _info_from.has_meta("skill"):
+		return
+	if not _info_box.resized.is_connected(_place_skill_box):
+		_info_box.resized.connect(_place_skill_box)
+	var vp := get_viewport_rect().size
+	var r := (_info_from.get_parent() as Control).get_global_rect()
+	var sz := _info_box.size
+	var y := r.end.y + 2.0 if r.end.y + 2.0 + sz.y <= vp.y - 4.0 else maxf(4.0, r.position.y - sz.y - 2.0)
+	_info_box.global_position = Vector2(clampf(r.position.x, 4.0, vp.x - sz.x - 4.0), clampf(y, 4.0, vp.y - sz.y - 4.0))
 
 ## T537: the text the info box shows, as one string (the stat rows, a blank line, the description) --
 ## what weapon_tip / a mech's description reads (probes hangar_weapon_info, mech_descriptions).
@@ -1483,28 +1501,23 @@ func _skill_node(key: String, at: Vector2) -> Button:
 	var eff_l: Label = lines[1]
 	var cost_l: Label = lines[2]
 	name_l.text = label_str.to_upper()
-	var tip := label_str
 	var short := false
 	if lv == 0:
 		var needs: Array = def.get("parents", []).filter(func(p): return Game.skill_level(p) == 0)
 		eff_l.text = "%s / lv" % Game.skill_effect_text(key, 1)
-		tip += "  --  LOCKED: %s per level" % Game.skill_effect_text(key, 1)
 		if needs.is_empty():  # available: buy with 1 SP
 			short = Game.skill_points_available() < 1
 			cost_l.text = "BUY  1 SP"
 			name_l.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
-			tip += "\nClick: BUY (1 SP)" + ("  -- no SP left" if short else "")
 			btn.pressed.connect(_on_skill_unlock.bind(key))
 		else:
 			cost_l.text = "LOCKED"
-			tip += "\nNeeds: %s" % ", ".join(needs.map(func(p): return Game.SKILL_TREE[p].get("label", p)))
 			for l in lines:
 				l.add_theme_color_override("font_color", Color(0.5, 0.5, 0.52))
 			btn.disabled = true
 	elif lv >= 12:
 		eff_l.text = "12/12  %s" % Game.skill_effect_text(key, lv)
 		cost_l.text = "MAX"
-		tip += "  --  LV 12/12  %s  MAX" % Game.skill_effect_text(key, lv)
 		name_l.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5))
 		btn.disabled = true
 	else:
@@ -1512,14 +1525,40 @@ func _skill_node(key: String, at: Vector2) -> Button:
 		short = int(Game.profile.get("coins", 0)) < cost
 		eff_l.text = "%d/12  %s>%s" % [lv, Game.skill_effect_text(key, lv), Game.skill_effect_text(key, lv + 1)]
 		cost_l.text = "UPGRADE  %d c" % cost
-		tip += "  --  LV %d/12  %s -> %s  (%d coins to upgrade)" % [lv, Game.skill_effect_text(key, lv),
-			Game.skill_effect_text(key, lv + 1), cost]
 		name_l.add_theme_color_override("font_color", Color(0.4, 0.9, 1.0))
 		btn.pressed.connect(_on_skill_upgrade.bind(key))
 	if short:
 		cost_l.add_theme_color_override("font_color", COST_SHORT)
-	btn.tooltip_text = tip
+	# T550 (user 2026-11-21: "Info box on pilot skills with details."): an "i" in the corner opens the
+	# details (was a hover tooltip); the node itself still buys / upgrades
+	var info := _info_button(btn, skill_info_text(key))
+	info.set_meta("skill", key)
+	info.add_theme_font_size_override("font_size", 9)
+	info.custom_minimum_size = Vector2(12, 12)
+	info.size = Vector2(12, 12)
+	info.position = Vector2(TREE_NODE.x - 13.0, 1.0)
 	return btn
+
+## T550: a skill's info box -- what it does, its numbers at every stage, what it costs, what it needs.
+static func skill_info_text(key: String) -> String:
+	var def: Dictionary = Game.SKILL_TREE[key]
+	var lv: int = Game.skill_level(key)
+	var lines: Array = ["%s   (level %d / 12)" % [String(def.get("label", key)).to_upper(), lv], String(def.get("desc", ""))]
+	lines.append("")
+	lines.append("PER LEVEL  %s      AT LEVEL 12  %s" % [Game.skill_effect_text(key, 1), Game.skill_effect_text(key, 12)])
+	if lv == 0:
+		lines.append("NOW  none   ->   LEVEL 1  %s" % Game.skill_effect_text(key, 1))
+		lines.append("COST  1 skill point to buy (you have %d)" % Game.skill_points_available())
+		var ps: Array = def.get("parents", [])
+		if not ps.is_empty():
+			var names := ", ".join(ps.map(func(p): return String(Game.SKILL_TREE[p].get("label", p))))
+			lines.append(("NEEDS ONE OF  %s" if def.get("any_parent", false) and ps.size() > 1 else "NEEDS  %s") % names)
+	elif lv >= 12:
+		lines.append("NOW  %s   (maxed)" % Game.skill_effect_text(key, lv))
+	else:
+		lines.append("NOW  %s   ->   LEVEL %d  %s" % [Game.skill_effect_text(key, lv), lv + 1, Game.skill_effect_text(key, lv + 1)])
+		lines.append("COST  %d coins to upgrade (you have %d)" % [int(Game._SKILL_FIB_COSTS[lv - 1]), int(Game.profile.get("coins", 0))])
+	return "\n".join(lines)
 
 func _on_skill_unlock(key: String) -> void:
 	SoundManager.play_sfx_2d("ui_click")

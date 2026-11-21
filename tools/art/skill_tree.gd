@@ -2,6 +2,7 @@ extends Node
 # T347 art review: the hangar's pilot tab with the skill tree, a few skills owned.
 #   xvfb-run -a -s "-screen 0 1280x720x24" ~/bin/godot --resolution 1280x720 res://tools/art/skill_tree.tscn -- <out.png> [poor] [bottom]
 #   T375: "poor" = 20 coins, 0 SP (prices in red); "bottom" scrolls to the lower rows
+#   T550: "info=<skill>" opens that skill's info box
 func _ready() -> void:
 	Game.profile["level"] = 9
 	Game.profile["coins"] = 2000
@@ -24,6 +25,12 @@ func _ready() -> void:
 				sc.scroll_vertical = 100000
 		for i in 3:
 			await get_tree().process_frame
+	for a in args:
+		if a.begins_with("info="):
+			var n: Node = h.find_child("Skill_%s" % a.substr(5), true, false)
+			n.get_node("Info").pressed.emit()
+			for i in 4:
+				await get_tree().process_frame
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(OS.get_cmdline_user_args()[0])
 	get_tree().quit(0)

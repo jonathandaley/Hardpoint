@@ -17,11 +17,12 @@ func _ready() -> void:
 	h.call("_build_progression_nodes")
 	await get_tree().process_frame
 	var box: Node = h.get("_prog_nodes_container")
-	var texts := {}  # T347: one tree node per skill; its tooltip carries the full line
+	var texts := {}  # T347: one tree node per skill; T550: its "i" carries the full text (was the tooltip)
 	for key in Game.SKILL_TREE:
 		var n := box.find_child("Skill_%s" % key, true, false) as Button
 		if n != null:
-			texts[Game.SKILL_TREE[key]["label"]] = n.tooltip_text + " | " + n.text
+			var info := n.get_node_or_null("Info")
+			texts[Game.SKILL_TREE[key]["label"]] = (String(info.get_meta("info")) if info != null else "") + " | " + n.text
 	var want := {
 		"Health": ["+6%", "+8%"],            # LV 3: now -> next
 		"Damage": ["+18%"],                  # LV 12: the total at max
