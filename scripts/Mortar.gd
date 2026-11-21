@@ -119,12 +119,16 @@ func _rpc_shell(from: Vector3, v: Vector3, lifetime: float, team_i: int) -> void
 # ---- the landing marker (T532): the local player's own mortar only ----
 var _marker: Node3D
 
+## The aim arrow shows through walls/terrain? (user 2026-11-21: "Seeing it through terrain might be part of
+## the problem ... toggle it off so I can see if that's part of it") -- off for now; true brings it back.
+const ARROW_THROUGH_WALLS := false
+
 static func _arrow() -> Node3D:
 	var m := StandardMaterial3D.new()
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED  # full-bright: reads as glowing
 	m.albedo_color = Color(1.0, 0.6, 0.15)
 	m.disable_fog = true   # the user: "ignores fog"
-	m.no_depth_test = true  # seen over the wall it lobs past
+	m.no_depth_test = ARROW_THROUGH_WALLS
 	m.render_priority = 10
 	var root := Node3D.new()
 	var head := CylinderMesh.new()  # a cone, point down, tip on the spot
