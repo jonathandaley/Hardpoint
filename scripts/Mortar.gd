@@ -123,7 +123,11 @@ var _marker: Node3D
 ## the problem ... toggle it off so I can see if that's part of it") -- off for now; true brings it back.
 const ARROW_THROUGH_WALLS := false
 
-static func _arrow() -> Node3D:
+## T549 (user 2026-11-21: "Mortar is still too hard to aim. Keep the arrow, but make it bigger, and paint a
+## target on the ground under it. Have the arrow go above mechs like it does for terrain"): child 0 "Arrow"
+## (2x the T532 one) and child 1 "Target" (rings at the splash radius and half, and a cross) flat on the
+## ground; each one merged mesh -> 2 draws. The root sits on the ground point; the arrow lifts over a mech.
+static func _arrow(radius := 5.0) -> Node3D:
 	var m := StandardMaterial3D.new()
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED  # full-bright: reads as glowing
 	m.albedo_color = Color(1.0, 0.6, 0.15)
@@ -132,21 +136,51 @@ static func _arrow() -> Node3D:
 	m.render_priority = 10
 	var root := Node3D.new()
 	var head := CylinderMesh.new()  # a cone, point down, tip on the spot
-	head.top_radius = 0.9
+	head.top_radius = 1.8
 	head.bottom_radius = 0.0
-	head.height = 1.2
+	head.height = 2.4
 	head.radial_segments = 4  # chunky
 	head.rings = 1
 	var shaft := BoxMesh.new()
-	shaft.size = Vector3(0.4, 1.4, 0.4)
-	for part in [[head, 0.6], [shaft, 1.9]]:
+	shaft.size = Vector3(0.8, 2.8, 0.8)
+	var ring_parts: Array = []
+	for r in [radius, radius * 0.5]:
+		var tm := TorusMesh.new()
+		tm.inner_radius = r - 0.3
+		tm.outer_radius = r
+		tm.rings = 24
+		tm.ring_segments = 4
+		ring_parts.append([tm, Transform3D(Basis(), Vector3(0, 0.15, 0))])
+	var bar := BoxMesh.new()
+	bar.size = Vector3(radius * 2.0, 0.06, 0.3)
+	ring_parts.append([bar, Transform3D(Basis(), Vector3(0, 0.15, 0))])
+	ring_parts.append([bar, Transform3D(Basis(Vector3.UP, PI * 0.5), Vector3(0, 0.15, 0))])
+	for spec in [["Arrow", [[head, Transform3D(Basis(), Vector3(0, 1.2, 0))],
+			[shaft, Transform3D(Basis(), Vector3(0, 3.8, 0))]]], ["Target", ring_parts]]:
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		for part in spec[1]:
+			st.append_from(part[0], 0, part[1])
 		var mi := MeshInstance3D.new()
-		mi.mesh = part[0]
+		mi.name = spec[0]
+		mi.mesh = st.commit()
 		mi.material_override = m
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		mi.position.y = part[1]
 		root.add_child(mi)
 	return root
+
+## T549: how far above point `g` the arrow rides -- over the top of any mech standing there (its 2 m hit
+## capsule is shorter than the body, so the ground ray alone buries the arrow in it), else 0.
+func marker_lift(g: Vector3) -> float:
+	var top := g.y
+	for m in get_tree().get_nodes_in_group("mechs"):
+		if m == owner_mech or not is_instance_valid(m) or m.get("is_dead"):
+			continue
+		var p := (m as Node3D).global_position
+		if Vector2(p.x - g.x, p.z - g.z).length() < 2.0 * (m as Node3D).global_transform.basis.get_scale().x:
+			# ponytail: twice the body centre's height ~ the top; a real top if a tall mech pokes through
+			top = maxf(top, 2.0 * (m.call("center_mass") as Vector3).y - p.y)
+	return top - g.y
 
 func _process(_delta: float) -> void:
 	var src: Node = owner_mech.get("_input_source") if owner_mech != null else null
@@ -157,11 +191,13 @@ func _process(_delta: float) -> void:
 			_marker.visible = false
 		return
 	if _marker == null:
-		_marker = _arrow()
+		_marker = _arrow(splash_radius)
 		_marker.top_level = true
 		add_child(_marker)
 	_marker.visible = true
-	_marker.global_position = aim_point()
+	var g := aim_point()
+	_marker.global_position = g
+	(_marker.get_child(0) as Node3D).position.y = marker_lift(g)
 
 func damage_range() -> Vector2:  # T538: splash alone .. direct + splash
 	return Vector2(splash_damage, damage + splash_damage)

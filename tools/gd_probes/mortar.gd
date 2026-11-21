@@ -9,6 +9,7 @@ extends Node
 # T532 (range by wheel / arrows, direction by horizontal aim): step_range's default / steps / clamps; F's
 # aim point lies lob_range out along its facing, on the deck, the same at any camera pitch; held wheel
 # input (ReplayInputSource "wheel") steps F's lob_range; the landing arrow's material ignores fog.
+# T549: the arrow is 2x, a flat target as wide as the splash lies on the ground, a mech on the spot lifts the arrow.
 
 const SlotDef := preload("res://scripts/WeaponSlotDef.gd")
 const InputSource := preload("res://scripts/InputSource.gd")
@@ -167,6 +168,14 @@ func _ready() -> void:
 		bad.append("lob_range 30: the aim point is %.1f m out at y %.1f (want 30 m, on the deck)" % [flat_d, pts[0].y])
 	if pts[0].distance_to(pts[1]) > 0.01 or pts[0].distance_to(pts[2]) > 0.01:
 		bad.append("the aim point moves with camera pitch (%s / %s / %s)" % pts)
+	# T549: a mech standing on the spot lifts the arrow onto it; the bare deck doesn't
+	var lift0: float = mg.marker_lift(pts[0])
+	_place(tg, pts[0])
+	for k in 3:
+		await get_tree().physics_frame
+	var lift1: float = mg.marker_lift(pts[0])
+	if lift0 > 0.05 or lift1 < 1.5:
+		bad.append("arrow lift: %.2f on the bare deck (want 0), %.2f over a mech (want its height)" % [lift0, lift1])
 	var rep_src := preload("res://scripts/ReplayInputSource.gd").new()
 	add_child(rep_src)
 	rep_src.load_spec({"keyframes": [{"tick": 0, "wheel": 1.0}, {"tick": 3, "wheel": 0.0}]})
@@ -176,9 +185,15 @@ func _ready() -> void:
 	var lr: float = f.get("lob_range")
 	if lr < 30.0 + 2.0 * Mortar.LOB_STEP - 0.01:
 		bad.append("held wheel input left lob_range at %.1f (from 30)" % lr)
-	var arrow := Mortar._arrow()
+	var arrow := Mortar._arrow(5.0)
 	if not ((arrow.get_child(0) as MeshInstance3D).material_override as BaseMaterial3D).disable_fog:
 		bad.append("the landing arrow's material doesn't ignore fog")
+	var ab := (arrow.get_child(0) as MeshInstance3D).get_aabb()
+	var gbox := (arrow.get_child(1) as MeshInstance3D).get_aabb()
+	if ab.size.y < 4.5 or ab.size.x < 3.0:  # T549: 2x the T532 arrow (5.2 m tall, 3.6 m wide)
+		bad.append("the arrow is %s (want ~5.2 m tall)" % ab.size)
+	if absf(gbox.size.x - 10.0) > 0.2 or gbox.size.y > 0.5 or gbox.position.y < -0.05:
+		bad.append("the ground target is %s at %s (want 10 m wide, flat, on the ground)" % [gbox.size, gbox.position])
 	arrow.free()
 	if not bad.is_empty():
 		_fail("; ".join(bad))
