@@ -44,3 +44,4 @@
 2026-11-20|T536|DONE|749dfd6|suite 239/239 + sweep 86/86; in-match XP (kills / captures / damage / teammate healing) + level curve 100 x 1.1^L
 2026-11-20|T472|FIXED|13bfa27|suite 240/240 + sweep 88/88; server stop in a wall-end/pillar pocket (head-on) vs prediction sliding past: the owner stops walking too while the server has it stopped and err > 0.3 m (snapping re-slid: jitter)
 2026-11-20|T540+T541|DONE|e85d9f6+e806803|suite 240/240 + sweep 88/88 + security 48/48; Orbital: radio-wave rings, own ping sound + icon; players aim by clicking the minimap (mech stops, queued clicks), 250/85 damage
+2026-11-20|T542|DONE|(this commit)|difficulty_steps frees the arena before quitting (Jolt shape leak at exit, rare)

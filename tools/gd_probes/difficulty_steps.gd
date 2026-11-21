@@ -99,7 +99,7 @@ func _ready() -> void:
 		line = ", ".join(range(4).map(func(i): return "%s %.0f" % [NAMES[i], mean[i]]))
 		if measure:
 			print("[probe] difficulty_steps done (measure: %s)" % line)
-			get_tree().quit(0)
+			_quit(0)
 			return
 		bad = _check(mean, line)
 		if bad.is_empty():
@@ -110,7 +110,7 @@ func _ready() -> void:
 		_fail("; ".join(bad))
 		return
 	print("[probe] difficulty_steps done (%s)" % line)
-	get_tree().quit(0)
+	_quit(0)
 
 func _measure(shooters: Array, targets: Array, dmg0: Array, dmg: Array, n: Array) -> void:
 	for round in ROUNDS:
@@ -139,3 +139,14 @@ func _check(dmg: Array, line: String) -> Array:
 	if dmg[3] < 0.7 * dmg[2]:  # T397: 0.8 was inside the noise (Hard 220 v Medium 300 measured on unchanged bots)
 		bad.append("Hard well under Medium (%s)" % line)
 	return bad
+
+## T542 (flake, 2 sightings: "1 RID allocations of type 'P11JoltShape3D' were leaked at exit"): quitting while
+## shots were still flying left a physics shape to the engine's shutdown; free the arena and let the frees
+## run first.
+func _quit(code: int) -> void:
+	for n in get_tree().root.get_children():
+		if n != self and n is Node3D:
+			n.queue_free()
+	for i in 3:
+		await get_tree().process_frame
+	get_tree().quit(code)
