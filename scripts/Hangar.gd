@@ -678,6 +678,8 @@ static func weapon_bounds(slot_size: int) -> Dictionary:
 		var s := weapon_stats(i)
 		for k in ["range", "rate", "mag"]:
 			var v := float(s[k])
+			if is_inf(v):
+				continue  # T544: the orbital's map-wide range
 			b[k] = [minf(b.get(k, [v, v])[0], v), maxf(b.get(k, [v, v])[1], v)]
 		var d: Vector2 = s["dmg"]
 		b["dmg"] = [minf(b.get("dmg", [d.x, d.y])[0], d.x), maxf(b.get("dmg", [d.x, d.y])[1], d.y)]
@@ -691,9 +693,10 @@ static func weapon_tip(cat_idx: int) -> String:
 		var w: Node = (load(path) as PackedScene).instantiate()
 		var rate_v: float = 1.0 / maxf(float(w.get("max_charge_time")), 0.01) if "max_charge_time" in w \
 				else float(w.get("max_fire_rate")) if "max_fire_rate" in w else float(w.get("fire_rate"))
-		_wstats[path] = {"range": float(w.get("range")), "dmg": w.call("damage_range"), "rate": rate_v,
+		_wstats[path] = {"range": INF if w is OrbitalStrike else float(w.get("range")), "dmg": w.call("damage_range"), "rate": rate_v,
 			"mag": maxf(0.0, float(w.get("max_ammo"))), "lock": bool(w.get("requires_lock"))}
-		var lines: Array = ["RANGE  %d m" % roundi(float(w.get("range")))]
+		var lines: Array = ["RANGE  anywhere on the map" if w is OrbitalStrike  # T544 (its bar reads full)
+			else "RANGE  %d m" % roundi(float(w.get("range")))]
 		lines.append("DAMAGE  %s" % w.call("damage_text"))  # T538: each weapon says how it hits
 		if "max_charge_time" in w:
 			lines.append("CHARGE  %.0f s" % float(w.get("max_charge_time")))
@@ -1053,7 +1056,7 @@ func _open_weapon_table() -> void:
 			var s := weapon_stats(i)
 			var d: Vector2 = s["dmg"]
 			cell.call(String(WEAPON_CATALOG[i]["name"]))
-			cell.call("%d m" % roundi(float(s["range"])))
+			cell.call("map" if is_inf(float(s["range"])) else "%d m" % roundi(float(s["range"])))
 			cell.call(WeaponBase.num(d.x) if is_equal_approx(d.x, d.y) else "%s - %s" % [WeaponBase.num(d.x), WeaponBase.num(d.y)])
 			cell.call(WeaponBase.num(float(s["rate"])) if float(s["rate"]) >= 1.0 else "%.2f" % float(s["rate"]))
 			cell.call(str(int(s["mag"])))

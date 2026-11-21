@@ -79,7 +79,8 @@ var lob_range := -1.0
 ## Camera only: aim stays the ray through the screen centre; mouse sensitivity scales down with it.
 var scope_zoom := 1.0
 var _base_fov := 0.0
-const SCOPE_RANGE_M := 150.0  # T531: weapons reaching past this scope (snipers, Patience), plus lasers; T535: not lock-on ones
+const SCOPE_RANGE_M := 150.0
+const SCOPE_STEP := 1.15  # T545: zoom x this a wheel notch (calibration knob)  # T531: weapons reaching past this scope (snipers, Patience), plus lasers; T535: not lock-on ones
 var _was_firing_primary: bool = false
 
 var locked_target: Node3D = null
@@ -580,7 +581,7 @@ func request_damage(amount: float, source: Node3D = null) -> void:
 		var src_range: float = source.get("range") if "range" in source else INF
 		if amount > max_dmg * 1.5:
 			return
-		if is_instance_valid(source) and source is Node3D:
+		if is_instance_valid(source) and source is Node3D and not (source is OrbitalStrike):  # T544: it lands at its mark
 			var dist: float = (source as Node3D).global_position.distance_to(global_position)
 			if dist > src_range * 1.2:
 				return
@@ -1339,10 +1340,12 @@ func _handle_wheel() -> void:
 	for wpn in _weapons:
 		# user 2026-11-20: "It should work on laser, too, and any other weapon with a range over 150m."
 		# T535 (user: "Long-range nonlinear lock-on weapons don't need zoom, and it might be distracting.")
-		if wpn is LaserCannon or (float(wpn.get("range")) > SCOPE_RANGE_M and not wpn.get("requires_lock")):
+		if wpn is LaserCannon or (float(wpn.get("range")) > SCOPE_RANGE_M and not wpn.get("requires_lock") \
+				and not (wpn is OrbitalStrike)):  # T547: no lock now, still no scope (it aims on the minimap)
 			if _base_fov <= 0.0:
 				_base_fov = camera.fov
-			scope_zoom = clampf(scope_zoom + w * 0.5, 1.0, top)
+			# T545 (user: "steps ... too big at the beginning and good near max"): a constant FACTOR a notch
+			scope_zoom = clampf(scope_zoom * pow(SCOPE_STEP, w), 1.0, top)
 			camera.fov = _base_fov / scope_zoom
 			return
 

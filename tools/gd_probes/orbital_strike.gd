@@ -54,8 +54,12 @@ func _ready() -> void:
 	var hit: Node3D = t0[1]
 	var off: Node3D = t0[2]
 	var InputSource := load("res://scripts/InputSource.gd")
-	for m in [shooter, hit, off]:  # the shooter too: its own AI would fire a second strike once locked
-		var src: Node = InputSource.new()
+	# T547: a bot strikes its AI's _target (no lock) -- the shooter gets a still source that names one
+	var aim_src := GDScript.new()
+	aim_src.source_code = 'extends "res://scripts/InputSource.gd"\nvar _target: Node3D = null\n'
+	aim_src.reload()
+	for m in [shooter, hit, off]:  # the shooter too: its own AI would fire a second strike
+		var src: Node = aim_src.new() if m == shooter else InputSource.new()
 		add_child(src)
 		m.call("set_input_source", src)
 		if m != shooter:
@@ -72,10 +76,12 @@ func _ready() -> void:
 	for i in 10:
 		await get_tree().physics_frame
 	var w: Node = shooter.get_weapons()[0]
-	shooter.set("locked_target", hit)
+	var bad: Array = []
+	if bool(w.get("requires_lock")) or float(shooter.call("lock_weapon_range")) > 0.0:
+		bad.append("the orbital still locks on (T547)")
+	shooter.get("_input_source").set("_target", hit)
 	var h0: float = hit.get("health")
 	w.call("_do_fire")
-	var bad: Array = []
 	if Orbital.pending.size() != 1:
 		bad.append("%d strikes pending after one shot (want 1)" % Orbital.pending.size())
 	else:
@@ -116,8 +122,8 @@ func _ready() -> void:
 		bad.append("a mech 15 m off (outside the 10 m ring) took %.0f" % (5000.0 - float(off.get("health"))))
 	if not Orbital.pending.is_empty():
 		bad.append("the strike is still pending after it landed")
-	# T541: a PLAYER's orbital -- the trigger alone fires nothing; a pick far past the range is pulled in
-	# to 200 m and marked on the ground there; the shot is spent; the minimap maps clicks back to the ground
+	# T541: a PLAYER's orbital -- the trigger alone fires nothing; T544: a pick 244 m away (past the bot lock
+	# range) is marked on the ground right there; the shot is spent; the minimap maps clicks back to the ground
 	shooter.call("configure_weapons", [slot])
 	shooter.set("owner_peer_id", 1)
 	for i in 3:
@@ -126,14 +132,14 @@ func _ready() -> void:
 	pw.call("fire")
 	if not Orbital.pending.is_empty():
 		bad.append("a player's orbital fired from the trigger alone")
-	pw.call("request_strike", Vector3(0, 0, -500))
+	var far := Vector3(140, 0, -140)
+	pw.call("request_strike", far)
 	if Orbital.pending.size() != 1:
 		bad.append("%d strikes pending after a player's pick (want 1)" % Orbital.pending.size())
 	else:
 		var pat: Vector3 = Orbital.pending[0][0]
-		var dd := Vector2(pat.x - shooter.global_position.x, pat.z - shooter.global_position.z).length()
-		if absf(dd - float(pw.get("range"))) > 1.0 or absf(pat.y - DECK_Y) > 0.6:
-			bad.append("a pick 560 m away marked %s (%.0f m off; want %.0f m, on the deck)" % [pat, dd, float(pw.get("range"))])
+		if Vector2(pat.x - far.x, pat.z - far.z).length() > 0.5 or absf(pat.y - DECK_Y) > 0.6:
+			bad.append("a pick at %s (244 m off) marked %s (want there, on the deck)" % [far, pat])
 	if int(pw.get("ammo")) != 0:
 		bad.append("the player's strike didn't spend its shot (ammo %d)" % int(pw.get("ammo")))
 	var mm: Control = load("res://scripts/Minimap.gd").new()
@@ -173,5 +179,5 @@ func _ready() -> void:
 	if not bad.is_empty():
 		_fail("; ".join(bad))
 		return
-	print("[probe] orbital_strike done (centre took %.0f, 15 m off 0; player pick clamped to range; 3 clicks land at 3 picks)" % took)
+	print("[probe] orbital_strike done (centre took %.0f, 15 m off 0; player pick 244 m off lands there; 3 clicks land at 3 picks)" % took)
 	get_tree().quit(0)

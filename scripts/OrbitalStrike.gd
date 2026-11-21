@@ -17,6 +17,7 @@ const WAVE_DOTS := 14     # dots a ring
 const WAVE_R := 2.2       # m a ring rolls out
 const WAVE_S := 0.5       # s a ring lasts
 const WAVE_GAP_S := 0.14  # s between rings
+const MAP_LIMIT_M := 10000.0  # T544: a pick further out than this is junk
 
 @export var strike_radius: float = 10.0
 @export var edge_damage: float = 120.0  # `damage` is the centre hit
@@ -25,8 +26,17 @@ const WAVE_GAP_S := 0.14  # s between rings
 static var pending: Array = []
 
 ## T541: a PLAYER's orbital fires only at a point picked on the minimap (OrbitalTargeting -> request_strike);
-## a bot's strikes its lock target as before.
+## a bot's strikes its AI target (T547: no lock).
 var _aim_at := Vector3.INF  # server: the point a player picked, for the shot being fired
+var lobs := true  # T547: AIInputSource fires it without a clear line (it comes from above)
+
+## T547 (user 2026-11-21: "Orbital should no longer lock on"): a bot strikes its AI's target, in range.
+func _bot_target() -> Node3D:
+	var src: Object = owner_mech.get("_input_source")
+	var t = src.get("_target") if src != null else null
+	if not is_instance_valid(t) or not (t is Node3D) or t.get("is_dead"):
+		return null
+	return t if (t as Node3D).global_position.distance_to(global_position) <= range else null
 
 func _player_owned() -> bool:
 	return owner_mech != null and int(owner_mech.get("owner_peer_id")) > 0
@@ -40,7 +50,7 @@ func fire() -> void:
 	if _player_owned():
 		if _aim_at == Vector3.INF:
 			return  # the trigger opens targeting (OrbitalTargeting); the click fires
-	elif owner_mech.get("locked_target") == null:
+	elif _bot_target() == null:
 		return
 	super.fire()
 	_aim_at = Vector3.INF
@@ -60,19 +70,16 @@ func _rpc_request_strike(p: Vector3) -> void:
 	if owner_mech == null or sender != int(owner_mech.get("owner_peer_id")):
 		Game.net_refuse(sender, "_rpc_request_strike: not its weapon")
 		return
-	if not p.is_finite():
-		return  # V41
+	if not p.is_finite() or absf(p.x) > MAP_LIMIT_M or absf(p.z) > MAP_LIMIT_M:
+		return  # V41; T544: no range now, but nothing absurd
 	_strike_at(p)
 
-## Server: one strike at `p` (pulled inside the range of the mech), if the weapon is loaded.
+## Server: one strike at `p`, if the weapon is loaded. T544 (user 2026-11-21: "remove the maximum range for
+## orbital"): anywhere on the map; `range` is only how far a BOT locks to strike.
 func _strike_at(p: Vector3) -> void:
 	if owner_mech == null or owner_mech.get("is_dead"):
 		return
-	var me := (owner_mech as Node3D).global_position
-	var d := Vector2(p.x - me.x, p.z - me.z)
-	if d.length() > range:
-		d = d.normalized() * range
-	_aim_at = Vector3(me.x + d.x, me.y, me.z + d.y)
+	_aim_at = Vector3(p.x, (owner_mech as Node3D).global_position.y, p.z)
 	fire()
 	_aim_at = Vector3.INF
 
@@ -81,8 +88,8 @@ func _do_fire() -> void:
 	if _aim_at != Vector3.INF:
 		at = _ground_from_above(_aim_at)  # T541: a player's pick, anywhere in range (seen or not)
 	else:
-		var t := owner_mech.get("locked_target") as Node3D
-		if not is_instance_valid(t):
+		var t := _bot_target()
+		if t == null:
 			return
 		at = _ground_under(t.global_position)
 	var team := int(owner_mech.get("team"))

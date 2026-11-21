@@ -1,7 +1,7 @@
 extends Node3D
 # T531 probe (user 2026-11-20: "A sniper skill, with scrolling zoom and max zoom determined by skill level"
 # + "It should work on laser, too, and any other weapon with a range over 150m."): skill scope_zoom gives a
-# max zoom of 1 + 0.5 x level; the wheel steps Mech.scope_zoom by 0.5 and the camera FOV follows, capped
+# max zoom of 1 + 0.5 x level; the wheel steps Mech.scope_zoom (T545: x SCOPE_STEP a notch) and the camera FOV follows, capped
 # there and floored at 1x. Scoped: Sniper LT, Laser LT (120 m, a laser), Patience; not Rifle LT; no skill =
 # no zoom; a mounted Mortar keeps the wheel for its range. T535: lock-on weapons (Rocket LT 180 m, Swarm HV) don't. The hangar text reads the max zoom ("3x").
 
@@ -40,9 +40,14 @@ func _ready() -> void:
 	var m := _mech(["SniperLight"], {"scope_zoom": 4})
 	var cam := m.get("camera") as Camera3D
 	var fov0 := cam.fov
+	# T545: each notch multiplies by SCOPE_STEP (equal ratios), not +0.5
+	var k: float = m.get("SCOPE_STEP")
 	_wheel(m, 1.0)
-	if absf(float(m.get("scope_zoom")) - 1.5) > 0.001 or absf(cam.fov - fov0 / 1.5) > 0.01:
-		bad.append("one notch: zoom %.2f fov %.1f (want 1.5x, %.1f)" % [m.get("scope_zoom"), cam.fov, fov0 / 1.5])
+	var z1: float = m.get("scope_zoom")
+	_wheel(m, 1.0)
+	var z2: float = m.get("scope_zoom")
+	if absf(z1 - k) > 0.001 or absf(z2 / z1 - k) > 0.001 or absf(cam.fov - fov0 / z2) > 0.01:
+		bad.append("two notches: zoom %.3f, %.3f fov %.1f (want %.3f, %.3f)" % [z1, z2, cam.fov, k, k * k])
 	_wheel(m, 10.0)
 	if absf(float(m.get("scope_zoom")) - 3.0) > 0.001 or absf(cam.fov - fov0 / 3.0) > 0.01:
 		bad.append("level 4 cap: zoom %.2f fov %.1f (want 3x, %.1f)" % [m.get("scope_zoom"), cam.fov, fov0 / 3.0])
@@ -52,7 +57,8 @@ func _ready() -> void:
 	for c in [[["LaserCannonLight"], {"scope_zoom": 4}, true], [["PatienceHeavy"], {"scope_zoom": 4}, true],
 			[["RifleLight"], {"scope_zoom": 4}, false], [["SniperLight"], {}, false],
 			[["RocketLauncherLight"], {"scope_zoom": 4}, false], [["SwarmHeavy"], {"scope_zoom": 4}, false],  # T535: lock-on
-			[["MortarHeavy", "SniperLight"], {"scope_zoom": 4}, false]]:
+			[["MortarHeavy", "SniperLight"], {"scope_zoom": 4}, false],
+			[["OrbitalStrikeHeavy"], {"scope_zoom": 4}, false]]:  # T547: no lock, still no scope
 		var mm := _mech(c[0], c[1])
 		_wheel(mm, 2.0)
 		var zoomed: bool = float(mm.get("scope_zoom")) > 1.0
@@ -62,5 +68,5 @@ func _ready() -> void:
 		push_error("[probe] scope_zoom FAIL: " + "; ".join(bad))
 		get_tree().quit(1)
 		return
-	print("[probe] scope_zoom done (1.5x / 3x cap / 1x; laser + patience scoped, rifle / no skill / mortar not)")
+	print("[probe] scope_zoom done (factor steps / 3x cap / 1x; laser + patience scoped, rifle / no skill / mortar / orbital not)")
 	get_tree().quit(0)

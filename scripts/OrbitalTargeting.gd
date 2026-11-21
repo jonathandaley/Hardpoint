@@ -4,7 +4,7 @@ extends Node
 # completely. Multiple orbitals fired simultaneously queue and take multiple clicks to fire."): the LOCAL
 # player's ORBITAL HV. Pulling a trigger that would fire one or more ready orbitals opens targeting: the mouse
 # is freed, the mech stops (no walking, no aiming), the minimap grows to the middle of the screen and a circle
-# of the strike's radius follows the cursor (inside the weapon's range of the mech). Each click sends one
+# of the strike's radius follows the cursor (anywhere on the map: T544). Each click sends one
 # strike (OrbitalStrike.request_strike -> the server checks and marks it); Esc / right-click cancels the rest
 # (their shots stay loaded). Bots don't come here: they strike their lock target (OrbitalStrike._do_fire).
 
@@ -63,19 +63,14 @@ func _set_frozen(on: bool) -> void:
 	if src != null and "frozen" in src:
 		src.set("frozen", on)
 
-## The ground point under a minimap position (world XZ), pulled inside `w`'s range.
-func _aim(m: Node, w: OrbitalStrike, local: Vector2) -> Vector3:
-	var mm: Control = hud.get("minimap")
-	var p: Vector3 = mm.call("from_map", local)
-	var me := (m as Node3D).global_position
-	var d := Vector2(p.x - me.x, p.z - me.z)
-	if d.length() > w.range:
-		d = d.normalized() * w.range
-	return Vector3(me.x + d.x, me.y, me.z + d.y)
+## The ground point under a minimap position (world XZ). T544: anywhere -- no range.
+func _aim(m: Node, local: Vector2) -> Vector3:
+	var p: Vector3 = (hud.get("minimap") as Control).call("from_map", local)
+	return Vector3(p.x, (m as Node3D).global_position.y, p.z)
 
 func _preview(m: Node) -> void:
 	var mm: Node = hud.get("minimap")
-	var a := _aim(m, _queue[0], (mm as Control).get_local_mouse_position())
+	var a := _aim(m, (mm as Control).get_local_mouse_position())
 	mm.set("strike_preview", Vector4(a.x, a.z, (_queue[0] as OrbitalStrike).strike_radius, 1.0))
 
 func _input(e: InputEvent) -> void:  # before the HUD controls: the minimap click is ours
@@ -96,7 +91,7 @@ func _input(e: InputEvent) -> void:  # before the HUD controls: the minimap clic
 ## T543: aim BEFORE the pop -- reading _queue[0] after it sent the last orbital of every pull to (0,0,0).
 func _click(local: Vector2) -> void:
 	var w: OrbitalStrike = _queue[0]
-	w.request_strike(_aim(arena.get("player_mech"), w, local))
+	w.request_strike(_aim(arena.get("player_mech"), local))
 	_queue.pop_front()
 	if _queue.is_empty():
 		close()

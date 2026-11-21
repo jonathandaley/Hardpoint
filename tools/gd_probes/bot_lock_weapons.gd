@@ -97,7 +97,8 @@ func _ready() -> void:
 				_mech_name(shooters[i]), _mech_name(targets[i]),
 				("%.1fs" % r["lock"]) if r["lock"] >= 0.0 else "never", ("%.1fs" % r["hit"]) if r["hit"] >= 0.0 else "never", r["dmg"]]
 			rows.append(row)
-			if not measure and (r["lock"] < 0.0 or r["lock"] > 5.0 or r["dmg"] <= 0.0):
+			var no_lock: bool = c[0] == "OrbitalStrikeHeavy"  # T547: strikes the AI's target, no lock -- hits only
+			if not measure and ((not no_lock and (r["lock"] < 0.0 or r["lock"] > 5.0)) or r["dmg"] <= 0.0):
 				bad.append(row + " " + str(r["end"]))
 	if not bad.is_empty():
 		print("\n".join(rows))
