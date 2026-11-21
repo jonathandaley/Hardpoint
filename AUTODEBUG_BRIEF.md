@@ -1,6 +1,11 @@
 # AUTODEBUG_BRIEF.md -- what each /loop iteration does
 
 Start the loop with: `/loop Follow AUTODEBUG_BRIEF.md` (no interval = self-paced).
+**Auto-start** (user 2026-11-21: "make a rule that the loop always starts if there's stuff to do after
+a prompt. Doesn't need to wait for a batch, because the suite generally runs on one thing at a time"):
+whenever a user prompt leaves open §T work (queued rows, or work in flight), start/keep the loop going
+in that same turn -- don't wait to be told, and don't hold a new item back to collect a batch. Batching
+easy rows ALREADY in the queue (below) is still fine; waiting for more to arrive is not.
 Plan of record: `docs/MP_AUTODEBUG_PLAN.md` §9. Queue: SPEC.md §T.
 
 ## One iteration = one task
