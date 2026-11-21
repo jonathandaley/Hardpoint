@@ -40,3 +40,4 @@
 2026-11-20|T472|LOOKED|(this commit)|not turns (turn_pred: p95 0.03-0.05 m); Pegasus stops dead on the server beside a thin Math Temple pillar while prediction slides past -- server-only, cause open
 2026-11-20|T538|DONE|d9e9292|suite 238/238; weapon tips print how each weapon really hits (damage_range / damage_text per weapon); shotgun showed an unused number
 2026-11-20|T537|DONE|de90e66|suite 236/238 (two probes read the info box as one Label; info_box_text, green); stat bars (weapon info per slot size, mech speed / health) + ALL WEAPONS table
+2026-11-20|T539|DONE|(this commit)|in-engine sustained DPS vs range (still / strafing), docs/WEAPON_DPS_RANGE.md
