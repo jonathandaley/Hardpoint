@@ -461,7 +461,7 @@ const HELLO_MAX_BYTES := 256
 ## shapes, content (mechs, weapons, maps, modes, skills), server-decided numbers, a Godot
 ## upgrade. tools/oracles/net_security.py hashes the @rpc signatures and fails the suite
 ## until this is bumped with them.
-const NET_VERSION := 4  # 4: new mechs / weapons / maps (T454-T460) + snapshots on their own channel (T465) + Taurus CHARGE (T473) + health in snapshots (T474) + team choice (T476) until a release; 3: 0.5.0 -- Jolt physics (T429), Denali (T430), lunge v2 (T404), beacon rush (T434); 2: lobby carries idle_wait / sitting_out (T400)
+const NET_VERSION := 4  # 4: 0.6.0 -- new mechs / weapons / maps (T454-T460) + snapshots on their own channel (T465) + Taurus CHARGE (T473) + health in snapshots (T474) + team choice (T476); 3: 0.5.0 -- Jolt physics (T429), Denali (T430), lunge v2 (T404), beacon rush (T434); 2: lobby carries idle_wait / sitting_out (T400)
 const HELLO_TIMEOUT_S := 4.0
 const MAX_PENDING_PER_ADDR := 3   # connections still in the handshake, per address
 const MAX_PEERS_PER_ADDR := 8     # calibration knob: players behind one router (LAN party)
