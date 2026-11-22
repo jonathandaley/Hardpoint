@@ -202,6 +202,25 @@ func orbital_targeting_shown(on: bool, left: int) -> void:
 	_orbital_banner.text = "ORBITAL STRIKE: CLICK A TARGET%s  -  ESC / RIGHT-CLICK CANCELS" % (
 		"" if left <= 1 else " (%d LEFT)" % left)
 
+## T551: "TRACERS ON / OFF" for a moment after T.
+var _tracer_label: Label = null
+func tracer_notice(on: bool) -> void:
+	if not is_instance_valid(_tracer_label):
+		_tracer_label = Label.new()
+		_tracer_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+		_tracer_label.offset_top = -78.0
+		_tracer_label.offset_bottom = -60.0
+		_tracer_label.offset_left = -80.0
+		_tracer_label.offset_right = 80.0
+		_tracer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_tracer_label.add_theme_font_size_override("font_size", 14)
+		add_child(_tracer_label)
+	_tracer_label.text = "TRACERS ON" if on else "TRACERS OFF"
+	_tracer_label.modulate = Color(1.0, 0.85, 0.35, 1.0) if on else Color(0.7, 0.7, 0.7, 1.0)
+	var tw := _tracer_label.create_tween()
+	tw.tween_interval(1.2)
+	tw.tween_property(_tracer_label, "modulate:a", 0.0, 0.4)
+
 func hide_spawn_picker() -> void:
 	for n in _spawn_ui:
 		if is_instance_valid(n):

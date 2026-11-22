@@ -32,7 +32,8 @@ func _ready() -> void:
 			["damage", ["level 12 / 12", "+18%", "maxed"]],
 			["contested_hold", ["NEEDS  Beacon Capture", "1 skill point", "+0.5 s"]],
 			["move_speed", ["NEEDS ONE OF  Damage, Health"]],
-			["scope_zoom", ["150 m", "not lock-on"]]]:
+			["scope_zoom", ["150 m", "not lock-on"]],
+			["tracer_rounds", ["level 0 / 1", "Press T", "NEEDS  Spread Reduction"]]]:  # T551: one level
 		var info := tree.find_child("Skill_%s" % c[0], true, false).get_node("Info") as Button
 		info.pressed.emit()
 		for i in 2:

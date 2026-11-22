@@ -17,6 +17,7 @@ var source_weapon: Node3D = null  # T103/V28: weapon node for server-side damage
 var is_ghost: bool = false  # T100: client-side visual ghost; skips hit detection
 var explode: bool = false   # T258: missiles burst into a fireball where they hit (ghosts too)
 var gravity_y: float = 0.0  # T458: a mortar shell falls (m/s^2); 0 = a straight shot at `speed`
+var tracer: bool = false    # T551: a bright streak behind it (Tracer Rounds), on every peer
 var _vel := Vector3.ZERO
 
 ## T458: a basis looking along v (a falling shell's nose follows its path).
@@ -70,6 +71,8 @@ func _spawn_smoke() -> void:
 func _ready() -> void:
 	if explode:
 		add_to_group("explosive_shots")  # T520(e): what Bots+ Elites sidestep (missiles, rockets, shells)
+	if tracer and VFX._fx() != null:
+		VFX._fx().streak(self)  # T551: the pool draws it with the bullets (no extra draw)
 	var mi := get_node_or_null("Mesh") as MeshInstance3D
 	if mi == null or not (mi.mesh is SphereMesh):
 		return

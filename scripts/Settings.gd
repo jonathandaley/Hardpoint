@@ -97,6 +97,7 @@ func _build_controls_section() -> void:
 		["R", "Reload"],
 		["Space", "Ability"],
 		["V", "Swap shoulder (shoulder view)"],
+		["T", "Tracers on / off (Tracer Rounds skill)"],  # T551
 		["Tab", "Cycle spectate target"],
 		["Esc", "Release mouse / pause"],
 	]

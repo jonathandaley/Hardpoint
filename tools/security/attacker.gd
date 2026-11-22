@@ -331,6 +331,8 @@ func _match_attacks() -> void:
 		mine.rpc_id(1, &"_rpc_input", 300001, {"presses": [1.0e308, -1, 2, 3, 4, 5]})
 		mine.rpc_id(1, &"_rpc_input", 300002, {"lob": NAN, "presses": [0, 0, 0, 0, 0, 0]})  # T532
 		mine.rpc_id(1, &"_rpc_input", 300003, {"lob": "far", "presses": [0, 0, 0, 0, 0, 0]})
+		mine.rpc_id(1, &"_rpc_input", 300004, {"tr": "on", "presses": [0, 0, 0, 0, 0, 0]})  # T551: a bool only
+		mine.rpc_id(1, &"_rpc_input", 300005, {"tr": 7, "presses": [0, 0, 0, 0, 0, 0]})
 		mine.rpc_id(1, &"_rpc_input", "seq", [])
 		mine.rpc_id(1, &"_rpc_input")
 

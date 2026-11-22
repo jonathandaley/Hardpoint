@@ -57,6 +57,9 @@ func get_slot_toggle() -> int:
 func is_reload_pressed() -> bool:
 	return Input.is_action_just_pressed("reload")
 
+func is_tracer_toggle_pressed() -> bool:  # T551: T
+	return not frozen and Input.is_action_just_pressed("toggle_tracers")
+
 func is_ability_pressed() -> bool:
 	if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		return false

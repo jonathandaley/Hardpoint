@@ -1409,6 +1409,7 @@ const TREE_GRID := {  # skill -> [column, row]; a new skill needs a cell here (p
 	"projectile_speed": [0, 1], "move_speed": [1, 1], "ability_recharge": [2, 1], "repair_rate": [3, 1], "shield_capacity": [4, 1],
 	"spread_reduction": [0, 2], "beacon_capture": [1, 2], "reload_speed": [2, 2], "lock_speed": [3, 2], "powerup_duration": [4, 2],
 	"scope_zoom": [0, 3], "contested_hold": [1, 3], "coin_pickup": [2, 3], "xp_bonus": [3, 3],
+	"tracer_rounds": [0, 4],  # T551: under Sniper Scope, its sibling (the line runs down the column gap)
 }
 const COST_SHORT := Color(1.0, 0.3, 0.25)
 
@@ -1504,7 +1505,7 @@ func _skill_node(key: String, at: Vector2) -> Button:
 	var short := false
 	if lv == 0:
 		var needs: Array = def.get("parents", []).filter(func(p): return Game.skill_level(p) == 0)
-		eff_l.text = "%s / lv" % Game.skill_effect_text(key, 1)
+		eff_l.text = Game.skill_effect_text(key, 1) if Game.skill_max(key) == 1 else "%s / lv" % Game.skill_effect_text(key, 1)
 		if needs.is_empty():  # available: buy with 1 SP
 			short = Game.skill_points_available() < 1
 			cost_l.text = "BUY  1 SP"
@@ -1515,8 +1516,8 @@ func _skill_node(key: String, at: Vector2) -> Button:
 			for l in lines:
 				l.add_theme_color_override("font_color", Color(0.5, 0.5, 0.52))
 			btn.disabled = true
-	elif lv >= 12:
-		eff_l.text = "12/12  %s" % Game.skill_effect_text(key, lv)
+	elif lv >= Game.skill_max(key):
+		eff_l.text = "%d/%d  %s" % [lv, Game.skill_max(key), Game.skill_effect_text(key, lv)]
 		cost_l.text = "MAX"
 		name_l.add_theme_color_override("font_color", Color(0.5, 1.0, 0.5))
 		btn.disabled = true
@@ -1543,9 +1544,11 @@ func _skill_node(key: String, at: Vector2) -> Button:
 static func skill_info_text(key: String) -> String:
 	var def: Dictionary = Game.SKILL_TREE[key]
 	var lv: int = Game.skill_level(key)
-	var lines: Array = ["%s   (level %d / 12)" % [String(def.get("label", key)).to_upper(), lv], String(def.get("desc", ""))]
+	var mx: int = Game.skill_max(key)
+	var lines: Array = ["%s   (level %d / %d)" % [String(def.get("label", key)).to_upper(), lv, mx], String(def.get("desc", ""))]
 	lines.append("")
-	lines.append("PER LEVEL  %s      AT LEVEL 12  %s" % [Game.skill_effect_text(key, 1), Game.skill_effect_text(key, 12)])
+	if mx > 1:
+		lines.append("PER LEVEL  %s      AT LEVEL %d  %s" % [Game.skill_effect_text(key, 1), mx, Game.skill_effect_text(key, mx)])
 	if lv == 0:
 		lines.append("NOW  none   ->   LEVEL 1  %s" % Game.skill_effect_text(key, 1))
 		lines.append("COST  1 skill point to buy (you have %d)" % Game.skill_points_available())
@@ -1553,7 +1556,7 @@ static func skill_info_text(key: String) -> String:
 		if not ps.is_empty():
 			var names := ", ".join(ps.map(func(p): return String(Game.SKILL_TREE[p].get("label", p))))
 			lines.append(("NEEDS ONE OF  %s" if def.get("any_parent", false) and ps.size() > 1 else "NEEDS  %s") % names)
-	elif lv >= 12:
+	elif lv >= mx:
 		lines.append("NOW  %s   (maxed)" % Game.skill_effect_text(key, lv))
 	else:
 		lines.append("NOW  %s   ->   LEVEL %d  %s" % [Game.skill_effect_text(key, lv), lv + 1, Game.skill_effect_text(key, lv + 1)])

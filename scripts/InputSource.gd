@@ -21,6 +21,9 @@ func get_slot_toggle() -> int:
 func is_reload_pressed() -> bool:
 	return false
 
+func is_tracer_toggle_pressed() -> bool:  # T551
+	return false
+
 func is_ability_pressed() -> bool:
 	return false
 

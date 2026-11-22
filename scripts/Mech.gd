@@ -1283,6 +1283,7 @@ func _maybe_forward_input() -> void:
 		"fire_sec": _input_source.is_firing_secondary(),
 		"presses": _press_counts.duplicate(),
 		"lob": lob_range,  # T532
+		"tr": tracers_on,  # T551
 	}
 	if not multiplayer.get_peers().has(1) or not Game.server_heard:
 		return  # T206: a late joiner's Arena runs a few ticks before its handshake completes; B101: and
@@ -1308,6 +1309,9 @@ func _rpc_input(seq: int, payload: Dictionary) -> void:
 	var lb = payload.get("lob")
 	if typeof(lb) == TYPE_FLOAT and is_finite(lb):
 		lob_range = clampf(lb, -1.0, 1000.0)  # T532 / V41: Mortar clamps it to its own range again
+	var trc = payload.get("tr")
+	if typeof(trc) == TYPE_BOOL:
+		tracers_on = trc  # T551 / V41: a bool only; tracers_active() still wants the skill
 	var now := Time.get_ticks_msec() / 1000.0
 	while not _rpc_rate_times.is_empty() and now - float(_rpc_rate_times[0]) > 1.0:
 		_rpc_rate_times.pop_front()
@@ -1326,7 +1330,24 @@ func _rpc_input(seq: int, payload: Dictionary) -> void:
 	_input_source.push_input(payload)
 
 ## T532: the wheel / up-down arrows step the mortar's range (only while a mortar is mounted).
+## T551: Tracer Rounds -- the pilot's T toggle (tracers_on) and whether this mech's shots carry tracers now.
+var tracers_on := false
+
+func tracers_active() -> bool:
+	return tracers_on and skill("tracer_rounds") > 0.0
+
+func _handle_tracer_toggle() -> void:
+	if _input_source == null or not _input_source.is_tracer_toggle_pressed():
+		return
+	if skill("tracer_rounds") <= 0.0:
+		return  # not owned: T does nothing
+	tracers_on = not tracers_on
+	var hud: Node = get_tree().current_scene.get("hud") if get_tree().current_scene != null else null
+	if hud != null and hud.has_method("tracer_notice"):
+		hud.call("tracer_notice", tracers_on)
+
 func _handle_wheel() -> void:
+	_handle_tracer_toggle()  # T551: polled with the wheel -- the local pilot's per-tick UI input, every mode
 	var w: float = _input_source.get_wheel() if _input_source.has_method("get_wheel") else 0.0
 	if w == 0.0:
 		return

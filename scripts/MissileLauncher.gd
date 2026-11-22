@@ -32,6 +32,7 @@ func _do_fire() -> void:
 	proj.splash_damage = splash_damage
 	proj.owner_body = owner_mech
 	proj.source_weapon = self
+	proj.tracer = owner_mech.has_method("tracers_active") and owner_mech.tracers_active()  # T551
 	proj.explode = true  # T258
 	proj.on_hit = func(body, pos): _emit_hit_if_visible(body, pos, true)
 	get_tree().current_scene.add_child(proj)
@@ -39,7 +40,7 @@ func _do_fire() -> void:
 	# T258: clients saw no missiles at all (this override skipped ProjectileGun's ghost send).
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		rpc_fx(&"_rpc_spawn_ghost", [global_position, proj.global_transform.basis,
-			proj.speed, proj.lifetime, proj.team])  # T462
+			proj.speed, proj.lifetime, proj.team, proj.tracer])  # T462, T551
 
 func damage_range() -> Vector2:  # T538: splash alone (a near miss) .. direct + splash
 	return Vector2(splash_damage, damage + splash_damage)

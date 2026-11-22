@@ -80,6 +80,19 @@ var _follow: Array = []
 func follow(n: Node3D, radius: float, col: Color) -> void:
 	_follow.append([n, radius, col])
 
+# T551 Tracer Rounds: shots with a streak -- a sphere stretched STREAK_M back along the node's flight (-Z
+# forward), drawn where the node is each frame as part of the sphere set (no extra draw); a freed one drops out.
+const STREAK_M := 4.0
+const STREAK_R := 0.13
+const STREAK_COLOR := Color(1.0, 0.85, 0.35)
+var _streak: Array = []
+
+func streak(n: Node3D) -> void:
+	_streak.append(n)
+
+func streaks() -> int:  # probes
+	return _streak.size()
+
 var _ids := 0
 
 func _next_id() -> int:
@@ -143,6 +156,13 @@ func _process_impl(delta: float) -> void:
 				else:
 					_follow[f] = _follow[_follow.size() - 1]
 					_follow.pop_back()
+			f = 0
+			while f < _streak.size():
+				if is_instance_valid(_streak[f]) and (_streak[f] as Node3D).is_inside_tree():
+					f += 1
+				else:
+					_streak[f] = _streak[_streak.size() - 1]
+					_streak.pop_back()
 		var n := live.size()
 		var buf: PackedFloat32Array = _buf[k]
 		for j in n:
@@ -176,6 +196,20 @@ func _process_impl(delta: float) -> void:
 				buf[o + 4] = 0.0; buf[o + 5] = r; buf[o + 6] = 0.0; buf[o + 7] = p.y
 				buf[o + 8] = 0.0; buf[o + 9] = 0.0; buf[o + 10] = r; buf[o + 11] = p.z
 				buf[o + 12] = c.r; buf[o + 13] = c.g; buf[o + 14] = c.b; buf[o + 15] = 1.0
+				n += 1
+			for sn in _streak:
+				if n >= CAP[k]:
+					break
+				var xf: Transform3D = (sn as Node3D).global_transform
+				var back: Vector3 = xf.basis.z.normalized()  # flight is -Z
+				var bs := Basis.looking_at(-back, Vector3.UP if absf(back.y) < 0.99 else Vector3.RIGHT) \
+					.scaled_local(Vector3(STREAK_R, STREAK_R, STREAK_M * 0.5))
+				var p: Vector3 = xf.origin + back * (STREAK_M * 0.5)
+				var o := n * 16
+				buf[o] = bs.x.x; buf[o + 1] = bs.y.x; buf[o + 2] = bs.z.x; buf[o + 3] = p.x
+				buf[o + 4] = bs.x.y; buf[o + 5] = bs.y.y; buf[o + 6] = bs.z.y; buf[o + 7] = p.y
+				buf[o + 8] = bs.x.z; buf[o + 9] = bs.y.z; buf[o + 10] = bs.z.z; buf[o + 11] = p.z
+				buf[o + 12] = STREAK_COLOR.r; buf[o + 13] = STREAK_COLOR.g; buf[o + 14] = STREAK_COLOR.b; buf[o + 15] = 1.0
 				n += 1
 		if n > 0:
 			mm.buffer = buf

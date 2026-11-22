@@ -87,6 +87,7 @@ func launch_at(to: Vector3) -> void:
 	proj.splash_damage = splash_damage
 	proj.explode = true
 	proj.smoke_trail = true
+	proj.tracer = owner_mech.has_method("tracers_active") and owner_mech.tracers_active()  # T551
 	proj.owner_body = owner_mech
 	proj.source_weapon = self
 	proj.on_hit = func(body, pos): _emit_hit_if_visible(body, pos, true)
@@ -95,10 +96,10 @@ func launch_at(to: Vector3) -> void:
 	proj.global_transform = Transform3D(Projectile.basis_along(v), from)
 	SoundManager.play_sfx("mortar_fire", from, multiplayer.has_multiplayer_peer() and multiplayer.is_server())
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
-		_rpc_shell.rpc(from, v, proj.lifetime, team_i)
+		_rpc_shell.rpc(from, v, proj.lifetime, team_i, proj.tracer)
 
 @rpc("authority", "reliable")
-func _rpc_shell(from: Vector3, v: Vector3, lifetime: float, team_i: int) -> void:
+func _rpc_shell(from: Vector3, v: Vector3, lifetime: float, team_i: int, tracer: bool) -> void:
 	if not is_inside_tree() or multiplayer.is_server():  # V50 / B130
 		return
 	var ghost := PROJECTILE_SCENE.instantiate() as Projectile
@@ -110,6 +111,7 @@ func _rpc_shell(from: Vector3, v: Vector3, lifetime: float, team_i: int) -> void
 	ghost.explode = true
 	ghost.splash_radius = splash_radius
 	ghost.smoke_trail = true
+	ghost.tracer = tracer  # T551
 	if owner_mech != null:
 		ghost._exclude_rids = owner_mech.get_exclude_rids()
 	_shell_look(ghost)

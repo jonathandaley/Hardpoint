@@ -40,6 +40,7 @@ func _do_fire() -> void:
 	proj.team = owner_mech.get("team") if owner_mech.get("team") != null else 0
 	proj._exclude_rids = owner_mech.get_exclude_rids()
 	proj.source_weapon = self
+	proj.tracer = owner_mech.has_method("tracers_active") and owner_mech.tracers_active()  # T551
 
 	proj.on_hit = func(body, pos): _emit_hit_if_visible(body, pos, true)
 	get_tree().current_scene.add_child(proj)
@@ -50,12 +51,12 @@ func _do_fire() -> void:
 	# T100: broadcast ghost to clients when server in MP.
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		rpc_fx(&"_rpc_spawn_ghost", [global_position, proj.global_transform.basis,
-			proj.speed, proj.lifetime, proj.team])  # T462
+			proj.speed, proj.lifetime, proj.team, proj.tracer])  # T462, T551
 
 # Audit #16: unreliable -- ghosts are cosmetic and per-bullet (MG ~14/s/mech);
 # a dropped ghost is one invisible tracer round, not worth retransmit overhead.
 @rpc("authority", "unreliable")
-func _rpc_spawn_ghost(pos: Vector3, basis: Basis, speed: float, lifetime: float, team: int) -> void:
+func _rpc_spawn_ghost(pos: Vector3, basis: Basis, speed: float, lifetime: float, team: int, tracer: bool) -> void:
 	if not is_inside_tree() or multiplayer.is_server():  # V50 / B130: a straggler for a node already out of the tree
 		return
 	var ghost := PROJECTILE_SCENE.instantiate() as Projectile
@@ -63,6 +64,7 @@ func _rpc_spawn_ghost(pos: Vector3, basis: Basis, speed: float, lifetime: float,
 	ghost.speed = speed
 	ghost.lifetime = lifetime
 	ghost.team = team
+	ghost.tracer = tracer  # T551
 	if get("splash_radius") != null:  # T258: missile ghosts burst where they hit
 		ghost.explode = true
 		ghost.splash_radius = get("splash_radius")

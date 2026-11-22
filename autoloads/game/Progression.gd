@@ -52,6 +52,10 @@ const SKILL_TREE: Dictionary = {
 	# T531: max scope zoom over 1x (level 1: 1.5x ... level 12: 7x): lasers + weapons with range > 150 m
 	"scope_zoom":       {"parents": ["spread_reduction"],           "any_parent": false, "label": "Sniper Scope",      "per_level": 0.5,
 		"desc": "The mouse wheel zooms your view in, up to this much: on lasers and on weapons that reach past 150 m (not lock-on weapons or the orbital). Aim slows to match."},
+	# T551 (user 2026-11-21: "Add tracer round pilot skill, sibling of scope, you pick a hotkey to toggle tracers
+	# that anyone can see. Applies to every projectile weapon except shotgun."): one level -- owned or not
+	"tracer_rounds":    {"parents": ["spread_reduction"],           "any_parent": false, "label": "Tracer Rounds",     "per_level": 1.0, "max_level": 1,
+		"desc": "Press T in a match to switch tracers on or off: a bright streak behind every bullet, shell and missile you fire (not the shotgun), so you can walk your fire onto a target. Everyone sees them."},
 }
 
 # Cumulative XP required to reach each level (index 0 = XP to reach level 2, etc.)
@@ -216,7 +220,7 @@ func can_unlock(key: String) -> bool:
 
 func can_upgrade(key: String) -> bool:
 	var lv: int = skill_level(key)
-	if lv <= 0 or lv >= 12:
+	if lv <= 0 or lv >= skill_max(key):
 		return false
 	return profile.get("coins", 0) >= _SKILL_FIB_COSTS[lv - 1]
 
@@ -278,6 +282,8 @@ static func skill_effect_text(key: String, level: int) -> String:
 			unit = " HP/s"
 		"contested_hold":
 			unit = " s"
+		"tracer_rounds":  # T551: an unlock
+			return "on / off (T)"
 		"scope_zoom":  # T531: the max zoom itself
 			return "%sx" % (("%d" % roundi(1.0 + v)) if is_equal_approx(v, roundf(v)) else ("%.1f" % (1.0 + v)))
 		_:
@@ -287,7 +293,11 @@ static func skill_effect_text(key: String, level: int) -> String:
 
 static func skill_effect_in(skills: Dictionary, key: String) -> float:
 	var def: Dictionary = SKILL_TREE.get(key, {})
-	return float(clampi(int(skills.get(key, 0)), 0, 12)) * float(def.get("per_level", 0.0))
+	return float(clampi(int(skills.get(key, 0)), 0, skill_max(key))) * float(def.get("per_level", 0.0))
+
+## T551: a skill's top level -- 12, or its "max_level" (Tracer Rounds: 1, an unlock).
+static func skill_max(key: String) -> int:
+	return int(SKILL_TREE.get(key, {}).get("max_level", 12))
 
 ## T332 / V41: skills as a client reports them -- known keys, levels 1..12, no more unlocks
 ## than its level allows (skill_points_available). Accounts' come from the server profile.
@@ -297,7 +307,7 @@ static func sanitize_skills(raw, level: int) -> Dictionary:
 		return out
 	for k in raw:
 		if SKILL_TREE.has(str(k)) and out.size() < maxi(0, level):
-			out[str(k)] = clampi(int(raw[k]), 1, 12)
+			out[str(k)] = clampi(int(raw[k]), 1, skill_max(str(k)))
 	return out
 
 func _load_settings() -> void:

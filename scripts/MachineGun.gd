@@ -42,6 +42,7 @@ func _do_fire() -> void:
 	proj.team = owner_mech.get("team") if owner_mech.get("team") != null else 0
 	proj._exclude_rids = owner_mech.get_exclude_rids()
 	proj.source_weapon = self
+	proj.tracer = owner_mech.has_method("tracers_active") and owner_mech.tracers_active()  # T551
 	proj.on_hit = func(body, pos): _emit_hit_if_visible(body, pos, true)
 	get_tree().current_scene.add_child(proj)
 	proj.global_transform = Transform3D(Basis(), global_position).looking_at(aim_point)
@@ -49,7 +50,7 @@ func _do_fire() -> void:
 	# B110: this override skipped ProjectileGun's T100 ghost send, so clients never saw MG rounds.
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		rpc_fx(&"_rpc_spawn_ghost", [global_position, proj.global_transform.basis,
-			proj.speed, proj.lifetime, proj.team])  # T462
+			proj.speed, proj.lifetime, proj.team, proj.tracer])  # T462, T551
 
 func _ready() -> void:
 	super._ready()
