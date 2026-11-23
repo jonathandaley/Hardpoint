@@ -38,6 +38,10 @@ Two ports face the internet on a dedicated server:
 6. **Bound every value**: numbers clamped, floats `is_finite`, strings cut to a length,
    arrays to a size. Rebuild what you keep from server-side lists
    (`Game.clean_squad_entry`); never store a client's dictionary as sent.
+   **Known, deliberate exception (T553, until accounts open):** a guest's pilot skills are
+   its own claim -- real skills only, each within its max, no more than its level, but
+   someone who edits their profile can claim a full tree. To stop trusting them, drop a
+   guest's skills on a dedicated server again in `Game._rpc_send_meta` (as T399 did).
 7. **Paths from the network are picked from a list, not loaded.** Server side: the path
    must BE an entry of `Lobby.ROSTER` / `WEAPON_CATALOG`. Client side (paths from a
    server): `Game.safe_res(path, folder, extension)`.

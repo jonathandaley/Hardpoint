@@ -243,9 +243,12 @@ func _lobby_attacks() -> void:
 	_say("meta_claims", "" if int(mine.get("elo", 0)) <= 4000 and int(mine.get("level", 0)) <= 100
 		else "a guest's claimed ELO %d / level %d / %d skills are taken as sent" % [int(mine.get("elo", 0)),
 			int(mine.get("level", 0)), (mine.get("skills", {}) as Dictionary).size()])
-	# T399: on a dedicated server a guest flies with no skills at all (its profile is its own claim)
-	_say("guest_skills", "" if (mine.get("skills", {}) as Dictionary).is_empty()
-		else "a guest's claimed skills were accepted on a dedicated server: %s" % str(mine.get("skills")).left(80))
+	# T553: a guest's claimed skills count for now (T399 dropped them) -- but only real ones, each within its max,
+	# no more of them than the (clamped) level
+	var gs: Dictionary = mine.get("skills", {})
+	var over: Array = gs.keys().filter(func(k): return not Game.SKILL_TREE.has(k) or int(gs[k]) > Game.skill_max(k))
+	_say("guest_skills", "" if over.is_empty() and gs.size() <= int(mine.get("level", 0))
+		else "a guest's claimed skills passed unsanitized (level %d): %s" % [int(mine.get("level", 0)), str(gs).left(80)])
 	Game._rpc_send_meta.rpc_id(1, {"pilot_name": "Mallory", "elo": 1000, "level": 1, "skills": {}})
 
 	# 5. wrong types / shapes: must not break the server (checked from its log + liveness)

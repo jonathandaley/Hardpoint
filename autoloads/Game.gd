@@ -725,9 +725,10 @@ func _rpc_send_meta(meta: Dictionary) -> void:
 	entry["elo"]        = clean_int(meta.get("elo"), 100, 4000, 1000)
 	entry["level"]      = level_for_xp(clean_int(meta.get("xp"), 0, 1 << 30, 0)) if email != "" \
 			else clean_int(meta.get("level"), 1, _LEVEL_THRESHOLDS.size() + 1, 1)  # T536: an account's from its XP
-	entry["skills"]     = sanitize_skills(meta.get("skills", {}), entry["level"])  # T332
-	if dedicated and email == "":
-		entry["skills"] = {}  # T399 (user 2026-11-12): a guest's skills are its own claim -- none on a dedicated server
+	# T332; T553 (user 2026-11-23: "trust people's local pilot [skill] information for now and switch it later"):
+	# a guest's sanitized claim counts on a dedicated server too. To switch back (T399), add here:
+	#   if dedicated and email == "": entry["skills"] = {}
+	entry["skills"]     = sanitize_skills(meta.get("skills", {}), entry["level"])
 	broadcast_lobby()
 
 func _on_mp_peer_disconnected(id: int) -> void:

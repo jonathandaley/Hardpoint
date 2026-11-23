@@ -46,3 +46,4 @@
 2026-11-20|T540+T541|DONE|e85d9f6+e806803|suite 240/240 + sweep 88/88 + security 48/48; Orbital: radio-wave rings, own ping sound + icon; players aim by clicking the minimap (mech stops, queued clicks), 250/85 damage
 2026-11-20|T542|DONE|(this commit)|difficulty_steps frees the arena before quitting (Jolt shape leak at exit, rare)
 2026-11-22|release|DONE|(this commit)|0.6.0: config/version 0.6.0, NET_VERSION 4 released (NET_SIG unchanged); suite 242/242; Linux + Windows exported
+2026-11-23|T552+T553|DONE|(these commits)|suite 242/242 incl. security; accounts "coming soon" on the title; a guest's sanitized skills count on a dedicated server (T399 undone, SECURITY.md rule 6 note)
