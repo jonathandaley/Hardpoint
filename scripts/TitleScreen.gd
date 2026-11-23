@@ -5,6 +5,13 @@ extends Control
 # callsign (SignIn) -> hangar, with LOG IN / SIGN UP shown disabled until then.
 # T207: LOG IN / SIGN UP are live (accounts on a dedicated server); signed in, the note
 # names the account and LOG IN becomes LOG OUT.
+# T552 (user 2026-11-23: "Nobody has tried signing up; probably make those buttons stubs with a "coming soon"
+# so there's no confusion."): LOG IN / SIGN UP only say so until a mail server exists; true opens them again.
+const ACCOUNTS_OPEN := false
+
+func _coming_soon() -> void:
+	$AccountsNote.text = "COMING SOON -- PLAY AS A GUEST FOR NOW"
+
 func _ready() -> void:
 	Game.set_mouse_captured(false)
 	var signed_in: bool = not Game.account.is_empty()
@@ -13,10 +20,7 @@ func _ready() -> void:
 	$SignupButton.visible = not signed_in
 	$LoginButton.text = "LOG OUT" if signed_in else "LOG IN"
 	$AccountsNote.text = ("SIGNED IN AS %s" % String(Game.account["email"]).to_upper()) if signed_in \
-		else "ACCOUNTS LIVE ON DEDICATED SERVERS"
-	if OS.has_feature("web"):  # T420: the browser build is single player until T422 (no ENet there)
-		for n in ["LoginButton", "SignupButton", "AccountsNote"]:
-			get_node(n).visible = false
+		else ("ACCOUNTS LIVE ON DEDICATED SERVERS" if ACCOUNTS_OPEN else "ACCOUNTS COMING SOON")
 	$PlayButton.text = "PLAY" if Game.has_profile or signed_in else "PLAY AS GUEST"
 
 func _on_play_pressed() -> void:
@@ -28,9 +32,15 @@ func _on_login_pressed() -> void:
 		Game.sign_out()
 		_ready()
 		return
+	if not ACCOUNTS_OPEN:
+		_coming_soon()
+		return
 	Game.account_mode = "login"
 	get_tree().change_scene_to_file("res://scenes/ui/Account.tscn")
 
 func _on_signup_pressed() -> void:
+	if not ACCOUNTS_OPEN:
+		_coming_soon()
+		return
 	Game.account_mode = "signup"
 	get_tree().change_scene_to_file("res://scenes/ui/Account.tscn")

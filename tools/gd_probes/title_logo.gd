@@ -35,6 +35,13 @@ func _ready() -> void:
 			_fail("profile=%s: LOG IN visible=%s disabled=%s text=%s" % [known, login.visible, login.disabled, login.text])
 		if play.text != ("PLAY" if known else "PLAY AS GUEST"):
 			_fail("profile=%s: play button reads '%s'" % [known, play.text])
+		# T552: accounts are "coming soon" -- the buttons stay on the title and say so
+		for b in ["LoginButton", "SignupButton"]:
+			s.call("_on_%s_pressed" % ("login" if b == "LoginButton" else "signup"))
+			await get_tree().process_frame
+			if get_tree().current_scene != null and get_tree().current_scene.scene_file_path.ends_with("Account.tscn") \
+					or not String((s.get_node("AccountsNote") as Label).text).contains("COMING SOON"):
+				_fail("%s should say coming soon, not open the account screen" % b)
 		s.queue_free()
 	Game.account = {"email": "pilot@example.com", "host": "127.0.0.1", "port": 8910, "session": "x", "profile": {}}
 	var si: Node = load("res://scenes/ui/TitleScreen.tscn").instantiate()
