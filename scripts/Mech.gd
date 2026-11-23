@@ -751,7 +751,11 @@ func receive_snapshot(entry: Dictionary, local_t: float = -1.0) -> void:
 		lock_eligible_target = null
 	lock_eligible = lock_eligible_target != null
 	if _predicting():
-		_reconcile(entry)  # T205: own mech predicts; the snapshot corrects it
+		# T205: own mech predicts; the snapshot corrects it. T423: once a tick, the newest only -- after a
+		# TCP resend stall a burst of snapshots lands in one frame, and correcting 20% for each stale one
+		# compounded the same error several times over
+		_recon_entry = entry
+		_last_server_pos = entry.get("pos", _last_server_pos)  # snap_to_server may run before the tick
 		return
 	_snap_buf.append({
 		# T150: server send time mapped to the local clock (Arena._rpc_snapshot)
@@ -905,6 +909,9 @@ func _physics_process_impl(delta: float) -> void:
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
 		_tick_ability_timers_client(delta)  # T468
 		if _predicting():
+			if not _recon_entry.is_empty():  # T423: the newest snapshot since the last tick
+				_reconcile(_recon_entry)
+				_recon_entry = {}
 			_handle_look()
 			_handle_wheel()
 			_maybe_forward_input()
@@ -1015,6 +1022,7 @@ func _pred_record() -> void:
 
 # T270: the newest server position of our predicted mech (see snap_to_server)
 var _last_server_pos := Vector3.INF
+var _recon_entry: Dictionary = {}  # T423: the newest snapshot entry for our predicted mech, reconciled next tick
 
 ## T270: at match end the server froze every mech, but on a lossy link its match-end RPC
 ## lands late and this client predicted on meanwhile -- inputs the server never applied --
@@ -1216,8 +1224,14 @@ func gait_velocity() -> Vector3:
 # moment. Was: a 2-snapshot buffer rendered 100 ms back, which always clamped to
 # the older snapshot -> no interpolation, 20 Hz steps (mechs stood still 2 of 3
 # ticks). Gaffer: delay >= 3 x snapshot interval (20 Hz -> 150 ms) survives one
-# lost packet plus jitter. Buffer starved -> hold the newest (no extrapolation).
+# lost packet plus jitter. Buffer starved -> T423: run on from the newest (below).
 const INTERP_DELAY := 0.15   # s -- calibration knob (T150 measured, see SPEC B48)
+## T423 (WebSocket since T422): a lost TCP segment holds every snapshot behind it for a resend (~RTT + 0.2 s),
+## so the buffer runs dry and remote mechs froze, then jumped (kill_confirm@bad: still on 26% of the ticks
+## they moved). Starved, a mech walks on along its newest velocity, flat (gravity and slopes are the next
+## snapshot's job), for at most this long -- past it the link is really gone, so it holds.
+## ponytail: straight-line guess; a mech that turned in the stall lands off-line and steps back when data comes.
+const EXTRAP_MAX_S := 0.5
 const _SNAP_BUF_MAX := 8     # 400 ms of 20 Hz snapshots
 
 func _apply_snapshot_interp() -> void:
@@ -1234,8 +1248,12 @@ func _apply_snapshot_interp() -> void:
 	var body_scale := global_transform.basis.get_scale()
 	var s0: Dictionary = _snap_buf[0]
 	if _snap_buf.size() == 1 or render_t <= (s0["time"] as float):
-		# Starved (render_t past the newest) or still filling (render_t before the oldest): hold s0.
-		global_transform = Transform3D(Basis(s0["quat"] as Quaternion).scaled(body_scale), s0["pos"] as Vector3)
+		# Starved (render_t past the newest): T423 run on along its velocity; still filling (render_t before
+		# the oldest): hold s0.
+		var run_on: float = clampf(render_t - (s0["time"] as float), 0.0, EXTRAP_MAX_S)
+		var v0: Vector3 = s0["vel"] as Vector3
+		global_transform = Transform3D(Basis(s0["quat"] as Quaternion).scaled(body_scale),
+			(s0["pos"] as Vector3) + Vector3(v0.x, 0.0, v0.z) * run_on)
 		velocity = s0["vel"] as Vector3
 		interp_torso_y = s0.get("torso_y", torso.rotation.y)
 		interp_pitch = s0.get("pitch", _camera_pitch)
