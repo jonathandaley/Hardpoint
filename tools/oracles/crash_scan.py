@@ -26,7 +26,8 @@ ERROR_MARKERS = ("SCRIPT ERROR", "USER ERROR")
 # Add an entry only with evidence it is teardown noise, never to silence a bug.
 ALLOWED_ERRORS = (
     re.compile(r"^ERROR: \d+ resources still in use at exit"),        # engine exit report
-    re.compile(r"^ERROR: Unable to send packet on channel \d+, max channels: \d+"),  # ENet send after close at teardown
+    # T422: an RPC broadcast in the frames between a client closing its WebSocket and the server dropping it
+    re.compile(r'^ERROR: Condition "ready_state != STATE_OPEN" is true\. Returning: FAILED'),
 )
 
 

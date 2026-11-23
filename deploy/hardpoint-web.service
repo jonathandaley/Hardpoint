@@ -1,0 +1,30 @@
+# Hardpoint in the browser (T422): serves the web build (/opt/hardpoint/web) as plain files.
+# The page then connects to the game server itself over WebSocket. Installed by deploy/install.sh.
+[Unit]
+Description=Hardpoint web page
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+DynamicUser=yes
+Environment=WEB_PORT=25573
+EnvironmentFile=-/etc/hardpoint/server.env
+ExecStart=/usr/bin/caddy file-server --root /opt/hardpoint/web --listen :${WEB_PORT}
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target

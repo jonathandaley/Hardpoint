@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
-"""T139 chaos proxy: UDP relay between harness clients and the server with seeded
-latency / jitter / loss / duplication / reordering. Stdlib only, no root.
+"""T139 chaos proxy, TCP since T422 (the game runs over WebSocket): a relay between harness
+clients and the server with seeded latency / jitter / loss / outages. Stdlib only, no root.
 
 Usage:
     netem_proxy.py --listen PORT --target PORT --profile NAME|JSON [--seed N]
     netem_proxy.py selftest
 
-Clients connect to --listen; each client address gets its own upstream socket so
-the server sees distinct peers. Both directions (c2s, s2c) get the same profile.
-Latency is one-way per direction. Without "reorder", jittered packets keep their
-send order (like most real links); with it, each packet is delayed independently.
+Each client connection gets its own upstream connection. Both directions (c2s, s2c) get the same
+profile; latency is one-way per direction. TCP never loses or reorders bytes, so the impairments
+are what a real lossy link does to a TCP stream:
+  - "loss": a read chunk counts as a lost segment -- it and everything behind it wait for the
+    resend (RESEND_S + one round trip): the head-of-line stall a browser player sees on bad wifi;
+  - "reorder" / "dup": nothing (TCP hides both);
+  - "outage": [start_s, end_s] holds the stream and lets it all through when the link is back.
 SIGTERM/SIGINT -> prints one `[netem] stats {...}` JSON line and exits 0.
 """
 import argparse
@@ -43,150 +46,154 @@ def resolve(profile):
     return cfg
 
 
+# How long past one round trip a lost segment waits: the game is a steady stream both ways (inputs 30 a
+# second, snapshots 20+), so TCP's fast retransmit catches a loss from the next ~3 segments' duplicate
+# acks (~0.1 s) rather than the 0.2 s minimum retransmit timeout a quiet link waits for.
+# ponytail: a burst of losses (or a lost last packet) waits the timeout; the model doesn't stack them.
+RESEND_S = 0.1
+
+
 class Lane:
-    """One direction of traffic with its own impairment schedule."""
+    """One direction of one connection: delivers chunks in order, each at its due time."""
 
     def __init__(self, name, cfg, rng, stats, t0=0.0):
         self.name, self.cfg, self.rng, self.stats = name, cfg, rng, stats
         self.last_due = 0.0
-        self.t0 = t0  # proxy start (loop time); "outage": [start_s, end_s] is relative to it
+        self.t0 = t0  # proxy start (loop time); "outage" is relative to it
+        self.q = collections.deque()
 
     def push(self, loop, send, data):
         c, s = self.cfg, self.stats
         s[self.name + "_in"] += 1
         s[self.name + "_bytes"] += len(data)  # T152: bandwidth budget
-        out = c.get("outage")  # T151: total blackout window, both directions
+        lat = c.get("latency_ms", 0) / 1000.0
+        due = loop.time() + max(0.0, lat + self.rng.uniform(-1.0, 1.0) * c.get("jitter_ms", 0) / 1000.0)
+        out = c.get("outage")  # T151: blackout window, both directions -- held, not lost
         if out and out[0] <= loop.time() - self.t0 < out[1]:
             s[self.name + "_outage"] += 1
-            return
+            due = max(due, self.t0 + out[1] + lat)
         if self.rng.random() < c.get("loss", 0.0):
-            s[self.name + "_drop"] += 1
-            return
-        copies = 2 if self.rng.random() < c.get("dup", 0.0) else 1
-        s[self.name + "_dup"] += copies - 1
-        for _ in range(copies):
-            delay = (c.get("latency_ms", 0) + self.rng.uniform(-1.0, 1.0) * c.get("jitter_ms", 0)) / 1000.0
-            due = loop.time() + max(0.0, delay)
-            if not c.get("reorder", False):
-                due = max(due, self.last_due)
-                self.last_due = due
-            loop.call_at(due, self._send, send, data)
+            s[self.name + "_drop"] += 1  # resent: late, never gone
+            due += RESEND_S + 2.0 * lat
+        due = max(due, self.last_due)  # a stream: nothing overtakes
+        self.last_due = due
+        # one queue, drained in order (asyncio's timer heap doesn't keep equal times in order)
+        self.q.append((due, send, data))
+        if len(self.q) == 1:
+            loop.call_at(due, self._drain, loop)
 
-    def _send(self, send, data):
-        try:
-            send(data)
-            self.stats[self.name + "_out"] += 1
-        except OSError:  # peer not up yet / gone; same as a lost packet
-            self.stats[self.name + "_send_err"] += 1
+    def _drain(self, loop):
+        while self.q and self.q[0][0] <= loop.time():
+            _, send, data = self.q.popleft()
+            try:
+                send(data)
+                self.stats[self.name + "_out"] += 1
+            except OSError:  # gone; same as a closed connection
+                self.stats[self.name + "_send_err"] += 1
+        if self.q:
+            loop.call_at(self.q[0][0], self._drain, loop)
 
 
 def run(listen, target, cfg, seed):
     loop = asyncio.new_event_loop()
     stats = collections.Counter()
-    # one RNG per lane: a lane's drop pattern depends only on its own packet order,
-    # not on how c2s/s2c traffic interleaves (which varies run to run)
-    c2s = Lane("c2s", cfg, random.Random(seed * 2), stats, loop.time())
-    s2c = Lane("s2c", cfg, random.Random(seed * 2 + 1), stats, loop.time())
-    down = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    down.bind(("127.0.0.1", listen))
-    down.setblocking(False)
-    ups = {}
+    t0 = loop.time()
+    n = [0]
 
-    def on_up(up, addr):
+    async def pump(reader, writer, lane):
         while True:
             try:
-                data = up.recv(65535)
-            except (BlockingIOError, ConnectionRefusedError):
-                return
-            s2c.push(loop, lambda d, a=addr: down.sendto(d, a), data)
+                data = await reader.read(65536)
+            except OSError:
+                data = b""
+            if not data:
+                break
+            lane.push(loop, writer.write, data)
+        # close once everything queued ahead of the EOF has gone out
+        loop.call_at(max(loop.time(), lane.last_due) + 0.001, writer.close)
 
-    def on_down():
-        while True:
-            try:
-                data, addr = down.recvfrom(65535)
-            except (BlockingIOError, ConnectionRefusedError):
-                return
-            up = ups.get(addr)
-            if up is None:
-                up = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                up.bind(("127.0.0.1", 0))
-                up.connect(("127.0.0.1", target))
-                up.setblocking(False)
-                ups[addr] = up
-                loop.add_reader(up, on_up, up, addr)
-            c2s.push(loop, up.send, data)
+    async def on_client(creader, cwriter):
+        # one RNG per lane: a lane's resend pattern depends only on its own chunk order
+        k = n[0]
+        n[0] += 1
+        stats["clients"] += 1
+        try:
+            ureader, uwriter = await asyncio.open_connection("127.0.0.1", target)
+        except OSError:
+            cwriter.close()
+            return
+        for w in (cwriter, uwriter):
+            w.get_extra_info("socket").setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        c2s = Lane("c2s", cfg, random.Random(seed * 1000 + k * 2), stats, t0)
+        s2c = Lane("s2c", cfg, random.Random(seed * 1000 + k * 2 + 1), stats, t0)
+        await asyncio.gather(pump(creader, uwriter, c2s), pump(ureader, cwriter, s2c))
 
-    loop.add_reader(down, on_down)
+    server = loop.run_until_complete(asyncio.start_server(on_client, "127.0.0.1", listen))
     for sig in (signal.SIGTERM, signal.SIGINT):
         loop.add_signal_handler(sig, loop.stop)
     print("[netem] listen=%d target=%d seed=%s cfg=%s" % (listen, target, seed, json.dumps(cfg)), flush=True)
     loop.run_forever()
-    stats["clients"] = len(ups)
+    server.close()
     print("[netem] stats " + json.dumps(dict(stats), sort_keys=True), flush=True)
+    os._exit(0)  # open connections' tasks would only log "Task was destroyed" at exit
 
 
 def _free_port():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.bind(("127.0.0.1", 0))
     port = s.getsockname()[1]
     s.close()
     return port
 
 
-def _selftest_case(profile, n):
-    """Send n packets client->server, server echoes each back. Returns
-    (server_got, client_got, first_c2s_latency_s, proxy_stats)."""
+def _selftest_case(profile, n, gap=0.0):
+    """Send n numbered lines client->server, the server echoes each. Returns
+    (lines the server got in order, client got back, seconds to the last echo, stats)."""
     listen, target = _free_port(), _free_port()
-    srv = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     srv.bind(("127.0.0.1", target))
-    srv.settimeout(0.3)
+    srv.listen(1)
     proxy = subprocess.Popen([sys.executable, os.path.abspath(__file__), "--listen", str(listen),
                               "--target", str(target), "--profile", profile, "--seed", "7"],
                              stdout=subprocess.PIPE, text=True)
     proxy.stdout.readline()  # "[netem] listen=..." = bound and serving
-    cli = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    cli.settimeout(0.3)
+    cli = socket.create_connection(("127.0.0.1", listen))
+    cli.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+    conn, _ = srv.accept()
+    conn.settimeout(3.0)
+    cli.settimeout(3.0)
     t0 = time.monotonic()
     for i in range(n):
-        cli.sendto(b"%d" % i, ("127.0.0.1", listen))
-    server_got, first = 0, None
-    try:
-        while True:
-            data, addr = srv.recvfrom(100)
-            first = first if first is not None else time.monotonic() - t0
-            server_got += 1
-            srv.sendto(data, addr)
-    except socket.timeout:
-        pass
-    client_got = 0
-    try:
-        while True:
-            cli.recvfrom(100)
-            client_got += 1
-    except socket.timeout:
-        pass
+        cli.sendall(b"%d\n" % i)
+        time.sleep(gap)  # separate chunks, so loss can hit some of them
+    got = b""
+    while got.count(b"\n") < n:
+        got += conn.recv(65536)
+    conn.sendall(got)
+    back = b""
+    while back.count(b"\n") < n:
+        back += cli.recv(65536)
+    took = time.monotonic() - t0
+    cli.close()
+    conn.close()
     proxy.send_signal(signal.SIGTERM)
     out = proxy.communicate(timeout=5)[0]
     stats = json.loads(out.split("[netem] stats ", 1)[1])
-    return server_got, client_got, first, stats
+    return [int(x) for x in got.split()], back.count(b"\n"), took, stats
 
 
 def selftest():
-    got, back, first, st = _selftest_case("none", 100)
-    assert got == 100 and back == 100, ("clean relay must be lossless", got, back)
+    got, back, took, st = _selftest_case("none", 100)
+    assert got == list(range(100)) and back == 100, ("clean relay must be lossless", got[:5], back)
     assert st["clients"] == 1, st
-    got, back, first, st = _selftest_case('{"latency_ms": 40}', 20)
-    assert got == 20 and first >= 0.035, ("latency not applied", got, first)
-    # ponytail: n stays under ~170 packets; the test reads after sending, and the
-    # kernel's default UDP receive buffer drops beyond that (not a proxy fault)
-    got, back, first, st = _selftest_case('{"loss": 0.5}', 150)
-    assert 45 <= got <= 105, ("~50%% c2s loss expected", got)
-    assert st.get("c2s_drop", 0) == 150 - got, st
-    assert back < got, ("s2c loss expected too", got, back)
-    got, back, first, st = _selftest_case('{"loss": 1.0}', 50)
-    assert got == 0 and back == 0, ("total loss must drop everything", got, back)
-    got, back, first, st = _selftest_case('{"outage": [0, 30]}', 20)
-    assert got == 0 and st.get("c2s_outage") == 20, ("outage window must black out the link", got, st)
+    got, back, took, st = _selftest_case('{"latency_ms": 40}', 20)
+    assert back == 20 and took >= 0.075, ("latency not applied both ways", took)  # one trip each way
+    got, back, took, st = _selftest_case('{"loss": 0.5, "jitter_ms": 20}', 30, gap=0.005)
+    assert got == list(range(30)) and back == 30, ("loss must delay, never drop or reorder", got)
+    assert st.get("c2s_drop", 0) > 0 and took >= RESEND_S, ("loss should stall the stream", st, took)
+    got, back, took, st = _selftest_case('{"outage": [0, 0.6]}', 10)
+    assert got == list(range(10)) and took >= 0.5 and st.get("c2s_outage", 0) > 0, \
+        ("an outage holds the stream until the link is back", took, st)
     print("netem_proxy selftest ok")
 
 

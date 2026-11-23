@@ -52,6 +52,10 @@ func _ready() -> void:
 		var overlay: Node = load("res://scripts/PerfOverlay.gd").new()
 		overlay.set("autopick", "sp" in flags)  # an unattended run must not sit (paused) in the picker
 		add_child(overlay)
+	for f in flags:  # T422: join=host:port -- the menus' JOIN with that address (browser end-to-end check)
+		if f.begins_with("join=") and f.substr(5).rfind(":") > 0:
+			autojoin = f.substr(5)
+			get_tree().change_scene_to_file.call_deferred("res://scenes/ui/MPEntry.tscn")
 	if "sp" in flags:  # optional map=City (a resources/maps name), bots=4,5 (allies, enemies)
 		for f in flags:
 			var kv: PackedStringArray = f.split("=")
@@ -128,7 +132,7 @@ func start_dedicated(port: int, opts: Dictionary = {}) -> void:
 	dedicated = true
 	_min_players = maxi(1, int(opts.get("min_players", 1)))
 	host(port)
-	if not multiplayer.multiplayer_peer is ENetMultiplayerPeer:  # offline also "is_server"
+	if not multiplayer.multiplayer_peer is WebSocketMultiplayerPeer:  # offline also "is_server"
 		push_error("[Server] could not host on port %d" % port)
 		get_tree().quit(1)
 		return
@@ -280,17 +284,28 @@ func _session_lost(reply: Dictionary) -> bool:
 	account_notice = SESSION_LOST
 	return true
 
-## T384 (V61): two limits, on purpose far apart. MAX_PEERS is how many peers we ADMIT
-## (6 v 6 is the biggest match; later ones are told "server full" in the handshake).
-## ENET_SLOTS is how many connections ENet may hold, admitted or not: a connection costs a
-## slot from its first packet, before it has proven anything, so the pool must be much
-## bigger than the players it serves or a trickle of half-open connections fills it.
+## T384 (V61): MAX_PEERS is how many peers we ADMIT (6 v 6 is the biggest match; later ones
+## are told "server full" in the handshake).
 const MAX_PEERS := 12
-const ENET_SLOTS := 1024
+
+## T422 (user 2026-11-19 / 2026-11-23: "Go for it."): one transport for everyone -- WebSocket over
+## TCP, so a browser joins the same matches as the desktop game (LAN too; only LAN discovery's UDP
+## broadcast stays desktop-only). Everything is reliable and ordered now: "unreliable" RPCs and
+## channels are hints WebSocket ignores, and a lost packet holds what follows until TCP resends it.
+## WS_BUFFER: what a peer may have queued; a stalled link queues ~50 KB/s of snapshots, and the
+## 64 KB default filled in about a second (sends then fail). Inbound stays small on the server.
+const WS_BUFFER := 1 << 18
+
+func _ws_peer(server: bool) -> WebSocketMultiplayerPeer:
+	var p := WebSocketMultiplayerPeer.new()
+	p.outbound_buffer_size = WS_BUFFER
+	if not server:
+		p.inbound_buffer_size = WS_BUFFER
+	return p
 
 func host(port: int = 8910) -> void:
-	var peer := ENetMultiplayerPeer.new()
-	var err := peer.create_server(port, ENET_SLOTS)
+	var peer := _ws_peer(true)
+	var err := peer.create_server(port)
 	if err != OK:
 		push_error("Game.host: create_server failed (port %d): %d" % [port, err])
 		mp_join_failed.emit()
@@ -340,8 +355,8 @@ func join(ip: String, port: int = 8910) -> void:
 			return
 		if _join_ticket == "":
 			print("[Game] no join ticket (%s): joining as a guest" % r.get("error", "?"))
-	var peer := ENetMultiplayerPeer.new()
-	var err := peer.create_client(ip, port)
+	var peer := _ws_peer(false)
+	var err := peer.create_client("ws://%s:%d" % ["[%s]" % ip if ip.contains(":") else ip, port])
 	if err != OK:
 		push_error("Game.join: create_client failed (%s:%d): %d" % [ip, port, err])
 		mp_join_failed.emit()
@@ -364,31 +379,14 @@ func _clear_mp_session() -> void:
 	mp_lobby["peers"].clear()
 	mp_active_match["roster"] = []
 
-# T167 (B59) / T214 (B90): ENet's peer timeout is only the backstop. A dead peer is
-# noticed by silence at the game level -- the server takes a client's mech after 5 s
-# without input (Arena.INPUT_SILENCE_MS), a client leaves after HOST_SILENCE_MS without a
-# snapshot (Arena) -- so the cap can be generous. It must be: ENet drops a peer once one
-# reliable packet has gone unacknowledged for the cap, and its retry wait starts at
-# rtt + 4 x rtt variance and doubles. Measured on `bad` (80 +- 30 ms, 5% loss, reorder):
-# rtt 190-300 ms, variance up to 186 ms -> first wait ~1 s, so 12 s fitted only 4 tries
-# (0, 1, 3, 7 s): 4 losses in a row of one packet or its ack (~1e-4) dropped live
-# players (B90). 45 s fits 6 tries (0, 1, 3, 7, 15, 31 s): ~1e-6.
-const PEER_TIMEOUT_MS := 45000
+# T167 (B59) / T214 (B90): a dead peer is noticed by silence at the game level -- the server takes a
+# client's mech after 5 s without input (Arena.INPUT_SILENCE_MS), a client leaves after HOST_SILENCE_MS
+# without a snapshot (Arena). T422: TCP never drops a live peer for a few lost packets (ENet's cap did).
 
 func _on_mp_peer_connected(id: int) -> void:
 	_pending.erase(id)  # admitted (its address stays in _peer_addr until it leaves)
 	if dedicated:  # T402: the owner's check that the port forward keeps real addresses (deploy/README.md)
 		print("[Server] peer %d joined from %s%s" % [id, _peer_addr.get(id, "?"), " (account)" if _peer_accounts.has(id) else ""])
-	var enet := multiplayer.multiplayer_peer as ENetMultiplayerPeer
-	if enet != null and (multiplayer.is_server() or id == 1):  # other clients are relayed, not ENet peers here
-		enet.get_peer(id).set_timeout(32, 5000, PEER_TIMEOUT_MS)
-		# T200 (B78): ENet's packet throttle drops UNRELIABLE sends on a counter cycle once
-		# it sees jittery RTTs, and recovers slowly while traffic is light: after an idle
-		# lobby on a jittery link the 20 Hz snapshots went out in bursts (client mechs stood
-		# still ~200 ms at a time). Deceleration 0 keeps it at its full-rate start value.
-		# ponytail: no back-off of unreliable traffic on a truly congested link (~2 KB/s of
-		# snapshots); set a bandwidth limit on the ENet host if that ever matters.
-		enet.get_peer(id).throttle_configure(5000, 2, 0)
 	if multiplayer.is_server() and not mp_active_match["roster"].is_empty():
 		# T206: a late joiner (its Arena was built during auth): spectator, or its old slot
 		var arena := get_tree().current_scene
@@ -409,6 +407,7 @@ func _on_mp_peer_connected(id: int) -> void:
 var mp_refused_reason := ""
 ## T176: FIND MATCH -> HOST (0) or JOIN (1) opens MPEntry on that tab.
 var mp_entry_tab := 0
+var autojoin := ""  # T422: "host:port" from the join= test switch; MPEntry joins it once
 
 ## T170 (B64): join handshake. A mid-match joiner used to be kicked after it had
 ## connected: SceneMultiplayer kept it in the connected set until the disconnect landed,
@@ -461,7 +460,7 @@ const HELLO_MAX_BYTES := 256
 ## shapes, content (mechs, weapons, maps, modes, skills), server-decided numbers, a Godot
 ## upgrade. tools/oracles/net_security.py hashes the @rpc signatures and fails the suite
 ## until this is bumped with them.
-const NET_VERSION := 4  # 4: 0.6.0 -- new mechs / weapons / maps (T454-T460) + snapshots on their own channel (T465) + Taurus CHARGE (T473) + health in snapshots (T474) + team choice (T476); 3: 0.5.0 -- Jolt physics (T429), Denali (T430), lunge v2 (T404), beacon rush (T434); 2: lobby carries idle_wait / sitting_out (T400)
+const NET_VERSION := 5  # 5: WebSocket for everyone (T422) until a release; 4: 0.6.0 -- new mechs / weapons / maps (T454-T460) + snapshots on their own channel (T465) + Taurus CHARGE (T473) + health in snapshots (T474) + team choice (T476); 3: 0.5.0 -- Jolt physics (T429), Denali (T430), lunge v2 (T404), beacon rush (T434); 2: lobby carries idle_wait / sitting_out (T400)
 const HELLO_TIMEOUT_S := 4.0
 const MAX_PENDING_PER_ADDR := 3   # connections still in the handshake, per address
 const MAX_PEERS_PER_ADDR := 8     # calibration knob: players behind one router (LAN party)
@@ -469,9 +468,8 @@ var _pending: Dictionary = {}     # server: peer id -> {hello: bool, late: bool,
 var _peer_addr: Dictionary = {}   # server: peer id -> remote address (pending and admitted)
 
 func _peer_address(id: int) -> String:
-	var enet := multiplayer.multiplayer_peer as ENetMultiplayerPeer
-	var p: ENetPacketPeer = enet.get_peer(id) if enet != null else null
-	return p.get_remote_address() if p != null else ""
+	var ws := multiplayer.multiplayer_peer as WebSocketMultiplayerPeer
+	return ws.get_peer_address(id) if ws != null else ""
 
 ## Server: drop a peer that is still in the handshake. Silent and immediate: no reason
 ## text for it to parse, and its slot is free again at once.
@@ -483,8 +481,8 @@ func _drop_pending(id: int, why: String) -> void:
 	var mp := multiplayer.multiplayer_peer
 	if mp != null and mp.get_connection_status() == MultiplayerPeer.CONNECTION_CONNECTED:
 		(multiplayer as SceneMultiplayer).disconnect_peer(id)  # out of the pending set, no signals
-		if (mp as ENetMultiplayerPeer) != null and (mp as ENetMultiplayerPeer).get_peer(id) != null:
-			mp.disconnect_peer(id, true)  # and reset the ENet peer now (frees the slot)
+		if mp is WebSocketMultiplayerPeer and (mp as WebSocketMultiplayerPeer).get_peer_address(id) != "":
+			mp.disconnect_peer(id, true)  # T422: and close its socket now (SceneMultiplayer leaves it open)
 
 ## T400: the server owner's ban list -- user://banned.txt, one address or account email a
 ## line (# = comment). Read at every join, so an edit needs no restart.

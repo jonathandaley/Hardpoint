@@ -14,7 +14,7 @@ Two ports face the internet on a dedicated server:
 
 | Port | What | Who can reach it |
 |---|---|---|
-| game (UDP, ENet) | join handshake, then RPCs | anyone; RPCs only after the handshake |
+| game (TCP, WebSocket) | join handshake, then RPCs | anyone; RPCs only after the handshake |
 | game + 1 (TCP, TLS) | accounts: sign up, log in, skills | anyone |
 
 ## Rules
@@ -94,7 +94,7 @@ Two ports face the internet on a dedicated server:
 ## How it is enforced
 
 - `python3 tools/security/run_security.py` starts a real dedicated server on loopback
-  and attacks it from outside (hostile game client, raw ENet peer, half-open flood,
+  and attacks it from outside (hostile game client, raw WebSocket peer, half-open flood,
   account-endpoint attacker). It must print `0 VULN`. It runs as the `security` step of
   `tools/run_suite.py`.
 - `tools/oracles/net_security.py` (static, in the suite): rules 1, 2, 5, 9, 12, 15.
@@ -107,7 +107,7 @@ A change that needs one of these loosened is a decision for the user, not for a 
 The code is hardened; these belong to the machine. `deploy/` (see `deploy/README.md`) sets all of them up:
 
 - Run the server as its own unprivileged user, with only its data folder writable.
-- Firewall: open only the game UDP port and the account TCP port; rate-limit new
+- Firewall: open only the game TCP port and the account TCP port; rate-limit new
   connections per source address on both.
 - Cap the logs. The engine prints one line for every malformed packet it refuses, and
   that cannot be turned off from game code.

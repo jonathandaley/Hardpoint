@@ -4,7 +4,8 @@ from outside with three hostile clients, then checks the server came through:
 
   account_attack.py   the account endpoint (TLS JSON lines)
   attacker.tscn       a modified game client (forged RPCs) + an honest "victim" player
-  raw_attack.gd       a peer that speaks ENet but not the game (handshake abuse, fuzz)
+  ws_attack.py        a peer that speaks WebSocket but not the game, or not even WebSocket
+                      (handshake abuse, bad frames, fuzz, half-open floods) -- T422
 
 Every check prints `[sec] <name>: OK | VULN <why>`; exit code = number of VULN lines
 (0 = green). Everything targets 127.0.0.1 on a scratch userdata dir.
@@ -104,28 +105,18 @@ def main():
             collect(open(alog, errors="replace").read())
 
         if "raw" not in skip:
-            raw_dir = os.path.join(out, "raw")  # outside the project: no game code loads
-            os.makedirs(raw_dir)
-            shutil.copy(os.path.join(HERE, "raw_attack.gd"), raw_dir)
-            ver = "--sec-ver=" + re.search(r"^const NET_VERSION := (\d+)", open(os.path.join(ROOT, "autoloads", "Game.gd")).read(), re.M).group(1)
+            ver = re.search(r"^const NET_VERSION := (\d+)", open(os.path.join(ROOT, "autoloads", "Game.gd")).read(), re.M).group(1)
+            wsa = [sys.executable, "-I", os.path.join(HERE, "ws_attack.py"), str(args.port), ver]
             try:
-                r = subprocess.run([args.godot, "--headless", "-s", os.path.join(raw_dir, "raw_attack.gd"), "--",
-                                    "--sec-port=%d" % args.port, "--sec-victim=%d" % victim_id, ver],
-                                   capture_output=True, text=True, timeout=240, cwd=raw_dir)
+                r = subprocess.run(wsa + ["--victim=%d" % victim_id], capture_output=True, text=True, timeout=240)
                 collect(r.stdout)
                 if "[sec] done" not in r.stdout:
-                    say("raw_run", "the raw attacker did not finish: %s" % r.stdout[-300:])
+                    say("raw_run", "the raw attacker did not finish: %s" % (r.stdout + r.stderr)[-300:])
             except subprocess.TimeoutExpired:
                 say("raw_run", "the raw attacker timed out")
             # half-open flood: while it holds its connections, an honest stranger must get in
-            flood = subprocess.Popen([sys.executable, os.path.join(HERE, "udp_attack.py"), str(args.port), "200", "10"],
-                                     stdout=subprocess.PIPE, text=True)
-            time.sleep(4.0)
-            r = subprocess.run([args.godot, "--headless", "-s", os.path.join(raw_dir, "raw_attack.gd"), "--",
-                                "--sec-port=%d" % args.port, "--sec-join-only=halfopen_flood", ver],
-                               capture_output=True, text=True, timeout=60, cwd=raw_dir)
+            r = subprocess.run(wsa + ["--flood=1"], capture_output=True, text=True, timeout=90)
             collect(r.stdout)
-            collect(flood.communicate(timeout=30)[0])
 
         # last: its floods use up this address's request / sign-up budget (the victim signed up above)
         if "account" not in skip:

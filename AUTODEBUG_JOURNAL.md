@@ -47,3 +47,4 @@
 2026-11-20|T542|DONE|(this commit)|difficulty_steps frees the arena before quitting (Jolt shape leak at exit, rare)
 2026-11-22|release|DONE|(this commit)|0.6.0: config/version 0.6.0, NET_VERSION 4 released (NET_SIG unchanged); suite 242/242; Linux + Windows exported
 2026-11-23|T552+T553|DONE|(these commits)|suite 242/242 incl. security; accounts "coming soon" on the title; a guest's sanitized skills count on a dedicated server (T399 undone, SECURITY.md rule 6 note)
+2026-11-23|T422+T423|DONE|(these commits)|WebSocket for everyone (ws:// interim, NET_VERSION 5); suite 242/242 incl. security (47, 0 VULN); --net wifi,bad 87/88 -> 1 borderline recon p95 (0.62/0.60) that passed 3/3 reruns; Firefox web_join PASS; release 0.7.0 + server reinstall wait on the user

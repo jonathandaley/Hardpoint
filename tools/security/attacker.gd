@@ -200,7 +200,9 @@ func _lobby_attacks() -> void:
 	# 3. squad: something that is not a mech, extra payload, weapons that are not weapons
 	var junk: Array = []
 	for i in 5:
-		junk.append({"mech": "res://scenes/arena/Arena.tscn", "weapons": [], "junk": "A".repeat(20000)})
+		# T422: 10 KB a slot -- one WebSocket message over the server's 64 KB inbound buffer just closes the
+		# connection (ws_attack.py sends a 1 MiB one); this check wants the sanitizer, so stay connected
+		junk.append({"mech": "res://scenes/arena/Arena.tscn", "weapons": [], "junk": "A".repeat(10000)})
 	Game._rpc_set_squad.rpc_id(1, junk)
 	await _wait(1.0)
 	var sq: Array = Game.mp_lobby["peers"].get(_me(), {}).get("squad", [])
@@ -208,7 +210,7 @@ func _lobby_attacks() -> void:
 	if not sq.is_empty() and String(sq[0].get("mech", "")) == "res://scenes/arena/Arena.tscn":
 		why = "the server accepted a squad whose 'mech' is the Arena scene"
 	if not sq.is_empty() and sq[0].has("junk"):
-		why += " and rebroadcast 20 KB of extra payload per slot to every client"
+		why += " and rebroadcast 10 KB of extra payload per slot to every client"
 	_say("squad_not_a_mech", why)
 
 	var honest: Array = load("res://scripts/Lobby.gd")._build_squad_data()

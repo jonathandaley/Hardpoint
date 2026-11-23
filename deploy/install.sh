@@ -14,6 +14,15 @@ install -d -o hardpoint -g hardpoint -m 700 "$DATA" "$DATA/godot" "$DATA/godot/a
 install -o root -g root -m 755 "$OUT/godot" /opt/hardpoint/godot
 install -o root -g root -m 644 "$OUT/hardpoint.pck" "$OUT/version.txt" /opt/hardpoint/
 install -o root -g root -m 644 "$HERE/override.cfg" /opt/hardpoint/override.cfg
+# T422: the browser version's page, served by Caddy's file server (its own unit; apt's default
+# Caddy site on port 80 is switched off when this installs Caddy)
+if ! command -v caddy >/dev/null 2>&1; then
+	apt-get install -y caddy
+	systemctl disable --now caddy.service || true
+fi
+rm -rf /opt/hardpoint/web
+cp -r "$OUT/web" /opt/hardpoint/web
+chmod -R u=rwX,go=rX /opt/hardpoint/web
 
 # The server's identity: the private key players' games check the server against (T401).
 # Installed once; never overwritten (a new key would lock every player out until they update).
@@ -25,12 +34,12 @@ fi
 [ -f /etc/hardpoint/server.env ] || install -o root -g root -m 644 "$HERE/server.env" /etc/hardpoint/server.env
 install -o root -g root -m 644 "$HERE/hardpoint.nft" /etc/hardpoint/hardpoint.nft
 install -o root -g root -m 644 "$HERE/hardpoint.service" "$HERE/hardpoint-firewall.service" \
-	"$HERE/hardpoint-backup.service" "$HERE/hardpoint-backup.timer" /etc/systemd/system/
+	"$HERE/hardpoint-backup.service" "$HERE/hardpoint-backup.timer" "$HERE/hardpoint-web.service" /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable --now hardpoint-firewall.service hardpoint-backup.timer
 systemctl restart hardpoint-firewall.service
-systemctl enable hardpoint.service
-systemctl restart hardpoint.service
+systemctl enable hardpoint.service hardpoint-web.service
+systemctl restart hardpoint.service hardpoint-web.service
 sleep 3
 systemctl --no-pager --lines=8 status hardpoint.service || true
 echo "Installed version $(cat /opt/hardpoint/version.txt). Logs: journalctl -u hardpoint -f"

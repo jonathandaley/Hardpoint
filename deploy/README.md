@@ -58,7 +58,7 @@ when nobody is playing:
   open, close or touch nothing else on the machine.
 - **Opening the ports: not done by the kit.** Pomegranate had no firewall running when
   the kit was written (2026-11-12), so nothing blocks them. If you ever add a firewall,
-  allow **UDP 25574** and **TCP 25575**.
+  allow **TCP 25574** and **TCP 25575**.
 - **The forward on lemon: yours to set up.** See [First-time setup](#first-time-setup).
 
 To check the flood limits are loaded: `sudo nft list table inet hardpoint`.
@@ -66,8 +66,8 @@ To switch them off: `sudo systemctl stop hardpoint-firewall`.
 
 ## First-time setup
 
-1. **Forward two ports** from lemon to pomegranate: **UDP 25574** (the game) and
-   **TCP 25575** (sign-up / log-in). Nothing else.
+1. **Forward two ports** from lemon to pomegranate: **TCP 25574** (the game, WebSocket since
+   0.7.0) and **TCP 25575** (sign-up / log-in). Nothing else.
 2. **Install**, from the project folder on pomegranate:
 
        deploy/build.sh
@@ -92,7 +92,7 @@ To switch them off: `sudo systemctl stop hardpoint-firewall`.
 
 Edit `/etc/hardpoint/server.env`, then `sudo systemctl restart hardpoint`.
 
-- `GAME_PORT`: the game port (UDP). The account port (TCP) is always this plus one.
+- `GAME_PORT`: the game port (TCP, WebSocket). The account port (TCP) is always this plus one.
   Change the forward on lemon and the two numbers in `/etc/hardpoint/hardpoint.nft` to
   match, then `sudo systemctl restart hardpoint-firewall`.
 - `SERVER_OPTS`: any of
@@ -154,7 +154,7 @@ it holds that key.
 
 ## Not covered yet
 
-- Game traffic (UDP) is not encrypted (decision 2026-11-12). No password or login
+- Game traffic (WebSocket) is not encrypted (decision 2026-11-12). No password or login
   session travels on it; someone on a player's network could watch or disrupt a match.
 - No email verification or password reset (needs the mail server).
 - Keep Godot current: `build.sh` ships whatever `~/bin/godot` is.

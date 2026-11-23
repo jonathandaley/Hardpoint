@@ -32,7 +32,7 @@ python3 tools/selftest.py                           # determinism baseline (sim 
 The online server runs from the kit in [`deploy/`](../deploy/README.md). For a LAN game or a test:
 
 ```bash
-godot --headless --path . -- --server                   # UDP 8910, accounts on TCP 8911
+godot --headless --path . -- --server                   # WebSocket on TCP 8910, accounts on TCP 8911
 ./hardpoint_X.Y.Z.x86_64 --headless -- --server=9000 --team-size=3 --min-players=2
 ```
 
@@ -46,7 +46,7 @@ godot --headless --path . -- --server                   # UDP 8910, accounts on 
 | `--lobby-idle=S` | once enough are ready, the rest get S seconds (default 180) |
 
 Players use FIND MATCH > JOIN with the server's address. The match starts 5 s after everyone is
-ready and returns to the lobby when it ends. Open the UDP port and the TCP port above it.
+ready and returns to the lobby when it ends. Open TCP on both ports (the game port and the one above it).
 
 ## Releasing
 

@@ -12,16 +12,26 @@ var _lan_check: CheckBox = null
 
 func _ready() -> void:
 	Game.set_mouse_captured(false)
-	_build_lan()
+	var web := OS.has_feature("web")  # T422: a browser can only JOIN (no server socket, no LAN broadcast)
+	if not web:
+		_build_lan()
 	Game.mp_peer_connected.connect(_on_mp_connected)
 	Game.mp_join_failed.connect(_on_mp_join_failed)
-	($TabContainer as TabContainer).current_tab = Game.mp_entry_tab  # T176
+	($TabContainer as TabContainer).current_tab = 1 if web else Game.mp_entry_tab  # T176
+	($TabContainer as TabContainer).set_tab_hidden(0, web)
 	if not Game.account.is_empty():  # T207: join the server you signed in to
 		_ip_edit.text = Game.account["host"]
 		_join_port_edit.text = str(Game.account["port"])
 	else:  # T266: the official server unless the player types another
 		_ip_edit.text = Game.OFFICIAL_HOST
 		_join_port_edit.text = str(Game.OFFICIAL_PORT)
+	if Game.autojoin != "":  # T422: the join= test switch
+		var at := Game.autojoin.rfind(":")
+		_ip_edit.text = Game.autojoin.left(at)
+		_join_port_edit.text = Game.autojoin.substr(at + 1)
+		Game.autojoin = ""
+		print("[MPEntry] joining %s:%s" % [_ip_edit.text, _join_port_edit.text])
+		_on_join_pressed.call_deferred()
 	if Game.mp_refused_reason != "":  # T168
 		_show_error(Game.mp_refused_reason)
 		Game.mp_refused_reason = ""

@@ -31,7 +31,7 @@ func _ready() -> void:
 	Game.account["session"] = "0".repeat(64)
 	await Game.join("127.0.0.1", GAME_PORT)
 	if not Game.account.is_empty() or _notice() == "" or failed[0] != 1 \
-			or Game.multiplayer.multiplayer_peer is ENetMultiplayerPeer:
+			or Game.multiplayer.multiplayer_peer is WebSocketMultiplayerPeer:
 		_fail("stale session on join: account %s, notice '%s', join_failed %d, peer %s"
 			% [Game.account, _notice(), failed[0], Game.multiplayer.multiplayer_peer])
 	Game.disconnect_mp()

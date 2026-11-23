@@ -85,14 +85,24 @@ def _thresholds(scenario, run_dir):
             break
         except (OSError, ValueError):
             pass
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "mp_harness"))
+    import netem_proxy
     if isinstance(net, str):
-        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "mp_harness"))
-        import netem_proxy
         net = netem_proxy.resolve(net)
     if isinstance(net, dict) and (net.get("loss") or net.get("jitter_ms") or net.get("outage")
                                   or net.get("latency_ms", 0) > 5):
+        imp = dict(base.IMPAIRED_NET_THRESHOLDS)
+        if net.get("loss"):
+            # T422: over TCP a lost segment holds everything behind it for a resend (~RTT + 0.2 s, the
+            # proxy's model of Linux's retransmit timeout): inputs reach the server that late, so a turn
+            # or a dash inside the stall really happens late there (server-authoritative), and the owner's
+            # correction is right. One stall is not a desync; a divergence that outlasts it still is.
+            stall = int((netem_proxy.RESEND_S + 2.0 * net.get("latency_ms", 0) / 1000.0) * 60.0) + 1
+            imp["persist_ticks"] = max(imp["persist_ticks"], stall + 15)
+            imp["pred_snap_frac"] = 0.03
+            imp["loop_grace_ticks"] = 45 + stall  # a match end that rode in behind a resend
         # relaxations win over a scenario's clean-link tuning: take the more lenient (larger) value
-        th = {**th, **{k: max(v, th.get(k, v)) for k, v in base.IMPAIRED_NET_THRESHOLDS.items()}}
+        th = {**th, **{k: max(v, th.get(k, v)) for k, v in imp.items()}}
     return th
 
 
