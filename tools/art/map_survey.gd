@@ -48,6 +48,7 @@ func _ready() -> void:
 				await get_tree().process_frame
 			await RenderingServer.frame_post_draw
 			get_viewport().get_texture().get_image().save_png("%s/%s_p%d.png" % [args[0], args[1], i - 2])
+			print("[survey] %s_p%d draws %d" % [args[1], i - 2, RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME)])
 		get_tree().quit(0)
 		return
 	for i in VIEWS.size():

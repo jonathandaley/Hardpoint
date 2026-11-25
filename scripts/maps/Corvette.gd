@@ -168,6 +168,7 @@ func build() -> void:
 			var c := Vector3((float(xs[0]) + float(xs[1])) * 0.5, H * 0.5, (float(zs[0]) + float(zs[1])) * 0.5)
 			_box(Vector3(sx, H, sz), c, _wall_mat)
 			_ribs(c, sx, sz)
+	_frames(xs_all, zs_all)
 	_lights()
 	_dressing()
 
@@ -184,6 +185,53 @@ func _ribs(c: Vector3, sx: float, sz: float) -> void:
 			var p := c + n * (half_depth + 0.075) + along * k
 			_box(Vector3(0.15 + along.x * 0.85, H, 0.15 + along.z * 0.85), Vector3(p.x, H * 0.5, p.z), rib, false)
 			k += 8.0
+
+# T554 (user 2026-11-25: "Corvette frames are good. Maybe some accent colors, don't change the whole
+# aesthetic (red highlights)"): door frames at the junctions -- a heavy dark post on every wall-block
+# corner with a red glow edge, and a dark header with a red underside across each corridor stretch that
+# is walled on both sides (the centre corridor's doorways). Visual only, <= 0.2 m proud like the ribs:
+# collision, nav and spawns are untouched; one MultiMesh per material = 2 draws for all of them.
+func _frames(xs_all: Array, zs_all: Array) -> void:
+	var dark: Array[Transform3D] = []
+	var red: Array[Transform3D] = []
+	for xs in xs_all:
+		for zs in zs_all:
+			if _open(xs, zs):
+				continue
+			for cx in xs:
+				for cz in zs:
+					var out := Vector3(signf(float(cx) - (float(xs[0]) + float(xs[1])) * 0.5), 0.0,
+						signf(float(cz) - (float(zs[0]) + float(zs[1])) * 0.5))
+					if absf(float(cx)) >= HX - 0.01 or absf(float(cz)) >= HZ - 0.01:
+						continue  # against the hull: no junction there
+					var corner := Vector3(float(cx), H * 0.5, float(cz))
+					dark.append(Transform3D(Basis.from_scale(Vector3(0.6, H, 0.6)), corner - out * 0.15))
+					red.append(Transform3D(Basis.from_scale(Vector3(0.12, H - 1.0, 0.12)), corner + out * 0.13))
+	# headers: a long-corridor stretch (between two cross corridors) with blocks on both sides
+	for j in ROWS.size():
+		for xs in xs_all:
+			if _open(xs, zs_all[j]) or _open(xs, zs_all[j + 1]):
+				continue
+			for x in xs:
+				if absf(float(x)) >= HX - 0.01:
+					continue
+				var at := Vector3(float(x), H - 0.35, float(ROWS[j]))
+				dark.append(Transform3D(Basis.from_scale(Vector3(0.6, 0.7, W)), at))
+				red.append(Transform3D(Basis.from_scale(Vector3(0.25, 0.05, W - 0.6)), at - Vector3(0, 0.375, 0)))
+	_multi(dark, _mat(Color("#2b3037")))
+	_multi(red, _glow(Color("#c03030")))
+
+func _multi(xforms: Array[Transform3D], mat: Material) -> void:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = BoxMesh.new()  # 1 m cube, scaled per instance
+	mm.instance_count = xforms.size()
+	for k in xforms.size():
+		mm.set_instance_transform(k, xforms[k])
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = mm
+	mmi.material_override = mat
+	add_child(mmi)
 
 # Light strips down every corridor's centre line under the ceiling, and over the halls.
 func _lights() -> void:
