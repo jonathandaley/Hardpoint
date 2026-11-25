@@ -418,6 +418,10 @@ func register_hit() -> void:
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	Game.moment_marked.connect(_on_moment_marked)  # T556
+
+func _on_moment_marked() -> void:
+	pickup_toast("MARKED -- that moment is in the recording", Color("#ffd24a"))
 
 func start_spectating(mech: Node) -> void:
 	_player_mech = mech

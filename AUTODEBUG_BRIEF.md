@@ -18,6 +18,10 @@ Plan of record: `docs/MP_AUTODEBUG_PLAN.md` §9. Queue: SPEC.md §T.
    no autostash while they're uncommitted (it rewrote the file under their editor once) --
    fetch, `git rev-list --count HEAD..FETCH_HEAD`, plain push if 0, else commit first, then
    pull --rebase; and re-read the file right before every edit of it, changing only your lines.
+0b. **Mine.** `python3 tools/mine_sessions.py` (T556): the online server's finished matches since the
+   last run. A new FAIL, ERROR line or F9 mark (the user pressed it: something looked wrong) → a §T
+   BUG row quoting the match and time (marks first: they are human-found), then pick. Exit 2 (not
+   readable yet) → skip until the user has run `sudo deploy/install.sh`.
 1. **Pick.** First §T row in table order (rows may be inserted out of number
    order to reprioritize) with status `.` or `~`, T138 or later, not parked by the user and
    not BLOCKED on something only the user can give (rows blocked under the old 3-strikes rule

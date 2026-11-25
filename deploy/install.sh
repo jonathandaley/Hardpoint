@@ -11,6 +11,19 @@ USERDIR="$DATA/godot/app_userdata/Hardpoint"
 id hardpoint >/dev/null 2>&1 || useradd --system --home-dir "$DATA" --shell /usr/sbin/nologin hardpoint
 install -d -o root -g root -m 755 /opt/hardpoint /etc/hardpoint
 install -d -o hardpoint -g hardpoint -m 700 "$DATA" "$DATA/godot" "$DATA/godot/app_userdata" "$USERDIR"
+# T556: match recordings go to their own folder that the admin (whoever ran sudo) can read, for
+# tools/mine_sessions.py -- accounts and the identity key stay in $DATA (700). The admin can read
+# the journal too (the server's errors and F9 MARK lines); they have sudo, so nothing new.
+SESS=/var/lib/hardpoint-sessions
+install -d -o hardpoint -g hardpoint -m 750 "$SESS"
+ADMIN="${SUDO_USER:-}"
+if [ -n "$ADMIN" ] && [ "$ADMIN" != root ]; then
+	command -v setfacl >/dev/null 2>&1 || apt-get install -y acl
+	setfacl -R -m "u:$ADMIN:rX" -m "d:u:$ADMIN:rX" "$SESS"
+	for J in /var/log/journal /run/log/journal; do
+		[ -d "$J" ] && setfacl -R -m "u:$ADMIN:rX" -m "d:u:$ADMIN:rX" "$J"
+	done
+fi
 install -o root -g root -m 755 "$OUT/godot" /opt/hardpoint/godot
 install -o root -g root -m 644 "$OUT/hardpoint.pck" "$OUT/version.txt" /opt/hardpoint/
 install -o root -g root -m 644 "$HERE/override.cfg" /opt/hardpoint/override.cfg

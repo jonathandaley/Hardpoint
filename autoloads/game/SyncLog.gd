@@ -121,17 +121,29 @@ const SESSIONS_KEEP := 3
 const SESSION_SHOT_TICKS := 600
 var _recording: bool = false
 
+# T556: the installed server records to HARDPOINT_SESSIONS (/var/lib/hardpoint-sessions, readable by
+# the admin for tools/mine_sessions.py) and keeps a play night's worth of matches there.
+const MINED_MATCHES_KEEP := 20  # ~40 MB a 10-minute match on the server -> <= ~1 GB
+
+func _sessions_dir() -> String:
+	var d := OS.get_environment("HARDPOINT_SESSIONS")
+	return d if d != "" else SESSIONS_DIR
+
+func _matches_keep() -> int:
+	return MINED_MATCHES_KEEP if OS.get_environment("HARDPOINT_SESSIONS") != "" else SESSIONS_KEEP
+
 func _session_start() -> void:
 	if _sync_cli or not _records_sessions():
 		return
 	_session_stop()
-	DirAccess.make_dir_recursive_absolute(SESSIONS_DIR)
-	var old := Array(DirAccess.get_directories_at(SESSIONS_DIR))
+	var root := _sessions_dir()
+	DirAccess.make_dir_recursive_absolute(root)
+	var old := Array(DirAccess.get_directories_at(root))
 	old.sort()
 	while old.size() >= SESSIONS_KEEP:
-		_rm_tree(SESSIONS_DIR.path_join(old.pop_front()))
+		_rm_tree(root.path_join(old.pop_front()))
 	var stamp := Time.get_datetime_string_from_system(false, true).replace(":", "").replace(" ", "_")
-	_sync_dir = SESSIONS_DIR.path_join(stamp)
+	_sync_dir = root.path_join(stamp)
 	DirAccess.make_dir_recursive_absolute(_sync_dir)
 	_sync_root = ""
 	_sync_match = 0
@@ -199,7 +211,7 @@ func _sync_next_match() -> void:
 	# per-session SESSIONS_KEEP never pruned it: ~5 MB a minute of play until the disk was
 	# full. Keep the newest SESSIONS_KEEP matches (match 1's files sit in the root).
 	# T389: a player's evening on one server is one long session too -> every recording.
-	var old := _sync_match - SESSIONS_KEEP
+	var old := _sync_match - _matches_keep()
 	if _recording and old == 1:
 		for f in DirAccess.get_files_at(_sync_root):
 			DirAccess.remove_absolute(_sync_root.path_join(f))

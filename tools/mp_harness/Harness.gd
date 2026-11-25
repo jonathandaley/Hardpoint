@@ -699,6 +699,8 @@ func _run_action(a: Dictionary) -> void:
 			# T206: expected back in the match, flying its old mech again (rejoined line)
 			_rejoining = true
 			_menu_connect()
+		"mark":  # T556: what F9 does (Game._input -> mark_moment)
+			Game.mark_moment()
 		"end_match":
 			# T154: the real match end (Match.force_end, as on a team wipe) -> Game._rpc_match_end
 			get_tree().current_scene.get("match_node").force_end(int(a.get("winner", 0)))

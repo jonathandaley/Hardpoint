@@ -8,10 +8,12 @@ Wants=network-online.target
 User=hardpoint
 Group=hardpoint
 WorkingDirectory=/opt/hardpoint
-# user:// (accounts.cfg, the TLS identity, banned.txt, match recordings) lives under here
+# user:// (accounts.cfg, the TLS identity, banned.txt) lives under here
 Environment=XDG_DATA_HOME=/var/lib/hardpoint
 Environment=XDG_CONFIG_HOME=/var/lib/hardpoint/config
 Environment=XDG_CACHE_HOME=/var/lib/hardpoint/cache
+# T556: match recordings (the newest 20 matches), readable by the admin for tools/mine_sessions.py
+Environment=HARDPOINT_SESSIONS=/var/lib/hardpoint-sessions
 EnvironmentFile=-/etc/hardpoint/server.env
 # Godot's own log file has no size cap: /opt/hardpoint/override.cfg turns it off, the journal
 # (rate-limited below) is the log. (`--log-file /dev/null` crashes Godot 4.6.2.)
@@ -26,7 +28,7 @@ LogRateLimitBurst=300
 # the server can write its data folder and nothing else
 NoNewPrivileges=yes
 ProtectSystem=strict
-ReadWritePaths=/var/lib/hardpoint
+ReadWritePaths=/var/lib/hardpoint /var/lib/hardpoint-sessions
 ProtectHome=yes
 PrivateTmp=yes
 PrivateDevices=yes

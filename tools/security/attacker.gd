@@ -263,6 +263,9 @@ func _lobby_attacks() -> void:
 	Game._rpc_set_team.rpc_id(1, 99)  # out of range: the server clamps it
 	Game.rpc_id(1, &"_rpc_set_ready")
 	Game.rpc_id(1, &"_rpc_set_squad", 1, 2, 3)
+	Game.rpc_id(1, &"_rpc_mark", "x", 1)  # T556: wrong shape
+	for i in 200:  # T556: a mark flood is rate-limited (2 a second), not 200 lines in the server log
+		Game._rpc_mark.rpc_id(1)
 	for i in 200:  # lobby churn: each one makes the server rebroadcast to everyone
 		Game._rpc_set_ready.rpc_id(1, i % 2 == 0)
 	await _wait(1.5)

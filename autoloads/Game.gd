@@ -460,7 +460,7 @@ const HELLO_MAX_BYTES := 256
 ## shapes, content (mechs, weapons, maps, modes, skills), server-decided numbers, a Godot
 ## upgrade. tools/oracles/net_security.py hashes the @rpc signatures and fails the suite
 ## until this is bumped with them.
-const NET_VERSION := 5  # 5: 0.7.0 -- WebSocket for everyone (T422); 4: 0.6.0 -- new mechs / weapons / maps (T454-T460) + snapshots on their own channel (T465) + Taurus CHARGE (T473) + health in snapshots (T474) + team choice (T476); 3: 0.5.0 -- Jolt physics (T429), Denali (T430), lunge v2 (T404), beacon rush (T434); 2: lobby carries idle_wait / sitting_out (T400)
+const NET_VERSION := 6  # 6: F9 mark RPC (T556) until a release; 5: 0.7.0 -- WebSocket for everyone (T422); 4: 0.6.0 -- new mechs / weapons / maps (T454-T460) + snapshots on their own channel (T465) + Taurus CHARGE (T473) + health in snapshots (T474) + team choice (T476); 3: 0.5.0 -- Jolt physics (T429), Denali (T430), lunge v2 (T404), beacon rush (T434); 2: lobby carries idle_wait / sitting_out (T400)
 const HELLO_TIMEOUT_S := 4.0
 const MAX_PENDING_PER_ADDR := 3   # connections still in the handshake, per address
 const MAX_PEERS_PER_ADDR := 8     # calibration knob: players behind one router (LAN party)
@@ -1029,6 +1029,34 @@ func _rpc_set_team(pref: int) -> void:
 	if net_rate_ok(sender, "team", 4):
 		_apply_team(sender, pref)
 
+# T556: F9 = "that was weird, look here". The moment lands in our own recording (if any) and,
+# from a client, in the server's (which always records) plus its journal, so a play night's marks
+# point straight at the window to examine (tools/mine_sessions.py). Online only; 1 a second.
+signal moment_marked
+var _mark_ms: int = -1000
+
+func mark_moment() -> void:
+	if not multiplayer.has_multiplayer_peer() or multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
+		return
+	var now := Time.get_ticks_msec()
+	if now - _mark_ms < 1000:
+		return
+	_mark_ms = now
+	sync_log_event("mark", "", {"peer": multiplayer.get_unique_id()})
+	if not multiplayer.is_server():
+		_rpc_mark.rpc_id(1)
+	print("[Game] MARK (F9)")
+	moment_marked.emit()
+
+@rpc("any_peer", "call_remote", "reliable")
+func _rpc_mark() -> void:
+	if not multiplayer.is_server():
+		return
+	var sender := multiplayer.get_remote_sender_id()
+	if net_rate_ok(sender, "mark", 2):
+		sync_log_event("mark", "", {"peer": sender})
+		print("[Game] MARK from peer %d (%s)" % [sender, Time.get_datetime_string_from_system()])
+
 # Client -> server: toggle ready state (V39, V41).
 @rpc("any_peer", "call_remote", "reliable")
 func _rpc_set_ready(ready: bool) -> void:
@@ -1263,6 +1291,8 @@ func set_mouse_captured(on: bool) -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if on else Input.MOUSE_MODE_VISIBLE
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and (event as InputEventKey).physical_keycode == KEY_F9:
+		mark_moment()
 	if OS.has_feature("web") and _want_captured and event is InputEventMouseButton and event.pressed \
 			and Input.mouse_mode != Input.MOUSE_MODE_CAPTURED:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED

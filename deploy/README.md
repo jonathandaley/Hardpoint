@@ -25,6 +25,7 @@ Players connect to **lemon.limedaley.com:25574**.
 | See if it is running | `systemctl status hardpoint` |
 | Watch the log live (Ctrl+C to stop watching) | `journalctl -u hardpoint -f` |
 | See who joined, and from where | `journalctl -u hardpoint \| grep "joined from"` |
+| Check the recorded matches for bugs and F9 marks (T556) | `python3 tools/mine_sessions.py` |
 | Stop it starting at boot | `sudo systemctl disable hardpoint` |
 | Make it start at boot again | `sudo systemctl enable hardpoint` |
 

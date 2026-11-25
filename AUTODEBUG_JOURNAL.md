@@ -50,3 +50,4 @@
 2026-11-23|T422+T423|DONE|(these commits)|WebSocket for everyone (ws:// interim, NET_VERSION 5); suite 242/242 incl. security (47, 0 VULN); --net wifi,bad 87/88 -> 1 borderline recon p95 (0.62/0.60) that passed 3/3 reruns; Firefox web_join PASS; release 0.7.0 + server reinstall wait on the user
 2026-11-23|release|DONE|(this commit)|0.7.0: config/version 0.7.0, NET_VERSION 5 released (WebSocket for everyone; NET_SIG unchanged); suite 242/242 at 38ca538; Linux + Windows exported, server pack (with web) built
 2026-11-25|T554|DONE|(this commit)|Corvette junction posts + centre-corridor headers, red glow edges; +2 draws; suite 242/242 incl. security
+2026-11-25|T556|DONE|(this commit)|F9 mark -> server log + recording (NET_VERSION 6); server sessions to /var/lib/hardpoint-sessions (20 matches, admin-readable); tools/mine_sessions.py + brief step 0b; suite 242/242, security 47/0. Old Nov 3 local sessions: lock_target on a dead mech (old build, not chased)

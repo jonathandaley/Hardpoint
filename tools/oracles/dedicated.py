@@ -40,5 +40,15 @@ def run(ctx):
             return base.verdict(NAME, base.FAIL, peer=role, note="reached %d of %d matches" % (n, want))
     if clients == 0:
         return base.verdict(NAME, base.FAIL, note="no client logs")
+    # T556: a client's F9 mark (harness action "mark" = Game.mark_moment) lands in the server's
+    # journal and its recording, where tools/mine_sessions.py looks for it
+    if any(a.get("action") == "mark" for a in (ctx.get("scenario") or {}).get("actions", [])):
+        try:
+            evs = open(os.path.join(run_dir, "server.events.jsonl"), errors="replace").read()
+        except OSError:
+            evs = ""
+        if "[Game] MARK from peer" not in server or not re.search(r'"type":\s*"mark"', evs):
+            return base.verdict(NAME, base.FAIL, peer="server",
+                                note="a client's F9 mark never reached the server's log + recording (T556)")
     return base.verdict(NAME, base.PASS, note="server-run lobby started %d match(es) for %s players, no server mech"
                         % (len(starts), "/".join(starts)))
