@@ -86,6 +86,7 @@ func _ready() -> void:
 	_matches = int(_scenario.get("matches", 1))
 	Game.test_skip_arena_ack = _role == "client" and bool(_scenario.get("skip_ack_client", false))  # T511
 	Game.harness_start_pick = bool(_scenario.get("start_pick", false))  # T519: run the real start pick
+	Game.test_late_ready_delay_s = float(_scenario.get("peers", {}).get(_sync_role(), {}).get("late_ready_delay_s", 0.0))  # T557
 	var peers: Dictionary = _scenario.get("peers", {})
 	_expected_clients = 0
 	for k in peers:

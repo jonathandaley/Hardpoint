@@ -1,0 +1,24 @@
+{
+  "name": "late_join_gap",
+  "dedicated": true,
+  "menu": true,
+  "chaos": true,
+  "seed": 557,
+  "port": 8962,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "duration_ticks": 1800,
+  "server_opts": {"team_size": 2, "min_players": 2, "bot_fill": true, "map_path": "res://resources/maps/MathTemple.tres"},
+  "actions": [
+    {"tick": 300, "peer": "client_2", "action": "pause_quit"},
+    {"tick": 360, "peer": "client_2", "action": "rejoin"},
+    {"tick": 560, "peer": "server", "action": "kill_mech", "slot": "client_1"}
+  ],
+  "oracles": ["dedicated", "spawn_join", "team_assignment", "transform_desync", "health_desync", "crash_scan",
+              "log_flood", "rpc_integrity", "peer_closed", "bot_takeover"],
+  "_comment": "T557 (chaos_10): client_2 leaves and rejoins, its late-join load stretched to 8 s (late_ready_delay_s, on both: process names and roster slots may swap, M2.4); meanwhile the server kills client_1's mech and client_1's bot picks its next one -- both inside client_2's gap between its hello (the late state) and being connected. Before T557 those broadcasts never reached it: the new mech was missing there (Node not found RPC errors, parity spawn), the death unseen (parity), and snapshots by team index landed on the wrong mechs.",
+  "peers": {
+    "server": {},
+    "client_1": {"bot": true, "squad": "random", "late_ready_delay_s": 8.0},
+    "client_2": {"bot": true, "squad": "random", "late_ready_delay_s": 8.0}
+  }
+}

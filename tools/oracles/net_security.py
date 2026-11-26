@@ -60,7 +60,7 @@ BANNED = {
 VAR_OK = {("autoloads/Game.gd", "_on_mp_auth")}       # client decoding the server's late-join state
 TLS_UNSAFE_OK = {("autoloads/Game.gd", "_account_tls")}  # unofficial servers only; the official host is pinned (T401)
 
-NET_SIG = (6, "c21503e5ba55a41f")  # (Game.NET_VERSION, rpc_hash()) -- change both together, never the hash alone
+NET_SIG = (7, "12e762cc57f77d7d")  # (Game.NET_VERSION, rpc_hash()) -- change both together, never the hash alone
 
 _SIG = re.compile(r'@rpc\(([^)]*)\)\s*\n\s*func\s+(\w+)\s*\(([^)]*)\)')
 _FUNC = re.compile(r'^(?:static\s+)?func\s+(\w+)\s*\(', re.M)

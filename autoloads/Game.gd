@@ -460,7 +460,7 @@ const HELLO_MAX_BYTES := 256
 ## shapes, content (mechs, weapons, maps, modes, skills), server-decided numbers, a Godot
 ## upgrade. tools/oracles/net_security.py hashes the @rpc signatures and fails the suite
 ## until this is bumped with them.
-const NET_VERSION := 6  # 6: F9 mark RPC (T556) until a release; 5: 0.7.0 -- WebSocket for everyone (T422); 4: 0.6.0 -- new mechs / weapons / maps (T454-T460) + snapshots on their own channel (T465) + Taurus CHARGE (T473) + health in snapshots (T474) + team choice (T476); 3: 0.5.0 -- Jolt physics (T429), Denali (T430), lunge v2 (T404), beacon rush (T434); 2: lobby carries idle_wait / sitting_out (T400)
+const NET_VERSION := 7  # 7: late-join catch-up RPC (T557) until a release; 6: F9 mark RPC (T556); 5: 0.7.0 -- WebSocket for everyone (T422); 4: 0.6.0 -- new mechs / weapons / maps (T454-T460) + snapshots on their own channel (T465) + Taurus CHARGE (T473) + health in snapshots (T474) + team choice (T476); 3: 0.5.0 -- Jolt physics (T429), Denali (T430), lunge v2 (T404), beacon rush (T434); 2: lobby carries idle_wait / sitting_out (T400)
 const HELLO_TIMEOUT_S := 4.0
 const MAX_PENDING_PER_ADDR := 3   # connections still in the handshake, per address
 const MAX_PEERS_PER_ADDR := 8     # calibration knob: players behind one router (LAN party)
@@ -654,6 +654,8 @@ func _on_mp_auth(id: int, data: PackedByteArray) -> void:
 		var md = ResourceLoader.load(st["map_path"])
 		if md != null:
 			loadout["map_def"] = md
+		if test_late_ready_delay_s > 0.0:  # T557 test seam: a slow late-join load (a big map on a weak PC)
+			await get_tree().create_timer(test_late_ready_delay_s).timeout
 		get_tree().change_scene_to_file.call_deferred("res://scenes/arena/Arena.tscn")
 		return
 	mp_refused_reason = text
@@ -814,6 +816,7 @@ var mp_live: bool = false
 var _stream_peers := {}
 var harness_start_pick := false  # T519 test seam: scripted runs normally skip the start pick; the start_pick scenario runs it
 var test_skip_arena_ack := false  # T511 test seam: the harness (scenario "skip_ack_client") loses this client's Arena ack
+var test_late_ready_delay_s := 0.0  # T557 test seam: the harness (peer "late_ready_delay_s") stretches a late join's load
 
 ## Server: the clients the match streams (snapshots, beacon progress, scores) go to.
 func stream_peers() -> Array:

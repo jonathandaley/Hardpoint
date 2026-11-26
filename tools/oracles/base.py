@@ -111,6 +111,22 @@ def _shift(rows, off):
     return rows
 
 
+# T557: a client back from a gap in its log (it left the match and rejoined) shows the late state it got at
+# its hello -- as old as its load took -- until the server's catch-up and first snapshots arrive, ~1 round
+# trip after its Arena is built (12 ticks on loopback). The desync oracles would flag that settle as a
+# divergence; a real one (a catch-up that never came) lasts. ponytail: a flat second, not per net profile.
+REJOIN_GAP_TICKS = 30
+REJOIN_SETTLE_TICKS = 60
+
+
+def _drop_rejoin_settle(snaps):
+    ticks = sorted({s["tick"] for s in snaps})
+    back = [b for a, b in zip(ticks, ticks[1:]) if b - a > REJOIN_GAP_TICKS]
+    if not back:
+        return snaps
+    return [s for s in snaps if not any(b <= s["tick"] < b + REJOIN_SETTLE_TICKS for b in back)]
+
+
 def load_run(run_dir):
     """Return {role: PeerLog} for every <role>.jsonl in run_dir. T151: client
     snapshot/event/beacon ticks are renumbered onto the server's tick timeline
@@ -132,6 +148,8 @@ def load_run(run_dir):
         off = 0 if role == "server" else tick_offset(server_snaps, snaps)
         if off:
             _shift(snaps, off), _shift(events, off), _shift(beacons, off)
+        if role != "server":
+            snaps = _drop_rejoin_settle(snaps)
         peers[role] = PeerLog(role, snaps, events, beacons)
         peers[role].offset = off
     return peers

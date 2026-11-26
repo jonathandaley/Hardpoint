@@ -875,10 +875,18 @@ func late_join_connected(id: int, token: String) -> void:
 	var h = _held.get(token)
 	if h == null or Time.get_ticks_msec() * 0.001 - float(h["t"]) > HOLD_S:
 		print("[Arena] late join: peer %d spectates" % id)
+		_late_resync(id)
 		return
 	_held.erase(token)
 	print("[Arena] rejoin: peer %d takes back the slot of %d" % [id, int(h["old"])])
 	_rpc_reassign.rpc(int(h["old"]), id)
+	_late_resync(id)
+
+# T557: the match as it is now, for a joiner that just connected (after any reassign above).
+func _late_resync(id: int) -> void:
+	var st := late_state("")
+	_rpc_late_resync.rpc_id(id, {"mechs": st["mechs"], "beacons": st["beacons"], "scores": st["scores"],
+		"elapsed": st["elapsed"], "slot_used": st["slot_used"]})
 
 # Joiner: build the match as the server has it (the roster came with it, Game).
 func _apply_late_state(st: Dictionary) -> void:
@@ -887,26 +895,67 @@ func _apply_late_state(st: Dictionary) -> void:
 	if old > 0:
 		_remap_peer(old, me)
 	for e in st["mechs"]:
-		var def = _load_mech_def(e["def"])
-		if def == null:
-			_team_mechs[int(e["t"])].append(null)
-			continue
-		var m: CharacterBody3D = _spawn_one_mech(def, int(e["t"]), 0, 1, e["w"], e["name"])
-		var owner: int = int(e["owner"])
-		m.owner_peer_id = me if old > 0 and owner == old else owner
-		m.roster_idx = int(e["ri"])
-		_apply_skills(m)
-		m.health = float(e["hp"])
-		m.position = e["pos"]
-		if e["dead"]:
-			m.is_dead = true
-			m.visible = false
-			m.process_mode = Node.PROCESS_MODE_DISABLED
-			(m.get_node("CollisionShape3D") as CollisionShape3D).disabled = true
+		_late_mech(e, me, old)
 	_peer_slot_used = st["slot_used"]
 	if old > 0 and _peer_slot_used.has(old):
 		_peer_slot_used[me] = _peer_slot_used[old]
 		_peer_slot_used.erase(old)
+
+## One mech of a late state, appended to its team's list (null for a server-side gap: indices must match).
+func _late_mech(e: Dictionary, me: int, old: int) -> void:
+	var t := clampi(int(e.get("t", 0)), 0, 1)
+	var def = _load_mech_def(e.get("def", ""))
+	if def == null:
+		_team_mechs[t].append(null)
+		return
+	var m: CharacterBody3D = _spawn_one_mech(def, t, 0, 1, e["w"], e["name"])
+	var owner: int = int(e["owner"])
+	m.owner_peer_id = me if old > 0 and owner == old else owner
+	m.roster_idx = int(e["ri"])
+	_apply_skills(m)
+	m.health = float(e["hp"])
+	m.position = e["pos"]
+	if e["dead"]:
+		m.is_dead = true
+		m.visible = false
+		m.process_mode = Node.PROCESS_MODE_DISABLED
+		(m.get_node("CollisionShape3D") as CollisionShape3D).disabled = true
+
+# T557 (chaos_10): between a late joiner's hello (its late state) and its connect, broadcasts don't
+# reach it -- it loads the Arena meanwhile (seconds on a big map): a spawn there left it a mech short
+# (RPC errors; snapshots, by team index, landing on the wrong mechs), a death unseen. At connect the
+# server sends a fresh state; the joiner adds the mechs it lacks in the server's order, plays the
+# deaths it missed, takes the beacons and spawn slots. Later broadcasts follow it in order (one stream).
+# ponytail: its OWN mech dying inside the gap isn't replayed (the picker logic is the hello state's).
+@rpc("authority", "reliable")
+func _rpc_late_resync(st: Dictionary) -> void:
+	var mechs = st.get("mechs")
+	if multiplayer.is_server() or not mechs is Array:
+		return
+	var at := [0, 0]
+	var added := {}
+	for e in mechs:
+		if not e is Dictionary:
+			return  # V41: malformed
+		var t := clampi(int(e.get("t", 0)), 0, 1)
+		var i: int = at[t]
+		at[t] += 1
+		if i >= _team_mechs[t].size():
+			_late_mech(e, multiplayer.get_unique_id(), 0)
+			added[t] = true
+			print("[Arena] late resync: added %s" % String(e.get("name", "?")))
+			continue
+		var m = _team_mechs[t][i]
+		if is_instance_valid(m) and bool(e.get("dead", false)) and not m.is_dead:
+			if e.get("pos") is Vector3 and (e["pos"] as Vector3).is_finite():
+				m.position = e["pos"]  # where it died, not where the hello state had it (its blast, the wreck)
+			m.call("_sync_death")
+	for t in added:
+		_refresh_team_bars(t)  # the HUD's bars / tags follow the team lists (as a spawn does)
+	if st.get("slot_used") is Dictionary:
+		_peer_slot_used = st["slot_used"]
+	if st.get("beacons") is Array and st.get("scores") is Array:
+		_apply_late_beacons(st)
 
 func _apply_late_beacons(st: Dictionary) -> void:
 	for b in st["beacons"]:

@@ -3,11 +3,15 @@
   - every ability activation the server broadcast (`ability_on` with slot >= 0, Mech._activate_ability
     -> _rpc_ability_activated) -> `ability_seen` for that mech and slot on each client (charge is a
     lunge, checked by transform_desync);
-  - every death (`died`) -> `died_seen` (Mech._sync_death) on each client.
+  - every death (`died`) -> `died_seen` (Mech._sync_death) on each client;
+  - T557: every mech the server spawns appears in each client's snapshots while that client is in the
+    match (a rejoiner that missed a spawn never had it: RPC errors, and snapshots, which name mechs by
+    team index, landed on the wrong ones).
 Only server events a client could see: it logged that mech within `window_ticks` before the event (a
 late joiner or a player back in the menus could not), and the event is more than `tail_ticks` before
 that client's log ends (a reliable RPC still in flight). Counts per (mech, kind, slot): seen >= sent.
 """
+import bisect
 from collections import Counter
 
 from . import base
@@ -30,6 +34,13 @@ def run(ctx):
             sent.append((e["tick"], e["mech_id"], "ability", int(p["slot"])))
         elif typ == "died":
             sent.append((e["tick"], e["mech_id"], "died", -1))
+    born, srv_alive_last = {}, {}
+    for s in server.snaps:
+        born.setdefault(s["mech_id"], s["tick"])
+        if float(s.get("health", 0)) > 0.0:
+            srv_alive_last[s["mech_id"]] = s["tick"]
+    for m, t in born.items():
+        sent.append((t, m, "spawn", -1))
     if not sent:
         return base.verdict(NAME, base.SKIP, note="no ability activation or death on the server")
     total, missing = 0, []
@@ -45,8 +56,18 @@ def run(ctx):
                 seen[(e["mech_id"], "died", -1)] += 1
         want = Counter()
         first = {}
+        cl_mechs = set(cl.mech_ids)
         for t, m, kind, slot in sent:
             if t > cl.ticks[-1] - int(th["tail_ticks"]):
+                continue
+            if kind == "spawn":
+                # the client was in the match (logging) while the mech lived on, a tail after its spawn
+                lo, hi = t + int(th["tail_ticks"]), srv_alive_last.get(m, -1)
+                k = bisect.bisect_left(cl.ticks, lo)
+                if hi >= lo and k < len(cl.ticks) and cl.ticks[k] <= hi:
+                    want[(m, kind, slot)] += 1
+                    first.setdefault((m, kind, slot), t)
+                    seen[(m, kind, slot)] += 1 if m in cl_mechs else 0
                 continue
             if not any(cl.at(x, m) is not None for x in range(t - int(th["window_ticks"]), t + 1)):
                 continue
@@ -61,8 +82,8 @@ def run(ctx):
     if missing:
         missing.sort()
         t, role, (m, kind, slot), w, s = missing[0]
-        what = "ability slot %d" % slot if kind == "ability" else "death"
+        what = {"ability": "ability slot %d" % slot, "died": "death", "spawn": "spawn"}[kind]
         more = "" if len(missing) == 1 else " (+%d more)" % (len(missing) - 1)
         return base.verdict(NAME, base.FAIL, mech_id=m, field=kind, first_tick=t, peer=role,
                             note="%s saw %d of %d %s event(s) of %s (first at tick %d)%s" % (role, s, w, what, m, t, more))
-    return base.verdict(NAME, base.PASS, note="every client saw all %d server ability / death event(s)" % total)
+    return base.verdict(NAME, base.PASS, note="every client saw all %d server spawn / ability / death event(s)" % total)
