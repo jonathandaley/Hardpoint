@@ -43,7 +43,7 @@ func _do_fire() -> void:
 			proj.speed, proj.lifetime, proj.team, proj.tracer])  # T462, T551
 
 func damage_range() -> Vector2:  # T538: splash alone (a near miss) .. direct + splash
-	return Vector2(splash_damage, damage + splash_damage)
+	return Vector2(splash_damage, maxf(damage, splash_damage))  # T562: a direct hit takes no splash
 
 func damage_text() -> String:
-	return "%s direct + %s splash (r %s m)" % [num(damage), num(splash_damage), num(splash_radius)]
+	return "%s direct, or %s splash within %s m" % [num(damage), num(splash_damage), num(splash_radius)]

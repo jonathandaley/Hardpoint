@@ -100,8 +100,8 @@ func _rpc_spawn_ghost(pos: Vector3, basis: Basis, speed: float, lifetime: float,
 	ghost.global_transform = Transform3D(basis, pos)
 
 func damage_range() -> Vector2:  # T538: one missile's splash .. the whole salvo landing
-	return Vector2(splash_damage, (damage + splash_damage) * burst_count)
+	return Vector2(splash_damage, maxf(damage, splash_damage) * burst_count)  # T562: a direct hit takes no splash
 
 func damage_text() -> String:
-	return "salvo of %d, each %s + %s splash (r %s m): up to %s" % [burst_count, num(damage), num(splash_damage),
-		num(splash_radius), num((damage + splash_damage) * burst_count)]
+	return "salvo of %d, each %s direct or %s splash within %s m: up to %s" % [burst_count, num(damage),
+		num(splash_damage), num(splash_radius), num(maxf(damage, splash_damage) * burst_count)]

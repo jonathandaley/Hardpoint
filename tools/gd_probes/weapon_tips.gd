@@ -5,6 +5,9 @@ extends Node
 # the unused base `damage`), Orbital centre / rim, Mortar / Missile direct + splash, the MG's spin-up rates.
 # T537: the stat bars' bounds are per slot size (Inferno LT's 14 m is the light minimum, Patience's 300 m
 # the heavy maximum) and StatBar puts the min holder at 0, the max at 1, a range as its span.
+# T562 (user: "Modify hangar to match current behavior."): a direct hit takes no splash (the blast skips the
+# struck mech), so a splash weapon's most on one mech is its direct or its splash, whichever is more (x the
+# salvo) -- it said direct + splash.
 const H := preload("res://scripts/Hangar.gd")
 const WB := preload("res://scripts/WeaponBase.gd")
 
@@ -30,6 +33,12 @@ func _ready() -> void:
 			want = [w.damage, w.splash_damage]
 		elif w is MachineGun:
 			want = [w.base_fire_rate, w.max_fire_rate]
+		if w is Mortar or w is MissileLauncher or w is AerialStrike:
+			var most: float = maxf(w.damage, w.splash_damage) * (w.burst_count if w is AerialStrike else 1)
+			if not is_equal_approx(r.y, most):
+				bad.append("%s damage_range max %s, want %s (a direct hit takes no splash)" % [e["name"], r.y, most])
+			if " + " in String(w.call("damage_text")):
+				bad.append("%s tip adds direct + splash: %s" % [e["name"], w.call("damage_text")])
 		for v in want:
 			var s := WB.num(float(v)) if not (w is MachineGun) else "%.0f" % float(v)
 			if not (" %s " % s) in (tip.replace("\n", " ") + " ").replace("-", " ").replace("(", " "):
