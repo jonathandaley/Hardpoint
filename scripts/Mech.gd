@@ -687,6 +687,11 @@ func _broadcast_ammo_changes() -> void:
 			_ammo_synced[i] = a
 			_sync_ammo.rpc(i, a)
 
+## T563: a late joiner / rejoiner gets the ammo the others already have (it built this mech full).
+func send_ammo_to(peer: int) -> void:
+	for i in _ammo_synced.size():
+		_sync_ammo.rpc_id(peer, i, _ammo_synced[i])
+
 # B32: server forwards hit confirms to the owning peer (WeaponBase._emit_hit_if_visible);
 # re-emitting the local weapon's signal reuses the existing HUD register_hit connections.
 # Reliable per V44: change-driven one-shot, a dropped packet would lose the flash forever.

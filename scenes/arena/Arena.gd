@@ -889,6 +889,12 @@ func _late_resync(id: int) -> void:
 	var st := late_state("")
 	_rpc_late_resync.rpc_id(id, {"mechs": st["mechs"], "beacons": st["beacons"], "scores": st["scores"],
 		"elapsed": st["elapsed"], "slot_used": st["slot_used"]})
+	# T563 (chaos_36): the joiner built every mech with full mags and ammo syncs only on change -- send it
+	# each mech's as broadcast (after the resync, which adds the mechs it lacked: one ordered stream)
+	for t in 2:
+		for m in _team_mechs[t]:
+			if is_instance_valid(m):
+				m.send_ammo_to(id)
 
 # Joiner: build the match as the server has it (the roster came with it, Game).
 func _apply_late_state(st: Dictionary) -> void:

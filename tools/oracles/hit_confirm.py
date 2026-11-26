@@ -16,11 +16,21 @@ confirm one tick BEFORE the server's hit tick. The window therefore opens
 `clock_skew` ticks early (T136: a zero negative bound flaked ~1/6 runs;
 measured skew over 24 loopback runs was -2..+3, default 4 = max + headroom).
 """
+import bisect
+
 from . import base
 
 NAME = "hit_confirm"
 
 DEFAULTS = {"hit_confirm_max_delay_ticks": 30, "hit_confirm_clock_skew_ticks": 4}
+
+
+def _logged_through(ticks, lo, hi, gap=base.REJOIN_GAP_TICKS):
+    """The peer logged from lo to hi with no gap (it was in the match the whole window)."""
+    i, j = bisect.bisect_left(ticks, lo), bisect.bisect_left(ticks, hi)
+    if i >= len(ticks) or j >= len(ticks) or ticks[i] > lo + gap:
+        return False
+    return all(ticks[n + 1] - ticks[n] <= gap for n in range(i, j))
 
 
 def run(ctx):
@@ -60,8 +70,10 @@ def run(ctx):
         if role is None:
             continue  # server-owned or unattributed shooter; no RPC involved
         t = e["tick"]
-        if primary[role].ticks and t + delay > primary[role].ticks[-1]:
-            continue  # T162: the owning client stopped logging before the confirm window closed
+        if not _logged_through(primary[role].ticks, t, t + delay):
+            # T162: the owning client stopped logging before the confirm window closed; chaos_36: or it was
+            # away (pause_quit .. rejoin) -- its mech a bot (Arena._bot_ify_disconnected_mech), nobody to flash
+            continue
         checked += 1
         pool = confirms[role]
         match = next((i for i, ct in enumerate(pool) if t - skew <= ct <= t + delay), None)

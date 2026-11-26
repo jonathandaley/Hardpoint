@@ -12,7 +12,8 @@
     "log_flood",
     "rpc_integrity",
     "spawn_join",
-    "team_assignment"
+    "team_assignment",
+    "ammo_desync"
   ],
   "actions": [
     {
@@ -26,7 +27,7 @@
       "action": "rejoin"
     }
   ],
-  "_comment": "T153/T206: client_1 quits through the pause menu (graceful ENet disconnect) at tick 150 and at tick 400 rejoins through Title -> Hangar -> FIND MATCH -> JOIN -> MPEntry while the match runs. T206: the server holds a dropped player's slot for Arena.HOLD_S (30 s); the joiner gets the live match during the auth handshake, builds its Arena before it is connected (no early broadcast, B64) and, its token matching, takes its old mech back from the bot. bot_takeover: the bot drove the leaver's mech meanwhile (T123; the script stands still, so movement = bot). peer_closed: quitter disconnected; rejoiner back in the match flying its mech; no send to a half-closed peer. crash_scan: no 'Node not found' around the join. Crash/kill path: client_crash.",
+  "_comment": "T153/T206: client_1 quits through the pause menu (graceful ENet disconnect) at tick 150 and at tick 400 rejoins through Title -> Hangar -> FIND MATCH -> JOIN -> MPEntry while the match runs. T206: the server holds a dropped player's slot for Arena.HOLD_S (30 s); the joiner gets the live match during the auth handshake, builds its Arena before it is connected (no early broadcast, B64) and, its token matching, takes its old mech back from the bot. bot_takeover: the bot drove the leaver's mech meanwhile (T123; the script stands still, so movement = bot). peer_closed: quitter disconnected; rejoiner back in the match flying its mech; no send to a half-closed peer. crash_scan: no 'Node not found' around the join. Crash/kill path: client_crash. T563: FIXED-mag MGs; the server fires a burst (ticks 50-110) before client_1 leaves, so its mag is part-spent when client_1 rejoins and builds every mech fresh (full mags) -- ammo_desync: the rejoiner must be sent each mech's ammo, not wait for its next change.",
   "peers": {
     "server": {
       "input": {
@@ -41,6 +42,14 @@
               0.0,
               0.0
             ]
+          },
+          {
+            "tick": 50,
+            "fire_primary": true
+          },
+          {
+            "tick": 110,
+            "fire_primary": false
           }
         ]
       }
@@ -62,5 +71,10 @@
         ]
       }
     }
-  }
+  },
+  "weapons": [
+    "res://scenes/weapons/MachineGunLight.tscn",
+    "res://scenes/weapons/MachineGunLight.tscn",
+    "res://scenes/weapons/MachineGunLight.tscn"
+  ]
 }
