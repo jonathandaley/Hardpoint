@@ -854,7 +854,7 @@ func late_state(token: String) -> Dictionary:
 			var spawn: Array = m.get_meta("spawn", ["", []])
 			mechs.append({"t": t, "name": String(m.name), "def": spawn[0], "w": spawn[1],
 				"owner": m.owner_peer_id, "ri": m.roster_idx, "dead": bool(m.is_dead),
-				"hp": m.health, "pos": m.global_position})
+				"hp": m.health, "pos": m.global_position, "ry": m.rotation.y})  # T564: the body's heading
 	var beacons: Array = []
 	for b in get_tree().get_nodes_in_group("beacons"):
 		beacons.append([String(b.name), b.owner_team, b.state, b._capture_progress])
@@ -923,6 +923,7 @@ func _late_mech(e: Dictionary, me: int, old: int) -> void:
 	_apply_skills(m)
 	m.health = float(e["hp"])
 	m.position = e["pos"]
+	m.rotation.y = float(e.get("ry", m.rotation.y))  # T564: spawned at spawn 0's heading; the server's may differ
 	if e["dead"]:
 		m.is_dead = true
 		m.visible = false

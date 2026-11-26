@@ -1,0 +1,81 @@
+{
+  "name": "rejoin_facing",
+  "seed": 564,
+  "port": 8968,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "mech": "res://resources/mechs/Heron.tres",
+  "start_pick": true,
+  "duration_ticks": 1000,
+  "oracles": [
+    "transform_desync",
+    "peer_closed",
+    "spawn_join",
+    "team_assignment",
+    "crash_scan",
+    "log_flood",
+    "rpc_integrity"
+  ],
+  "_comment": "T564 (chaos_36 replay): client_1 starts at spawn point 1 (another heading than spawn 0's), leaves (pause_quit, its mech a bot) and rejoins. The rejoiner rebuilds every mech from the late state (Arena._late_mech): it spawned them all at spawn 0's heading, so its own mech's body faced another way than the server's; the aim is absolute but body-local (V47), so its shots on the server went off by the difference until its next respawn (rot_local equal, rot_global apart). transform_desync: the rejoiner's own mech tracks the server's, rot_global included.",
+  "actions": [
+    {
+      "tick": 20,
+      "peer": "server",
+      "action": "start_pick",
+      "slot": 0,
+      "spawn": 0
+    },
+    {
+      "tick": 25,
+      "peer": "client_1",
+      "action": "start_pick",
+      "slot": 0,
+      "spawn": 1
+    },
+    {
+      "tick": 200,
+      "peer": "client_1",
+      "action": "pause_quit"
+    },
+    {
+      "tick": 400,
+      "peer": "client_1",
+      "action": "rejoin"
+    }
+  ],
+  "peers": {
+    "server": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    },
+    "client_1": {
+      "input": {
+        "keyframes": [
+          {
+            "tick": 0,
+            "move": [
+              0,
+              0
+            ],
+            "look": [
+              0.0,
+              0.0
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
