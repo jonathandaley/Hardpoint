@@ -98,6 +98,10 @@ func _ready() -> void:
 	var seed_profile: Dictionary = peers.get(_sync_role(), {}).get("profile", {})
 	for k in seed_profile:
 		Game.profile[k] = seed_profile[k]
+	# T555 chaos: one seeded stream per process role (same scenario seed = same squad, skills, picks)
+	_rng.seed = hash(str(int(_scenario.get("seed", 0))) + _sync_role())
+	if String(peers.get(_sync_role(), {}).get("skills", "")) == "random":
+		_random_skills()
 	Game.match_ended_mp.connect(_on_match_ended_mp)
 	if _scenario.get("dedicated", false) and _role == "server":
 		# T204: the real --server mode (Game.start_dedicated); clients JOIN through the menus
@@ -216,6 +220,128 @@ func _mp_connected() -> bool:
 	return mp != null and not (mp is OfflineMultiplayerPeer) \
 		and mp.get_connection_status() != MultiplayerPeer.CONNECTION_DISCONNECTED
 
+# ---- T555: chaos playtests (tools/chaos.py) ----
+var _rng := RandomNumberGenerator.new()
+var _random_squad := false  # "squad": "random" -> _menu_random_squad (once; a rejoin keeps it)
+var _chaos_pick_at := -1
+
+## A legal skill set as a player could have bought it: a random level, then skills whose parents are
+## owned, at random levels -- the dedicated server takes a guest's sanitized skills (T553).
+func _random_skills() -> void:
+	var tree: Dictionary = Game.SKILL_TREE
+	var level := _rng.randi_range(1, 20)
+	var skills := {}
+	for _i in 64:
+		if skills.size() >= level:
+			break
+		var open: Array = []
+		for k in tree:
+			var parents: Array = tree[k].get("parents", [])
+			var have := parents.filter(func(p: String) -> bool: return skills.has(p))
+			if not skills.has(k) and (parents.is_empty() or (tree[k].get("any_parent", false) and not have.is_empty())
+					or have.size() == parents.size()):
+				open.append(k)
+		if open.is_empty():
+			break
+		var key: String = open[_rng.randi() % open.size()]
+		skills[key] = _rng.randi_range(1, Game.skill_max(key))
+	Game.profile["level"] = level
+	Game.profile["xp"] = 0 if level < 2 else int(Game._LEVEL_THRESHOLDS[level - 2])  # the game derives level from XP
+	Game.profile["skills"] = skills
+	print("[Harness] chaos skills level=%d %s" % [level, JSON.stringify(skills)])
+
+## Every squad slot: a random roster mech, each weapon row stepped a random number of times (only what
+## the hangar offers, so always a legal loadout). Slot 0's pick goes to menu_flow like a scripted squad.
+func _menu_random_squad() -> bool:
+	_random_squad = false
+	var hangar := get_tree().current_scene
+	var roster := "Content/MechPanel/RosterPanel/RosterScroll/RosterList/"
+	var names: Array = []
+	for c in hangar.get_node(roster).get_children():
+		if String(c.name).begins_with("Roster_"):
+			names.append(String(c.name))
+	var path_of := {}  # the hangar's weapon label -> scene path
+	for c in hangar.get("WEAPON_CATALOG"):
+		path_of[c["long"]] = c["path"]
+	var picked: Array = []
+	for i in 5:
+		_click("Content/MechPanel/SlotBtn%d" % i)
+		await get_tree().process_frame
+		var rb_name: String = names[_rng.randi() % names.size()]
+		var rb := hangar.get_node(roster + rb_name) as Control
+		(hangar.get_node("Content/MechPanel/RosterPanel/RosterScroll") as ScrollContainer).ensure_control_visible(rb)
+		await get_tree().process_frame
+		_click(roster + rb_name)
+		await get_tree().process_frame  # weapon picker rebuilt for the new mech
+		var wpaths: Array = []
+		for w in 8:
+			var row := "Content/MechPanel/WeaponPicker/Slot%d" % w
+			var nxt := hangar.get_node_or_null(row + "/Next") as BaseButton
+			if nxt == null:
+				break
+			for _n in _rng.randi_range(0, 6):
+				if nxt.disabled or not nxt.is_visible_in_tree():
+					break
+				_click(row + "/Next")
+			var lbl := hangar.get_node_or_null(row + "/Weapon") as Label
+			wpaths.append(path_of.get(lbl.text if lbl != null else "", "?"))
+		var mech_path := "res://resources/mechs/%s.tres" % rb_name.trim_prefix("Roster_")
+		picked.append("%s %s" % [rb_name.trim_prefix("Roster_"), wpaths])
+		if i == 0:  # max HP as Mech.apply_pilot_skills makes it: the random skills may include Health
+			var md = load(mech_path)
+			var hp: float = md.max_health * (1.0 + Game.skill_effect_in(Game.profile.get("skills", {}), "health")) \
+				if md != null else -1.0
+			_menu_pick = [int(hp), JSON.stringify(wpaths), mech_path]
+		_click("BackBtn")
+		await get_tree().process_frame
+		if _menu_failed != "":
+			return false
+	print("[Harness] chaos squad %s" % " | ".join(picked))
+	return true
+
+## Each frame on a chaos client: pick the next mech when the picker is up (after a random think), and
+## put the bot in whatever mech the arena hands this player (a respawn, a mech taken back on rejoin).
+func _chaos_tick() -> void:
+	var arena := get_tree().current_scene
+	if arena == null or arena.name != "Arena" or not _mp_connected() or not _override_done:
+		_chaos_pick_at = -1
+		return
+	var hud = arena.get("hud")
+	var picker = hud.get("_squad_picker") if hud != null else null
+	if picker is Node and is_instance_valid(picker) and not picker.is_queued_for_deletion() \
+			and not arena.get("_start_pick_open"):
+		var now := Engine.get_physics_frames()
+		if _chaos_pick_at < 0:
+			_chaos_pick_at = now + _rng.randi_range(30, 300)
+		elif now >= _chaos_pick_at:
+			_chaos_pick_at = -1
+			_chaos_pick(arena, hud)
+		return
+	var pm = arena.get("player_mech")
+	var seat_pawn = _bot_seat.get("pawn") if _bot_seat != null and is_instance_valid(_bot_seat) else null
+	if pm is Node and is_instance_valid(pm) and not pm.get("is_dead") and seat_pawn != pm:
+		_attach_bot(pm)
+
+func _chaos_pick(arena: Node, hud: Node) -> void:
+	var used: Array = (arena.get("_peer_slot_used") as Dictionary).get(multiplayer.get_unique_id(), [])
+	var free: Array = []
+	for i in used.size():
+		if not used[i]:
+			free.append(i)
+	if free.is_empty():
+		return
+	var si: int = free[_rng.randi() % free.size()]
+	hud.squad_slot_selected.emit(si)
+	await get_tree().process_frame
+	var choices: Array = arena.call("spawn_choices", int(arena.get("_local_team")))
+	var open: Array = []
+	for i in choices.size():
+		if choices[i] != null:
+			open.append(i)
+	var sp: int = open[_rng.randi() % open.size()] if not open.is_empty() else 0
+	hud.spawn_selected.emit(sp)
+	print("[Harness] chaos pick slot %d spawn %d" % [si, sp])
+
 # T164/T176: "menu": true -> reach the match through the real UI, as a player does:
 # Title PLAY -> SignIn CONFIRM -> Hangar (squad: slot -> roster mech -> weapon arrows,
 # BACK) -> FIND MATCH -> HOST / JOIN -> MPEntry (port / IP) -> Lobby (ready, start).
@@ -230,7 +356,9 @@ func _menu_flow() -> void:
 	var acct: Dictionary = _scenario.get("peers", {}).get(_sync_role(), {}).get("account", {})
 	if not acct.is_empty() and not await _account_signup(acct):
 		return
-	var squad: Array = _scenario.get("peers", {}).get(_sync_role(), {}).get("squad", [])
+	var sq = _scenario.get("peers", {}).get(_sync_role(), {}).get("squad", [])
+	_random_squad = sq is String and sq == "random"  # T555
+	var squad: Array = sq if sq is Array else []
 	if not await _menu_connect(squad):
 		return
 	if not await _wait_scene("Lobby"):
@@ -297,6 +425,8 @@ func _menu_connect(squad: Array = []) -> bool:
 				return false
 	await get_tree().process_frame
 	if not squad.is_empty() and not await _menu_pick_squad(squad):
+		return false
+	if _random_squad and not await _menu_random_squad():  # T555
 		return false
 	_click("MatchmakingButton")
 	await get_tree().process_frame
@@ -453,6 +583,8 @@ func _process(_delta: float) -> void:
 		_live_logged = true
 		print("[Harness] live at sync tick %d" % (Engine.get_physics_frames() - int(Game.get("_sync_start_frame"))))
 	_lobby_tick()
+	if _scenario.get("chaos", false) and _role != "server":
+		_chaos_tick()  # T555
 	if _override_done and _match_n < _matches and not is_instance_valid(_mine):
 		_override_done = false  # T163: match over; bind to the next match's mech
 		_live_logged = false
@@ -659,7 +791,7 @@ func _back_to_lobby_ready() -> void:
 func _finish_override(key: String, mine: Node) -> void:
 	_override_done = true
 	_key = key
-	_mine = mine
+	_mine = mine if not _scenario.get("chaos", false) else get_tree().current_scene  # T555: match = Arena
 	_match_n += 1
 	_hud_file_started = false  # match 2+ dumps go to the new match dir
 	_override_frame = Engine.get_physics_frames()
@@ -699,6 +831,10 @@ func _run_action(a: Dictionary) -> void:
 			# T206: expected back in the match, flying its old mech again (rejoined line)
 			_rejoining = true
 			_menu_connect()
+		"self_destruct":  # T555: the pause menu's SELF DESTRUCT
+			var arena := get_tree().current_scene
+			if arena != null and arena.has_method("_on_pause_self_destruct"):
+				arena.call("_on_pause_self_destruct")
 		"mark":  # T556: what F9 does (Game._input -> mark_moment)
 			Game.mark_moment()
 		"end_match":
@@ -882,7 +1018,7 @@ func _attach_bot(mech: Node) -> void:
 	ai.bot_id = 100 + int(Game.mp_active_match.get("roster", []).size())
 	ai.set("drives_client", true)
 	_bot_seat.add_child(ai)
-	add_child(_bot_seat)
+	arena.add_child(_bot_seat)  # freed with the match, like Arena's own bot players (a seat outliving it fed the AI a freed mech)
 	mech.set_input_source(ai)
 	ai.set_mp_seed(int(_scenario.get("seed", 0)) ^ multiplayer.get_unique_id())
 	var seat := _bot_seat

@@ -52,3 +52,4 @@
 2026-11-25|T554|DONE|(this commit)|Corvette junction posts + centre-corridor headers, red glow edges; +2 draws; suite 242/242 incl. security
 2026-11-25|T556|DONE|(this commit)|F9 mark -> server log + recording (NET_VERSION 6); server sessions to /var/lib/hardpoint-sessions (20 matches, admin-readable); tools/mine_sessions.py + brief step 0b; suite 242/242, security 47/0. Old Nov 3 local sessions: lock_target on a dead mech (old build, not chased)
 2026-11-25|T555 part 1|DONE|(this commit)|intent / ability_on / ability_seen / died_seen events, agency + parity oracles (red on tampered dash_net / bot_lock runs), B152: harness bots were inert (AI parent + T40 client gate) -> fixed; suite 242/242, security 47/0
+2026-11-25|T555 part 2|DONE|(this commit)|chaos harness + tools/chaos.py; seeds 1-14 -> harness/oracle fixes + real bugs T557 (late-join gap), T558 (host silence dead since T422), T559 (pod ride after the Arena leaves); suite 242/242, security 47/0

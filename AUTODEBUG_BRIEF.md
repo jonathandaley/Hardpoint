@@ -97,7 +97,10 @@ red -> bisect the local commits (git stash / checkout), fix or drop the culprit 
   row (their words quoted), into NEEDS_HUMAN with the question, or into MAYBE_ADD.md as a design
   kept for later. The file holds only items you haven't seen yet. They re-add anything that recurs.
 - **The user writes mid-loop:** answer, queue it as a §T row with their words, do it next.
-- **Queue empty:** journal it, update the memory status note, push, stop.
+- **Queue empty:** first a chaos batch (T555): `python3 tools/chaos.py --next 8 --jobs 2` (~20 min, in the
+  background). A failing seed -> read its kept run in build/chaos/<seed>/, replay with `--seed N`; a real bug
+  -> a §T BUG row (seed, symptom, cause), an oracle / harness assumption -> fix it there. Clean -> journal it,
+  update the memory status note, push, stop.
 
 ## Guardrails
 
