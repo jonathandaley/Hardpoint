@@ -25,7 +25,7 @@ from oracles import (  # noqa: E402
     friendly_fire, prediction_recon, hit_confirm, active_set_desync, reload_desync,
     aim_desync, input_delivery, beam_aim, log_flood, peer_closed, scene_routes, lobby_roster,
     hud_layout, world_invariants, interp_smoothness, latency_recovery, rpc_modes, fair_start, soak, menu_flow, bot_takeover, peer_drop, profile_parity, loop_audio,
-    dedicated, accounts, net_security,
+    dedicated, accounts, net_security, agency, parity,
 )
 
 # Registry of oracle modules. Add modules here as they land.
@@ -70,6 +70,8 @@ ORACLES = {
     loop_audio.NAME: loop_audio,
     dedicated.NAME: dedicated,
     accounts.NAME: accounts,
+    agency.NAME: agency,
+    parity.NAME: parity,
 }
 
 
@@ -113,7 +115,7 @@ def select_oracles(scenario, override):
         names = scenario.get("oracles") or list(ORACLES)
         # T149/T150: every scenario (SKIP if n/a); T156 review runs (a rendered peer runs ~4x slow) opt out
         for auto in () if scenario.get("review") else ("world_invariants", "interp_smoothness", "fair_start", "peer_drop",
-                                                       "prediction_recon"):  # T205
+                                                       "prediction_recon", "agency", "parity"):  # T205, T555
             if auto not in names:
                 names = list(names) + [auto]
     known, unknown = [], []

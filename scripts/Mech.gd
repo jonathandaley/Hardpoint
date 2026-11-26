@@ -669,6 +669,7 @@ func _sync_health(h: float) -> void:
 # cockpit pod for the local player's own mech.
 @rpc("authority", "reliable")
 func _sync_death() -> void:
+	Game.sync_log_event("died_seen", name, {})  # T555 parity
 	if is_dead:
 		return
 	health = 0.0
@@ -1273,6 +1274,8 @@ func _apply_snapshot_interp() -> void:
 		torso.rotation.y = interp_torso_y
 		_camera_pitch = interp_pitch  # T329: a remote mech's guns tilt with its aim
 
+var _intent_firing := false  # T555: the last fire state logged as intent
+
 func _maybe_forward_input() -> void:
 	if not multiplayer.has_multiplayer_peer():
 		return
@@ -1283,13 +1286,22 @@ func _maybe_forward_input() -> void:
 	# T158 (B39): a press lasts ONE tick (is_action_just_pressed) but packets go out
 	# every 2nd tick, so sample every tick into cumulative counts. The counts ride
 	# every packet (V47: absolute, latest wins), so a lost packet can't lose a press.
+	# T555: what this pilot (player or bot) asked for, for the agency oracle -- logged here, on the
+	# owning client, for every input source; no-op unless the session is recorded
 	if _input_source.is_reload_pressed():
 		_press_counts[0] += 1
+		Game.sync_log_event("intent", name, {"action": "reload", "slot": -1})
 	if _input_source.is_ability_pressed():
 		_press_counts[1] += 1
+		Game.sync_log_event("intent", name, {"action": "ability", "slot": -1})
 	var st: int = _input_source.get_slot_toggle()
 	if st >= 0 and st < 4:
 		_press_counts[2 + st] += 1
+		Game.sync_log_event("intent", name, {"action": "slot", "slot": st})
+	var firing: bool = _input_source.is_firing_primary() or (_input_source.is_firing_secondary() and _active_set.has(true))
+	if firing != _intent_firing:
+		_intent_firing = firing
+		Game.sync_log_event("intent", name, {"action": "fire", "on": firing})
 	_net_input_tick += 1
 	if _net_input_tick % 2 != 0:
 		return
@@ -1704,6 +1716,7 @@ func _activate_ability(ability: Resource) -> void:
 	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
 		var slot := _abilities.find(ability)
 		if slot >= 0:
+			Game.sync_log_event("ability_on", name, {"slot": slot, "key": ability.effect_key})  # T555 parity / agency
 			_rpc_ability_activated.rpc(slot)
 
 ## The recharge after a use (or after a duration ability ends), the pilot's skill off (T332).
@@ -2112,6 +2125,7 @@ func _curve_speed(t: float) -> float:
 func _charge_press() -> void:
 	if lunging and _lunge_hit:
 		return
+	Game.sync_log_event("ability_on", name, {"slot": -1, "key": "charge"})  # T555 agency (a toggle: on or off)
 	if charging():
 		_charge_end_t = lunge_t
 		_charge_end_rpc(false)
@@ -2545,6 +2559,7 @@ func _jump_launch() -> void:
 func _rpc_ability_activated(slot: int) -> void:
 	if slot < 0 or slot >= _abilities.size():
 		return
+	Game.sync_log_event("ability_seen", name, {"slot": slot})  # T555 parity
 	var ability: Resource = _abilities[slot]
 	if ability.duration > 0.0:  # T468: the HUD's copies
 		_ability_active_timers[ability.effect_key] = ability.duration

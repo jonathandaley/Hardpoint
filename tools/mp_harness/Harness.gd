@@ -850,19 +850,45 @@ func _sync_role() -> String:
 # T152: drive this peer's own mech with the game's bot AI (as Arena does for a
 # disconnected player, _bot_ify_disconnected_mech). On a client the AI's input
 # goes through the real network path (_maybe_forward_input -> _rpc_input).
+# T555 (B-harness): until now these bots never moved -- the AI finds its mech as its parent's `pawn`
+# (a Player node, Arena._spawn_bot_player) but was parented to the mech itself, and on a client it
+# returned at once (T40: bots are server-side). Now it sits in a BotSeat (pawn + team, all the AI
+# reads of a Player) and drives_client lets it run on a client; a client bakes the navmesh it needs.
+class BotSeat extends Node:
+	var pawn: Node = null
+	var team: int = 0
+
+var _bot_seat: Node = null
+
 func _attach_bot(mech: Node) -> void:
+	var arena := get_tree().current_scene
+	if not multiplayer.is_server() and arena != null and arena.get("_nav_region") == null \
+			and arena.has_method("_create_nav_region"):
+		arena.call("_create_nav_region")  # clients bake no navmesh (only bots use it, T40)
 	if mech.get_node_or_null("NavAgent") == null:
 		var nav := NavigationAgent3D.new()
 		nav.name = "NavAgent"
 		nav.path_desired_distance = 1.5
 		nav.target_desired_distance = 2.5
 		mech.add_child(nav)
+	if _bot_seat != null and is_instance_valid(_bot_seat):
+		_bot_seat.queue_free()  # a fresh AI per mech: it reads its team and hooks `damaged` once (_find_targets)
+	_bot_seat = BotSeat.new()
+	_bot_seat.name = "HarnessBotSeat%d" % Engine.get_physics_frames()
+	_bot_seat.pawn = mech
+	_bot_seat.team = int(mech.get("team"))
 	var ai: Node = load("res://scripts/AIInputSource.gd").new()
 	ai.name = "HarnessBot"
 	ai.bot_id = 100 + int(Game.mp_active_match.get("roster", []).size())
-	mech.add_child(ai)
+	ai.set("drives_client", true)
+	_bot_seat.add_child(ai)
+	add_child(_bot_seat)
 	mech.set_input_source(ai)
 	ai.set_mp_seed(int(_scenario.get("seed", 0)) ^ multiplayer.get_unique_id())
+	var seat := _bot_seat
+	mech.died.connect(func() -> void:
+		if is_instance_valid(seat) and seat.pawn == mech:
+			seat.pawn = null, CONNECT_ONE_SHOT)  # a dead pawn steers nothing (as Player.on_pawn_destroyed)
 	print("[Harness] bot drives %s (%s)" % [mech.name, _key if _key != "" else _role])
 
 # T152: one perf/leak sample line (Performance monitors) for the soak oracle.

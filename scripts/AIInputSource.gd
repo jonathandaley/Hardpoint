@@ -96,6 +96,9 @@ var _los_blocked_time: float = 0.0  # seconds target has been LoS-blocked; drops
 var _rng: RandomNumberGenerator  # T98: seeded per-bot RNG; MP seed set by T104
 var bot_id: int = 0  # T104: unique bot id set by Arena at spawn; used for seed derivation
 var difficulty: int = -1  # T172: per-bot override (bot_eval); -1 = Game.settings bot_difficulty
+## T555: test harness only -- this bot flies a CLIENT's own mech, its input going to the server through
+## the real path (Mech._maybe_forward_input). The game never sets it: bots are server-side (T40).
+var drives_client := false
 
 func _ready() -> void:
 	_rng = RandomNumberGenerator.new()
@@ -622,7 +625,7 @@ var _think_n := 0  # T525: phase set from bot_id in _ready
 
 func _physics_process_impl(delta: float) -> void:
 	# T40: bots run server-only; clients receive mech state via replication, not AI.
-	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server() and not drives_client:
 		return
 	var bot_mech: Node3D = get_parent().get("pawn")
 	if bot_mech == null:
