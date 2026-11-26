@@ -51,7 +51,9 @@ def run(ctx):
                 bad.append("%s: rejoined but did not get its mech back (spectating=%s)" % (role, m.group(3)))
     # T167: host SIGKILLed -> every client must notice (peer timeout) and print its server_lost_check
     srv = os.path.join(ctx.get("run_dir") or "", "server.log")
-    if os.path.exists(srv) and "[Harness] action kill_client" in open(srv, errors="replace").read():
+    # T558: a link that went dark (scenario expect_server_lost) -> every client left on its own (silence)
+    if (ctx.get("scenario") or {}).get("expect_server_lost") or \
+            os.path.exists(srv) and "[Harness] action kill_client" in open(srv, errors="replace").read():
         for path in logs:
             if os.path.basename(path).startswith("client") and "server_lost_check" not in open(path, errors="replace").read():
                 quits += 1

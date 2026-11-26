@@ -1,0 +1,17 @@
+{
+  "name": "all_dead_quiet",
+  "seed": 5581,
+  "port": 8966,
+  "map_path": "res://resources/maps/MathTemple.tres",
+  "duration_ticks": 1200,
+  "actions": [
+    {"tick": 300, "peer": "server", "action": "kill_mech", "slot": "server"},
+    {"tick": 300, "peer": "server", "action": "kill_mech", "slot": "client_1"}
+  ],
+  "oracles": ["crash_scan", "log_flood", "peer_closed"],
+  "_comment": "T558: a 1v1 with no bots where both mechs die at once and neither pilot picks (both sit in the mech picker for ~13 s). No mech is alive, so the server has no snapshot to send -- with the silence check alive again (T558) the client would take that for a dead server after 6 s and leave mid-match (peer_drop, auto-added). The server sends an empty snapshot as a heartbeat instead.",
+  "peers": {
+    "server": {"input": {"keyframes": [{"tick": 0, "move": [0, -1], "look": [0.2, 0.0]}]}},
+    "client_1": {"input": {"keyframes": [{"tick": 0, "move": [0, 1], "look": [-0.2, 0.0]}]}}
+  }
+}

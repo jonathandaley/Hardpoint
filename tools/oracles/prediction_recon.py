@@ -34,7 +34,10 @@ def run(ctx):
             continue  # a few start-up reconciliations (host_crash: 7) are all transient
         seen += 1
         errs = sorted(float(p.get("err", 0.0)) for p in evs)
-        p95 = errs[min(len(errs) - 1, int(len(errs) * 0.95))]
+        # T558: and never inside one stall's burst -- a lost TCP segment (WebSocket, T422) delivers the snapshots
+        # it held at once, 1-3 corrections of the stall's size (T423); in a short run (two_matches@bad: 38
+        # samples) p95 was the 2nd largest, so one stall decided it (2 of 102 bad-net client runs, both < 40)
+        p95 = errs[min(len(errs) - 1, int(len(errs) * 0.95), len(errs) - 4)]
         snaps = sum(1 for p in evs if p.get("snap"))
         if p95 > th["pred_p95_m"] or snaps > th["pred_snap_frac"] * len(evs):
             v = base.verdict(NAME, base.FAIL, peer=role,

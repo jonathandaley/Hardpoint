@@ -16,7 +16,7 @@ LIFECYCLE = {"pause_quit", "kill_client", "rejoin", "return_to_lobby", "quit_to_
 
 def run(ctx):
     scen = ctx.get("scenario") or {}
-    if any(a.get("action") in LIFECYCLE for a in scen.get("actions", [])):
+    if any(a.get("action") in LIFECYCLE for a in scen.get("actions", [])) or scen.get("expect_server_lost"):
         return base.verdict(NAME, base.SKIP, note="scenario makes peers leave (bot_takeover / peer_closed judge it)")
     run_dir = ctx.get("run_dir") or ""
     path = os.path.join(run_dir, "server.log")

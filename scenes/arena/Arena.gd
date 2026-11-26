@@ -1950,8 +1950,8 @@ func _snapshot_tick() -> void:
 						e["le"] = -1.0 if is_inf(ce) else ce
 						e["lh"] = m.get("_lunge_hit")
 			snapshots.append(e)
-	if snapshots.is_empty():
-		return
+	# T558: no mech alive (all in the picker) still sends one -- empty -- so a client's silence check
+	# (_check_host_silence) never takes a quiet match for a dead server
 	for p in Game.stream_peers():  # T511: not into a client still loading the Arena
 		_rpc_snapshot.rpc_id(p, snapshots)
 
@@ -1969,7 +1969,7 @@ var _last_snapshot_ms := 0
 
 func _check_host_silence() -> void:
 	if _last_snapshot_ms == 0 or _match_over or multiplayer.is_server() \
-			or not multiplayer.multiplayer_peer is ENetMultiplayerPeer:
+			or not multiplayer.multiplayer_peer is WebSocketMultiplayerPeer:  # T558: was ENet, dead since T422
 		return
 	if Time.get_ticks_msec() - _last_snapshot_ms > HOST_SILENCE_MS:
 		_last_snapshot_ms = 0
@@ -1984,8 +1984,10 @@ func _check_host_silence() -> void:
 func _rpc_snapshot(snapshots: Array) -> void:
 	_last_snapshot_ms = Time.get_ticks_msec()  # T214
 	Game.server_heard = true  # B101: the server has us connected; our input may flow
+	if snapshots.is_empty():
+		return  # T558: the heartbeat of a match with no mech alive -- nothing to place, no clock sample
 	var now := Time.get_ticks_msec() * 0.001
-	var st: float = float(snapshots[0].get("st", now)) if not snapshots.is_empty() else now
+	var st: float = float(snapshots[0].get("st", now))
 	_snap_clock_offset = minf(_snap_clock_offset + 0.0002, now - st)
 	var local_t := st + _snap_clock_offset
 	for entry in snapshots:

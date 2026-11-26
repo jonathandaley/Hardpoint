@@ -820,7 +820,12 @@ var test_late_ready_delay_s := 0.0  # T557 test seam: the harness (peer "late_re
 
 ## Server: the clients the match streams (snapshots, beacon progress, scores) go to.
 func stream_peers() -> Array:
-	return Array(multiplayer.get_peers()).filter(func(p): return _stream_peers.has(p))
+	# T558: and only an OPEN socket -- a client mid-close (its run or game quitting) took every 20 Hz
+	# snapshot as an engine "ready_state != STATE_OPEN" error until the server dropped it (0-21 a close,
+	# by timing: friendly_fire@wifi log_flood, T557 sweep)
+	var ws := multiplayer.multiplayer_peer as WebSocketMultiplayerPeer
+	return Array(multiplayer.get_peers()).filter(func(p): return _stream_peers.has(p) and \
+		(ws == null or ws.get_peer(p) == null or ws.get_peer(p).get_ready_state() == WebSocketPeer.STATE_OPEN))
 var _await_acks: Array = []
 var _await_then: Callable = Callable()
 var _await_id: int = 0
