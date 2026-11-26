@@ -121,6 +121,8 @@ func _rpc_beam_fx(hit_pos: Vector3) -> void:
 			Game.sync_log_event("beam_check", owner_mech.name, info)
 
 func _start_laser_loop() -> void:
+	if not can_process():
+		return  # T565: a frozen mech (match over, dead) starts no loop -- it could never stop it
 	var stream := SoundManager.get_sfx_stream("laser_loop")
 	if stream == null:
 		return

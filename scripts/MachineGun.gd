@@ -123,6 +123,8 @@ func _update_barrel_glow() -> void:
 	_glow_mat.albedo_color = c
 
 func _start_mg_loop() -> void:
+	if not can_process():
+		return  # T565: a frozen mech (match over, dead) starts no loop -- it could never stop it
 	var stream := SoundManager.get_sfx_stream("machinegun_fire")
 	if stream == null:
 		return

@@ -173,6 +173,8 @@ func _rpc_beam_fx(target_pos: Vector3) -> void:
 	_beam_fx(target_pos)
 
 func _start_arc_loop() -> void:
+	if not can_process():
+		return  # T565: a frozen mech (match over, dead) starts no loop -- it could never stop it
 	var stream := SoundManager.get_sfx_stream("arc_loop")
 	if stream == null:
 		return

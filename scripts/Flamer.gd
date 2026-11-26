@@ -72,6 +72,8 @@ func _show_flame() -> void:
 var _loop_player: AudioStreamPlayer3D = null
 
 func _start_loop() -> void:
+	if not can_process():
+		return  # T565: a frozen mech (match over, dead) starts no loop -- it could never stop it
 	var stream := SoundManager.get_sfx_stream("flamer_loop")
 	if stream == null:
 		return
