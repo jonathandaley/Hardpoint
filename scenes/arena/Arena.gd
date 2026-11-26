@@ -1162,10 +1162,11 @@ func _ride_pod(pod: Node3D) -> void:
 	_ride_cam.current = true
 	var last := pod.global_position
 	var t0 := Time.get_ticks_msec()
-	while Time.get_ticks_msec() - t0 < int(POD_RIDE_S * 1000.0) and is_instance_valid(pod) and is_instance_valid(_ride_cam):
+	while Time.get_ticks_msec() - t0 < int(POD_RIDE_S * 1000.0) and is_instance_valid(pod) and is_instance_valid(_ride_cam) \
+			and is_inside_tree():
 		await get_tree().process_frame
-		if not is_instance_valid(pod) or not is_instance_valid(_ride_cam):
-			break
+		if not is_inside_tree() or not is_instance_valid(pod) or not is_instance_valid(_ride_cam) or not pod.is_inside_tree():
+			break  # T559: the Arena (or the pod) left the tree mid-ride -- BACK TO LOBBY
 		var p := pod.global_position
 		_ride_cam.global_position += (p - last) * 0.9  # ride up with it, a touch behind
 		last = p

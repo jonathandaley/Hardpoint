@@ -86,12 +86,16 @@ const STREAK_M := 4.0
 const STREAK_R := 0.13
 const STREAK_COLOR := Color(1.0, 0.85, 0.35)
 var _streak: Array = []
+var _streaks_made := 0
 
 func streak(n: Node3D) -> void:
 	_streak.append(n)
+	_streaks_made += 1
 
-func streaks() -> int:  # probes
-	return _streak.size()
+## Streaks made so far (probe tracer_rounds). Was the live count, which a streak expiring in the same
+## frame as a new one left flat (a tracer_rounds flake, T557 suite).
+func streaks() -> int:
+	return _streaks_made
 
 var _ids := 0
 
