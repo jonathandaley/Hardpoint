@@ -57,3 +57,4 @@
 2026-11-25|T558|DONE (local)|(this commit)|host-silence check on WebSocket again + an empty snapshot heartbeat when no mech is alive + no snapshots into a closing socket + recon p95 ignores one stall burst; server_silent / all_dead_quiet red -> green; suite + sweep pending (with T557, T559)
 2026-11-25|T559|DONE (local)|(this commit)|_ride_pod stops when the Arena leaves; probe pod_ride_exit red -> green; FxPool.streaks counts made (tracer_rounds flake) 3/3
 2026-11-25|T557-T559|PUSHED|(these commits)|suite 246/246 incl. security 47/0; --net wifi,bad 92/94 -- both misses server_silent with its outage swept away -> "own_net" (run_suite skips it under --net), rerun PASS
+2026-11-26|T560|DONE|(this commit)|Kestrel default slot 2 = RifleLight (was the ProjectileGun prototype the hangar never showed); probe mech_default_weapons red (Kestrel only) -> green; suite 247/247, security 47/0
