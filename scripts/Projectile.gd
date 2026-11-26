@@ -165,6 +165,7 @@ func _splash(direct: Object) -> void:
 			continue
 		var dist: float = mech_distance(mech as Node3D, global_position)
 		if dist < splash_radius:
+			Game.sync_log_event("splash", mech.name, {})  # T555: hit_confirm skips splash (it shows no hit-X)
 			mech.take_damage(splash_damage * (1.0 - dist / splash_radius), source_weapon)
 
 # T327 (user 2026-11-05 "Yes" to measuring splash to the nearest point of the mech): distance

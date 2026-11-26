@@ -59,6 +59,9 @@ def build(seed, net=None):
         "server_opts": {"team_size": team_size, "min_players": clients, "bot_fill": rng.random() < 0.7},
         "net": None if net == "clean" else net,
         "peers": {"server": {}}, "actions": [], "oracles": list(ORACLES),
+        # B123: bot-flown clients brawl -- a predicting client brushing a remote mech (where it sees it, a few
+        # ticks in the past) spikes its error; dedicated_server allows the same (chaos_17: p95 0.17 clean)
+        "thresholds": {"pred_p95_m": 0.25},
     }
     scen["server_opts"]["map_path"] = scen["map_path"]
     scen["server_opts"]["mode"] = scen["mode"]
@@ -79,8 +82,11 @@ def build(seed, net=None):
         if rng.random() < 0.25:
             acts.append({"tick": rng.randint(200, dur - 200), "peer": key, "action": "mark"})
     if matches == 2:
-        acts.append({"tick": rng.randint(dur // 2, dur - 300), "peer": "server", "action": "end_match",
-                     "winner": rng.randint(0, 1), "match": 1})
+        end = rng.randint(dur // 2, dur - 300)
+        acts.append({"tick": end, "peer": "server", "action": "end_match", "winner": rng.randint(0, 1), "match": 1})
+        for a in acts:  # match 1's actions inside match 1 (chaos_19: an F9 on the results screen has no match to mark)
+            if a["action"] != "end_match":
+                a["tick"] = min(a["tick"], end - 120)
     if left:
         scen["oracles"] += ["peer_closed", "bot_takeover"]
     # ponytail: no profile_parity -- its formula leaves out skill bonuses, kill coins and bot opponents

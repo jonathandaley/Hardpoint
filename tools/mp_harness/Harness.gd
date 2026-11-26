@@ -86,6 +86,7 @@ func _ready() -> void:
 	_matches = int(_scenario.get("matches", 1))
 	Game.test_skip_arena_ack = _role == "client" and bool(_scenario.get("skip_ack_client", false))  # T511
 	Game.harness_start_pick = bool(_scenario.get("start_pick", false))  # T519: run the real start pick
+	Game.harness_client_nav = _role != "server" and bool(_scenario.get("peers", {}).get(_sync_role(), {}).get("bot", false))  # T555: bake while loading
 	Game.test_late_ready_delay_s = float(_scenario.get("peers", {}).get(_sync_role(), {}).get("late_ready_delay_s", 0.0))  # T557
 	var peers: Dictionary = _scenario.get("peers", {})
 	_expected_clients = 0
@@ -1009,6 +1010,10 @@ func _attach_bot(mech: Node) -> void:
 		nav.target_desired_distance = 2.5
 		mech.add_child(nav)
 	if _bot_seat != null and is_instance_valid(_bot_seat):
+		var old_ai := _bot_seat.get_node_or_null("HarnessBot")
+		for m in get_tree().get_nodes_in_group("mechs"):  # the dead mech it flew still has it as input
+			if m.get("_input_source") == old_ai:  # (Mortar._process read the freed AI, chaos_17)
+				m.set_input_source(null)
 		_bot_seat.queue_free()  # a fresh AI per mech: it reads its team and hooks `damaged` once (_find_targets)
 	_bot_seat = BotSeat.new()
 	_bot_seat.name = "HarnessBotSeat%d" % Engine.get_physics_frames()

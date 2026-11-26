@@ -145,10 +145,26 @@ def load_run(run_dir):
     server_snaps = raw.get("server", ([],))[0]
     peers = {}
     for role, (snaps, events, beacons) in raw.items():
-        off = 0 if role == "server" else tick_offset(server_snaps, snaps)
-        if off:
-            _shift(snaps, off), _shift(events, off), _shift(beacons, off)
+        off = 0
         if role != "server":
+            # T555 (chaos_20 / chaos_22): each stretch between gaps (a rejoin) gets its own offset -- the
+            # client's tick counter counts physics frames, and a stalled load (2.6 s on Badlands) between
+            # the stretches put the second one 158 ticks behind the wall clock: one offset for the whole
+            # log was the second stretch's (the longer one) and shifted the first by 2.6 s
+            ticks = sorted({s["tick"] for s in snaps})
+            cuts = [b for a, b in zip(ticks, ticks[1:]) if b - a > REJOIN_GAP_TICKS]
+            bounds = [None] + cuts + [None]
+            segs = [(bounds[k], bounds[k + 1]) for k in range(len(bounds) - 1)]
+
+            def seg_of(t):
+                return next(k for k, (lo, hi) in enumerate(segs) if (lo is None or t >= lo) and (hi is None or t < hi))
+            offs = [tick_offset(server_snaps, [s for s in snaps if seg_of(s["tick"]) == k]) for k in range(len(segs))]
+            off = offs[0]
+            for rows in (snaps, events, beacons):  # all offsets from the raw ticks first, then shift
+                for r in rows:
+                    o = offs[seg_of(r["tick"])]
+                    r["tick_local"] = r["tick"]
+                    r["tick"] = r["tick"] + o
             snaps = _drop_rejoin_settle(snaps)
         peers[role] = PeerLog(role, snaps, events, beacons)
         peers[role].offset = off

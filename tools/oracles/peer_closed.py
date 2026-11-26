@@ -15,6 +15,24 @@ from . import base
 NAME = "peer_closed"
 
 
+def _died_while_away(ctx, new_id):
+    """T555 (chaos_20 / chaos_22): the bot flew the rejoiner's mech meanwhile and it died -> the rejoiner
+    rightly gets the mech picker (spectating), not its mech. True when the server log says `new_id` took
+    back an old peer's slot and a mech that old peer owned died on the server."""
+    run_dir = ctx.get("run_dir") or ""
+    try:
+        text = open(os.path.join(run_dir, "server.log"), errors="replace").read()
+    except OSError:
+        return False
+    m = re.search(r"\[Arena\] rejoin: peer %d takes back the slot of (\d+)" % new_id, text)
+    server = (ctx.get("primary") or {}).get("server")
+    if m is None or server is None:
+        return False
+    old = int(m.group(1))
+    mine = {s["mech_id"] for s in server.snaps if s.get("owner") in (old, new_id)}
+    return any(e.get("type") == "died" and e.get("mech_id") in mine for e in server.events)
+
+
 def run(ctx):
     logs = sorted(glob.glob(os.path.join(ctx.get("run_dir") or "", "*.log")))
     quits, bad = 0, []
@@ -47,7 +65,7 @@ def run(ctx):
             m = re.search(r"\[Harness\] rejoined peer=(\d+) mech=(\S+) spectating=(\w+)", text)
             if m is None:
                 bad.append("%s: rejoin never got back into the match" % role)
-            elif m.group(2) == "none":
+            elif m.group(2) == "none" and not _died_while_away(ctx, int(m.group(1))):
                 bad.append("%s: rejoined but did not get its mech back (spectating=%s)" % (role, m.group(3)))
     # T167: host SIGKILLed -> every client must notice (peer timeout) and print its server_lost_check
     srv = os.path.join(ctx.get("run_dir") or "", "server.log")

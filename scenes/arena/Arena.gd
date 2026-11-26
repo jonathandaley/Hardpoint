@@ -101,6 +101,8 @@ func _ready() -> void:
 	if DisplayServer.get_name() != "headless":  # T424: fewer draw calls (servers / test runs draw nothing; ~0.1 s)
 		_map.merge_static_meshes()
 	_wire_beacons()
+	if Game.harness_client_nav and not multiplayer.is_server():
+		_create_nav_region()  # T555 seam: a harness bot flies this client's mech -- bake while loading (before the ack), not mid-match
 	if late != null:
 		_apply_late_beacons(late)
 		_setup_late_player(late)

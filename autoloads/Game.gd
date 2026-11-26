@@ -816,6 +816,7 @@ var mp_live: bool = false
 var _stream_peers := {}
 var harness_start_pick := false  # T519 test seam: scripted runs normally skip the start pick; the start_pick scenario runs it
 var test_skip_arena_ack := false  # T511 test seam: the harness (scenario "skip_ack_client") loses this client's Arena ack
+var harness_client_nav := false  # T555 test seam: a harness bot flies this client's mech -> bake the navmesh while loading
 var test_late_ready_delay_s := 0.0  # T557 test seam: the harness (peer "late_ready_delay_s") stretches a late join's load
 
 ## Server: the clients the match streams (snapshots, beacon progress, scores) go to.

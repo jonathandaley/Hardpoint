@@ -54,8 +54,11 @@ def run(ctx):
         client = primary[role]
         for mid in client.mech_ids:
             for field in ("lock_target", "eligible"):
+                # T555 (chaos_20): a dead mech shows no lock box; its stale lock state (kept by the server and
+                # by clients that saw it die, None on a rejoiner built from the late state) isn't a desync
                 series = base.cross_series(server, client, mid,
-                                           lambda ss, cs, f=field: 1.0 if ss.get(f) != cs.get(f) else 0.0)
+                                           lambda ss, cs, f=field: 1.0 if ss.get(f) != cs.get(f)
+                                           and float(ss.get("health", 1)) > 0.0 else 0.0)
                 onset = base.first_persistent_run(series, 0.5, persist)
                 if onset is None:
                     continue
