@@ -124,6 +124,7 @@ func _physics_process_impl(delta: float) -> void:
 				var dist: float = Projectile.mech_distance(mech as Node3D, result.position)  # T327
 				if dist < splash_radius:
 					mech.take_damage(splash_damage * (1.0 - dist / splash_radius), source_weapon)
+					Projectile.confirm_splash(source_weapon, mech)  # T561
 		queue_free()
 		return
 

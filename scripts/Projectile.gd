@@ -165,8 +165,14 @@ func _splash(direct: Object) -> void:
 			continue
 		var dist: float = mech_distance(mech as Node3D, global_position)
 		if dist < splash_radius:
-			Game.sync_log_event("splash", mech.name, {})  # T555: hit_confirm skips splash (it shows no hit-X)
 			mech.take_damage(splash_damage * (1.0 - dist / splash_radius), source_weapon)
+			confirm_splash(source_weapon, mech)
+
+## T561 (user: "Splash should show hit."): splash flashes the shooter's hit-X like a direct hit, sparks on
+## the victim; no impact sound (the blast has its own). Not on_hit: Swarm's also rolls a split.
+static func confirm_splash(weapon: Node, mech: Node) -> void:
+	if is_instance_valid(weapon) and weapon.is_inside_tree() and weapon.has_method("_emit_hit_if_visible"):
+		weapon._emit_hit_if_visible(mech, Vector3.ZERO, false)
 
 # T327 (user 2026-11-05 "Yes" to measuring splash to the nearest point of the mech): distance
 # from p to the mech's collision capsule (0 inside it) -- it was to the mech's origin at its

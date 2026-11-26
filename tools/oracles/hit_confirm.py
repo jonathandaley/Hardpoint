@@ -52,18 +52,9 @@ def run(ctx):
         for role in clients
     }
 
-    # T555 (chaos_16 / chaos_21): splash damage (Projectile._splash) never sends a confirm -- the hit-X is for
-    # the shot that struck; the server logs `splash` for the victim just before such a hit
-    splash = {}
-    for e in server.events:
-        if e.get("type") == "splash":
-            splash[(e["tick"], e["mech_id"])] = splash.get((e["tick"], e["mech_id"]), 0) + 1
-    checked = 0
+    checked = 0  # T561: splash hits included -- they flash the hit-X too (user)
     for e in sorted((e for e in server.events if e.get("type") == "hit"),
                     key=lambda e: e["tick"]):
-        if splash.get((e["tick"], e["mech_id"]), 0) > 0:
-            splash[(e["tick"], e["mech_id"])] -= 1
-            continue
         src = (e.get("payload") or {}).get("src")
         role = role_by_peer.get(owner_by_mech.get(src))
         if role is None:

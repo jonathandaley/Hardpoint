@@ -19,12 +19,13 @@
     "team_assignment",
     "crash_scan",
     "log_flood",
-    "rpc_integrity"
+    "rpc_integrity",
+    "hit_confirm"
   ],
   "thresholds": {
     "pred_snap_frac": 0.01
   },
-  "_comment": "T458: both peers fly Vesuvius with three MORTAR HV. The server's mech is put 8 m in front of the client's, facing it (place_mech ahead), and both hold the trigger (ticks 200-560): T532: both first wheel the range down to its 8 m minimum (ticks 100-110, -5 steps a tick; the client's lob_range rides its input payload) and shells land 8 m along each one's horizontal aim, by the other mech; the server's shells burst on or by the client's mech (health_desync: hits and splash reach the client), every peer sees every shell fly (_rpc_shell, reliable) and burst (crash_scan / rpc_integrity), ammo runs down and reloads (ammo sync).",
+  "_comment": "T458: both peers fly Vesuvius with three MORTAR HV. The server's mech is put 8 m in front of the client's, facing it (place_mech ahead), and both hold the trigger (ticks 200-560): T532: both first wheel the range down to its 8 m minimum (ticks 100-110, -5 steps a tick; the client's lob_range rides its input payload) and shells land 8 m along each one's horizontal aim, by the other mech; the server's shells burst on or by the client's mech (health_desync: hits and splash reach the client), every peer sees every shell fly (_rpc_shell, reliable) and burst (crash_scan / rpc_integrity), ammo runs down and reloads (ammo sync). T561: hit_confirm -- each of the client's hits, splash ones included (6 of its 9 before T561, never confirmed), flashes its hit-X.",
   "peers": {
     "server": {
       "input": {
