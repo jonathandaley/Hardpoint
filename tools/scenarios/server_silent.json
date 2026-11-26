@@ -6,6 +6,7 @@
   "duration_ticks": 1500,
   "net": {"latency_ms": 20, "jitter_ms": 2, "outage": [14.0, 30.0]},
   "expect_server_lost": true,
+  "own_net": true,
   "thresholds": {"interp_max_stall": 1.0},
   "_thresholds": "the outage freezes every remote mech on the client for the 6 s it takes to give up -- the point of the scenario, not a smoothness bug",
   "oracles": ["peer_closed", "crash_scan", "log_flood"],

@@ -108,6 +108,8 @@ def _run_scenarios(args, scenarios, net, label, results):
             continue  # T152: soaks run on request (--soak / --only), not every verify
         if scen.get("review") and not (args.only and name in args.only):
             continue  # T156: rendered screenshot runs are for review, not verdicts
+        if scen.get("own_net") and net is not None:
+            continue  # T558: its point is its own net (an outage); a --net profile would replace it
         todo.append((spath, scen, name))
     slots = queue.Queue()
     for k in range(max(1, args.scen_jobs)):
